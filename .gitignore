@@ -1,0 +1,17 @@
+build/
+history/
+logs/
+temp/
+*.log
+*.tmp
+.DS_Store
+.vscode/
+.idea/
+node_modules/
+dist/
+.env
+*.bak
+*.swp
+*.class
+*.exe
+*.dll
