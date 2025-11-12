@@ -1,3 +1,4 @@
+```
    ____  _   _  ____    _      _________ _____ ____  
   / ___|| | | ||  _ \  / \    |__  / ___|_   _|  _ \ 
  | |    | | | || | | |/ _ \     / /\___ \ | | | | | |
@@ -6,7 +7,7 @@
                                                       
   GPU-Accelerated Zstandard Compression Library
 ```
-
+```
 [![CUDA](https://img.shields.io/badge/CUDA-11.0%2B-76B900?logo=nvidia)](https://developer.nvidia.com/cuda-toolkit)
 [![C++](https://img.shields.io/badge/C%2B%2B-14-00599C?logo=c%2B%2B)](https://isocpp.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -138,6 +139,7 @@ Level 13+  (Ultra):     60-70% GPU utilization, algorithm complexity
 ### High-Level Design
 
 ```
+```
 ┌─────────────────────────────────────────────────────────────┐
 │                     APPLICATION LAYER                        │
 │  (User Code: C++ or C API, Streaming/Batch/Single-Shot)    │
@@ -172,6 +174,7 @@ Level 13+  (Ultra):     60-70% GPU utilization, algorithm complexity
 │                  CUDA KERNEL LAYER                           │
 │  (Parallel Hash Tables, GPU Primitives, Memory Ops)        │
 └─────────────────────────────────────────────────────────────┘
+```
 ```
 
 ### Component Overview
@@ -208,6 +211,7 @@ OUTPUT DATA ← Frame Header ← Huffman ← FSE ← Sequence Compression
 
 ## 📁 Project Structure
 
+```
 ```
 cuda-zstd/
 ├── include/                      # Public header files
@@ -272,6 +276,7 @@ cuda-zstd/
 └── CODE_ANALYSIS.md             # Development analysis
 ```
 
+```
 **31 source files** | **14 header files** | **4,500+ lines of test code** | **90%+ code coverage**
 
 ---
