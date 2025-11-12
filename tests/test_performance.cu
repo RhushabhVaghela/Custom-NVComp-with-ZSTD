@@ -1,0 +1,705 @@
+// ============================================================================
+// test_performance.cu - Comprehensive Performance & Profiling Tests
+// ============================================================================
+
+#include "cuda_zstd_manager.h"
+#include "cuda_zstd_types.h"
+#include <cuda_runtime.h>
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+#include <iomanip>
+#include <fstream>
+#include <cmath>
+
+using namespace cuda_zstd;
+
+// ============================================================================
+// Test Logging Utilities
+// ============================================================================
+
+#define LOG_TEST(name) std::cout << "\n[TEST] " << name << std::endl
+#define LOG_INFO(msg) std::cout << "  [INFO] " << msg << std::endl
+#define LOG_PASS(name) std::cout << "  [PASS] " << name << std::endl
+#define LOG_FAIL(name, msg) std::cerr << "  [FAIL] " << name << ": " << msg << std::endl
+#define ASSERT_TRUE(cond, msg) if (!(cond)) { LOG_FAIL(__func__, msg); return false; }
+#define ASSERT_STATUS(status, msg) if ((status) != Status::SUCCESS) { LOG_FAIL(__func__, msg); return false; }
+
+void print_separator() {
+    std::cout << "========================================" << std::endl;
+}
+
+// ============================================================================
+// Timing Utilities
+// ============================================================================
+
+class Timer {
+public:
+    void start() {
+        start_time_ = std::chrono::high_resolution_clock::now();
+    }
+    
+    double elapsed_ms() const {
+        auto end = std::chrono::high_resolution_clock::now();
+        return std::chrono::duration<double, std::milli>(end - start_time_).count();
+    }
+    
+private:
+    std::chrono::high_resolution_clock::time_point start_time_;
+};
+
+class CudaTimer {
+public:
+    CudaTimer() {
+        cudaEventCreate(&start_);
+        cudaEventCreate(&stop_);
+    }
+    
+    ~CudaTimer() {
+        cudaEventDestroy(start_);
+        cudaEventDestroy(stop_);
+    }
+    
+    void start(cudaStream_t stream = 0) {
+        cudaEventRecord(start_, stream);
+    }
+    
+    float elapsed_ms(cudaStream_t stream = 0) {
+        cudaEventRecord(stop_, stream);
+        cudaEventSynchronize(stop_);
+        float ms;
+        cudaEventElapsedTime(&ms, start_, stop_);
+        return ms;
+    }
+    
+private:
+    cudaEvent_t start_, stop_;
+};
+
+// ============================================================================
+// Data Generation
+// ============================================================================
+
+void generate_test_data(std::vector<uint8_t>& data, size_t size, const char* pattern) {
+    data.resize(size);
+    if (strcmp(pattern, "compressible") == 0) {
+        for (size_t i = 0; i < size; i++) {
+            data[i] = static_cast<uint8_t>(i % 64);
+        }
+    } else if (strcmp(pattern, "text") == 0) {
+        const char* text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ";
+        size_t len = strlen(text);
+        for (size_t i = 0; i < size; i++) {
+            data[i] = text[i % len];
+        }
+    } else {
+        // random
+        for (size_t i = 0; i < size; i++) {
+            data[i] = static_cast<uint8_t>((i * 1103515245 + 12345) & 0xFF);
+        }
+    }
+}
+
+// ============================================================================
+// TEST SUITE 1: Component Timing
+// ============================================================================
+
+bool test_compression_timing_breakdown() {
+    LOG_TEST("Compression Timing Breakdown");
+    
+    const size_t data_size = 1024 * 1024; // 1MB
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_output, data_size * 2);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    auto manager = create_manager(5);
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    cudaMalloc(&d_temp, temp_size);
+    
+    // Enable profiling
+    PerformanceProfiler::enable_profiling(true);
+    PerformanceProfiler::reset_metrics();
+    
+    size_t compressed_size;
+    CudaTimer timer;
+    timer.start();
+    
+    Status status = manager->compress(d_input, data_size, d_output, &compressed_size,
+                                     d_temp, temp_size, nullptr, 0, 0);
+    
+    float total_time = timer.elapsed_ms();
+    
+    ASSERT_STATUS(status, "Compression failed");
+    
+    // Get detailed metrics
+    const auto& metrics = PerformanceProfiler::get_metrics();
+    
+    LOG_INFO("=== Timing Breakdown ===");
+    LOG_INFO("Total time: " << std::fixed << std::setprecision(2) << total_time << " ms");
+    LOG_INFO("LZ77 time: " << metrics.lz77_time_ms << " ms");
+    LOG_INFO("FSE encode time: " << metrics.fse_encode_time_ms << " ms");
+    LOG_INFO("Huffman encode time: " << metrics.huffman_encode_time_ms << " ms");
+    LOG_INFO("Sequence generation: " << metrics.sequence_generation_time_ms << " ms");
+    
+    double component_sum = metrics.lz77_time_ms + metrics.fse_encode_time_ms + 
+                          metrics.huffman_encode_time_ms + metrics.sequence_generation_time_ms;
+    
+    LOG_INFO("Component sum: " << std::fixed << std::setprecision(2) << component_sum << " ms");
+    LOG_INFO("Overhead: " << (total_time - component_sum) << " ms");
+    
+    cudaFree(d_input);
+    cudaFree(d_output);
+    cudaFree(d_temp);
+    
+    PerformanceProfiler::enable_profiling(false);
+    
+    LOG_PASS("Compression Timing Breakdown");
+    return true;
+}
+
+bool test_decompression_timing() {
+    LOG_TEST("Decompression Timing");
+    
+    const size_t data_size = 1024 * 1024;
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_compressed, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_compressed, data_size * 2);
+    cudaMalloc(&d_output, data_size);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    auto manager = create_manager(5);
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    cudaMalloc(&d_temp, temp_size);
+    
+    // Compress first
+    size_t compressed_size;
+    Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
+                                     d_temp, temp_size, nullptr, 0, 0);
+    ASSERT_STATUS(status, "Compression failed");
+    
+    LOG_INFO("Compressed: " << data_size << " -> " << compressed_size << " bytes");
+    
+    // Time decompression
+    PerformanceProfiler::enable_profiling(true);
+    PerformanceProfiler::reset_metrics();
+    
+    CudaTimer timer;
+    timer.start();
+    
+    size_t decompressed_size;
+    status = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
+                                 d_temp, temp_size);
+    
+    float decomp_time = timer.elapsed_ms();
+    
+    ASSERT_STATUS(status, "Decompression failed");
+    
+    const auto& metrics = PerformanceProfiler::get_metrics();
+    
+    LOG_INFO("=== Decompression Timing ===");
+    LOG_INFO("Total time: " << std::fixed << std::setprecision(2) << decomp_time << " ms");
+    LOG_INFO("Entropy decode time: " << metrics.entropy_decode_time_ms << " ms");
+    LOG_INFO("Throughput: " << (data_size / (1024.0 * 1024.0)) / (decomp_time / 1000.0) << " MB/s");
+    
+    cudaFree(d_input);
+    cudaFree(d_compressed);
+    cudaFree(d_output);
+    cudaFree(d_temp);
+    
+    PerformanceProfiler::enable_profiling(false);
+    
+    LOG_PASS("Decompression Timing");
+    return true;
+}
+
+// ============================================================================
+// TEST SUITE 2: Throughput Metrics
+// ============================================================================
+
+bool test_compression_throughput() {
+    LOG_TEST("Compression Throughput Across Levels");
+    
+    const size_t data_size = 4 * 1024 * 1024; // 4MB
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_output, data_size * 2);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    std::cout << "\n  Level | Time (ms) | Throughput (MB/s) | Ratio | Size (KB)\n";
+    std::cout << "  ------|-----------|-------------------|-------|----------\n";
+    
+    std::vector<int> levels = {1, 3, 5, 9, 15, 19};
+    
+    for (int level : levels) {
+        auto manager = create_manager(level);
+        size_t temp_size = manager->get_compress_temp_size(data_size);
+        cudaMalloc(&d_temp, temp_size);
+        
+        CudaTimer timer;
+        timer.start();
+        
+        size_t compressed_size;
+        Status status = manager->compress(d_input, data_size, d_output, &compressed_size,
+                                         d_temp, temp_size, nullptr, 0, 0);
+        
+        float time_ms = timer.elapsed_ms();
+        
+        if (status == Status::SUCCESS) {
+            double throughput = (data_size / (1024.0 * 1024.0)) / (time_ms / 1000.0);
+            float ratio = get_compression_ratio(data_size, compressed_size);
+            
+            std::cout << "  " << std::setw(5) << level
+                     << " | " << std::setw(9) << std::fixed << std::setprecision(2) << time_ms
+                     << " | " << std::setw(17) << std::fixed << std::setprecision(1) << throughput
+                     << " | " << std::setw(5) << std::fixed << std::setprecision(2) << ratio
+                     << " | " << std::setw(8) << compressed_size / 1024 << "\n";
+        }
+        
+        cudaFree(d_temp);
+    }
+    
+    cudaFree(d_input);
+    cudaFree(d_output);
+    
+    LOG_PASS("Compression Throughput");
+    return true;
+}
+
+bool test_decompression_throughput() {
+    LOG_TEST("Decompression Throughput");
+    
+    const size_t data_size = 4 * 1024 * 1024;
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_compressed, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_compressed, data_size * 2);
+    cudaMalloc(&d_output, data_size);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    auto manager = create_manager(5);
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    cudaMalloc(&d_temp, temp_size);
+    
+    // Compress
+    size_t compressed_size;
+    manager->compress(d_input, data_size, d_compressed, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    
+    // Decompress multiple times for average
+    const int num_iterations = 10;
+    double total_time = 0;
+    
+    for (int i = 0; i < num_iterations; i++) {
+        CudaTimer timer;
+        timer.start();
+        
+        size_t decompressed_size;
+        manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
+                           d_temp, temp_size);
+        
+        total_time += timer.elapsed_ms();
+    }
+    
+    double avg_time = total_time / num_iterations;
+    double throughput = (data_size / (1024.0 * 1024.0)) / (avg_time / 1000.0);
+    
+    LOG_INFO("Average decompression time: " << std::fixed << std::setprecision(2) << avg_time << " ms");
+    LOG_INFO("Decompression throughput: " << std::fixed << std::setprecision(1) << throughput << " MB/s");
+    
+    cudaFree(d_input);
+    cudaFree(d_compressed);
+    cudaFree(d_output);
+    cudaFree(d_temp);
+    
+    LOG_PASS("Decompression Throughput");
+    return true;
+}
+
+bool test_memory_bandwidth() {
+    LOG_TEST("Memory Bandwidth Measurement");
+    
+    const size_t data_size = 16 * 1024 * 1024; // 16MB
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_output, data_size * 2);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    auto manager = create_manager(5);
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    cudaMalloc(&d_temp, temp_size);
+    
+    PerformanceProfiler::enable_profiling(true);
+    PerformanceProfiler::reset_metrics();
+    
+    size_t compressed_size;
+    Status status = manager->compress(d_input, data_size, d_output, &compressed_size,
+                                     d_temp, temp_size, nullptr, 0, 0);
+    ASSERT_STATUS(status, "Compression failed");
+    
+    const auto& metrics = PerformanceProfiler::get_metrics();
+    
+    LOG_INFO("=== Memory Bandwidth ===");
+    LOG_INFO("Read bandwidth: " << std::fixed << std::setprecision(2) 
+             << metrics.read_bandwidth_gbps << " GB/s");
+    LOG_INFO("Write bandwidth: " << std::fixed << std::setprecision(2)
+             << metrics.write_bandwidth_gbps << " GB/s");
+    LOG_INFO("Total bandwidth: " << std::fixed << std::setprecision(2)
+             << metrics.total_bandwidth_gbps << " GB/s");
+    
+    cudaFree(d_input);
+    cudaFree(d_output);
+    cudaFree(d_temp);
+    
+    PerformanceProfiler::enable_profiling(false);
+    
+    LOG_PASS("Memory Bandwidth");
+    return true;
+}
+
+// ============================================================================
+// TEST SUITE 3: Profiling API Tests
+// ============================================================================
+
+bool test_profiler_enable_disable() {
+    LOG_TEST("Profiler Enable/Disable");
+    
+    // Initially disabled
+    bool initially_enabled = PerformanceProfiler::is_profiling_enabled();
+    LOG_INFO("Initially enabled: " << (initially_enabled ? "yes" : "no"));
+    
+    // Enable
+    PerformanceProfiler::enable_profiling(true);
+    ASSERT_TRUE(PerformanceProfiler::is_profiling_enabled(), "Should be enabled");
+    LOG_INFO("✓ Profiling enabled");
+    
+    // Disable
+    PerformanceProfiler::enable_profiling(false);
+    ASSERT_TRUE(!PerformanceProfiler::is_profiling_enabled(), "Should be disabled");
+    LOG_INFO("✓ Profiling disabled");
+    
+    LOG_PASS("Profiler Enable/Disable");
+    return true;
+}
+
+bool test_named_timers() {
+    LOG_TEST("Named Timer Accuracy");
+    
+    PerformanceProfiler::enable_profiling(true);
+    PerformanceProfiler::reset_metrics();
+    
+    // Test named timers
+    PerformanceProfiler::start_timer("test_operation");
+    
+    // Simulate work
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    PerformanceProfiler::stop_timer("test_operation");
+    
+    double elapsed = PerformanceProfiler::get_timer_ms("test_operation");
+    
+    LOG_INFO("Named timer 'test_operation': " << std::fixed << std::setprecision(2) 
+             << elapsed << " ms");
+    
+    ASSERT_TRUE(elapsed >= 90.0 && elapsed <= 150.0, "Timer should be ~100ms");
+    LOG_INFO("✓ Named timer accurate");
+    
+    PerformanceProfiler::enable_profiling(false);
+    
+    LOG_PASS("Named Timer Accuracy");
+    return true;
+}
+
+bool test_metrics_reset() {
+    LOG_TEST("Metrics Reset");
+    
+    const size_t data_size = 1024 * 1024;
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_output, data_size * 2);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    auto manager = create_manager(3);
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    cudaMalloc(&d_temp, temp_size);
+    
+    PerformanceProfiler::enable_profiling(true);
+    PerformanceProfiler::reset_metrics();
+    
+    // Run compression
+    size_t compressed_size;
+    manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    
+    auto metrics_before = PerformanceProfiler::get_metrics();
+    LOG_INFO("Before reset - total time: " << metrics_before.total_time_ms << " ms");
+    
+    // Reset
+    PerformanceProfiler::reset_metrics();
+    
+    auto metrics_after = PerformanceProfiler::get_metrics();
+    LOG_INFO("After reset - total time: " << metrics_after.total_time_ms << " ms");
+    
+    ASSERT_TRUE(metrics_after.total_time_ms == 0.0, "Metrics should be reset");
+    LOG_INFO("✓ Metrics reset successfully");
+    
+    cudaFree(d_input);
+    cudaFree(d_output);
+    cudaFree(d_temp);
+    
+    PerformanceProfiler::enable_profiling(false);
+    
+    LOG_PASS("Metrics Reset");
+    return true;
+}
+
+bool test_csv_export() {
+    LOG_TEST("CSV Export Functionality");
+    
+    const size_t data_size = 512 * 1024;
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_output, data_size * 2);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    auto manager = create_manager(5);
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    cudaMalloc(&d_temp, temp_size);
+    
+    PerformanceProfiler::enable_profiling(true);
+    PerformanceProfiler::reset_metrics();
+    
+    size_t compressed_size;
+    manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    
+    // Export to CSV
+    const char* csv_file = "performance_metrics.csv";
+    PerformanceProfiler::export_metrics_csv(csv_file);
+    
+    // Check file exists and has content
+    std::ifstream file(csv_file);
+    ASSERT_TRUE(file.good(), "CSV file should be created");
+    
+    std::string line;
+    int line_count = 0;
+    while (std::getline(file, line)) {
+        line_count++;
+    }
+    file.close();
+    
+    LOG_INFO("CSV file created with " << line_count << " lines");
+    ASSERT_TRUE(line_count > 0, "CSV should have content");
+    LOG_INFO("✓ CSV export successful");
+    
+    cudaFree(d_input);
+    cudaFree(d_output);
+    cudaFree(d_temp);
+    
+    PerformanceProfiler::enable_profiling(false);
+    
+    LOG_PASS("CSV Export");
+    return true;
+}
+
+bool test_json_export() {
+    LOG_TEST("JSON Export Functionality");
+    
+    const size_t data_size = 512 * 1024;
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_output, data_size * 2);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    auto manager = create_manager(5);
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    cudaMalloc(&d_temp, temp_size);
+    
+    PerformanceProfiler::enable_profiling(true);
+    PerformanceProfiler::reset_metrics();
+    
+    size_t compressed_size;
+    manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    
+    // Export to JSON
+    const char* json_file = "performance_metrics.json";
+    PerformanceProfiler::export_metrics_json(json_file);
+    
+    // Check file exists
+    std::ifstream file(json_file);
+    ASSERT_TRUE(file.good(), "JSON file should be created");
+    
+    std::string content((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
+    file.close();
+    
+    ASSERT_TRUE(content.length() > 0, "JSON should have content");
+    LOG_INFO("JSON file created (" << content.length() << " bytes)");
+    LOG_INFO("✓ JSON export successful");
+    
+    cudaFree(d_input);
+    cudaFree(d_output);
+    cudaFree(d_temp);
+    
+    PerformanceProfiler::enable_profiling(false);
+    
+    LOG_PASS("JSON Export");
+    return true;
+}
+
+// ============================================================================
+// TEST SUITE 4: Optimization Validation
+// ============================================================================
+
+bool test_memory_pool_performance_impact() {
+    LOG_TEST("Memory Pool Performance Impact");
+    
+    const size_t data_size = 2 * 1024 * 1024;
+    const int num_iterations = 20;
+    
+    std::vector<uint8_t> h_data;
+    generate_test_data(h_data, data_size, "compressible");
+    
+    void *d_input, *d_output, *d_temp;
+    cudaMalloc(&d_input, data_size);
+    cudaMalloc(&d_output, data_size * 2);
+    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    
+    auto manager = create_manager(5);
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    cudaMalloc(&d_temp, temp_size);
+    
+    // Warm up
+    size_t compressed_size;
+    manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    
+    // Measure with pool (multiple compressions)
+    Timer timer;
+    timer.start();
+    
+    for (int i = 0; i < num_iterations; i++) {
+        manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    }
+    cudaDeviceSynchronize();
+    
+    double total_time = timer.elapsed_ms();
+    double avg_time = total_time / num_iterations;
+    
+    LOG_INFO("Average compression time: " << std::fixed << std::setprecision(2) 
+             << avg_time << " ms");
+    LOG_INFO("Total time for " << num_iterations << " iterations: " 
+             << std::fixed << std::setprecision(2) << total_time << " ms");
+    
+    cudaFree(d_input);
+    cudaFree(d_output);
+    cudaFree(d_temp);
+    
+    LOG_PASS("Memory Pool Performance Impact");
+    return true;
+}
+
+// ============================================================================
+// Main Test Runner
+// ============================================================================
+
+int main() {
+    std::cout << "\n";
+    print_separator();
+    std::cout << "CUDA ZSTD - Performance & Profiling Test Suite" << std::endl;
+    print_separator();
+    std::cout << "\n";
+    
+    int passed = 0;
+    int total = 0;
+    
+    // Check CUDA device
+    int device_count = 0;
+    cudaGetDeviceCount(&device_count);
+    if (device_count == 0) {
+        std::cerr << "ERROR: No CUDA devices found!" << std::endl;
+        return 1;
+    }
+    
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    std::cout << "Running on: " << prop.name << std::endl;
+    std::cout << "Memory: " << prop.totalGlobalMem / (1024 * 1024) << " MB" << std::endl;
+    std::cout << "Memory Clock: " << prop.memoryClockRate / 1000 << " MHz\n" << std::endl;
+    
+    // Component Timing
+    print_separator();
+    std::cout << "SUITE 1: Component Timing" << std::endl;
+    print_separator();
+    
+    total++; if (test_compression_timing_breakdown()) passed++;
+    total++; if (test_decompression_timing()) passed++;
+    
+    // Throughput Metrics
+    std::cout << "\n";
+    print_separator();
+    std::cout << "SUITE 2: Throughput Metrics" << std::endl;
+    print_separator();
+    
+    total++; if (test_compression_throughput()) passed++;
+    total++; if (test_decompression_throughput()) passed++;
+    total++; if (test_memory_bandwidth()) passed++;
+    
+    // Profiling API
+    std::cout << "\n";
+    print_separator();
+    std::cout << "SUITE 3: Profiling API Tests" << std::endl;
+    print_separator();
+    
+    total++; if (test_profiler_enable_disable()) passed++;
+    total++; if (test_named_timers()) passed++;
+    total++; if (test_metrics_reset()) passed++;
+    total++; if (test_csv_export()) passed++;
+    total++; if (test_json_export()) passed++;
+    
+    // Optimization Validation
+    std::cout << "\n";
+    print_separator();
+    std::cout << "SUITE 4: Optimization Validation" << std::endl;
+    print_separator();
+    
+    total++; if (test_memory_pool_performance_impact()) passed++;
+    
+    // Summary
+    std::cout << "\n";
+    print_separator();
+    std::cout << "TEST RESULTS" << std::endl;
+    print_separator();
+    std::cout << "Passed: " << passed << "/" << total << std::endl;
+    std::cout << "Failed: " << (total - passed) << "/" << total << std::endl;
+    
+    if (passed == total) {
+        std::cout << "\n✓ ALL TESTS PASSED" << std::endl;
+    } else {
+        std::cout << "\n✗ SOME TESTS FAILED" << std::endl;
+    }
+    print_separator();
+    std::cout << "\n";
+    
+    return (passed == total) ? 0 : 1;
+}

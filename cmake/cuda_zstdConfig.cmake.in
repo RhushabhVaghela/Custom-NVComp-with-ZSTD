@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(CUDAToolkit REQUIRED)
+
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/cuda_zstdTargets.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/cuda_zstdTargets.cmake")
+endif()
+
+check_required_components(cuda_zstd)
