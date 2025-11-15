@@ -2,15 +2,19 @@
 // cuda_zstd_dictionary.h - Dictionary Training (COVER Algorithm)
 // ============================================================================
 
-#ifndef CUDA_ZSTD_DICTIONARY_H
-#define CUDA_ZSTD_DICTIONARY_H
+#ifndef CUDA_ZSTD_DICTIONARY_H_
+#define CUDA_ZSTD_DICTIONARY_H_
 
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_huffman.h"
+#ifdef __cplusplus
 #include <vector>
 #include <cstring>
+#include <iostream>
+#endif
 
+#ifdef __cplusplus
 namespace cuda_zstd {
 namespace dictionary {
 
@@ -153,8 +157,26 @@ public:
         cudaStream_t stream = 0) {
         // Allocate GPU memory for dictionary
         dict.raw_size = max_raw_size;
-        CUDA_CHECK(cudaMallocAsync(&dict.raw_content, max_raw_size, stream));
-        CUDA_CHECK(cudaMemsetAsync(dict.raw_content, 0, max_raw_size, stream));
+        {
+            cudaError_t error = cudaMallocAsync(&dict.raw_content, max_raw_size, stream);
+            if (error != cudaSuccess) {
+                std::cerr << "CUDA ERROR at " << __FILE__ << ":" << __LINE__ << std::endl;
+                std::cerr << "  Function: cudaMallocAsync(&dict.raw_content, max_raw_size, stream)" << std::endl;
+                std::cerr << "  Error: " << cudaGetErrorName(error) << std::endl;
+                std::cerr << "  Description: " << cudaGetErrorString(error) << std::endl;
+                return Status::ERROR_IO;
+            }
+        }
+        {
+            cudaError_t error = cudaMemsetAsync(dict.raw_content, 0, max_raw_size, stream);
+            if (error != cudaSuccess) {
+                std::cerr << "CUDA ERROR at " << __FILE__ << ":" << __LINE__ << std::endl;
+                std::cerr << "  Function: cudaMemsetAsync(dict.raw_content, 0, max_raw_size, stream)" << std::endl;
+                std::cerr << "  Error: " << cudaGetErrorName(error) << std::endl;
+                std::cerr << "  Description: " << cudaGetErrorString(error) << std::endl;
+                return Status::ERROR_IO;
+            }
+        }
         
         // Initialize header
         dict.header.magic_number = DICT_MAGIC_NUMBER;
@@ -203,5 +225,6 @@ Status create_prefix_dictionary(
 
 } // namespace dictionary
 } // namespace cuda_zstd
+#endif
 
 #endif // CUDA_ZSTD_DICTIONARY_H

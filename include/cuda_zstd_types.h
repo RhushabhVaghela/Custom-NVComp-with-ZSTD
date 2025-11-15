@@ -2,15 +2,19 @@
 // cuda_zstd_types.h - Core Types and Definitions
 // ============================================================================
 
-#ifndef CUDA_ZSTD_TYPES_H
-#define CUDA_ZSTD_TYPES_H
+#ifndef CUDA_ZSTD_TYPES_H_
+#define CUDA_ZSTD_TYPES_H_
 
 #ifdef __cplusplus
 #include <cstdint>
 #include <cstddef>
+#include <string>
+#include <vector>
+#include <memory>
 #else
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #endif
 #include <cuda_runtime.h>
 
@@ -22,6 +26,7 @@ namespace cuda_zstd {
 // Basic Types
 // ============================================================================
 
+#ifdef __cplusplus
 using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
@@ -33,7 +38,21 @@ using f32 = float;
 using i64 = int64_t;
 using f64 = double;
 using byte_t = unsigned char;
+#else
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef float f32;
+typedef int64_t i64;
+typedef double f64;
+typedef unsigned char byte_t;
+#endif
 
+#ifdef __cplusplus
 // ============================================================================
 // Hash Structures
 // ============================================================================
@@ -335,6 +354,7 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
 // ============================================================================
 
 // Enhanced CUDA error checking with context
+#ifndef CUDA_CHECK
 #define CUDA_CHECK(call) do { \
     cudaError_t __cuda_err = (call); \
     if (__cuda_err != cudaSuccess) { \
@@ -344,7 +364,9 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
         return Status::ERROR_CUDA_ERROR; \
     } \
 } while(0)
+#endif // CUDA_CHECK
 
+#ifndef CUDA_CHECK_RETURN
 #define CUDA_CHECK_RETURN(call, ret) do { \
     cudaError_t __cuda_err = (call); \
     if (__cuda_err != cudaSuccess) { \
@@ -354,6 +376,7 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
         return ret; \
     } \
 } while(0)
+ #endif // CUDA_CHECK_RETURN
 
 // Status validation macros
 #define CHECK_STATUS(status) do { \
@@ -390,6 +413,8 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
         return Status::ERROR_INVALID_PARAMETER; \
     } \
 } while(0)
+#endif // __cplusplus
+
 #ifdef __cplusplus
 } // namespace cuda_zstd
 #endif

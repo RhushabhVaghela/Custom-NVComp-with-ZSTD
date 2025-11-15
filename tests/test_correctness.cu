@@ -4,6 +4,8 @@
 
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_error_checking.h"
+#include "cuda_zstd_manager.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <vector>
@@ -82,20 +84,48 @@ bool test_identity_property() {
         h_input[i] = static_cast<uint8_t>((i * 31) & 0xFF);
     }
     
-    void *d_input, *d_compressed, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_compressed, data_size * 2);
-    cudaMalloc(&d_output, data_size);
-    cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+    
+    // Allocate GPU memory with error checking
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_identity_property", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+        LOG_FAIL("test_identity_property", "CUDA malloc for d_compressed failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size)) {
+        LOG_FAIL("test_identity_property", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
+    
+    // Copy input data to device
+    if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_identity_property", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     auto manager = create_manager(5);
     size_t temp_size = manager->get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_identity_property", "CUDA malloc for temp failed");
+        safe_cuda_free(d_input); safe_cuda_free(d_compressed); safe_cuda_free(d_output);
+        return false;
+    }
     
     // Compress
     size_t compressed_size;
     Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
-                                     d_temp, temp_size, nullptr, 0, 0);
+                                         d_temp, temp_size, nullptr, 0, 0);
     ASSERT_STATUS(status, "Compression failed");
     
     // Decompress
@@ -107,16 +137,25 @@ bool test_identity_property() {
     
     // Verify
     std::vector<uint8_t> h_output(data_size);
-    cudaMemcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost);
+    if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("test_identity_property", "CUDA memcpy from d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+        return false;
+    }
+    
     ASSERT_TRUE(verify_data_exact(h_input.data(), h_output.data(), data_size),
                 "Identity property violated");
     
     LOG_INFO("✓ Identity property holds");
     
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     LOG_PASS("Identity Property");
     return true;
@@ -137,28 +176,63 @@ bool test_random_inputs_roundtrip() {
         std::vector<uint8_t> h_input;
         generate_random_data(h_input, size, test);
         
-        void *d_input, *d_compressed, *d_output, *d_temp;
-        cudaMalloc(&d_input, size);
-        cudaMalloc(&d_compressed, size * 2);
-        cudaMalloc(&d_output, size);
-        cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice);
+        void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+        
+        // Allocate GPU memory with error checking
+        if (!safe_cuda_malloc(&d_input, size)) {
+            LOG_FAIL("test_random_inputs_roundtrip", "CUDA malloc for d_input failed");
+            continue;
+        }
+        
+        if (!safe_cuda_malloc(&d_compressed, size * 2)) {
+            LOG_FAIL("test_random_inputs_roundtrip", "CUDA malloc for d_compressed failed");
+            safe_cuda_free(d_input);
+            continue;
+        }
+        
+        if (!safe_cuda_malloc(&d_output, size)) {
+            LOG_FAIL("test_random_inputs_roundtrip", "CUDA malloc for d_output failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            continue;
+        }
+        
+        // Copy input data to device
+        if (!safe_cuda_memcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice)) {
+            LOG_FAIL("test_random_inputs_roundtrip", "CUDA memcpy to d_input failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            continue;
+        }
         
         auto manager = create_manager(1 + (test % 22));
         size_t temp_size = manager->get_compress_temp_size(size);
-        cudaMalloc(&d_temp, temp_size);
-        
+        if (!safe_cuda_malloc(&d_temp, temp_size)) {
+            LOG_FAIL("test_random_inputs_roundtrip", "CUDA malloc for temp failed");
+            safe_cuda_free(d_input); safe_cuda_free(d_compressed); safe_cuda_free(d_output);
+            continue;
+        }
+
         size_t compressed_size;
         Status status = manager->compress(d_input, size, d_compressed, &compressed_size,
-                                         d_temp, temp_size, nullptr, 0, 0);
-        
+                                                 d_temp, temp_size, nullptr, 0, 0);
+
         if (status == Status::SUCCESS) {
             size_t decompressed_size;
             status = manager->decompress(d_compressed, compressed_size, d_output,
                                         &decompressed_size, d_temp, temp_size);
-            
+
             if (status == Status::SUCCESS && decompressed_size == size) {
                 std::vector<uint8_t> h_output(size);
-                cudaMemcpy(h_output.data(), d_output, size, cudaMemcpyDeviceToHost);
+                if (!safe_cuda_memcpy(h_output.data(), d_output, size, cudaMemcpyDeviceToHost)) {
+                    LOG_FAIL("test_byte_alignment", "CUDA memcpy from d_output failed");
+                    safe_cuda_free(d_input);
+                    safe_cuda_free(d_compressed);
+                    safe_cuda_free(d_output);
+                    safe_cuda_free(d_temp);
+                    return false;
+                }
                 
                 if (verify_data_exact(h_input.data(), h_output.data(), size)) {
                     passed++;
@@ -166,10 +240,11 @@ bool test_random_inputs_roundtrip() {
             }
         }
         
-        cudaFree(d_input);
-        cudaFree(d_compressed);
-        cudaFree(d_output);
-        cudaFree(d_temp);
+        // Cleanup with safe free functions
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
         
         if ((test + 1) % 200 == 0) {
             LOG_INFO("Progress: " << (test + 1) << "/" << num_tests << " tests");
@@ -192,11 +267,35 @@ bool test_all_compression_levels() {
         h_input[i] = static_cast<uint8_t>(i % 128);
     }
     
-    void *d_input, *d_compressed, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_compressed, data_size * 2);
-    cudaMalloc(&d_output, data_size);
-    cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+    
+    // Allocate GPU memory with error checking
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_all_compression_levels", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+        LOG_FAIL("test_all_compression_levels", "CUDA malloc for d_compressed failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size)) {
+        LOG_FAIL("test_all_compression_levels", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
+    
+    // Copy input data to device
+    if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_all_compression_levels", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     std::cout << "\n  Level | Ratio   | Status\n";
     std::cout << "  ------|---------|--------\n";
@@ -204,20 +303,31 @@ bool test_all_compression_levels() {
     for (int level = 1; level <= 22; level++) {
         auto manager = create_manager(level);
         size_t temp_size = manager->get_compress_temp_size(data_size);
-        cudaMalloc(&d_temp, temp_size);
+        void* d_temp = nullptr;
+        if (!safe_cuda_malloc(&d_temp, temp_size)) {
+            LOG_FAIL("test_all_compression_levels", "CUDA malloc for temp failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            continue;
+        }
         
         size_t compressed_size;
         Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
-                                         d_temp, temp_size, nullptr, 0, 0);
-        
+                                                 d_temp, temp_size, nullptr, 0, 0);
+
         if (status == Status::SUCCESS) {
             size_t decompressed_size;
             status = manager->decompress(d_compressed, compressed_size, d_output,
                                         &decompressed_size, d_temp, temp_size);
-            
+
             if (status == Status::SUCCESS) {
                 std::vector<uint8_t> h_output(data_size);
-                cudaMemcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost);
+                if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
+                    LOG_FAIL("test_all_compression_levels", "CUDA memcpy from d_output failed");
+                    safe_cuda_free(d_temp);
+                    continue;
+                }
                 
                 bool verified = verify_data_exact(h_input.data(), h_output.data(), data_size);
                 float ratio = get_compression_ratio(data_size, compressed_size);
@@ -230,12 +340,13 @@ bool test_all_compression_levels() {
             }
         }
         
-        cudaFree(d_temp);
+        safe_cuda_free(d_temp);
     }
     
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_output);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
     
     LOG_PASS("All Compression Levels");
     return true;
@@ -269,18 +380,48 @@ bool test_various_sizes_roundtrip() {
         std::vector<uint8_t> h_input;
         generate_sequence_data(h_input, size);
         
-        void *d_input, *d_compressed, *d_output, *d_temp;
-        cudaMalloc(&d_input, size);
-        cudaMalloc(&d_compressed, size * 2);
-        cudaMalloc(&d_output, size);
-        cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice);
+        void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+        
+        // Allocate GPU memory with error checking
+        if (!safe_cuda_malloc(&d_input, size)) {
+            LOG_FAIL("test_various_sizes_roundtrip", "CUDA malloc for d_input failed");
+            continue;
+        }
+        
+        if (!safe_cuda_malloc(&d_compressed, size * 2)) {
+            LOG_FAIL("test_various_sizes_roundtrip", "CUDA malloc for d_compressed failed");
+            safe_cuda_free(d_input);
+            continue;
+        }
+        
+        if (!safe_cuda_malloc(&d_output, size)) {
+            LOG_FAIL("test_various_sizes_roundtrip", "CUDA malloc for d_output failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            continue;
+        }
+        
+        // Copy input data to device
+        if (!safe_cuda_memcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice)) {
+            LOG_FAIL("test_various_sizes_roundtrip", "CUDA memcpy to d_input failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            continue;
+        }
         
         size_t temp_size = manager->get_compress_temp_size(size);
-        cudaMalloc(&d_temp, temp_size);
+        if (!safe_cuda_malloc(&d_temp, temp_size)) {
+            LOG_FAIL("test_various_sizes_roundtrip", "CUDA malloc for temp failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            continue;
+        }
         
         size_t compressed_size;
         Status status = manager->compress(d_input, size, d_compressed, &compressed_size,
-                                         d_temp, temp_size, nullptr, 0, 0);
+                                                 d_temp, temp_size, nullptr, 0, 0);
         
         if (status == Status::SUCCESS) {
             size_t decompressed_size;
@@ -289,7 +430,14 @@ bool test_various_sizes_roundtrip() {
             
             if (status == Status::SUCCESS && decompressed_size == size) {
                 std::vector<uint8_t> h_output(size);
-                cudaMemcpy(h_output.data(), d_output, size, cudaMemcpyDeviceToHost);
+                if (!safe_cuda_memcpy(h_output.data(), d_output, size, cudaMemcpyDeviceToHost)) {
+                    LOG_FAIL("test_various_sizes_roundtrip", "CUDA memcpy from d_output failed");
+                    safe_cuda_free(d_input);
+                    safe_cuda_free(d_compressed);
+                    safe_cuda_free(d_output);
+                    safe_cuda_free(d_temp);
+                    continue;
+                }
                 
                 if (verify_data_exact(h_input.data(), h_output.data(), size)) {
                     passed++;
@@ -297,10 +445,11 @@ bool test_various_sizes_roundtrip() {
             }
         }
         
-        cudaFree(d_input);
-        cudaFree(d_compressed);
-        cudaFree(d_output);
-        cudaFree(d_temp);
+        // Cleanup with safe free functions
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
     }
     
     LOG_INFO("Passed: " << passed << "/" << test_sizes.size());
@@ -320,23 +469,51 @@ bool test_frame_format_validation() {
     const size_t data_size = 1024;
     std::vector<uint8_t> h_input(data_size, 0xAA);
     
-    void *d_input, *d_compressed, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_compressed, data_size * 2);
-    cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_compressed = nullptr, *d_temp = nullptr;
+    
+    // Allocate GPU memory with error checking
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_frame_format_validation", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+        LOG_FAIL("test_frame_format_validation", "CUDA malloc for d_compressed failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    // Copy input data to device
+    if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_frame_format_validation", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
     
     auto manager = create_manager(3);
     size_t temp_size = manager->get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_frame_format_validation", "CUDA malloc for temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
     
     size_t compressed_size;
     Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
-                                     d_temp, temp_size, nullptr, 0, 0);
+                                         d_temp, temp_size, nullptr, 0, 0);
     ASSERT_STATUS(status, "Compression failed");
     
     // Download compressed data to check format
     std::vector<uint8_t> h_compressed(compressed_size);
-    cudaMemcpy(h_compressed.data(), d_compressed, compressed_size, cudaMemcpyDeviceToHost);
+    if (!safe_cuda_memcpy(h_compressed.data(), d_compressed, compressed_size, cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("test_frame_format_validation", "CUDA memcpy from d_compressed failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_temp);
+        return false;
+    }
     
     // Check magic number (0xFD2FB528 for ZSTD)
     if (compressed_size >= 4) {
@@ -355,9 +532,10 @@ bool test_frame_format_validation() {
     LOG_INFO("Compressed size: " << std::dec << compressed_size << " bytes");
     LOG_INFO("✓ Frame format appears valid");
     
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_temp);
     
     LOG_PASS("Frame Format Validation");
     return true;
@@ -372,25 +550,62 @@ bool test_checksum_validation() {
         h_input[i] = static_cast<uint8_t>(i & 0xFF);
     }
     
-    void *d_input, *d_compressed, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_compressed, data_size * 2);
-    cudaMalloc(&d_output, data_size);
-    cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+    
+    // Allocate GPU memory with error checking
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_checksum_validation", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+        LOG_FAIL("test_checksum_validation", "CUDA malloc for d_compressed failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size)) {
+        LOG_FAIL("test_checksum_validation", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
+    
+    // Copy input data to device
+    if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_checksum_validation", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     auto manager = create_manager(5);
     size_t temp_size = manager->get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_checksum_validation", "CUDA malloc for temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     // Compress
     size_t compressed_size;
     Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
-                                     d_temp, temp_size, nullptr, 0, 0);
+                                         d_temp, temp_size, nullptr, 0, 0);
     ASSERT_STATUS(status, "Compression failed");
     
     // Download compressed data to verify integrity
     std::vector<uint8_t> h_compressed(compressed_size);
-    cudaMemcpy(h_compressed.data(), d_compressed, compressed_size, cudaMemcpyDeviceToHost);
+    if (!safe_cuda_memcpy(h_compressed.data(), d_compressed, compressed_size, cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("test_checksum_validation", "CUDA memcpy from d_compressed failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+        return false;
+    }
     
     LOG_INFO("Compressed data size: " << compressed_size << " bytes");
     LOG_INFO("Note: Checksum validation via decompression round-trip");
@@ -404,16 +619,24 @@ bool test_checksum_validation() {
     
     // Verify data integrity
     std::vector<uint8_t> h_output(data_size);
-    cudaMemcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost);
+    if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("test_checksum_validation", "CUDA memcpy from d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+        return false;
+    }
     ASSERT_TRUE(verify_data_exact(h_input.data(), h_output.data(), data_size),
                 "Checksum validation failed - data corrupted");
     
     LOG_INFO("✓ Data integrity verified via round-trip");
     
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     LOG_PASS("Checksum Validation");
     return true;
@@ -449,18 +672,48 @@ bool test_special_patterns() {
         std::vector<uint8_t> h_input;
         test_case.generator(h_input, data_size);
         
-        void *d_input, *d_compressed, *d_output, *d_temp;
-        cudaMalloc(&d_input, data_size);
-        cudaMalloc(&d_compressed, data_size * 2);
-        cudaMalloc(&d_output, data_size);
-        cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+        void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+        
+        // Allocate GPU memory with error checking
+        if (!safe_cuda_malloc(&d_input, data_size)) {
+            LOG_FAIL("test_special_patterns", "CUDA malloc for d_input failed");
+            continue;
+        }
+        
+        if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+            LOG_FAIL("test_special_patterns", "CUDA malloc for d_compressed failed");
+            safe_cuda_free(d_input);
+            continue;
+        }
+        
+        if (!safe_cuda_malloc(&d_output, data_size)) {
+            LOG_FAIL("test_special_patterns", "CUDA malloc for d_output failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            continue;
+        }
+        
+        // Copy input data to device
+        if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+            LOG_FAIL("test_special_patterns", "CUDA memcpy to d_input failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            continue;
+        }
         
         size_t temp_size = manager->get_compress_temp_size(data_size);
-        cudaMalloc(&d_temp, temp_size);
+        if (!safe_cuda_malloc(&d_temp, temp_size)) {
+            LOG_FAIL("test_special_patterns", "CUDA malloc for temp failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            continue;
+        }
         
         size_t compressed_size;
         Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
-                                         d_temp, temp_size, nullptr, 0, 0);
+                                                 d_temp, temp_size, nullptr, 0, 0);
         ASSERT_STATUS(status, test_case.name << " compression failed");
         
         size_t decompressed_size;
@@ -469,7 +722,14 @@ bool test_special_patterns() {
         ASSERT_STATUS(status, test_case.name << " decompression failed");
         
         std::vector<uint8_t> h_output(data_size);
-        cudaMemcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost);
+        if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
+            LOG_FAIL("test_special_patterns", "CUDA memcpy from d_output failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            safe_cuda_free(d_temp);
+            continue;
+        }
         ASSERT_TRUE(verify_data_exact(h_input.data(), h_output.data(), data_size),
                     test_case.name << " verification failed");
         
@@ -477,10 +737,11 @@ bool test_special_patterns() {
         LOG_INFO("  " << test_case.name << ": " << std::fixed << std::setprecision(2) 
                  << ratio << ":1 ratio");
         
-        cudaFree(d_input);
-        cudaFree(d_compressed);
-        cudaFree(d_output);
-        cudaFree(d_temp);
+        // Cleanup with safe free functions
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
     }
     
     LOG_PASS("Special Patterns");
@@ -500,14 +761,44 @@ bool test_byte_alignment() {
         std::vector<uint8_t> h_input;
         generate_sequence_data(h_input, size);
         
-        void *d_input, *d_compressed, *d_output, *d_temp;
-        cudaMalloc(&d_input, 1024);
-        cudaMalloc(&d_compressed, 1024);
-        cudaMalloc(&d_output, 1024);
-        cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice);
+        void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+        
+        // Allocate GPU memory with error checking
+        if (!safe_cuda_malloc(&d_input, 1024)) {
+            LOG_FAIL("test_byte_alignment", "CUDA malloc for d_input failed");
+            return false;
+        }
+        
+        if (!safe_cuda_malloc(&d_compressed, 1024)) {
+            LOG_FAIL("test_byte_alignment", "CUDA malloc for d_compressed failed");
+            safe_cuda_free(d_input);
+            return false;
+        }
+        
+        if (!safe_cuda_malloc(&d_output, 1024)) {
+            LOG_FAIL("test_byte_alignment", "CUDA malloc for d_output failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            return false;
+        }
+        
+        // Copy input data to device
+        if (!safe_cuda_memcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice)) {
+            LOG_FAIL("test_byte_alignment", "CUDA memcpy to d_input failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            return false;
+        }
         
         size_t temp_size = manager->get_compress_temp_size(size);
-        cudaMalloc(&d_temp, temp_size);
+        if (!safe_cuda_malloc(&d_temp, temp_size)) {
+            LOG_FAIL("test_byte_alignment", "CUDA malloc for temp failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            return false;
+        }
         
         size_t compressed_size;
         Status status = manager->compress(d_input, size, d_compressed, &compressed_size,
@@ -552,15 +843,45 @@ bool test_deterministic_compression() {
     std::vector<uint8_t> h_input;
     generate_random_data(h_input, data_size, 12345);
     
-    void *d_input, *d_compressed1, *d_compressed2, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_compressed1, data_size * 2);
-    cudaMalloc(&d_compressed2, data_size * 2);
-    cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_compressed1 = nullptr, *d_compressed2 = nullptr, *d_temp = nullptr;
+    
+    // Allocate GPU memory with error checking
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_deterministic_compression", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed1, data_size * 2)) {
+        LOG_FAIL("test_deterministic_compression", "CUDA malloc for d_compressed1 failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed2, data_size * 2)) {
+        LOG_FAIL("test_deterministic_compression", "CUDA malloc for d_compressed2 failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed1);
+        return false;
+    }
+    
+    // Copy input data to device
+    if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_deterministic_compression", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed1);
+        safe_cuda_free(d_compressed2);
+        return false;
+    }
     
     auto manager = create_manager(5);
     size_t temp_size = manager->get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_deterministic_compression", "CUDA malloc for temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed1);
+        safe_cuda_free(d_compressed2);
+        return false;
+    }
     
     // Compress twice
     size_t compressed_size1, compressed_size2;
@@ -575,8 +896,24 @@ bool test_deterministic_compression() {
     // Compare compressed data
     std::vector<uint8_t> h_comp1(compressed_size1);
     std::vector<uint8_t> h_comp2(compressed_size2);
-    cudaMemcpy(h_comp1.data(), d_compressed1, compressed_size1, cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_comp2.data(), d_compressed2, compressed_size2, cudaMemcpyDeviceToHost);
+    
+    if (!safe_cuda_memcpy(h_comp1.data(), d_compressed1, compressed_size1, cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("test_deterministic_compression", "CUDA memcpy from d_compressed1 failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed1);
+        safe_cuda_free(d_compressed2);
+        safe_cuda_free(d_temp);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(h_comp2.data(), d_compressed2, compressed_size2, cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("test_deterministic_compression", "CUDA memcpy from d_compressed2 failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed1);
+        safe_cuda_free(d_compressed2);
+        safe_cuda_free(d_temp);
+        return false;
+    }
     
     bool identical = verify_data_exact(h_comp1.data(), h_comp2.data(), compressed_size1);
     if (identical) {
@@ -585,10 +922,11 @@ bool test_deterministic_compression() {
         LOG_INFO("Note: Compression is not bit-exact but produces valid output");
     }
     
-    cudaFree(d_input);
-    cudaFree(d_compressed1);
-    cudaFree(d_compressed2);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed1);
+    safe_cuda_free(d_compressed2);
+    safe_cuda_free(d_temp);
     
     LOG_PASS("Deterministic Compression");
     return true;
@@ -608,18 +946,8 @@ int main() {
     int passed = 0;
     int total = 0;
     
-    // Check CUDA device
-    int device_count = 0;
-    cudaGetDeviceCount(&device_count);
-    if (device_count == 0) {
-        std::cerr << "ERROR: No CUDA devices found!" << std::endl;
-        return 1;
-    }
-    
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::cout << "Running on: " << prop.name << std::endl;
-    std::cout << "Compute Capability: " << prop.major << "." << prop.minor << "\n" << std::endl;
+    SKIP_IF_NO_CUDA_RET(0);
+    check_cuda_device();
     
     // Round-trip Validation
     print_separator();

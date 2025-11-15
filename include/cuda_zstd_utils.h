@@ -5,8 +5,8 @@
 // operations, moved from other modules to avoid code duplication.
 // ============================================================================
 
-#ifndef CUDA_ZSTD_UTILS_H
-#define CUDA_ZSTD_UTILS_H
+#ifndef CUDA_ZSTD_UTILS_H_
+#define CUDA_ZSTD_UTILS_H_
 
 #include "cuda_zstd_types.h"
 

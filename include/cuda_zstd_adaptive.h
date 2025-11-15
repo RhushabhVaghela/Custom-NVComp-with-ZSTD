@@ -2,8 +2,8 @@
 // cuda_zstd_adaptive.h - Adaptive Compression Level Selection
 // ============================================================================
 
-#ifndef CUDA_ZSTD_ADAPTIVE_H
-#define CUDA_ZSTD_ADAPTIVE_H
+#ifndef CUDA_ZSTD_ADAPTIVE_H_
+#define CUDA_ZSTD_ADAPTIVE_H_
 
 #include "cuda_zstd_types.h"
 #include <cuda_runtime.h>

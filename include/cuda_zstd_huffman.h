@@ -2,14 +2,17 @@
 // cuda_zstd_huffman.h - Huffman Encoding / Decoding Interface
 // ============================================================================
 
-#ifndef CUDA_ZSTD_HUFFMAN_H
-#define CUDA_ZSTD_HUFFMAN_H
+#ifndef CUDA_ZSTD_HUFFMAN_H_
+#define CUDA_ZSTD_HUFFMAN_H_
 
+#ifdef __cplusplus
 #include <vector>
 #include <algorithm>
+#endif
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_fse.h"
 
+#ifdef __cplusplus
 namespace cuda_zstd {
 namespace huffman {
 
@@ -171,5 +174,7 @@ Status free_huffman_decoder_table(
 
 } // namespace huffman
 } // namespace cuda_zstd
+
+#endif // __cplusplus
 
 #endif // CUDA_ZSTD_HUFFMAN_H

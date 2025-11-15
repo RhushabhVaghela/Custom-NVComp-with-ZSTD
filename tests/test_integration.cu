@@ -6,6 +6,7 @@
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_memory_pool.h"
 #include "cuda_zstd_types.h"
+#include "cuda_error_checking.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <vector>
@@ -79,27 +80,56 @@ bool test_complete_compression_pipeline() {
     
     LOG_INFO("Testing complete pipeline: input -> compress -> decompress -> verify");
     
-    // Allocate GPU memory
-    void *d_input, *d_compressed, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_compressed, data_size * 2);
-    cudaMalloc(&d_output, data_size);
-    cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+    // Allocate GPU memory with error checking
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    auto manager = create_manager(5);
-    size_t temp_size = manager->get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+        LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_compressed failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size)) {
+        LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
+    
+    // Copy input data to device
+    if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("Complete Compression Pipeline", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    ZstdBatchManager manager(CompressionConfig{.level = 5});
+    size_t temp_size = manager.get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     // Compress
     size_t compressed_size;
-    Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
-                                     d_temp, temp_size, nullptr, 0, 0);
+    Status status = manager.compress(d_input, data_size, d_compressed, &compressed_size,
+                                     d_temp, temp_size, nullptr, 0);
     ASSERT_STATUS(status, "Compression failed");
     LOG_INFO("✓ Compression: " << data_size << " -> " << compressed_size << " bytes");
     
     // Decompress
     size_t decompressed_size;
-    status = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
+    status = manager.decompress(d_compressed, compressed_size, d_output, &decompressed_size,
                                  d_temp, temp_size);
     ASSERT_STATUS(status, "Decompression failed");
     ASSERT_EQ(decompressed_size, data_size, "Size mismatch");
@@ -107,14 +137,23 @@ bool test_complete_compression_pipeline() {
     
     // Verify
     std::vector<uint8_t> h_output(data_size);
-    cudaMemcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost);
+    if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("Complete Compression Pipeline", "CUDA memcpy from d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+        return false;
+    }
+    
     ASSERT_TRUE(verify_data(h_input.data(), h_output.data(), data_size), "Data verification failed");
     LOG_INFO("✓ Data verified correctly");
     
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     LOG_PASS("Complete Compression Pipeline");
     return true;
@@ -159,21 +198,21 @@ bool test_dictionary_integration() {
     cudaMalloc(&d_output, data_size);
     cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
     
-    auto manager = create_manager(5);
-    manager->set_dictionary(dict);
+    ZstdBatchManager manager(CompressionConfig{.level = 5});
+    manager.set_dictionary(dict);
     
-    size_t temp_size = manager->get_compress_temp_size(data_size);
+    size_t temp_size = manager.get_compress_temp_size(data_size);
     cudaMalloc(&d_temp, temp_size);
     
     size_t compressed_size;
-    status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
-                               d_temp, temp_size, nullptr, 0, 0);
+    status = manager.compress(d_input, data_size, d_compressed, &compressed_size,
+                                d_temp, temp_size, nullptr, 0);
     ASSERT_STATUS(status, "Dictionary compression failed");
     LOG_INFO("✓ Compressed with dictionary: " << data_size << " -> " << compressed_size);
     
     // Decompress with dictionary
     size_t decompressed_size;
-    status = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
+    status = manager.decompress(d_compressed, compressed_size, d_output, &decompressed_size,
                                  d_temp, temp_size);
     ASSERT_STATUS(status, "Dictionary decompression failed");
     LOG_INFO("✓ Decompressed with dictionary");
@@ -203,9 +242,9 @@ bool test_batch_processing_with_memory_pool() {
     LOG_INFO("Processing " << num_items << " items of " << item_size / 1024 << " KB each");
     
     // Initialize memory pool
-    memory::MemoryPoolManager pool(false);
+    memory::MemoryPoolManager pool;
     
-    auto manager = create_batch_manager(5);
+    ZstdBatchManager manager(CompressionConfig{.level = 5});
     std::vector<BatchItem> items;
     
     // Prepare batch items
@@ -228,10 +267,10 @@ bool test_batch_processing_with_memory_pool() {
     }
     
     // Compress batch
-    size_t batch_temp_size = manager->get_batch_compress_temp_size({item_size});
+    size_t batch_temp_size = manager.get_batch_compress_temp_size({item_size});
     void* d_temp = pool.allocate(batch_temp_size);
     
-    Status status = manager->compress_batch(items, d_temp, batch_temp_size);
+    Status status = manager.compress_batch(items, d_temp, batch_temp_size);
     ASSERT_STATUS(status, "Batch compression failed");
     LOG_INFO("✓ Batch compressed");
     
@@ -269,8 +308,8 @@ bool test_large_file_compression() {
     LOG_INFO("File size: " << file_size / (1024 * 1024) << " MB");
     LOG_INFO("Processing in " << chunk_size / (1024 * 1024) << " MB chunks");
     
-    auto streaming_mgr = create_streaming_manager(5);
-    streaming_mgr->init_compression();
+    ZstdStreamingManager streaming_mgr(CompressionConfig{.level = 5});
+    streaming_mgr.init_compression();
     
     void *d_input, *d_output;
     cudaMalloc(&d_input, chunk_size);
@@ -291,7 +330,7 @@ bool test_large_file_compression() {
         
         size_t compressed_size;
         bool is_last = (i == num_chunks - 1);
-        Status status = streaming_mgr->compress_chunk(d_input, current_chunk, d_output,
+        Status status = streaming_mgr.compress_chunk(d_input, current_chunk, d_output,
                                                       &compressed_size, is_last);
         ASSERT_STATUS(status, "Chunk " << i << " compression failed");
         
@@ -331,8 +370,8 @@ bool test_memory_efficiency_large_file() {
     
     LOG_INFO("Free memory before: " << free_before / (1024 * 1024) << " MB");
     
-    auto streaming_mgr = create_streaming_manager(5);
-    streaming_mgr->init_compression();
+    ZstdStreamingManager streaming_mgr(CompressionConfig{.level = 5});
+    streaming_mgr.init_compression();
     
     void *d_input, *d_output;
     cudaMalloc(&d_input, chunk_size);
@@ -347,7 +386,7 @@ bool test_memory_efficiency_large_file() {
         cudaMemcpy(d_input, h_chunk.data(), current_chunk, cudaMemcpyHostToDevice);
         
         size_t compressed_size;
-        streaming_mgr->compress_chunk(d_input, current_chunk, d_output, &compressed_size,
+        streaming_mgr.compress_chunk(d_input, current_chunk, d_output, &compressed_size,
                                       i == num_chunks - 1);
     }
     
@@ -388,7 +427,7 @@ bool test_concurrent_compression() {
     std::vector<std::thread> threads;
     
     auto worker = [&](int thread_id) {
-        auto manager = create_manager(5);
+        ZstdBatchManager manager(CompressionConfig{.level = 5});
         
         for (int i = 0; i < operations_per_thread; i++) {
             std::vector<uint8_t> h_data;
@@ -399,12 +438,12 @@ bool test_concurrent_compression() {
             cudaMalloc(&d_output, data_size * 2);
             cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
             
-            size_t temp_size = manager->get_compress_temp_size(data_size);
+            size_t temp_size = manager.get_compress_temp_size(data_size);
             cudaMalloc(&d_temp, temp_size);
             
             size_t compressed_size;
-            Status status = manager->compress(d_input, data_size, d_output, &compressed_size,
-                                             d_temp, temp_size, nullptr, 0, 0);
+            Status status = manager.compress(d_input, data_size, d_output, &compressed_size,
+                                             d_temp, temp_size, nullptr, 0);
             
             if (status == Status::SUCCESS) {
                 success_count++;
@@ -453,7 +492,7 @@ bool test_race_condition_detection() {
     
     LOG_INFO("Testing " << num_threads << " threads with shared resources");
     
-    auto manager = create_manager(5);
+    ZstdBatchManager manager(CompressionConfig{.level = 5});
     std::atomic<int> level_changes{0};
     
     std::vector<std::thread> threads;
@@ -462,7 +501,7 @@ bool test_race_condition_detection() {
         for (int i = 0; i < iterations; i++) {
             // Rapidly change compression level
             int new_level = 1 + (thread_id + i) % 22;
-            Status status = manager->set_compression_level(new_level);
+            Status status = manager.set_compression_level(new_level);
             if (status == Status::SUCCESS) {
                 level_changes++;
             }
@@ -502,14 +541,14 @@ bool test_corrupt_data_handling() {
     
     // Case 2: Invalid magic
     std::vector<uint8_t> bad_magic(data_size, 0xAA);
-    bad_magic[0] = 0xFF;
-    bad_magic[1] = 0xFF;
+    bad_magic.assign(1, 0xFF);
+    bad_magic.assign(1, 0xFF);
     test_cases.push_back({"bad_magic", bad_magic});
     
     // Case 3: Truncated
     test_cases.push_back({"truncated", std::vector<uint8_t>(10, 0x28)});
     
-    auto manager = create_manager(3);
+    ZstdBatchManager manager(CompressionConfig{.level = 3});
     
     for (const auto& [name, data] : test_cases) {
         LOG_INFO("Testing: " << name);
@@ -521,7 +560,7 @@ bool test_corrupt_data_handling() {
         cudaMemcpy(d_compressed, data.data(), data.size(), cudaMemcpyHostToDevice);
         
         size_t output_size;
-        Status status = manager->decompress(d_compressed, data.size(), d_output, &output_size,
+        Status status = manager.decompress(d_compressed, data.size(), d_output, &output_size,
                                            d_temp, data_size);
         
         ASSERT_TRUE(status != Status::SUCCESS, name << " should fail gracefully");
@@ -552,7 +591,7 @@ bool test_buffer_boundary_conditions() {
         1024*1024       // Exactly 1MB
     };
     
-    auto manager = create_manager(3);
+    ZstdBatchManager manager(CompressionConfig{.level = 3});
     
     for (size_t size : test_sizes) {
         std::vector<uint8_t> h_data;
@@ -564,16 +603,16 @@ bool test_buffer_boundary_conditions() {
         cudaMalloc(&d_decompressed, size);
         cudaMemcpy(d_input, h_data.data(), size, cudaMemcpyHostToDevice);
         
-        size_t temp_size = manager->get_compress_temp_size(size);
+        size_t temp_size = manager.get_compress_temp_size(size);
         cudaMalloc(&d_temp, temp_size);
         
         size_t compressed_size;
-        Status status = manager->compress(d_input, size, d_output, &compressed_size,
-                                         d_temp, temp_size, nullptr, 0, 0);
+        Status status = manager.compress(d_input, size, d_output, &compressed_size,
+                                         d_temp, temp_size, nullptr, 0);
         
         if (status == Status::SUCCESS) {
             size_t decompressed_size;
-            status = manager->decompress(d_output, compressed_size, d_decompressed,
+            status = manager.decompress(d_output, compressed_size, d_decompressed,
                                         &decompressed_size, d_temp, temp_size);
             ASSERT_STATUS(status, "Size " << size << " decompression failed");
             ASSERT_EQ(decompressed_size, size, "Size mismatch for " << size);
@@ -605,18 +644,8 @@ int main() {
     int passed = 0;
     int total = 0;
     
-    // Check CUDA device
-    int device_count = 0;
-    cudaGetDeviceCount(&device_count);
-    if (device_count == 0) {
-        std::cerr << "ERROR: No CUDA devices found!" << std::endl;
-        return 1;
-    }
-    
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::cout << "Running on: " << prop.name << std::endl;
-    std::cout << "Total Memory: " << prop.totalGlobalMem / (1024 * 1024) << " MB\n" << std::endl;
+    SKIP_IF_NO_CUDA_RET(0);
+    check_cuda_device();
     
     // End-to-End Pipeline Tests
     print_separator();

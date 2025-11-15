@@ -1,5 +1,6 @@
 // Minimal profiling test for CUDA Zstandard library
 #include <cuda_runtime.h>
+#include "cuda_error_checking.h"
 #include <iostream>
 #include <vector>
 #include <cstdint>
@@ -22,11 +23,8 @@ int main() {
     
     // Check for CUDA device
     int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-    if (deviceCount == 0) {
-        std::cerr << "No CUDA devices found!\n";
-        return 1;
-    }
+    SKIP_IF_NO_CUDA_RET(0);
+    check_cuda_device();
     
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0);

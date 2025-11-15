@@ -383,21 +383,23 @@ Status get_metadata_async(
     // (FIX) metadata extraction requires reading the header.
     // If d_compressed_data is on device, we must copy the header to host.
     // We copy enough for skippable frames + Zstd header.
-    size_t header_peek_size = std::min(compressed_size, (size_t)128); 
-    byte_t* h_compressed_header = (byte_t*)malloc(header_peek_size);
+    size_t header_peek_size = std::min(compressed_size, (size_t)128);
+    // Use RAII container to avoid raw malloc/free and exception-safety issues.
+    std::vector<byte_t> h_compressed_header(header_peek_size);
     
-    if (!h_compressed_header) return Status::ERROR_OUT_OF_MEMORY;
-    cudaMemcpyAsync(h_compressed_header, d_compressed_data, header_peek_size, cudaMemcpyDeviceToHost, stream);
-    cudaStreamSynchronize(stream);
+    if (h_compressed_header.empty()) return Status::ERROR_OUT_OF_MEMORY;
+    CUDA_CHECK(cudaMemcpyAsync(h_compressed_header.data(), d_compressed_data, header_peek_size,
+                         cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaStreamSynchronize(stream));
 
     NvcompMetadata internal_meta;
     Status status = extract_metadata(
-        h_compressed_header,
+        h_compressed_header.data(),
         header_peek_size,
         internal_meta
     );
     
-    free(h_compressed_header);
+    // h_compressed_header is freed automatically when the vector goes out of scope
     
     // Even if partial extract failed (due to small buffer), check what we got.
     // If magic was valid, populate what we can.

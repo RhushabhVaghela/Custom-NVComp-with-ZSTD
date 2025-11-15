@@ -1,9 +1,9 @@
 // ============================================================================
-// cuda_zstd_memory_pool_simple.h - Simplified GPU Memory Pool Manager
+// cuda_zstd_memory_pool.h - GPU Memory Pool Manager
 // ============================================================================
 
-#ifndef CUDA_ZSTD_MEMORY_POOL_H_
-#define CUDA_ZSTD_MEMORY_POOL_H_
+#ifndef CUDA_ZSTD_MEMORY_POOL_COMPLEX_H_
+#define CUDA_ZSTD_MEMORY_POOL_COMPLEX_H_
 
 #include "cuda_zstd_types.h"
 #include <cuda_runtime.h>
@@ -14,7 +14,6 @@
 #include <string>
 #include <cstdlib>
 #include <chrono>
-#include <unordered_map>
 
 namespace cuda_zstd {
 namespace memory {
@@ -202,7 +201,7 @@ struct PoolEntry {
 };
 
 // ============================================================================
-// Simple Memory Pool Manager
+// Memory Pool Manager with Fallback Support
 // ============================================================================
 
 class MemoryPoolManager {
@@ -215,11 +214,6 @@ public:
     static constexpr size_t SIZE_1MB = 1024 * 1024;
     static constexpr size_t SIZE_4MB = 4 * 1024 * 1024;
     static constexpr int NUM_POOL_SIZES = 6;
-    
-    // Static pool sizes array
-    static constexpr size_t POOL_SIZES[NUM_POOL_SIZES] = {
-        SIZE_4KB, SIZE_16KB, SIZE_64KB, SIZE_256KB, SIZE_1MB, SIZE_4MB
-    };
     
     // Constructor with configurable pool sizes
     explicit MemoryPoolManager(bool enable_defrag = true);
@@ -278,6 +272,35 @@ public:
     FallbackAllocation allocate_smart(const AllocationContext& context);
     FallbackAllocation allocate_with_strategy(size_t size, AllocationStrategy strategy, cudaStream_t stream = 0);
     FallbackAllocation allocate_dual_memory(size_t size, cudaStream_t stream = 0);
+    FallbackAllocation enhance_allocation(void* existing_ptr, size_t additional_size);
+    
+    // Rollback and recovery
+    struct RollbackContext {
+        size_t rollback_size;
+        void* original_ptr;
+        void* backup_ptr;
+        std::string operation_id;
+        uint64_t timestamp;
+    };
+    
+    Status execute_rollback(RollbackContext& context);
+    Status recover_from_failure(const std::string& failure_context);
+    RollbackContext create_rollback_context();
+    Status complete_rollback_operation(RollbackContext& context);
+    
+    // Progressive enhancement
+    Status attempt_progressive_enhancement();
+    Status downgrade_allocation_if_needed();
+    bool is_enhancement_possible() const;
+    enum class EnhancementState {
+        DISABLED = 0,
+        ENABLED = 1,
+        ENHANCING = 2,
+        ENHANCED = 3,
+        DOWNGRADED = 4
+    };
+    
+    EnhancementState get_enhancement_state() const;
     
     // Resource-aware allocation
     ResourceState get_current_resource_state() const;
@@ -295,10 +318,59 @@ public:
     Status restore_system_state();
     void log_allocation_decision(const std::string& decision, const AllocationContext& context);
     
+    // Additional member variables needed for enhanced functionality
+    mutable std::chrono::steady_clock::time_point last_resource_update_;
+    mutable std::chrono::steady_clock::time_point last_enhancement_check_;
+    ResourceState cached_resource_state_;
+    ProgressiveEnhancementState enhancement_state_;
+    ResourceAwareAllocationManager resource_manager_;
+    
+    // Enhanced allocation tracking
+    std::unordered_map<void*, EnhancedAllocationState> allocation_states_;
+    mutable std::mutex allocation_states_mutex_;
+    
+    // Additional statistics tracking
+    mutable std::atomic<uint64_t> enhanced_allocations_{0};
+    mutable std::atomic<uint64_t> dual_memory_allocations_{0};
+    mutable std::atomic<uint64_t> enhancement_operations_{0};
+    mutable std::atomic<uint64_t> allocation_latency_count_{0};
+    mutable std::atomic<uint64_t> total_allocation_latency_ns_{0};
+    mutable std::atomic<uint64_t> deallocation_latency_count_{0};
+    mutable std::atomic<uint64_t> total_deallocation_latency_ns_{0};
+    
+    // Enhanced functionality methods
+    FallbackAllocation allocate_with_resource_awareness(const AllocationContext& context);
+    FallbackAllocation allocate_adaptive(size_t size, cudaStream_t stream);
+    FallbackAllocation allocate_performance_optimized(size_t size, cudaStream_t stream);
+    FallbackAllocation allocate_reliability_first(size_t size, cudaStream_t stream);
+    FallbackAllocation attempt_allocation_enhancement(size_t base_size, size_t target_size, cudaStream_t stream);
+    Status evaluate_enhancement_opportunity();
+    Status execute_enhancement_plan(const std::vector<size_t>& enhancement_sizes);
+    void update_resource_state();
+    void update_allocation_latency(uint64_t latency_ns);
+    void update_deallocation_latency(uint64_t latency_ns);
+    void update_fragmentation_metrics();
+    void log_allocation_path(const std::string& path, const FallbackAllocation& result);
+    bool should_downgrade_due_to_pressure() const;
+    size_t estimate_memory_requirements(const ResourceState& state, size_t requested_size) const;
+    bool is_allocation_feasible(const ResourceState& state, size_t size) const;
+    Status perform_health_check();
+    void optimize_memory_distribution();
+    void track_allocation_state(const AllocationState& state);
+    Status restore_consistent_state();
+    Status cleanup_failed_allocation_state(RollbackContext& context);
+    Status rollback_partial_allocation(RollbackContext& context, const std::string& reason);
+    void log_fallback_event(const std::string& event_type, const std::string& details);
+    
 private:
     // Pool storage - one pool per size class
     std::vector<PoolEntry> pools_[NUM_POOL_SIZES];
     mutable std::mutex pool_mutexes_[NUM_POOL_SIZES];
+    
+    // Pool size thresholds
+    static constexpr size_t POOL_SIZES[NUM_POOL_SIZES] = {
+        SIZE_4KB, SIZE_16KB, SIZE_64KB, SIZE_256KB, SIZE_1MB, SIZE_4MB
+    };
     
     // Configuration
     float growth_factor_ = 1.5f;
@@ -336,7 +408,6 @@ private:
     PoolEntry* find_free_entry(int pool_idx, cudaStream_t stream);
     
     // Fallback allocation strategies
-    Status grow_pool_with_fallback(int pool_idx, size_t min_entries);
     FallbackAllocation allocate_with_cuda_fallback(size_t size, cudaStream_t stream);
     FallbackAllocation allocate_host_memory(size_t size);
     FallbackAllocation allocate_degraded(size_t size, cudaStream_t stream);
@@ -358,21 +429,6 @@ private:
     Status copy_between_memory_types(void* src, void* dst, size_t size, bool host_to_device);
     
     void update_peak_usage(size_t current_usage);
-    
-    // Smart allocation helpers
-    FallbackAllocation allocate_with_resource_awareness(const AllocationContext& context);
-    FallbackAllocation allocate_adaptive(size_t size, cudaStream_t stream);
-    FallbackAllocation allocate_performance_optimized(size_t size, cudaStream_t stream);
-    FallbackAllocation allocate_reliability_first(size_t size, cudaStream_t stream);
-    
-    // Resource management helpers
-    void update_resource_state();
-    bool should_downgrade_due_to_pressure() const;
-    size_t estimate_memory_requirements(const ResourceState& state, size_t requested_size) const;
-    bool is_allocation_feasible(const ResourceState& state, size_t size) const;
-    Status perform_health_check();
-    void optimize_memory_distribution();
-    void log_fallback_event(const std::string& event_type, const std::string& details);
 };
 
 // ============================================================================
@@ -385,4 +441,4 @@ void destroy_global_pool();
 } // namespace memory
 } // namespace cuda_zstd
 
-#endif // CUDA_ZSTD_MEMORY_POOL_H_
+#endif // CUDA_ZSTD_MEMORY_POOL_COMPLEX_H_

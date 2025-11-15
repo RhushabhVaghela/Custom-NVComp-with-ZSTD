@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CUDA_ZSTD_INTERNAL_H_
+#define CUDA_ZSTD_INTERNAL_H_
 
 #include <iostream>
 #ifdef _MSC_VER
@@ -207,3 +208,4 @@ u32 get_optimal_block_size(int device_id);
 } // namespace dictionary
 
 } // namespace cuda_zstd
+#endif // CUDA_ZSTD_INTERNAL_H_

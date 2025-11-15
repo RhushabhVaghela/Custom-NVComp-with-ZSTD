@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CUDA_ZSTD_HASH_H_
+#define CUDA_ZSTD_HASH_H_
 
 #include "cuda_zstd_types.h"
 
@@ -67,3 +68,5 @@ void init_hash_table(u32* hash_table, int size, u32 value, cudaStream_t stream);
 
 } // namespace hash
 } // namespace cuda_zstd
+
+#endif // CUDA_ZSTD_HASH_H_

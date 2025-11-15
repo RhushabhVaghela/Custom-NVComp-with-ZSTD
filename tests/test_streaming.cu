@@ -4,6 +4,7 @@
 
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_error_checking.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <vector>
@@ -85,38 +86,60 @@ bool test_single_chunk_streaming() {
     
     LOG_INFO("Input size: " << chunk_size << " bytes");
     
-    // Allocate GPU memory
-    void *d_input, *d_compressed, *d_output;
-    cudaMalloc(&d_input, chunk_size);
-    cudaMalloc(&d_compressed, chunk_size * 2);
-    cudaMalloc(&d_output, chunk_size);
-    cudaMemcpy(d_input, h_input.data(), chunk_size, cudaMemcpyHostToDevice);
+    // Allocate GPU memory with error checking
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr;
+    
+    if (!safe_cuda_malloc(&d_input, chunk_size)) {
+        LOG_FAIL("test_single_chunk_streaming", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed, chunk_size * 2)) {
+        LOG_FAIL("test_single_chunk_streaming", "CUDA malloc for d_compressed failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, chunk_size)) {
+        LOG_FAIL("test_single_chunk_streaming", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
+    
+    // Copy input data to device
+    if (!safe_cuda_memcpy(d_input, h_input.data(), chunk_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_single_chunk_streaming", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     // Create streaming manager
-    auto manager = create_streaming_manager(3);
-    ASSERT_TRUE(manager != nullptr, "Failed to create streaming manager");
+    ZstdStreamingManager manager(CompressionConfig{.level = 3});
     
     // Initialize compression
-    Status status = manager->init_compression();
+    Status status = manager.init_compression();
     ASSERT_STATUS(status, "init_compression failed");
     
     // Compress single chunk
     size_t compressed_size;
-    status = manager->compress_chunk(d_input, chunk_size, d_compressed, &compressed_size, true);
+    status = manager.compress_chunk(d_input, chunk_size, d_compressed, &compressed_size, true);
     ASSERT_STATUS(status, "compress_chunk failed");
     
     LOG_INFO("Compressed size: " << compressed_size << " bytes");
-    LOG_INFO("Compression ratio: " << std::fixed << std::setprecision(2) 
+    LOG_INFO("Compression ratio: " << std::fixed << std::setprecision(2)
              << get_compression_ratio(chunk_size, compressed_size) << ":1");
     
     // Initialize decompression
-    status = manager->init_decompression();
+    status = manager.init_decompression();
     ASSERT_STATUS(status, "init_decompression failed");
     
     // Decompress
     size_t decompressed_size;
     bool is_last;
-    status = manager->decompress_chunk(d_compressed, compressed_size, d_output, 
+    status = manager.decompress_chunk(d_compressed, compressed_size, d_output,
                                        &decompressed_size, &is_last);
     ASSERT_STATUS(status, "decompress_chunk failed");
     ASSERT_EQ(decompressed_size, chunk_size, "Decompressed size mismatch");
@@ -124,14 +147,21 @@ bool test_single_chunk_streaming() {
     
     // Verify data
     std::vector<uint8_t> h_output(chunk_size);
-    cudaMemcpy(h_output.data(), d_output, chunk_size, cudaMemcpyDeviceToHost);
+    if (!safe_cuda_memcpy(h_output.data(), d_output, chunk_size, cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("test_single_chunk_streaming", "CUDA memcpy from d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
     ASSERT_TRUE(verify_decompressed_data(h_input.data(), h_output.data(), chunk_size),
                 "Data verification failed");
     
-    // Cleanup
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_output);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
     
     LOG_PASS("Single Chunk Streaming");
     return true;
@@ -154,12 +184,12 @@ bool test_multi_chunk_streaming() {
     
     // Allocate GPU memory
     void *d_input, *d_compressed, *d_output;
-    cudaMalloc(&d_input, chunk_size);
-    cudaMalloc(&d_compressed, chunk_size * 2);
-    cudaMalloc(&d_output, chunk_size);
+    ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess, "cudaMalloc d_input failed");
+    ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess, "cudaMalloc d_compressed failed");
+    ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess, "cudaMalloc d_output failed");
     
-    auto manager = create_streaming_manager(5);
-    manager->init_compression();
+    ZstdStreamingManager manager(CompressionConfig{.level = 5});
+    manager.init_compression();
     
     // Compress chunks
     std::vector<std::vector<uint8_t>> compressed_chunks;
@@ -171,7 +201,7 @@ bool test_multi_chunk_streaming() {
         
         size_t compressed_size;
         bool is_last = (i == num_chunks - 1);
-        Status status = manager->compress_chunk(d_input, chunk_size, d_compressed, 
+        Status status = manager.compress_chunk(d_input, chunk_size, d_compressed,
                                                &compressed_size, is_last);
         ASSERT_STATUS(status, "compress_chunk " << i << " failed");
         
@@ -180,7 +210,7 @@ bool test_multi_chunk_streaming() {
         compressed_chunks.push_back(chunk_data);
         total_compressed += compressed_size;
         
-        LOG_INFO("Chunk " << i << ": " << chunk_size << " -> " << compressed_size 
+        LOG_INFO("Chunk " << i << ": " << chunk_size << " -> " << compressed_size
                  << " bytes (ratio: " << std::fixed << std::setprecision(2)
                  << get_compression_ratio(chunk_size, compressed_size) << ":1)");
     }
@@ -190,16 +220,16 @@ bool test_multi_chunk_streaming() {
              << get_compression_ratio(total_size, total_compressed) << ":1");
     
     // Decompress chunks
-    manager->init_decompression();
+    manager.init_decompression();
     std::vector<uint8_t> h_output(total_size);
     
     for (int i = 0; i < num_chunks; i++) {
-        cudaMemcpy(d_compressed, compressed_chunks[i].data(), 
+        cudaMemcpy(d_compressed, compressed_chunks[i].data(),
                    compressed_chunks[i].size(), cudaMemcpyHostToDevice);
         
         size_t decompressed_size;
         bool is_last;
-        Status status = manager->decompress_chunk(d_compressed, compressed_chunks[i].size(),
+        Status status = manager.decompress_chunk(d_compressed, compressed_chunks[i].size(),
                                                   d_output, &decompressed_size, &is_last);
         ASSERT_STATUS(status, "decompress_chunk " << i << " failed");
         ASSERT_EQ(decompressed_size, chunk_size, "Chunk " << i << " size mismatch");
@@ -237,12 +267,12 @@ bool test_variable_chunk_sizes() {
     // Allocate GPU memory (use max chunk size)
     size_t max_chunk = *std::max_element(chunk_sizes.begin(), chunk_sizes.end());
     void *d_input, *d_compressed, *d_output;
-    cudaMalloc(&d_input, max_chunk);
-    cudaMalloc(&d_compressed, max_chunk * 2);
-    cudaMalloc(&d_output, max_chunk);
+    ASSERT_TRUE(cudaMalloc(&d_input, max_chunk) == cudaSuccess, "cudaMalloc d_input failed");
+    ASSERT_TRUE(cudaMalloc(&d_compressed, max_chunk * 2) == cudaSuccess, "cudaMalloc d_compressed failed");
+    ASSERT_TRUE(cudaMalloc(&d_output, max_chunk) == cudaSuccess, "cudaMalloc d_output failed");
     
-    auto manager = create_streaming_manager(7);
-    manager->init_compression();
+    ZstdStreamingManager manager(CompressionConfig{.level = 7});
+    manager.init_compression();
     
     // Compress variable chunks
     std::vector<std::vector<uint8_t>> compressed_chunks;
@@ -255,7 +285,7 @@ bool test_variable_chunk_sizes() {
         
         size_t compressed_size;
         bool is_last = (i == chunk_sizes.size() - 1);
-        Status status = manager->compress_chunk(d_input, chunk_size, d_compressed,
+        Status status = manager.compress_chunk(d_input, chunk_size, d_compressed,
                                                &compressed_size, is_last);
         ASSERT_STATUS(status, "Variable chunk " << i << " compression failed");
         
@@ -271,7 +301,7 @@ bool test_variable_chunk_sizes() {
     LOG_INFO("Total: " << total_size << " -> " << total_compressed << " bytes");
     
     // Decompress and verify
-    manager->init_decompression();
+    manager.init_decompression();
     std::vector<uint8_t> h_output(total_size);
     offset = 0;
     
@@ -281,7 +311,7 @@ bool test_variable_chunk_sizes() {
         
         size_t decompressed_size;
         bool is_last;
-        Status status = manager->decompress_chunk(d_compressed, compressed_chunks[i].size(),
+        Status status = manager.decompress_chunk(d_compressed, compressed_chunks[i].size(),
                                                   d_output, &decompressed_size, &is_last);
         ASSERT_STATUS(status, "Variable chunk " << i << " decompression failed");
         ASSERT_EQ(decompressed_size, chunk_sizes[i], "Size mismatch for chunk " << i);
@@ -325,21 +355,21 @@ bool test_cross_chunk_matching() {
     LOG_INFO("Chunk size: " << chunk_size << " bytes");
     
     void *d_input, *d_compressed, *d_output;
-    cudaMalloc(&d_input, chunk_size);
-    cudaMalloc(&d_compressed, chunk_size * 2);
-    cudaMalloc(&d_output, chunk_size);
+    ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess, "cudaMalloc d_input failed");
+    ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess, "cudaMalloc d_compressed failed");
+    ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess, "cudaMalloc d_output failed");
     
-    auto manager = create_streaming_manager(9);
-    manager->init_compression();
+    ZstdStreamingManager manager(CompressionConfig{.level = 9});
+    manager.init_compression();
     
     std::vector<std::vector<uint8_t>> compressed_chunks;
     
     for (int i = 0; i < num_chunks; i++) {
-        cudaMemcpy(d_input, h_input.data() + (i * chunk_size), chunk_size, 
+        cudaMemcpy(d_input, h_input.data() + (i * chunk_size), chunk_size,
                    cudaMemcpyHostToDevice);
         
         size_t compressed_size;
-        Status status = manager->compress_chunk(d_input, chunk_size, d_compressed,
+        Status status = manager.compress_chunk(d_input, chunk_size, d_compressed,
                                                &compressed_size, i == num_chunks - 1);
         ASSERT_STATUS(status, "Cross-chunk compression failed at chunk " << i);
         
@@ -353,7 +383,7 @@ bool test_cross_chunk_matching() {
     }
     
     // Verify decompression
-    manager->init_decompression();
+    manager.init_decompression();
     std::vector<uint8_t> h_output(chunk_size * num_chunks);
     
     for (int i = 0; i < num_chunks; i++) {
@@ -362,7 +392,7 @@ bool test_cross_chunk_matching() {
         
         size_t decompressed_size;
         bool is_last;
-        Status status = manager->decompress_chunk(d_compressed, compressed_chunks[i].size(),
+        Status status = manager.decompress_chunk(d_compressed, compressed_chunks[i].size(),
                                                   d_output, &decompressed_size, &is_last);
         ASSERT_STATUS(status, "Cross-chunk decompression failed at chunk " << i);
         
@@ -398,26 +428,26 @@ bool test_very_small_chunks() {
         for (size_t i = 0; i < size; i++) h_input[i] = static_cast<uint8_t>(i);
         
         void *d_input, *d_compressed, *d_output;
-        cudaMalloc(&d_input, 1024);
-        cudaMalloc(&d_compressed, 1024);
-        cudaMalloc(&d_output, 1024);
+        ASSERT_TRUE(cudaMalloc(&d_input, 1024) == cudaSuccess, "cudaMalloc d_input failed");
+        ASSERT_TRUE(cudaMalloc(&d_compressed, 1024) == cudaSuccess, "cudaMalloc d_compressed failed");
+        ASSERT_TRUE(cudaMalloc(&d_output, 1024) == cudaSuccess, "cudaMalloc d_output failed");
         cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice);
         
-        auto manager = create_streaming_manager(1);
-        manager->init_compression();
+        ZstdStreamingManager manager(CompressionConfig{.level = 1});
+        manager.init_compression();
         
         size_t compressed_size;
-        Status status = manager->compress_chunk(d_input, size, d_compressed,
+        Status status = manager.compress_chunk(d_input, size, d_compressed,
                                                &compressed_size, true);
         ASSERT_STATUS(status, "Tiny chunk compression failed for size " << size);
         
         LOG_INFO("  Compressed to " << compressed_size << " bytes");
         
         // Decompress
-        manager->init_decompression();
+        manager.init_decompression();
         size_t decompressed_size;
         bool is_last;
-        status = manager->decompress_chunk(d_compressed, compressed_size, d_output,
+        status = manager.decompress_chunk(d_compressed, compressed_size, d_output,
                                           &decompressed_size, &is_last);
         ASSERT_STATUS(status, "Tiny chunk decompression failed for size " << size);
         ASSERT_EQ(decompressed_size, size, "Size mismatch for tiny chunk");
@@ -450,12 +480,12 @@ bool test_large_streaming() {
     // Generate large test data
     std::vector<uint8_t> h_input(chunk_size); // Reuse buffer
     void *d_input, *d_compressed, *d_output;
-    cudaMalloc(&d_input, chunk_size);
-    cudaMalloc(&d_compressed, chunk_size * 2);
-    cudaMalloc(&d_output, chunk_size);
+    ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess, "cudaMalloc d_input failed");
+    ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess, "cudaMalloc d_compressed failed");
+    ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess, "cudaMalloc d_output failed");
     
-    auto manager = create_streaming_manager(3);
-    manager->init_compression();
+    ZstdStreamingManager manager(CompressionConfig{.level = 3});
+    manager.init_compression();
     
     size_t total_compressed = 0;
     
@@ -465,7 +495,7 @@ bool test_large_streaming() {
         cudaMemcpy(d_input, h_input.data(), chunk_size, cudaMemcpyHostToDevice);
         
         size_t compressed_size;
-        Status status = manager->compress_chunk(d_input, chunk_size, d_compressed,
+        Status status = manager.compress_chunk(d_input, chunk_size, d_compressed,
                                                &compressed_size, i == num_chunks - 1);
         ASSERT_STATUS(status, "Large chunk " << i << " compression failed");
         
@@ -498,12 +528,12 @@ bool test_incompressible_data_streaming() {
     LOG_INFO("Testing random (incompressible) data");
     
     void *d_input, *d_compressed, *d_output;
-    cudaMalloc(&d_input, chunk_size);
-    cudaMalloc(&d_compressed, chunk_size * 2);
-    cudaMalloc(&d_output, chunk_size);
+    ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess, "cudaMalloc d_input failed");
+    ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess, "cudaMalloc d_compressed failed");
+    ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess, "cudaMalloc d_output failed");
     
-    auto manager = create_streaming_manager(5);
-    manager->init_compression();
+    ZstdStreamingManager manager(CompressionConfig{.level = 5});
+    manager.init_compression();
     
     std::vector<uint8_t> h_input(chunk_size);
     size_t total_compressed = 0;
@@ -513,7 +543,7 @@ bool test_incompressible_data_streaming() {
         cudaMemcpy(d_input, h_input.data(), chunk_size, cudaMemcpyHostToDevice);
         
         size_t compressed_size;
-        Status status = manager->compress_chunk(d_input, chunk_size, d_compressed,
+        Status status = manager.compress_chunk(d_input, chunk_size, d_compressed,
                                                &compressed_size, i == num_chunks - 1);
         ASSERT_STATUS(status, "Incompressible chunk " << i << " failed");
         
@@ -545,12 +575,12 @@ bool test_mixed_compressibility() {
     LOG_INFO("Testing alternating data patterns");
     
     void *d_input, *d_compressed, *d_output;
-    cudaMalloc(&d_input, chunk_size);
-    cudaMalloc(&d_compressed, chunk_size * 2);
-    cudaMalloc(&d_output, chunk_size);
+    ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess, "cudaMalloc d_input failed");
+    ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess, "cudaMalloc d_compressed failed");
+    ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess, "cudaMalloc d_output failed");
     
-    auto manager = create_streaming_manager(5);
-    manager->init_compression();
+    ZstdStreamingManager manager(CompressionConfig{.level = 5});
+    manager.init_compression();
     
     std::vector<uint8_t> h_input(chunk_size);
     
@@ -559,7 +589,7 @@ bool test_mixed_compressibility() {
         cudaMemcpy(d_input, h_input.data(), chunk_size, cudaMemcpyHostToDevice);
         
         size_t compressed_size;
-        Status status = manager->compress_chunk(d_input, chunk_size, d_compressed,
+        Status status = manager.compress_chunk(d_input, chunk_size, d_compressed,
                                                &compressed_size, i == num_chunks - 1);
         ASSERT_STATUS(status, "Mixed chunk " << i << " failed");
         
@@ -591,18 +621,9 @@ int main() {
     int passed = 0;
     int total = 0;
     
-    // Check CUDA device
-    int device_count = 0;
-    cudaGetDeviceCount(&device_count);
-    if (device_count == 0) {
-        std::cerr << "ERROR: No CUDA devices found!" << std::endl;
-        return 1;
-    }
-    
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::cout << "Running on: " << prop.name << std::endl;
-    std::cout << "Compute Capability: " << prop.major << "." << prop.minor << "\n" << std::endl;
+    // Skip on CPU-only environments; otherwise print device info
+    SKIP_IF_NO_CUDA_RET(0);
+    check_cuda_device();
     
     // Basic Streaming Tests
     print_separator();

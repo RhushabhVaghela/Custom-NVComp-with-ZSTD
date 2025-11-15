@@ -2,8 +2,8 @@
 // cuda_zstd_nvcomp.h - NVCOMP v5.0 Compatibility Layer
 // ============================================================================
 
-#ifndef CUDA_ZSTD_NVCOMP_H
-#define CUDA_ZSTD_NVCOMP_H
+#ifndef CUDA_ZSTD_NVCOMP_H_
+#define CUDA_ZSTD_NVCOMP_H_
 
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_manager.h"
@@ -11,6 +11,7 @@
 // Forward declare NVCOMP types (include nvcomp headers in implementation)
 struct nvcompBatchedZstdOpts_t;
 
+#ifdef __cplusplus
 namespace cuda_zstd {
 namespace nvcomp_v5 {
 
@@ -225,11 +226,57 @@ Status nvcomp_error_to_status(int nvcomp_error);
 // Get error string for NVCOMP v5.0
 const char* get_nvcomp_v5_error_string(int error_code);
 
+// (C API block is moved to the bottom of the header to keep it outside of
+// the cuda_zstd::nvcomp_v5 namespace so that it remains a global C ABI.)
+
 // ============================================================================
-// NVCOMP v5.0 C API (for compatibility)
+// NVCOMP v5.0 Benchmark Helpers
 // ============================================================================
 
+// Benchmark compression across all levels (NVCOMP v5.0 pattern)
+struct NvcompV5BenchmarkResult {
+    int level;
+    double compress_time_ms;
+    double decompress_time_ms;
+    double compress_throughput_mbps;
+    double decompress_throughput_mbps;
+    float compression_ratio;
+    size_t compressed_size;
+};
+
+// Run benchmark for specific level
+NvcompV5BenchmarkResult benchmark_level(
+    const void* d_input,
+    size_t input_size,
+    int level,
+    int iterations = 100,
+    cudaStream_t stream = 0
+);
+
+// Run benchmark for all levels
+std::vector<NvcompV5BenchmarkResult> benchmark_all_levels(
+    const void* d_input,
+    size_t input_size,
+    int iterations = 100,
+    cudaStream_t stream = 0
+);
+
+// Print benchmark results
+void print_benchmark_results(
+    const std::vector<NvcompV5BenchmarkResult>& results
+);
+
+} // namespace nvcomp_v5
+} // namespace cuda_zstd
+#endif
+
+// ============================================================================
+// NVCOMP v5.0 C API (for compatibility) - placed outside C++ namespaces
+// ============================================================================
+
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 // C API types
 typedef void* nvcompZstdManagerHandle;
@@ -278,54 +325,18 @@ size_t nvcomp_zstd_get_decompress_temp_size_v5(
     size_t compressed_size
 );
 
-// Metadata
+// C API metadata helper (C header hides C++-only metadata struct; user must
+// call from C++ to access metadata). This is not available to pure C.
+#ifdef __cplusplus
 int nvcomp_zstd_get_metadata_v5(
     const void* d_compressed_data,
     size_t compressed_size,
-    NvcompV5Metadata* h_metadata,
+    cuda_zstd::nvcomp_v5::NvcompV5Metadata* h_metadata,
     cudaStream_t stream
 );
+#endif
 
-} // extern "C"
-
-// ============================================================================
-// NVCOMP v5.0 Benchmark Helpers
-// ============================================================================
-
-// Benchmark compression across all levels (NVCOMP v5.0 pattern)
-struct NvcompV5BenchmarkResult {
-    int level;
-    double compress_time_ms;
-    double decompress_time_ms;
-    double compress_throughput_mbps;
-    double decompress_throughput_mbps;
-    float compression_ratio;
-    size_t compressed_size;
-};
-
-// Run benchmark for specific level
-NvcompV5BenchmarkResult benchmark_level(
-    const void* d_input,
-    size_t input_size,
-    int level,
-    int iterations = 100,
-    cudaStream_t stream = 0
-);
-
-// Run benchmark for all levels
-std::vector<NvcompV5BenchmarkResult> benchmark_all_levels(
-    const void* d_input,
-    size_t input_size,
-    int iterations = 100,
-    cudaStream_t stream = 0
-);
-
-// Print benchmark results
-void print_benchmark_results(
-    const std::vector<NvcompV5BenchmarkResult>& results
-);
-
-} // namespace nvcomp_v5
-} // namespace cuda_zstd
-
-#endif // CUDA_ZSTD_NVCOMP_H
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+#endif // CUDA_ZSTD_NVCOMP_H_

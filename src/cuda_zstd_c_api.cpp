@@ -112,83 +112,68 @@ size_t cuda_zstd_get_decompress_workspace_size(
 // Dictionary Training (Full Implementation)
 // ============================================================================
 
+/**
+ * @brief Trains a dictionary using the COVER algorithm on provided samples.
+ *
+ * @param samples Array of pointers to sample buffers (host memory).
+ * @param sample_sizes Array of sizes for each sample.
+ * @param num_samples Number of samples.
+ * @param dict_size Target dictionary size in bytes.
+ * @return cuda_zstd_dict_t* Pointer to trained dictionary handle, or NULL on error.
+ *
+ * Error Codes:
+ *   - NULL: Invalid parameters or training failure.
+ *   - Dictionary handle: Success.
+ */
 cuda_zstd_dict_t* cuda_zstd_train_dictionary(
     const void** samples,
     const size_t* sample_sizes,
     size_t num_samples,
     size_t dict_size
 ) {
-    // --- START REPLACEMENT ---
     if (!samples || !sample_sizes || num_samples == 0 || dict_size == 0) {
         return nullptr;
     }
 
     try {
-        // 1. Convert C-style arrays to C++ vectors
-        std::vector<const cuda_zstd::byte_t*> cpp_samples(num_samples);
-        std::vector<size_t> cpp_sample_sizes(num_samples);
-        
+        // Prepare sample vectors for trainer
+        std::vector<const cuda_zstd::byte_t*> sample_vec;
+        std::vector<size_t> size_vec;
+        sample_vec.reserve(num_samples);
+        size_vec.reserve(num_samples);
         for (size_t i = 0; i < num_samples; ++i) {
-            cpp_samples[i] = static_cast<const cuda_zstd::byte_t*>(samples[i]);
-            cpp_sample_sizes[i] = sample_sizes[i];
+            if (!samples[i] || sample_sizes[i] == 0) {
+                return nullptr;
+            }
+            sample_vec.push_back(reinterpret_cast<const cuda_zstd::byte_t*>(samples[i]));
+            size_vec.push_back(sample_sizes[i]);
         }
 
-        // 2. Create the opaque C struct and the C++ Dictionary
-        cuda_zstd_dict_t* c_dict = new cuda_zstd_dict_t;
-        c_dict->dict = std::make_unique<cuda_zstd::dictionary::Dictionary>();
+        // Create dictionary object
+        auto dict_handle = new cuda_zstd_dict_t;
+        dict_handle->dict = std::make_unique<cuda_zstd::dictionary::Dictionary>();
 
-        // 3. Allocate GPU memory for the dictionary
-        auto status = cuda_zstd::dictionary::DictionaryManager::allocate_dictionary_gpu(
-            *(c_dict->dict), dict_size, 0
-        );
-        if (status != cuda_zstd::Status::SUCCESS) {
-            delete c_dict;
-            return nullptr;
-        }
+        // Use default COVER parameters (can be extended)
+        cuda_zstd::dictionary::CoverParams params;
 
-        // 4. Call the C++ trainer
-        cuda_zstd::dictionary::CoverParams params; // Use default params
-        status = cuda_zstd::dictionary::DictionaryTrainer::train_dictionary(
-            cpp_samples,
-            cpp_sample_sizes,
-            *(c_dict->dict),
+        // Train dictionary (on default stream)
+        cuda_zstd::Status status = cuda_zstd::dictionary::DictionaryTrainer::train_dictionary(
+            sample_vec,
+            size_vec,
+            *dict_handle->dict,
             dict_size,
             params,
-            0
+            0 // cudaStream_t
         );
-        
-        // Wait for training to finish
-        cudaStreamSynchronize(0);
-
-        if (status != cuda_zstd::Status::SUCCESS || c_dict->dict->raw_size == 0) {
-            cuda_zstd::dictionary::DictionaryManager::free_dictionary_gpu(*(c_dict->dict), 0);
-            delete c_dict;
-            return nullptr;
-        }
-        
-        // 5. Build entropy tables (required for a usable dictionary)
-        // We'll train on the dictionary content itself as a simple default
-        status = cuda_zstd::dictionary::build_entropy_tables(
-            *(c_dict->dict),
-            c_dict->dict->raw_content,
-            c_dict->dict->raw_size,
-            0
-        );
-        cudaStreamSynchronize(0);
-        
         if (status != cuda_zstd::Status::SUCCESS) {
-            cuda_zstd::dictionary::DictionaryManager::free_dictionary_gpu(*(c_dict->dict), 0);
-            delete c_dict;
+            delete dict_handle;
             return nullptr;
         }
 
-        // 6. Return the opaque handle
-        return c_dict;
-        
+        return dict_handle;
     } catch (...) {
         return nullptr;
     }
-    // --- END REPLACEMENT ---
 }
 
 void cuda_zstd_destroy_dictionary(cuda_zstd_dict_t* dict) {

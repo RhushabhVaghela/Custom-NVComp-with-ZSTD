@@ -2,41 +2,41 @@
 // test_c_api.c - Verify the C-API
 // ============================================================================
 
-#include "cuda_zstd_manager.h" // C-API is in the manager header
+#include "cuda_zstd_nvcomp.h" // C-API is in the nvcomp header
 #include <stdio.h>
 #include <stdlib.h>
 #include <cuda_runtime.h>
 
 int main() {
     printf("\n========================================\n");
-    printf("  Test: C-API Validation\n");
+    printf("  Test: C-API Validation (NVCOMP v5)\n");
     printf("========================================\n\n");
     
     // 1. Create Manager
     int level = 3;
-    cuda_zstd_manager_t* manager = cuda_zstd_create_manager(level);
+    nvcompZstdManagerHandle manager = nvcomp_zstd_create_manager_v5(level);
     if (!manager) {
-        printf("  ✗ FAILED: cuda_zstd_create_manager returned NULL\n");
+        printf("  ✗ FAILED: nvcomp_zstd_create_manager_v5 returned NULL\n");
         return 1;
     }
-    printf("  ✓ cuda_zstd_create_manager passed.\n");
+    printf("  ✓ nvcomp_zstd_create_manager_v5 passed.\n");
     
     // 2. Prepare data
     size_t data_size = 128 * 1024;
-    void* h_data = malloc(data_size);
+    void* h_data = malloc(data_size); // Not strictly needed, but good practice
     void *d_input, *d_output, *d_temp;
     
     cudaMalloc(&d_input, data_size);
     cudaMalloc(&d_output, data_size * 2);
     
-    size_t temp_size = cuda_zstd_get_compress_workspace_size(manager, data_size);
+    size_t temp_size = nvcomp_zstd_get_compress_temp_size_v5(manager, data_size);
     cudaMalloc(&d_temp, temp_size);
     
     printf("  ✓ Workspace allocated: %zu KB\n", temp_size / 1024);
     
     // 3. Compress
     size_t compressed_size = 0;
-    int err = cuda_zstd_compress(
+    int err = nvcomp_zstd_compress_async_v5(
         manager,
         d_input,
         data_size,
@@ -49,16 +49,16 @@ int main() {
     cudaDeviceSynchronize();
     
     if (err != 0) {
-        printf("  ✗ FAILED: cuda_zstd_compress returned error %d (%s)\n", 
-               err, cuda_zstd_get_error_string(err));
+        printf("  ✗ FAILED: nvcomp_zstd_compress_async_v5 returned error %d\n", err);
         return 1;
     }
-    printf("  ✓ cuda_zstd_compress passed. Size: %zu\n", compressed_size);
+    printf("  ✓ nvcomp_zstd_compress_async_v5 passed. Size: %zu\n", compressed_size);
     
     // 4. Destroy Manager
-    cuda_zstd_destroy_manager(manager);
-    printf("  ✓ cuda_zstd_destroy_manager passed.\n");
+    nvcomp_zstd_destroy_manager_v5(manager);
+    printf("  ✓ nvcomp_zstd_destroy_manager_v5 passed.\n");
     
+    // Cleanup
     free(h_data);
     cudaFree(d_input);
     cudaFree(d_output);

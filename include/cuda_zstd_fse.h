@@ -6,13 +6,18 @@
 // Features: Adaptive tables, accurate normalization, symbol reordering, multi-table
 // ==============================================================================
 
-#ifndef CUDA_ZSTD_FSE_H
-#define CUDA_ZSTD_FSE_H
+#ifndef CUDA_ZSTD_FSE_H_
+#define CUDA_ZSTD_FSE_H_
 
 #include "cuda_zstd_types.h"
 #include <cuda_runtime.h>
+#ifdef __cplusplus
 #include <cmath>
+#else
+#include <math.h>
+#endif
 
+#ifdef __cplusplus
 namespace cuda_zstd {
 namespace fse {
 
@@ -73,8 +78,19 @@ struct FSEStats {
 };
 
 struct MultiTableFSE {
-    FSEEncodeTable tables[4];
-    u32 active_tables;
+    FSEEncodeTable tables[4] = {};
+    u32 active_tables = 0;
+    MultiTableFSE() : tables{}, active_tables(0) {}
+    // Defensive clear: does not free device memory, only clears logical state.
+    inline void clear() {
+        for (int i = 0; i < 4; ++i) {
+            tables[i].d_symbol_table = nullptr;
+            tables[i].table_log = 0;
+            tables[i].table_size = 0;
+            tables[i].max_symbol = 0;
+        }
+        active_tables = 0;
+    }
 };
 
 // ============================================================================
@@ -302,5 +318,7 @@ namespace predefined {
 
 } // namespace fse
 } // namespace cuda_zstd
+
+#endif // __cplusplus
 
 #endif // CUDA_ZSTD_FSE_H

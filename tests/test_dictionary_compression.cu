@@ -5,6 +5,7 @@
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_manager.h"
 #include <iostream>
 #include <vector>
 #include <cstring>
@@ -73,16 +74,22 @@ int main() {
     std::vector<byte_t> h_test_data = create_sample(test_data_size, "REPEATING_SEQUENCE_");
     
     byte_t *d_input, *d_compressed, *d_decompressed, *d_temp;
-    cudaMalloc(&d_input, test_data_size);
+    cudaError_t err;
+    err = cudaMalloc(&d_input, test_data_size);
+    assert(err == cudaSuccess);
     // Calculate max compressed size manually: input_size + input_size/256 + 128
     size_t max_compressed = test_data_size + test_data_size / 256 + 128;
-    cudaMalloc(&d_compressed, max_compressed);
-    cudaMalloc(&d_decompressed, test_data_size);
-    cudaMemcpy(d_input, h_test_data.data(), test_data_size, cudaMemcpyHostToDevice);
+    err = cudaMalloc(&d_compressed, max_compressed);
+    assert(err == cudaSuccess);
+    err = cudaMalloc(&d_decompressed, test_data_size);
+    assert(err == cudaSuccess);
+    err = cudaMemcpy(d_input, h_test_data.data(), test_data_size, cudaMemcpyHostToDevice);
+    assert(err == cudaSuccess);
 
-    auto manager = create_manager();
+    auto manager = create_manager(5);
     size_t temp_size = manager->get_compress_temp_size(test_data_size);
-    cudaMalloc(&d_temp, temp_size);
+    err = cudaMalloc(&d_temp, temp_size);
+    assert(err == cudaSuccess);
 
     // ========================================================================
     // Test 1: Correctness Test (Round-trip)
@@ -96,10 +103,12 @@ int main() {
     size_t decompressed_size = 0;
     status = manager->decompress(d_compressed, compressed_size, d_decompressed, &decompressed_size, d_temp, temp_size, 0);
     assert(status == Status::SUCCESS);
-    cudaDeviceSynchronize();
+    cudaError_t sync_err = cudaDeviceSynchronize();
+    assert(sync_err == cudaSuccess);
 
     std::vector<byte_t> h_decompressed_data(test_data_size);
-    cudaMemcpy(h_decompressed_data.data(), d_decompressed, test_data_size, cudaMemcpyDeviceToHost);
+    err = cudaMemcpy(h_decompressed_data.data(), d_decompressed, test_data_size, cudaMemcpyDeviceToHost);
+    assert(err == cudaSuccess);
 
     if (decompressed_size == test_data_size && memcmp(h_test_data.data(), h_decompressed_data.data(), test_data_size) == 0) {
         std::cout << "  \033[1;32m\u2713 PASSED\033[0m: Decompressed data matches original.\n";
@@ -115,13 +124,15 @@ int main() {
     manager->clear_dictionary();
     size_t size_no_dict = 0;
     manager->compress(d_input, test_data_size, d_compressed, &size_no_dict, d_temp, temp_size, nullptr, 0, 0);
-    cudaDeviceSynchronize();
+    sync_err = cudaDeviceSynchronize();
+    assert(sync_err == cudaSuccess);
     std::cout << "  Size without dictionary: " << size_no_dict << " bytes\n";
 
     manager->set_dictionary(gpu_dict);
     size_t size_with_dict = 0;
     manager->compress(d_input, test_data_size, d_compressed, &size_with_dict, d_temp, temp_size, nullptr, 0, 0);
-    cudaDeviceSynchronize();
+    sync_err = cudaDeviceSynchronize();
+    assert(sync_err == cudaSuccess);
     std::cout << "  Size with dictionary:    " << size_with_dict << " bytes\n";
 
     if (size_with_dict < size_no_dict * 0.8) { // Expect at least 20% improvement
@@ -153,11 +164,13 @@ int main() {
     DictionaryManager::allocate_dictionary_gpu(wrong_dict, 1024, 0);
     wrong_dict.header.dictionary_id = 99999; // Set a bogus ID
     wrong_dict.raw_size = 1024;
-    cudaMemset(wrong_dict.raw_content, 0, 1024);
+    err = cudaMemset(wrong_dict.raw_content, 0, 1024);
+    assert(err == cudaSuccess);
 
     manager->set_dictionary(wrong_dict);
     status = manager->decompress(d_compressed, size_with_dict, d_decompressed, &decompressed_size, d_temp, temp_size, 0);
-    cudaDeviceSynchronize();
+    sync_err = cudaDeviceSynchronize();
+    assert(sync_err == cudaSuccess);
 
     if (status == Status::ERROR_DICTIONARY_MISMATCH) {
         std::cout << "  \033[1;32m\u2713 PASSED\033[0m: Decompression failed as expected with wrong dictionary.\n";

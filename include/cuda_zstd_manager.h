@@ -2,18 +2,21 @@
 // cuda_zstd_manager.h - Complete Manager Interface (PRODUCTION READY)
 // ==============================================================================
 
-#ifndef CUDA_ZSTD_MANAGER_H
-#define CUDA_ZSTD_MANAGER_H
+#ifndef CUDA_ZSTD_MANAGER_H_
+#define CUDA_ZSTD_MANAGER_H_
 
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_dictionary.h"
 #include <cuda_runtime.h>
+#ifdef __cplusplus
 #include <memory>
 #include <vector>
 #include <unordered_map>
 #include <string>
 #include <mutex>
+#endif
 
+#ifdef __cplusplus
 namespace cuda_zstd {
 
 // ==============================================================================
@@ -398,12 +401,15 @@ private:
 };
 
 } // namespace cuda_zstd
+#endif
 
 // ==============================================================================
 // C API FOR COMPATIBILITY
 // ==============================================================================
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 typedef struct cuda_zstd_manager_t cuda_zstd_manager_t;
 typedef struct cuda_zstd_dict_t cuda_zstd_dict_t;
@@ -465,6 +471,10 @@ int cuda_zstd_set_dictionary(
 const char* cuda_zstd_get_error_string(int error_code);
 int cuda_zstd_is_error(int code);
 
-} // extern "C"
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+
 
 #endif // CUDA_ZSTD_MANAGER_H

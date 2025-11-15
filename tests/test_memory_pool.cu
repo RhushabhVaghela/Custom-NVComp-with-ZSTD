@@ -4,6 +4,7 @@
 
 #include "cuda_zstd_memory_pool.h"
 #include "cuda_zstd_types.h"
+#include "cuda_error_checking.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <vector>
@@ -40,7 +41,7 @@ void print_separator() {
 bool test_basic_allocation_deallocation() {
     LOG_TEST("Basic Allocation and Deallocation");
     
-    MemoryPoolManager pool(false); // Disable defrag for simpler testing
+    MemoryPoolManager pool; // Disable defrag for simpler testing
     
     // Test all pool sizes
     std::vector<size_t> test_sizes = {
@@ -88,7 +89,7 @@ bool test_basic_allocation_deallocation() {
 bool test_pool_reuse() {
     LOG_TEST("Pool Reuse (Cache Hit Testing)");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     const size_t test_size = MemoryPoolManager::SIZE_64KB;
     
     // Allocate
@@ -125,7 +126,7 @@ bool test_pool_reuse() {
 bool test_pool_growth() {
     LOG_TEST("Pool Growth When Exhausted");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     const size_t test_size = MemoryPoolManager::SIZE_16KB;
     const int num_allocations = 100;
     
@@ -163,7 +164,7 @@ bool test_pool_growth() {
 bool test_concurrent_allocations() {
     LOG_TEST("Thread-Safe Concurrent Allocations");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     const int num_threads = 4;
     const int allocations_per_thread = 50;
     const size_t test_size = MemoryPoolManager::SIZE_64KB;
@@ -218,7 +219,7 @@ bool test_concurrent_allocations() {
 bool test_stream_based_allocation() {
     LOG_TEST("Stream-Based Async Allocations");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     const int num_streams = 4;
     const size_t test_size = MemoryPoolManager::SIZE_256KB;
     
@@ -227,7 +228,8 @@ bool test_stream_based_allocation() {
     
     // Create streams
     for (int i = 0; i < num_streams; i++) {
-        cudaStreamCreate(&streams[i]);
+        cudaError_t err = cudaStreamCreate(&streams[i]);
+        ASSERT_EQ(err, cudaSuccess, "cudaStreamCreate failed");
     }
     
     LOG_INFO("Allocating with " << num_streams << " different streams");
@@ -241,13 +243,15 @@ bool test_stream_based_allocation() {
     
     // Synchronize all streams
     for (int i = 0; i < num_streams; i++) {
-        cudaStreamSynchronize(streams[i]);
+        cudaError_t err = cudaStreamSynchronize(streams[i]);
+        ASSERT_EQ(err, cudaSuccess, "cudaStreamSynchronize failed");
     }
     
     // Deallocate
     for (int i = 0; i < num_streams; i++) {
         pool.deallocate(ptrs[i]);
-        cudaStreamDestroy(streams[i]);
+        cudaError_t err = cudaStreamDestroy(streams[i]);
+        ASSERT_EQ(err, cudaSuccess, "cudaStreamDestroy failed");
     }
     
     PoolStats stats = pool.get_statistics();
@@ -271,7 +275,7 @@ bool test_allocation_overhead() {
     LOG_INFO("Block size: " << test_size / 1024 << " KB");
     
     // Test with pool
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     auto pool_start = std::chrono::high_resolution_clock::now();
     
     for (int i = 0; i < num_iterations; i++) {
@@ -287,8 +291,10 @@ bool test_allocation_overhead() {
     
     for (int i = 0; i < num_iterations; i++) {
         void* ptr;
-        cudaMalloc(&ptr, test_size);
-        cudaFree(ptr);
+        cudaError_t err = cudaMalloc(&ptr, test_size);
+        ASSERT_EQ(err, cudaSuccess, "cudaMalloc failed");
+        err = cudaFree(ptr);
+        ASSERT_EQ(err, cudaSuccess, "cudaFree failed");
     }
     
     auto direct_end = std::chrono::high_resolution_clock::now();
@@ -312,7 +318,7 @@ bool test_allocation_overhead() {
 bool test_cache_hit_rate() {
     LOG_TEST("Cache Hit Rate Measurement");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     const size_t test_size = MemoryPoolManager::SIZE_64KB;
     const int num_cycles = 100;
     
@@ -352,7 +358,7 @@ bool test_cache_hit_rate() {
 bool test_peak_memory_tracking() {
     LOG_TEST("Peak Memory Usage Tracking");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     std::vector<void*> ptrs;
     
     // Allocate increasing amounts
@@ -411,7 +417,7 @@ bool test_peak_memory_tracking() {
 bool test_many_allocations() {
     LOG_TEST("Stress Test: 10000+ Allocations");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     const int num_allocations = 10000;
     std::vector<void*> ptrs;
     ptrs.reserve(num_allocations);
@@ -458,7 +464,7 @@ bool test_many_allocations() {
 bool test_random_allocation_pattern() {
     LOG_TEST("Random Allocation/Deallocation Pattern");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     const int num_operations = 5000;
     std::vector<void*> active_ptrs;
     
@@ -507,7 +513,7 @@ bool test_random_allocation_pattern() {
 bool test_memory_leak_detection() {
     LOG_TEST("Memory Leak Detection");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     
     PoolStats initial = pool.get_statistics();
     
@@ -540,7 +546,7 @@ bool test_memory_leak_detection() {
 bool test_out_of_memory_handling() {
     LOG_TEST("Out-of-Memory Handling");
     
-    MemoryPoolManager pool(false);
+    MemoryPoolManager pool;
     pool.set_max_pool_size(100 * 1024 * 1024); // 100MB limit
     
     LOG_INFO("Pool limit set to 100 MB");
@@ -549,18 +555,24 @@ bool test_out_of_memory_handling() {
     const size_t large_size = 10 * 1024 * 1024; // 10MB blocks
     
     // Try to allocate beyond limit
+    size_t total_allocated = 0;
     for (int i = 0; i < 20; i++) {
         void* ptr = pool.allocate(large_size);
         if (ptr != nullptr) {
             ptrs.push_back(ptr);
-            LOG_INFO("Allocated block " << i << " (" << ptrs.size() * 10 << " MB total)");
+            total_allocated += large_size;
+            LOG_INFO("Allocated block " << i << " (" << total_allocated / (1024 * 1024) << " MB total)");
+            // Check pool statistics after each allocation
+            PoolStats stats = pool.get_statistics();
+            ASSERT_TRUE(stats.current_memory_usage <= 100 * 1024 * 1024, "Exceeded pool memory limit");
         } else {
             LOG_INFO("Allocation " << i << " failed (expected - reached limit)");
             break;
         }
     }
     
-    ASSERT_TRUE(ptrs.size() <= 10, "Should not exceed memory limit");
+    PoolStats stats = pool.get_statistics();
+    ASSERT_TRUE(stats.current_memory_usage <= 100 * 1024 * 1024, "Pool usage exceeded limit after allocations");
     
     // Cleanup
     for (void* ptr : ptrs) {
@@ -585,18 +597,8 @@ int main() {
     int passed = 0;
     int total = 0;
     
-    // Check CUDA device
-    int device_count = 0;
-    cudaGetDeviceCount(&device_count);
-    if (device_count == 0) {
-        std::cerr << "ERROR: No CUDA devices found!" << std::endl;
-        return 1;
-    }
-    
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::cout << "Running on: " << prop.name << std::endl;
-    std::cout << "Total GPU Memory: " << prop.totalGlobalMem / (1024 * 1024) << " MB\n" << std::endl;
+    SKIP_IF_NO_CUDA_RET(0);
+    check_cuda_device();
     
     // Basic Functionality Tests
     print_separator();

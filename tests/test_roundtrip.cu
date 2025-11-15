@@ -46,32 +46,69 @@ int main() {
     
     // 2. Allocate GPU buffers
     void *d_input, *d_compressed, *d_decompressed, *d_temp_comp, *d_temp_decomp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_compressed, data_size * 2);
-    cudaMalloc(&d_decompressed, data_size);
+    if (cudaMalloc(&d_input, data_size) != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: cudaMalloc d_input\n";
+        return 1;
+    }
+    if (cudaMalloc(&d_compressed, data_size * 2) != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: cudaMalloc d_compressed\n";
+        cudaFree(d_input);
+        return 1;
+    }
+    if (cudaMalloc(&d_decompressed, data_size) != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: cudaMalloc d_decompressed\n";
+        cudaFree(d_input);
+        cudaFree(d_compressed);
+        return 1;
+    }
     
-    auto manager = create_manager(level);
-    size_t comp_temp_size = manager->get_compress_temp_size(data_size);
-    size_t decomp_temp_size = manager->get_decompress_temp_size(data_size * 2);
+    cuda_zstd::CompressionConfig config{.level = level};
+    ZstdBatchManager manager(config);
+    size_t comp_temp_size = manager.get_compress_temp_size(data_size);
+    size_t decomp_temp_size = manager.get_decompress_temp_size(data_size * 2);
     size_t temp_size = std::max(comp_temp_size, decomp_temp_size);
-    cudaMalloc(&d_temp_comp, temp_size);
+    if (cudaMalloc(&d_temp_comp, temp_size) != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: cudaMalloc d_temp_comp\n";
+        cudaFree(d_input);
+        cudaFree(d_compressed);
+        cudaFree(d_decompressed);
+        return 1;
+    }
     d_temp_decomp = d_temp_comp; // Reuse workspace
     
-    cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+    if (cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice) != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: cudaMemcpy to d_input\n";
+        cudaFree(d_input);
+        cudaFree(d_compressed);
+        cudaFree(d_decompressed);
+        cudaFree(d_temp_comp);
+        return 1;
+    }
     
     // 3. Compress
     std::cout << "Compressing 1MB with level " << level << "...\n";
     size_t compressed_size = data_size * 2;
-    Status status = manager->compress(
+    Status status = manager.compress(
         d_input, data_size,
         d_compressed, &compressed_size,
         d_temp_comp, temp_size,
-        nullptr, 0, 0
+        nullptr, 0
     );
-    cudaDeviceSynchronize();
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: cudaDeviceSynchronize after compress\n";
+        cudaFree(d_input);
+        cudaFree(d_compressed);
+        cudaFree(d_decompressed);
+        cudaFree(d_temp_comp);
+        return 1;
+    }
     
     if (status != Status::SUCCESS) {
         std::cerr << "  ✗ FAILED: Compression returned " << status_to_string(status) << "\n";
+        cudaFree(d_input);
+        cudaFree(d_compressed);
+        cudaFree(d_decompressed);
+        cudaFree(d_temp_comp);
         return 1;
     }
     std::cout << "  Compressed size: " << compressed_size << " bytes.\n";
@@ -79,15 +116,26 @@ int main() {
     // 4. Decompress
     std::cout << "Decompressing...\n";
     size_t decompressed_size = data_size;
-    status = manager->decompress(
+    status = manager.decompress(
         d_compressed, compressed_size,
         d_decompressed, &decompressed_size,
-        d_temp_decomp, temp_size, 0
+        d_temp_decomp, temp_size
     );
-    cudaDeviceSynchronize();
-
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: cudaDeviceSynchronize after decompress\n";
+        cudaFree(d_input);
+        cudaFree(d_compressed);
+        cudaFree(d_decompressed);
+        cudaFree(d_temp_comp);
+        return 1;
+    }
+    
     if (status != Status::SUCCESS) {
         std::cerr << "  ✗ FAILED: Decompression returned " << status_to_string(status) << "\n";
+        cudaFree(d_input);
+        cudaFree(d_compressed);
+        cudaFree(d_decompressed);
+        cudaFree(d_temp_comp);
         return 1;
     }
     std::cout << "  Decompressed size: " << decompressed_size << " bytes.\n";

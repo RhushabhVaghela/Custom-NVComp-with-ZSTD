@@ -22,6 +22,7 @@
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_xxhash.h"
 #include "cuda_zstd_sequence.h"
+#include "cuda_zstd_stream_pool.h"
 #include <memory>
 #include <cstring>
 #include <algorithm>
@@ -30,6 +31,7 @@
 #include <chrono>
 #include <fstream>
 #include <mutex>
+#include <optional>
 
 namespace cuda_zstd {
 
@@ -621,11 +623,19 @@ private:
     bool has_dictionary;
     CompressionContext ctx;
     bool ctx_initialized;
+    u64* d_checksum_buffer;
+    StreamPool* stream_pool_;
 
 public:
     DefaultZstdManager() 
         : has_dictionary(false), ctx_initialized(false) 
     {
+        // Initialize stream pool for parallelism; use environment var to customize
+        // Use a shared global stream pool for all managers to better saturate
+        // GPU concurrency across threads / managers without allocating
+        // per-manager pools.
+        stream_pool_ = get_global_stream_pool();
+        d_checksum_buffer = nullptr;
         // Set default config
         config.level = ZSTD_DEFAULT_CLEVEL;
         config.compression_mode = CompressionMode::LEVEL_BASED;
@@ -641,6 +651,11 @@ public:
     }
     
     virtual ~DefaultZstdManager() {
+        // Cleanup any device-side checksum buffer allocated lazily
+        if (d_checksum_buffer != nullptr) {
+            cudaFree(d_checksum_buffer);
+            d_checksum_buffer = nullptr;
+        }
         cleanup_context();
     }
     
@@ -792,6 +807,13 @@ public:
             if (status != Status::SUCCESS) return status;
         }
         
+        // If no stream supplied, acquire one from the pool for parallelism
+        std::optional<StreamPool::Guard> pool_guard;
+        if (stream == 0 && stream_pool_) {
+            pool_guard = stream_pool_->acquire();
+            stream = pool_guard->get_stream();
+        }
+
         // --- 1. Partition the temp_workspace ---
         byte_t* workspace_ptr = static_cast<byte_t*>(temp_workspace);
         size_t alignment = 128;
@@ -2405,11 +2427,12 @@ public:
     
     bool comp_initialized;
     bool decomp_initialized;
+    bool frame_header_parsed;
 
     explicit Impl(const CompressionConfig& cfg)
         : config(cfg), has_dictionary(false), stream(nullptr), owns_stream(false),
           d_workspace(nullptr), workspace_size(0),
-          comp_initialized(false), decomp_initialized(false)
+          comp_initialized(false), decomp_initialized(false), frame_header_parsed(false)
     {
         manager = create_manager(config);
     }
@@ -2689,9 +2712,16 @@ Status ZstdStreamingManager::compress_chunk(
         
         // Write checksum if enabled
         if (pimpl_->config.checksum != ChecksumPolicy::NO_COMPUTE_NO_VERIFY) {
+            // Allocate a temporary device-side buffer for checksum output.
+            // (We previously tried to reuse a shared device buffer, but that
+            // buffer belongs to DefaultZstdManager; here allocate locally
+            // to keep streaming manager self-contained while avoiding
+            // exposing manager internals.)
             u64* d_checksum = nullptr;
             CUDA_CHECK(cudaMalloc(&d_checksum, sizeof(u64)));
             
+            // TODO: Implement a true incremental/streaming xxHash for better performance and memory efficiency.
+            // The current implementation re-hashes the entire chunk, which is inefficient for large streams.
             // Compute checksum of all processed data (simplified - should hash incrementally)
             xxhash::compute_xxhash64(d_input, input_size, 0, d_checksum, stream);
             
@@ -2699,6 +2729,7 @@ Status ZstdStreamingManager::compress_chunk(
                                       cudaMemcpyDeviceToDevice, stream));
             output_offset += sizeof(u64);
             
+            // Free the temporary device-side checksum buffer
             cudaFree(d_checksum);
         }
     }
@@ -2737,8 +2768,7 @@ Status ZstdStreamingManager::decompress_chunk(
     u32 write_offset = 0;
     
     // ===== STEP 1: Parse Frame Header (First Chunk Only) =====
-    static bool frame_header_parsed = false;
-    if (!frame_header_parsed && input_size >= 6) {
+    if (!pimpl_->frame_header_parsed && input_size >= 6) {
         byte_t h_header[FRAME_HEADER_SIZE_MAX];
         CUDA_CHECK(cudaMemcpy(h_header, d_input, std::min((size_t)FRAME_HEADER_SIZE_MAX, input_size),
                              cudaMemcpyDeviceToHost));
@@ -2778,7 +2808,7 @@ Status ZstdStreamingManager::decompress_chunk(
             read_offset += 8;
         }
         
-        frame_header_parsed = true;
+        pimpl_->frame_header_parsed = true;
     }
     
     if (read_offset >= input_size) {
@@ -3157,6 +3187,16 @@ Status extract_metadata(
 u32 get_optimal_block_size(u32 input_size, u32 compression_level) {
     return std::min(ZSTD_BLOCKSIZE_MAX, input_size);
 }
+ 
+// Minimal implementation to map a compression level to concrete parameters.
+// Keep logic minimal and non-functional-change: use the existing helper to
+// produce the canonical configuration for the level.
+void apply_level_parameters(CompressionConfig& config) {
+    // Preserve the requested level, but obtain the full parameter set from
+    // the canonical factory. This avoids duplicating mapping logic.
+    CompressionConfig canonical = CompressionConfig::from_level(config.level);
+    config = canonical;
+}
 
 size_t estimate_compressed_size(size_t input_size, int compression_level) {
     size_t skippable_frame_size = sizeof(SkippableFrameHeader) + sizeof(CustomMetadataFrame);
@@ -3172,10 +3212,4 @@ Status validate_config(const CompressionConfig& config) {
     }
     return Status::SUCCESS;
 }
-
-void apply_level_parameters(CompressionConfig& config) {
-    // Use the logic from cuda_zstd_types.cpp
-    config = CompressionConfig::from_level(config.level);
-}
-
 } // namespace cuda_zstd

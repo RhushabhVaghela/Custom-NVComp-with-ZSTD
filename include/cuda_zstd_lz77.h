@@ -6,8 +6,8 @@
 // (NEW) Adds streaming support via optional window buffer parameters.
 // ============================================================================
 
-#ifndef CUDA_ZSTD_LZ77_H
-#define CUDA_ZSTD_LZ77_H
+#ifndef CUDA_ZSTD_LZ77_H_
+#define CUDA_ZSTD_LZ77_H_
 
 #ifdef _MSC_VER
 #include <intrin.h>  // For _BitScanReverse

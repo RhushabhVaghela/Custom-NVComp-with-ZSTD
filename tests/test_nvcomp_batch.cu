@@ -47,40 +47,81 @@ int main() {
     void **d_input_ptrs, **d_output_ptrs;
     size_t *d_input_sizes, *d_output_sizes;
 
-    cudaMalloc(&d_input_ptrs, batch_size * sizeof(void*));
-    cudaMalloc(&d_output_ptrs, batch_size * sizeof(void*));
-    cudaMalloc(&d_input_sizes, batch_size * sizeof(size_t));
-    cudaMalloc(&d_output_sizes, batch_size * sizeof(size_t));
+    if (cudaMalloc(&d_input_ptrs, batch_size * sizeof(void*)) != cudaSuccess) {
+        std::cerr << "cudaMalloc failed for d_input_ptrs\n";
+        return 1;
+    }
+    if (cudaMalloc(&d_output_ptrs, batch_size * sizeof(void*)) != cudaSuccess) {
+        std::cerr << "cudaMalloc failed for d_output_ptrs\n";
+        cudaFree(d_input_ptrs);
+        return 1;
+    }
+    if (cudaMalloc(&d_input_sizes, batch_size * sizeof(size_t)) != cudaSuccess) {
+        std::cerr << "cudaMalloc failed for d_input_sizes\n";
+        cudaFree(d_input_ptrs);
+        cudaFree(d_output_ptrs);
+        return 1;
+    }
+    if (cudaMalloc(&d_output_sizes, batch_size * sizeof(size_t)) != cudaSuccess) {
+        std::cerr << "cudaMalloc failed for d_output_sizes\n";
+        cudaFree(d_input_ptrs);
+        cudaFree(d_output_ptrs);
+        cudaFree(d_input_sizes);
+        return 1;
+    }
 
     for (int i = 0; i < batch_size; ++i) {
-        cudaMalloc(&d_input_ptrs_vec[i], chunk_size);
-        cudaMalloc(&d_output_ptrs_vec[i], max_comp_size);
-        cudaMemcpy(d_input_ptrs_vec[i], h_inputs[i].data(), chunk_size, cudaMemcpyHostToDevice);
+        if (cudaMalloc(&d_input_ptrs_vec[i], chunk_size) != cudaSuccess) {
+            std::cerr << "cudaMalloc failed for d_input_ptrs_vec[" << i << "]\n";
+            return 1;
+        }
+        if (cudaMalloc(&d_output_ptrs_vec[i], max_comp_size) != cudaSuccess) {
+            std::cerr << "cudaMalloc failed for d_output_ptrs_vec[" << i << "]\n";
+            return 1;
+        }
+        if (cudaMemcpy(d_input_ptrs_vec[i], h_inputs[i].data(), chunk_size, cudaMemcpyHostToDevice) != cudaSuccess) {
+            std::cerr << "cudaMemcpy failed for d_input_ptrs_vec[" << i << "]\n";
+            return 1;
+        }
     }
     
-    cudaMemcpy(d_input_ptrs, d_input_ptrs_vec.data(), batch_size * sizeof(void*), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_output_ptrs, d_output_ptrs_vec.data(), batch_size * sizeof(void*), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_input_sizes, h_input_sizes_vec.data(), batch_size * sizeof(size_t), cudaMemcpyHostToDevice);
+    if (cudaMemcpy(d_input_ptrs, d_input_ptrs_vec.data(), batch_size * sizeof(void*), cudaMemcpyHostToDevice) != cudaSuccess) {
+        std::cerr << "cudaMemcpy failed for d_input_ptrs\n";
+        return 1;
+    }
+    if (cudaMemcpy(d_output_ptrs, d_output_ptrs_vec.data(), batch_size * sizeof(void*), cudaMemcpyHostToDevice) != cudaSuccess) {
+        std::cerr << "cudaMemcpy failed for d_output_ptrs\n";
+        return 1;
+    }
+    if (cudaMemcpy(d_input_sizes, h_input_sizes_vec.data(), batch_size * sizeof(size_t), cudaMemcpyHostToDevice) != cudaSuccess) {
+        std::cerr << "cudaMemcpy failed for d_input_sizes\n";
+        return 1;
+    }
 
     // 4. Get workspace
-    size_t temp_size = batch_manager.get_compress_temp_size(d_input_sizes, batch_size);
+    size_t temp_size = batch_manager.get_compress_temp_size(h_input_sizes_vec.data(), batch_size);
     void* d_temp;
-    cudaMalloc(&d_temp, temp_size);
+    if (cudaMalloc(&d_temp, temp_size) != cudaSuccess) {
+        std::cerr << "cudaMalloc failed for d_temp\n";
+        return 1;
+    }
     std::cout << "Allocated " << temp_size / 1024 << " KB temp workspace.\n";
     
     // 5. Compress batch
     std::cout << "Compressing batch of " << batch_size << " items...\n";
     Status status = batch_manager.compress_async(
         (const void* const*)d_input_ptrs,
-        d_input_sizes,
+        h_input_sizes_vec.data(),
         batch_size,
         d_output_ptrs,
         d_output_sizes,
         d_temp,
-        temp_size,
-        0
+        temp_size
     );
-    cudaDeviceSynchronize();
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        std::cerr << "cudaDeviceSynchronize failed after compress_async\n";
+        return 1;
+    }
 
     if (status != Status::SUCCESS) {
         std::cerr << "  ✗ FAILED: Batch compress returned " << status_to_string(status) << "\n";

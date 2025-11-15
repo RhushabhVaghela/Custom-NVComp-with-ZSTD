@@ -88,8 +88,8 @@ This library provides a complete, optimized Zstandard compression/decompression 
 - ✅ **Performance Profiling API** - Detailed timing and throughput metrics
 - ✅ **NVCOMP Compatibility Layer** - Easy integration with NVIDIA nvCOMP library
 - ✅ **C and C++ APIs** - Broad language compatibility
-- ✅ **CRC32-accelerated LZ77** - 2x faster match finding with hash optimization
-- ✅ **FSE Interleaved Encoding** - Parallel entropy coding
+- ✅ **XOR-Shift Hashing** - 2x faster match finding with optimized hash function
+- ✅ **Parallel Chunked FSE Encoding** - Parallel entropy coding
 - ✅ **Huffman Batch Bit Writing** - Optimized bitstream generation
 
 ### Algorithm Implementation
@@ -936,33 +936,115 @@ Automatic compression level selection.
 - `int select_level(const void* data, size_t size, Mode mode)` - Select optimal level
 - **Modes**: `FAST`, `BALANCED`, `RATIO`, `AUTO`
 
-#### [`CompressionConfig`](include/cuda_zstd_types.h:137)
+#### [`CompressionConfig`](include/cuda_zstd_types.h:176)
 
-Configuration structure for compression parameters.
+Configuration structure for advanced compression parameters.
 
-**Key Fields:**
-- `int level` (1-22) - Compression level
-- `u32 window_log` - Window size (2^window_log)
-- `u32 block_size` - Block size in bytes
-- `ChecksumPolicy checksum` - Checksum configuration
-- `bool enable_ldm` - Long distance matching
+**Fields:**
+- `CompressionMode compression_mode` – Selects between level-based or strategy-based compression.
+- `int level` (1-22) – Compression level for exact control.
+- `bool use_exact_level` – Forces use of exact level parameters.
+- `Strategy strategy` – Compression strategy (FAST, GREEDY, LAZY, etc.).
+- `u32 window_log` – Window size as $2^{window\_log}$ (default: 20).
+- `u32 hash_log` – Hash table size as $2^{hash\_log}$ (default: 17).
+- `u32 chain_log` – Chain table size as $2^{chain\_log}$ (default: 17).
+- `u32 search_log` – Search depth for match finding (default: 8).
+- `u32 min_match` – Minimum match length (range: 3–7, default: 3).
+- `u32 target_length` – Target match length for optimal parsing (default: 0).
+- `u32 block_size` – Compression block size in bytes (default: 128KB).
+- `bool enable_ldm` – Enables long distance matching (LDM).
+- `u32 ldm_hash_log` – LDM hash table size as $2^{ldm\_hash\_log}$ (default: 20).
+- `ChecksumPolicy checksum` – Checksum configuration (NO_COMPUTE_NO_VERIFY, COMPUTE_NO_VERIFY, COMPUTE_AND_VERIFY).
+
+**Usage Example:**
+```cpp
+cuda_zstd::CompressionConfig config;
+config.level = 9;
+config.use_exact_level = true;
+config.window_log = 22;      // 4MB window
+config.hash_log = 20;        // 1M entries
+config.chain_log = 18;
+config.search_log = 10;
+config.min_match = 4;
+config.target_length = 8;
+config.block_size = 256 * 1024;
+config.enable_ldm = true;
+config.ldm_hash_log = 24;
+config.checksum = cuda_zstd::ChecksumPolicy::COMPUTE_AND_VERIFY;
+```
+
+See [`CompressionConfig`](include/cuda_zstd_types.h:176) for all available fields and defaults.
+
+### Error Callback Mechanism
+
+#### [`ErrorCallback`](include/cuda_zstd_types.h:130)
+
+The library supports custom error handling via an error callback mechanism. You can register a callback to receive detailed error context whenever an error occurs.
+
+**Definition:**
+```cpp
+typedef void (*ErrorCallback)(const cuda_zstd::ErrorContext& ctx);
+```
+
+**Registering a Callback:**
+```cpp
+cuda_zstd::set_error_callback([](const cuda_zstd::ErrorContext& ctx) {
+    std::cerr << "Error in " << ctx.function
+              << " at " << ctx.file << ":" << ctx.line << "\n";
+    std::cerr << "Status: " << cuda_zstd::status_to_string(ctx.status) << "\n";
+    if (ctx.message) {
+        std::cerr << "Message: " << ctx.message << "\n";
+    }
+    if (ctx.cuda_error != cudaSuccess) {
+        std::cerr << "CUDA Error: " << cudaGetErrorString(ctx.cuda_error) << "\n";
+    }
+});
+```
+
+**Integration Notes:**
+- The callback receives an [`ErrorContext`](include/cuda_zstd_types.h:114) struct with status code, file, line, function, message, and CUDA error.
+- Use `set_error_callback()` early in your application to catch all errors.
+- You can clear or query the last error using `clear_last_error()` and `get_last_error()`.
+
+See [`ErrorCallback`](include/cuda_zstd_types.h:130) and [`ErrorContext`](include/cuda_zstd_types.h:114) for details.
 
 ### Types & Status
 
-#### [`Status`](include/cuda_zstd_types.h:51)
+#### [`Status`](include/cuda_zstd_types.h:77)
 
-Enhanced error codes with 18 distinct values:
+Enhanced error codes with 28 distinct values:
 
 ```cpp
 enum class Status : u32 {
     SUCCESS = 0,
+    ERROR_GENERIC = 1,
     ERROR_INVALID_PARAMETER = 2,
     ERROR_OUT_OF_MEMORY = 3,
     ERROR_CUDA_ERROR = 4,
+    ERROR_INVALID_MAGIC = 5,
     ERROR_CORRUPT_DATA = 6,
     ERROR_BUFFER_TOO_SMALL = 7,
+    ERROR_UNSUPPORTED_VERSION = 8,
+    ERROR_DICTIONARY_MISMATCH = 9,
     ERROR_CHECKSUM_FAILED = 10,
-    // ... 11 more error codes
+    ERROR_IO = 11,
+    ERROR_COMPRESSION = 12,
+    ERROR_DECOMPRESSION = 13,
+    ERROR_WORKSPACE_INVALID = 14,
+    ERROR_STREAM_ERROR = 15,
+    ERROR_ALLOCATION_FAILED = 16,
+    ERROR_HASH_TABLE_FULL = 17,
+    ERROR_SEQUENCE_ERROR = 18,
+    ERROR_NOT_INITIALIZED = 19,
+    ERROR_ALREADY_INITIALIZED = 20,
+    ERROR_INVALID_STATE = 21,
+    ERROR_TIMEOUT = 22,
+    ERROR_CANCELLED = 23,
+    ERROR_NOT_IMPLEMENTED = 24,
+    ERROR_INTERNAL = 25,
+    ERROR_UNKNOWN = 26,
+    ERROR_DICTIONARY_FAILED = 27,
+    ERROR_UNSUPPORTED_FORMAT = 28
 };
 ```
 

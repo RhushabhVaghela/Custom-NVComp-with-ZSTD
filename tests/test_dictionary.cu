@@ -4,6 +4,8 @@
 
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_dictionary.h"
+#include "cuda_error_checking.h"
+#include "cuda_zstd_manager.h"
 #include <iostream>
 #include <vector>
 #include <cstring>
@@ -70,28 +72,80 @@ int main() {
 
     // 3. Create test data (similar, but not identical)
     std::vector<byte_t> h_test_data = create_sample(1024 * 128, "COMMON_HEADER_PATTERN_");
-    void *d_input, *d_output, *d_temp;
-    cudaMalloc(&d_input, h_test_data.size());
-    cudaMalloc(&d_output, h_test_data.size() * 2);
-    cudaMemcpy(d_input, h_test_data.data(), h_test_data.size(), cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
+    
+    // Allocate GPU memory with error checking
+    if (!safe_cuda_malloc(&d_input, h_test_data.size())) {
+        std::cerr << "  ✗ FAILED: CUDA malloc for d_input\n";
+        return 1;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, h_test_data.size() * 2)) {
+        std::cerr << "  ✗ FAILED: CUDA malloc for d_output\n";
+        safe_cuda_free(d_input);
+        return 1;
+    }
+    
+    // Copy input data to device
+    if (!safe_cuda_memcpy(d_input, h_test_data.data(), h_test_data.size(), cudaMemcpyHostToDevice)) {
+        std::cerr << "  ✗ FAILED: CUDA memcpy to d_input\n";
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return 1;
+    }
     
     auto manager = create_manager(5);
     size_t temp_size = manager->get_compress_temp_size(h_test_data.size());
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        std::cerr << "  ✗ FAILED: CUDA malloc for d_temp\n";
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return 1;
+    }
 
     // 4. Test 1: Compress *without* dictionary
     std::cout << "Compressing *without* dictionary...\n";
     size_t size_no_dict = 0;
-    manager->compress(d_input, h_test_data.size(), d_output, &size_no_dict, d_temp, temp_size, nullptr, 0, 0);
-    cudaDeviceSynchronize();
+    Status compress_status = manager->compress(d_input, h_test_data.size(), d_output, &size_no_dict, d_temp, temp_size, nullptr, 0, 0);
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: CUDA sync after compression without dictionary\n";
+        DictionaryManager::free_dictionary_gpu(gpu_dict, 0);
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+        return 1;
+    }
+    if (compress_status != Status::SUCCESS) {
+        std::cerr << "  ✗ FAILED: Compression without dictionary\n";
+        DictionaryManager::free_dictionary_gpu(gpu_dict, 0);
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+        return 1;
+    }
     std::cout << "  Compressed size: " << size_no_dict << " bytes.\n";
 
     // 5. Test 2: Compress *with* dictionary
     std::cout << "Compressing *with* dictionary...\n";
     manager->set_dictionary(gpu_dict); // Set the dictionary
     size_t size_with_dict = 0;
-    manager->compress(d_input, h_test_data.size(), d_output, &size_with_dict, d_temp, temp_size, nullptr, 0, 0);
-    cudaDeviceSynchronize();
+    Status compress_dict_status = manager->compress(d_input, h_test_data.size(), d_output, &size_with_dict, d_temp, temp_size, nullptr, 0, 0);
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        std::cerr << "  ✗ FAILED: CUDA sync after compression with dictionary\n";
+        DictionaryManager::free_dictionary_gpu(gpu_dict, 0);
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+        return 1;
+    }
+    if (compress_dict_status != Status::SUCCESS) {
+        std::cerr << "  ✗ FAILED: Compression with dictionary\n";
+        DictionaryManager::free_dictionary_gpu(gpu_dict, 0);
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+        return 1;
+    }
     std::cout << "  Compressed size: " << size_with_dict << " bytes.\n";
 
     // 6. Verify
@@ -105,9 +159,10 @@ int main() {
     }
 
     DictionaryManager::free_dictionary_gpu(gpu_dict, 0);
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
 
     if (size_with_dict < size_no_dict) {
         return 0;

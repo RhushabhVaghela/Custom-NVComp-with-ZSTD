@@ -15,3 +15,5 @@ dist/
 *.class
 *.exe
 *.dll
+*.code*
+test_claude.py
