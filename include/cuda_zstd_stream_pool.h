@@ -5,6 +5,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <memory>
+#include <optional>
 #include <cuda_runtime.h>
 #include "cuda_zstd_types.h"
 
@@ -37,8 +38,15 @@ public:
     explicit StreamPool(size_t pool_size = 8);
     ~StreamPool();
 
+    // Return the configured size of the pool (number of streams)
+    size_t size() const { return resources_.size(); }
+
     // Acquire a stream and its associated resources, blocking if none available
     Guard acquire();
+
+    // Acquire a stream with a timeout (milliseconds). Returns an empty optional
+    // if no stream could be acquired within the timeout period.
+    std::optional<Guard> acquire_for(size_t timeout_ms);
 
     // Non-copyable
     StreamPool(const StreamPool&) = delete;
@@ -52,6 +60,7 @@ private:
 
     // Internal helpers
     int acquire_index();
+    int acquire_index_for(size_t timeout_ms);
     void release_index(int idx);
 };
 
@@ -59,5 +68,8 @@ private:
 // is created on first use with the provided size or defaults to environment
 // variable `CUDA_ZSTD_STREAM_POOL_SIZE` (if set) or 8 if not.
 StreamPool* get_global_stream_pool(size_t default_size = 8);
+
+// Debug helper - return the configured pool size (number of streams)
+size_t get_global_stream_pool_size();
 
 } // namespace cuda_zstd

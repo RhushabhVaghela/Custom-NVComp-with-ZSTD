@@ -26,6 +26,7 @@
 #include <memory>
 #include <cstring>
 #include <algorithm>
+#include <cstdlib>
 #include <vector>
 #include <numeric>
 #include <chrono>
@@ -630,11 +631,13 @@ public:
     DefaultZstdManager() 
         : has_dictionary(false), ctx_initialized(false) 
     {
+        std::cerr << "DefaultZstdManager ctor start" << std::endl;
         // Initialize stream pool for parallelism; use environment var to customize
         // Use a shared global stream pool for all managers to better saturate
         // GPU concurrency across threads / managers without allocating
         // per-manager pools.
         stream_pool_ = get_global_stream_pool();
+        std::cerr << "DefaultZstdManager ctor after get_global_stream_pool" << std::endl;
         d_checksum_buffer = nullptr;
         // Set default config
         config.level = ZSTD_DEFAULT_CLEVEL;
@@ -648,6 +651,7 @@ public:
         
         reset_stats();
         memset(&ctx, 0, sizeof(CompressionContext));
+        std::cerr << "DefaultZstdManager ctor end" << std::endl;
     }
     
     virtual ~DefaultZstdManager() {
@@ -810,7 +814,18 @@ public:
         // If no stream supplied, acquire one from the pool for parallelism
         std::optional<StreamPool::Guard> pool_guard;
         if (stream == 0 && stream_pool_) {
-            pool_guard = stream_pool_->acquire();
+            // Try to acquire a stream from the pool. To avoid indefinite
+            // blocking (deadlocks in multithreaded test harness), use a
+            // configurable timeout (milliseconds) and return a timeout
+            // error to the caller if no stream is available.
+            size_t timeout_ms = 100000; // default 100s for developer runs
+            const char* env_to = getenv("CUDA_ZSTD_STREAM_POOL_TIMEOUT_MS");
+            if (env_to) try { timeout_ms = std::max((size_t)1, (size_t)std::strtoul(env_to, nullptr, 10)); } catch(...) { }
+
+            pool_guard = stream_pool_->acquire_for(timeout_ms);
+            if (!pool_guard.has_value()) {
+                return Status::ERROR_TIMEOUT;
+            }
             stream = pool_guard->get_stream();
         }
 
@@ -925,6 +940,8 @@ public:
                 stream
             );
             if (status != Status::SUCCESS) return status;
+            cudaError_t __err = cudaGetLastError();
+            std::cerr << "compress: lz77::find_matches after kernel cudaGetLastError=" << __err << "\n";
 
             // (MODIFIED) Step 2: Optimal Parse - PASS WORKSPACE
             u32 h_num_sequences_in_block = 0;
@@ -945,6 +962,8 @@ public:
                 stream
             );
             if (status != Status::SUCCESS) return status;
+            __err = cudaGetLastError();
+            std::cerr << "compress: lz77::find_optimal_parse after kernel cudaGetLastError=" << __err << "\n";
             
             // (MODIFIED) Step 3: Generate sequence structs
             const u32 threads = 256;
@@ -1281,6 +1300,10 @@ private:
     // Context management
     // ==========================================================================
     Status initialize_context() {
+        static std::mutex init_mutex;
+        std::unique_lock<std::mutex> init_lock(init_mutex);
+        std::cerr << "initialize_context() entered (guarded)" << std::endl;
+        std::cerr << "initialize_context: before allocate_compression_workspace" << std::endl;
         // (NEW) Allocate workspace ONCE for all compression operations
         Status ws_status = allocate_compression_workspace(
             ctx.workspace,
@@ -1290,6 +1313,7 @@ private:
         if (ws_status != Status::SUCCESS) {
             return ws_status;
         }
+        std::cerr << "initialize_context: after allocate_compression_workspace, status=" << (int)ws_status << std::endl;
         
         // (NEW) Initialize multi-stream support
         ctx.num_streams = 3; // Pipeline: H2D transfer, Compute, D2H transfer
@@ -1297,12 +1321,23 @@ private:
         ctx.streams = new cudaStream_t[ctx.num_streams];
         ctx.events = new cudaEvent_t[ctx.num_streams];
         
+        std::cerr << "initialize_context: creating streams and events" << std::endl;
         for (u32 i = 0; i < ctx.num_streams; ++i) {
             CUDA_CHECK(cudaStreamCreate(&ctx.streams[i]));
+            cudaError_t err_stream = cudaGetLastError();
+            std::cerr << "initialize_context: cudaStreamCreate lastError=" << err_stream << "\n";
+            cudaError_t ds_err = cudaDeviceSynchronize();
+            std::cerr << "initialize_context: cudaDeviceSynchronize after stream create err=" << ds_err << "\n";
+
             CUDA_CHECK(cudaEventCreate(&ctx.events[i]));
+            cudaError_t err_event = cudaGetLastError();
+            std::cerr << "initialize_context: cudaEventCreate lastError=" << err_event << "\n";
+            cudaError_t ds_err2 = cudaDeviceSynchronize();
+            std::cerr << "initialize_context: cudaDeviceSynchronize after event create err=" << ds_err2 << "\n";
         }
         
         ctx.lz77_ctx = new lz77::LZ77Context();
+        std::cerr << "initialize_context: created lz77_ctx" << std::endl;
                          
         lz77::LZ77Config lz77_cfg;
         lz77_cfg.window_log = config.window_log;
@@ -1314,21 +1349,33 @@ private:
         ctx.lz77_ctx->config = lz77_cfg;
         
         ctx.seq_ctx = new sequence::SequenceContext();
+        std::cerr << "initialize_context: created seq_ctx" << std::endl;
         ctx.seq_ctx->max_sequences = ZSTD_BLOCKSIZE_MAX;
         ctx.seq_ctx->max_literals = ZSTD_BLOCKSIZE_MAX;
         // (MODIFIED) Allocate persistent buffers.
         // Temp buffers (d_sequences) will come from workspace.
+        std::cerr << "initialize_context: before cudaMalloc d_literals_buffer" << std::endl;
         cudaMalloc(&ctx.seq_ctx->d_literals_buffer, ZSTD_BLOCKSIZE_MAX);
+        cudaError_t err_dm = cudaGetLastError();
+        std::cerr << "initialize_context: cudaMalloc d_literals_buffer err=" << err_dm << "\n";
+        cudaError_t ds_err3 = cudaDeviceSynchronize();
+        std::cerr << "initialize_context: cudaDeviceSynchronize after d_literals_buffer err=" << ds_err3 << "\n";
         cudaMalloc(&ctx.seq_ctx->d_literal_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
+        cudaError_t err_ll = cudaGetLastError();
+        std::cerr << "initialize_context: cudaMalloc d_literal_lengths err=" << err_ll << "\n";
         cudaMalloc(&ctx.seq_ctx->d_match_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
         cudaMalloc(&ctx.seq_ctx->d_offsets, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
         
         ctx.lit_fse_table = new fse::FSEEncodeTable(); 
         ctx.ml_fse_table = new fse::FSEEncodeTable();
         ctx.of_fse_table = new fse::FSEEncodeTable();
+        std::cerr << "initialize_context: created FSE tables" << std::endl;
         
         ctx.huff_ctx = new huffman::HuffmanTable();
         cudaMalloc(&ctx.huff_ctx->codes, 256 * sizeof(huffman::HuffmanCode));
+        cudaError_t err_huff = cudaGetLastError();
+        std::cerr << "initialize_context: cudaMalloc huff.codes err=" << err_huff << "\n";
+        std::cerr << "initialize_context: created huff_ctx and allocated codes" << std::endl;
         
         // (REMOVED) d_temp_buffer and d_sequences are now
         // allocated from the temp_workspace in compress/decompress
@@ -2976,8 +3023,9 @@ Status compress_simple(
     );
 
     if(status == Status::SUCCESS) {
-        cudaMemcpyAsync(compressed_data, d_output, *compressed_size, cudaMemcpyDeviceToHost, stream);
-        cudaStreamSynchronize(stream);
+        // Synchronous copy to host buffer to avoid using non-pinned host memory
+        // with cudaMemcpyAsync (undefined behavior unless host memory is pinned).
+        CUDA_CHECK(cudaMemcpy(compressed_data, d_output, *compressed_size, cudaMemcpyDeviceToHost));
     }
     
     cudaFree(d_output);
@@ -3037,8 +3085,7 @@ Status compress_with_dict(
     );
 
     if (status == Status::SUCCESS) {
-        cudaMemcpyAsync(compressed_data, d_output, *compressed_size, cudaMemcpyDeviceToHost, stream);
-        cudaStreamSynchronize(stream);
+        CUDA_CHECK(cudaMemcpy(compressed_data, d_output, *compressed_size, cudaMemcpyDeviceToHost));
     }
     
     cudaFree(d_output);

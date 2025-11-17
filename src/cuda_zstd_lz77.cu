@@ -849,6 +849,29 @@ Status find_matches(
 
     const u32 threads = 256;
     const u32 blocks = (input_size + threads - 1) / threads;
+    std::cerr << "find_matches: input=" << (void*)input << " input_size=" << input_size << " blocks=" << blocks << " threads=" << threads << "\n";
+    cudaPointerAttributes hash_attr = {};
+    cudaPointerAttributes chain_attr = {};
+    cudaError_t p_err_hash = cudaPointerGetAttributes(&hash_attr, ctx.hash_table.table);
+    cudaError_t p_err_chain = cudaPointerGetAttributes(&chain_attr, ctx.chain_table.prev);
+    std::cerr << "find_matches: cudaPointerGetAttributes hash_err=" << p_err_hash << " chain_err=" << p_err_chain << "\n";
+    std::cerr << "find_matches: hash_table.ptr=" << (void*)ctx.hash_table.table << " type=" << ((int)hash_attr.type) << " dev=" << hash_attr.device << "\n";
+    std::cerr << "find_matches: chain_table.ptr=" << (void*)ctx.chain_table.prev << " type=" << ((int)chain_attr.type) << " dev=" << chain_attr.device << "\n";
+
+    // Safety checks: ensure these workspace buffers are device memory so
+    // we don't accidentally launch kernels with host pointers from the pool.
+    if (hash_attr.type != cudaMemoryTypeDevice || chain_attr.type != cudaMemoryTypeDevice) {
+        std::cerr << "find_matches: ERROR - workspace hash/chain table not device memory (hash_type="
+                  << (int)hash_attr.type << ", chain_type=" << (int)chain_attr.type << ")" << std::endl;
+        return Status::ERROR_IO;
+    }
+
+    cudaPointerAttributes matches_attr = {};
+    cudaError_t p_err_matches = cudaPointerGetAttributes(&matches_attr, ctx.d_matches);
+    if (p_err_matches != cudaSuccess || matches_attr.type != cudaMemoryTypeDevice) {
+        std::cerr << "find_matches: ERROR - d_matches is not device memory or cudaPointerGetAttributes failed (err=" << p_err_matches << ")" << std::endl;
+        return Status::ERROR_IO;
+    }
 
     // 2. Build hash chains (parallel) - NO ALLOCATION
     build_hash_chains_kernel<<<blocks, threads, 0, stream>>>(
@@ -858,7 +881,9 @@ Status find_matches(
     parallel_find_all_matches_kernel<<<blocks, threads, 0, stream>>>(
         input, input_size, dict, ctx.hash_table, ctx.chain_table, ctx.config, ctx.d_matches);
 
-    CUDA_CHECK(cudaGetLastError());
+    cudaError_t __err = cudaGetLastError();
+    std::cerr << "find_matches: after kernels cudaGetLastError=" << __err << "\n";
+    CUDA_CHECK(__err);
     return Status::SUCCESS;
 }
 

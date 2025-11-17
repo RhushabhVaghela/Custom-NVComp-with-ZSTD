@@ -737,9 +737,8 @@ Status encode_huffman(
     // --- 5. Get final size ---
     u32 h_last_offset = 0, h_last_length = 0;
     if (input_size > 0) {
-        CUDA_CHECK(cudaMemcpyAsync(&h_last_offset, d_bit_offsets + (input_size - 1), sizeof(u32), cudaMemcpyDeviceToHost, stream));
-        CUDA_CHECK(cudaMemcpyAsync(&h_last_length, d_code_lengths + (input_size - 1), sizeof(u32), cudaMemcpyDeviceToHost, stream));
-        CUDA_CHECK(cudaStreamSynchronize(stream));
+        CUDA_CHECK(cudaMemcpy(&h_last_offset, d_bit_offsets + (input_size - 1), sizeof(u32), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(&h_last_length, d_code_lengths + (input_size - 1), sizeof(u32), cudaMemcpyDeviceToHost));
     } else {
         CUDA_CHECK(cudaStreamSynchronize(stream));
     }
@@ -772,6 +771,10 @@ Status decode_huffman(
     u32 decompressed_size, // We know this
     cudaStream_t stream
 ) {
+    // The 'table' parameter is provided for API compatibility but the table
+    // is serialized in the stream for the current format; it may be ignored
+    // by this implementation. We annotate the parameter in the header with
+    // [[maybe_unused]] (C++17) so no additional suppression is necessary.
     // --- START REPLACEMENT ---
     if (!d_input || !d_output || !d_output_size || input_size == 0 || decompressed_size == 0) {
         return Status::ERROR_INVALID_PARAMETER;

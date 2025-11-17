@@ -258,6 +258,12 @@ public:
     // Emergency operations
     Status emergency_clear();
     Status switch_to_host_memory_mode();
+
+    // Utility helpers for diagnostics and handling host fallbacks
+    bool is_device_pointer(void* ptr) const;
+    static bool disable_host_fallback_env();
+    static bool auto_migrate_host_env();
+    void* migrate_host_to_device(void* host_ptr, size_t size, cudaStream_t stream = 0);
     
     // Statistics
     PoolStats get_statistics() const;
@@ -268,6 +274,15 @@ public:
     void set_growth_factor(float factor);
     void enable_defragmentation(bool enable);
     void set_max_pool_size(size_t max_size);
+
+    // Public helper used for deterministic locking of multiple pools
+    // The test harness uses this to verify ordering avoids deadlocks.
+    bool lock_pools_ordered(const std::vector<int>& indices,
+                            unsigned timeout_ms,
+                            std::vector<std::unique_lock<std::timed_mutex>>& locks);
+
+    // Try to lock multiple pools in a deterministic order (public for testing)
+    
     
     // Memory pressure monitoring
     size_t get_available_gpu_memory() const;
@@ -298,7 +313,7 @@ public:
 private:
     // Pool storage - one pool per size class
     std::vector<PoolEntry> pools_[NUM_POOL_SIZES];
-    mutable std::mutex pool_mutexes_[NUM_POOL_SIZES];
+    mutable std::timed_mutex pool_mutexes_[NUM_POOL_SIZES];
     
     // Configuration
     float growth_factor_ = 1.5f;
@@ -308,7 +323,7 @@ private:
     // Fallback and degradation configuration
     FallbackConfig fallback_config_;
     DegradationMode current_mode_ = DegradationMode::NORMAL;
-    mutable std::mutex mode_mutex_;
+    mutable std::timed_mutex mode_mutex_;
     
     // Memory pressure tracking
     mutable std::atomic<size_t> host_memory_usage_{0};
@@ -334,6 +349,7 @@ private:
     size_t round_up_to_pool_size(size_t size) const;
     Status grow_pool(int pool_idx, size_t min_entries = 1);
     PoolEntry* find_free_entry(int pool_idx, cudaStream_t stream);
+    
     
     // Fallback allocation strategies
     Status grow_pool_with_fallback(int pool_idx, size_t min_entries);

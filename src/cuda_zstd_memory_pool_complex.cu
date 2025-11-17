@@ -4,6 +4,8 @@
 
 #include "cuda_zstd_memory_pool.h"
 #include <algorithm>
+#include <thread>
+#include <chrono>
 #include <iostream>
 #include <iomanip>
 #include <chrono>
@@ -90,7 +92,9 @@ void MemoryPoolManager::update_peak_usage(size_t current_usage) {
 
 void* MemoryPoolManager::allocate_from_cuda(size_t size) {
     void* ptr = nullptr;
+    std::cerr << "MemoryPoolManager::allocate_from_cuda: trying cudaMalloc size=" << size << std::endl;
     cudaError_t err = cudaMalloc(&ptr, size);
+    std::cerr << "MemoryPoolManager::allocate_from_cuda: cudaMalloc returned err=" << err << " ptr=" << ptr << std::endl;
     if (err != cudaSuccess) {
         // Log CUDA allocation failure for monitoring
         allocation_failures_.fetch_add(1, std::memory_order_relaxed);
@@ -114,9 +118,147 @@ void* MemoryPoolManager::allocate_from_host(size_t size) {
     if (ptr) {
         host_memory_usage_.fetch_add(size, std::memory_order_relaxed);
         host_memory_allocations_.fetch_add(1, std::memory_order_relaxed);
+        std::cerr << "MemoryPoolManager::allocate_from_host: host allocation ptr=" << ptr << " size=" << size << "\n";
     }
     
     return ptr;
+}
+
+// Attempt to lock the provided pool indices in ascending order. This helper
+// will optionally use the same environment-driven timeout as other pool
+// locking operations and return false if the deadline is reached.
+bool MemoryPoolManager::lock_pools_ordered(const std::vector<int>& indices, unsigned timeout_ms,
+                               std::vector<std::unique_lock<std::timed_mutex>>& locks) {
+    // Make a local sorted copy of indices (remove duplicates)
+    std::vector<int> idxs = indices;
+    std::sort(idxs.begin(), idxs.end());
+    idxs.erase(std::unique(idxs.begin(), idxs.end()), idxs.end());
+
+    auto deadline = (timeout_ms == 0) ? std::chrono::steady_clock::time_point::max()
+                                       : std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+
+    // Attempt to lock each mutex in order, with retries until the deadline.
+    while (true) {
+        locks.clear();
+        bool ok = true;
+        for (int id : idxs) {
+            locks.emplace_back(pool_mutexes_[id], std::defer_lock);
+            unsigned long attempt_timeout = 0;
+            if (timeout_ms > 0) {
+                auto now = std::chrono::steady_clock::now();
+                if (now >= deadline) { ok = false; break; }
+                attempt_timeout = static_cast<unsigned long>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
+            }
+
+            if (attempt_timeout == 0) {
+                locks.back().lock();
+            } else {
+                if (!locks.back().try_lock_for(std::chrono::milliseconds(attempt_timeout))) {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+
+        if (ok) return true;
+
+        // Failed to acquire; release and retry if there's time
+        for (auto &l : locks) { if (l.owns_lock()) l.unlock(); }
+        locks.clear();
+
+        if (timeout_ms == 0) {
+            // For infinite locks we never reach here since blocking locks were used
+            return false;
+        }
+
+        if (std::chrono::steady_clock::now() >= deadline) return false;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+}
+
+// Read a configurable lock timeout from the environment. A value of 0
+// (default) means block indefinitely (preserve previous semantics).
+static unsigned get_pool_lock_timeout_ms() {
+    const char* env = getenv("CUDA_ZSTD_POOL_LOCK_TIMEOUT_MS");
+    if (!env) return 0;
+    try { return static_cast<unsigned>(std::stoul(env)); } catch(...) { return 0; }
+}
+
+// Determine if pointer corresponds to GPU device memory. This is useful to
+// detect host-fallback pointers that the pool may have returned. It first
+// checks the pool entries (host fallback flag) and then queries CUDA for
+// pointer attributes (device vs host memory).
+bool MemoryPoolManager::is_device_pointer(void* ptr) const {
+    if (!ptr) return false;
+
+    // Check pool entries quickly for host fallback
+    for (int i = 0; i < NUM_POOL_SIZES; ++i) {
+        std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i]);
+        for (const auto& entry : pools_[i]) {
+            if (entry.ptr == ptr && !entry.is_host_fallback) {
+                return true;
+            }
+            if (entry.is_host_fallback && entry.host_ptr == ptr) {
+                return false;
+            }
+        }
+    }
+
+    // If not found in pools, try cudaPointerGetAttributes to detect device ptr
+    cudaPointerAttributes attr;
+    cudaError_t err = cudaPointerGetAttributes(&attr, ptr);
+    if (err != cudaSuccess) return false;
+#if CUDART_VERSION >= 10000
+    return (attr.type == cudaMemoryTypeDevice);
+#else
+    // Older CUDA versions may use isManaged or other fields; fall back to checking device
+    return (attr.memoryType == cudaMemoryTypeDevice);
+#endif
+}
+
+bool MemoryPoolManager::disable_host_fallback_env() {
+    const char* env = getenv("CUDA_ZSTD_DISABLE_HOST_FALLBACK");
+    if (!env) return false;
+    return (std::string(env) == "1" || std::string(env) == "true");
+}
+
+bool MemoryPoolManager::auto_migrate_host_env() {
+    const char* env = getenv("CUDA_ZSTD_AUTO_MIGRATE_HOST");
+    if (!env) return false;
+    return (std::string(env) == "1" || std::string(env) == "true");
+}
+
+void* MemoryPoolManager::migrate_host_to_device(void* host_ptr, size_t size, cudaStream_t stream) {
+    if (!host_ptr || size == 0) return nullptr;
+
+    // Allocate device memory
+    void* d_ptr = nullptr;
+    cudaError_t err = cudaMalloc(&d_ptr, size);
+    if (err != cudaSuccess) {
+        std::cerr << "MemoryPoolManager: migrate_host_to_device cudaMalloc failed: " << cudaGetErrorName(err)
+                  << "\n";
+        return nullptr;
+    }
+
+    // Copy host->device (async when possible)
+    err = cudaMemcpyAsync(d_ptr, host_ptr, size, cudaMemcpyHostToDevice, stream);
+    if (err != cudaSuccess) {
+        std::cerr << "MemoryPoolManager: migrate_host_to_device cudaMemcpyAsync failed: " << cudaGetErrorName(err)
+                  << "\n";
+        cudaFree(d_ptr);
+        return nullptr;
+    }
+
+    // If no stream provided, make sure copy finishes before returning
+    if (stream == 0) cudaDeviceSynchronize();
+
+    // Free host pointer
+    free(host_ptr);
+
+    // Log
+    std::cerr << "MemoryPoolManager: migrated host ptr to device ptr=" << d_ptr << " size=" << size << "\n";
+    return d_ptr;
 }
 
 FallbackAllocation MemoryPoolManager::allocate_with_cuda_fallback(size_t size, cudaStream_t stream) {
@@ -143,29 +285,37 @@ FallbackAllocation MemoryPoolManager::allocate_with_cuda_fallback(size_t size, c
         result.is_host_memory = true;
         result.status = Status::SUCCESS;
         fallback_allocations_.fetch_add(1, std::memory_order_relaxed);
+        std::cerr << "MemoryPoolManager::allocate_with_cuda_fallback: host fallback allocated ptr=" << result.ptr << " size=" << size << "\n";
+
+        // Respect environment toggle to disable host fallback
+        if (MemoryPoolManager::disable_host_fallback_env()) {
+            std::cerr << "MemoryPoolManager: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback\n";
+            free(result.ptr);
+            result.ptr = nullptr;
+            result.status = Status::ERROR_OUT_OF_MEMORY;
+            allocation_failures_.fetch_add(1, std::memory_order_relaxed);
+            return result;
+        }
+
+        // Auto-migrate host->device if requested via env var
+        if (MemoryPoolManager::auto_migrate_host_env()) {
+            void* migrated = migrate_host_to_device(result.ptr, size, stream);
+            if (migrated) {
+                result.ptr = migrated;
+                result.is_host_memory = false;
+                result.is_dual_memory = true;
+                result.allocation_path = "auto_migrated_from_host";
+                std::cerr << "MemoryPoolManager: successfully auto-migrated host->device for size=" << size << "\n";
+            } else {
+                std::cerr << "MemoryPoolManager: auto migrate failed for host fallback size=" << size << "\n";
+            }
+        }
         return result;
     }
     
     // Host allocation also failed
     result.status = Status::ERROR_OUT_OF_MEMORY;
     allocation_failures_.fetch_add(1, std::memory_order_relaxed);
-    return result;
-}
-
-FallbackAllocation MemoryPoolManager::allocate_host_memory(size_t size) {
-    FallbackAllocation result;
-    result.allocated_size = size;
-    result.is_host_memory = true;
-    
-    result.ptr = allocate_from_host(size);
-    if (result.ptr) {
-        result.status = Status::SUCCESS;
-        host_memory_allocations_.fetch_add(1, std::memory_order_relaxed);
-    } else {
-        result.status = Status::ERROR_OUT_OF_MEMORY;
-        allocation_failures_.fetch_add(1, std::memory_order_relaxed);
-    }
-    
     return result;
 }
 
@@ -197,6 +347,27 @@ FallbackAllocation MemoryPoolManager::allocate_degraded(size_t size, cudaStream_
             result.status = Status::SUCCESS;
             degraded_allocations_.fetch_add(1, std::memory_order_relaxed);
             fallback_allocations_.fetch_add(1, std::memory_order_relaxed);
+            std::cerr << "MemoryPoolManager::allocate_degraded: host fallback allocated ptr=" << result.ptr << " size=" << degraded_size << "\n";
+
+            if (MemoryPoolManager::disable_host_fallback_env()) {
+                std::cerr << "MemoryPoolManager::allocate_degraded: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback\n";
+                free(result.ptr);
+                result.ptr = nullptr;
+                result.status = Status::ERROR_OUT_OF_MEMORY;
+                allocation_failures_.fetch_add(1, std::memory_order_relaxed);
+                return result;
+            }
+
+            if (MemoryPoolManager::auto_migrate_host_env()) {
+                void* migrated = migrate_host_to_device(result.ptr, degraded_size, stream);
+                if (migrated) {
+                    result.ptr = migrated;
+                    result.is_host_memory = false;
+                    result.is_dual_memory = true;
+                    result.allocation_path = "auto_migrated_from_host_degraded";
+                    std::cerr << "MemoryPoolManager: auto-migrated host->device for degraded size=" << degraded_size << "\n";
+                }
+            }
             return result;
         }
     }
@@ -244,11 +415,30 @@ Status MemoryPoolManager::grow_pool(int pool_idx, size_t min_entries) {
         new_pool_entries.emplace_back(ptr, entry_size);
     }
     
+    std::cerr << "grow_pool: Allocation succeeded for new_entries=" << new_entries << "; about to insert into pool" << std::endl;
     // All allocations succeeded, add to pool
-    std::lock_guard<std::mutex> lock(pool_mutexes_[pool_idx]);
+    // Lock the requested pool using a timed mutex so we can recover from
+    // pathological blocking conditions. The default behaviour (when the
+    // env var is not set) is to block indefinitely and preserve semantics.
+    const char* env_lock = getenv("CUDA_ZSTD_POOL_LOCK_TIMEOUT_MS");
+    unsigned long timeout_ms = 0;
+    if (env_lock) {
+        try { timeout_ms = std::stoul(env_lock); } catch(...) { timeout_ms = 0; }
+    }
+
+    std::unique_lock<std::timed_mutex> lock(pool_mutexes_[pool_idx], std::defer_lock);
+    if (timeout_ms == 0) {
+        lock.lock();
+    } else {
+        if (!lock.try_lock_for(std::chrono::milliseconds(timeout_ms))) {
+            std::cerr << "MemoryPoolManager::grow_pool: failed to acquire lock for pool_idx=" << pool_idx << "\n";
+            return Status::ERROR_TIMEOUT;
+        }
+    }
     pools_[pool_idx].insert(pools_[pool_idx].end(),
                            std::make_move_iterator(new_pool_entries.begin()),
                            std::make_move_iterator(new_pool_entries.end()));
+    std::cerr << "grow_pool: Inserted new entries into pool (pool_idx=" << pool_idx << ")" << std::endl;
     
     pool_grows_.fetch_add(1, std::memory_order_relaxed);
     return Status::SUCCESS;
@@ -271,7 +461,7 @@ Status MemoryPoolManager::grow_pool_with_fallback(int pool_idx, size_t min_entri
     for (size_t attempt = 0; attempt < fallback_config_.max_retry_attempts; ++attempt) {
         void* ptr = allocate_from_cuda(degraded_entry_size);
         if (ptr) {
-            std::lock_guard<std::mutex> lock(pool_mutexes_[pool_idx]);
+            std::unique_lock<std::timed_mutex> lock(pool_mutexes_[pool_idx]);
             pools_[pool_idx].emplace_back(ptr, degraded_entry_size);
             degraded_allocations_.fetch_add(1, std::memory_order_relaxed);
             pool_grows_.fetch_add(1, std::memory_order_relaxed);
@@ -283,7 +473,13 @@ Status MemoryPoolManager::grow_pool_with_fallback(int pool_idx, size_t min_entri
             fallback_config_.enable_host_memory_fallback) {
             ptr = allocate_from_host(degraded_entry_size);
             if (ptr) {
-                std::lock_guard<std::mutex> lock(pool_mutexes_[pool_idx]);
+                std::cerr << "grow_pool_with_fallback: created host fallback entry ptr=" << ptr << " size=" << degraded_entry_size << "\n";
+                if (MemoryPoolManager::disable_host_fallback_env()) {
+                    std::cerr << "grow_pool_with_fallback: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback entry\n";
+                    free(ptr);
+                    continue;
+                }
+                std::unique_lock<std::timed_mutex> lock(pool_mutexes_[pool_idx]);
                 PoolEntry entry;
                 entry.ptr = nullptr;  // No GPU memory
                 entry.host_ptr = ptr;
@@ -309,6 +505,37 @@ PoolEntry* MemoryPoolManager::find_free_entry(int pool_idx, cudaStream_t stream)
     
     for (auto& entry : pool) {
         if (!entry.in_use) {
+                // If this entry is a host-fallback we may either skip it
+                // (if disabled) or attempt to migrate it to device memory
+                // on demand (if auto-migrate env is set). This avoids
+                // returning host pointers into kernel contexts.
+                if (entry.is_host_fallback) {
+                    if (MemoryPoolManager::disable_host_fallback_env()) {
+                        continue; // Treat as unavailable
+                    }
+
+                    // Attempt on-demand migration for test runs
+                    if (MemoryPoolManager::auto_migrate_host_env()) {
+                        void* migrated = migrate_host_to_device(entry.host_ptr, entry.host_size, stream);
+                        if (migrated) {
+                            std::cerr << "MemoryPoolManager::find_free_entry: migrated host fallback entry to device ptr=" << migrated << "\n";
+                            entry.ptr = migrated;
+                            entry.host_ptr = nullptr;
+                            entry.size = entry.host_size;
+                            entry.host_size = 0;
+                            entry.is_host_fallback = false;
+                            entry.is_degraded = false;
+                            // Count this as a fallback->device migration
+                            fallback_allocations_.fetch_add(1, std::memory_order_relaxed);
+                        } else {
+                            // If migration fails, avoid using the host fallback pointer
+                            continue;
+                        }
+                    } else {
+                        // Not auto-migrating — skip this entry for GPU allocations
+                        continue;
+                    }
+                }
             // Check if the entry is ready (stream synchronization)
             if (entry.ready_event != nullptr) {
                 cudaError_t err = cudaEventQuery(entry.ready_event);
@@ -343,11 +570,13 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
     }
     
     total_allocations_.fetch_add(1, std::memory_order_relaxed);
+    std::cerr << "MemoryPoolManager::allocate: requested size=" << size << " stream=" << stream << std::endl;
     
     // Update degradation mode based on memory pressure
     update_degradation_mode();
     
     int pool_idx = get_pool_index(size);
+    std::cerr << "MemoryPoolManager::allocate: pool_idx=" << pool_idx << std::endl;
     
     // For very large allocations, bypass the pool and use fallback strategy
     if (pool_idx < 0) {
@@ -362,10 +591,22 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
         return result.ptr;
     }
     
-    std::lock_guard<std::mutex> lock(pool_mutexes_[pool_idx]);
+    unsigned pool_lock_timeout = get_pool_lock_timeout_ms();
+    std::unique_lock<std::timed_mutex> lock(pool_mutexes_[pool_idx], std::defer_lock);
+    if (pool_lock_timeout == 0) {
+        lock.lock();
+    } else {
+        if (!lock.try_lock_for(std::chrono::milliseconds(pool_lock_timeout))) {
+            std::cerr << "MemoryPoolManager::allocate: timeout acquiring lock for pool_idx=" << pool_idx << " after " << pool_lock_timeout << "ms" << std::endl;
+            allocation_failures_.fetch_add(1, std::memory_order_relaxed);
+            return nullptr;
+        }
+    }
+    std::cerr << "MemoryPoolManager::allocate: got lock for pool_idx=" << pool_idx << std::endl;
     
     // Try to find a free entry in the pool
     PoolEntry* entry = find_free_entry(pool_idx, stream);
+    std::cerr << "MemoryPoolManager::allocate: after find_free_entry entry=" << entry << std::endl;
     
     if (entry) {
         cache_hits_.fetch_add(1, std::memory_order_relaxed);
@@ -375,7 +616,12 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
     
     // No free entry found, try to grow the pool
     cache_misses_.fetch_add(1, std::memory_order_relaxed);
+    // Release lock before attempting to grow the pool to avoid deadlock
+    lock.unlock();
     Status status = grow_pool(pool_idx, 1);
+    // Reacquire lock after growth attempt
+    lock.lock();
+    std::cerr << "MemoryPoolManager::allocate: grow_pool returned status=" << (int)status << std::endl;
     if (status == Status::SUCCESS) {
         // Try again after growing
         entry = find_free_entry(pool_idx, stream);
@@ -467,7 +713,20 @@ Status MemoryPoolManager::deallocate(void* ptr) {
     
     // Search all pools to find this pointer
     for (int i = 0; i < NUM_POOL_SIZES; ++i) {
-        std::lock_guard<std::mutex> lock(pool_mutexes_[i]);
+        // guard is a timed mutex that by default blocks (timeout=0). For test
+        // environments we optionally use a try_lock timeout.
+        const char* env_lock_all = getenv("CUDA_ZSTD_POOL_LOCK_TIMEOUT_MS");
+        unsigned long lock_timeout_all = 0;
+        if (env_lock_all) {
+            try { lock_timeout_all = std::stoul(env_lock_all); } catch(...) { lock_timeout_all = 0; }
+        }
+        std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i], std::defer_lock);
+        if (lock_timeout_all == 0) {
+            lock.lock();
+        } else if (!lock.try_lock_for(std::chrono::milliseconds(lock_timeout_all))) {
+            std::cerr << "MemoryPoolManager::prewarm: failed to lock pool_idx=" << i << " after " << lock_timeout_all << "ms\n";
+            return Status::ERROR_TIMEOUT;
+        }
         
         for (auto& entry : pools_[i]) {
             if (entry.ptr == ptr) {
@@ -544,7 +803,7 @@ Status MemoryPoolManager::prewarm(size_t total_memory) {
         size_t num_entries = pool_memory / POOL_SIZES[i];
         
         if (num_entries > 0) {
-            std::lock_guard<std::mutex> lock(pool_mutexes_[i]);
+            std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i]);
             Status status = grow_pool(i, num_entries);
             if (status != Status::SUCCESS) {
                 return status;
@@ -566,7 +825,7 @@ Status MemoryPoolManager::defragment() {
     // 3. Compact the pool by removing freed entries
     
     for (int i = 0; i < NUM_POOL_SIZES; ++i) {
-        std::lock_guard<std::mutex> lock(pool_mutexes_[i]);
+        std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i]);
         auto& pool = pools_[i];
         
         // Count free entries
@@ -607,9 +866,18 @@ Status MemoryPoolManager::defragment() {
 }
 
 void MemoryPoolManager::clear() {
+    // Lock all pools in deterministic order before clearing to avoid
+    // deadlocks when another thread concurrently tries to lock multiple
+    // pools. `lock_pools_ordered` will honor the configured timeout.
+    std::vector<int> all_indices;
+    all_indices.reserve(NUM_POOL_SIZES);
+    for (int i = 0; i < NUM_POOL_SIZES; ++i) all_indices.push_back(i);
+
+    std::vector<std::unique_lock<std::timed_mutex>> locks;
+    // By default block indefinitely (preserve original semantics)
+    lock_pools_ordered(all_indices, 0, locks);
+
     for (int i = 0; i < NUM_POOL_SIZES; ++i) {
-        std::lock_guard<std::mutex> lock(pool_mutexes_[i]);
-        
         for (auto& entry : pools_[i]) {
             if (entry.ready_event != nullptr) {
                 cudaEventSynchronize(entry.ready_event);
@@ -631,7 +899,7 @@ void MemoryPoolManager::clear() {
 }
 
 Status MemoryPoolManager::emergency_clear() {
-    std::lock_guard<std::mutex> mode_lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> mode_lock(mode_mutex_);
     
     // Switch to emergency mode
     current_mode_ = DegradationMode::EMERGENCY;
@@ -646,7 +914,7 @@ Status MemoryPoolManager::emergency_clear() {
 }
 
 Status MemoryPoolManager::switch_to_host_memory_mode() {
-    std::lock_guard<std::mutex> mode_lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> mode_lock(mode_mutex_);
     
     if (!fallback_config_.enable_host_memory_fallback) {
         return Status::ERROR_INVALID_PARAMETER;
@@ -683,7 +951,7 @@ PoolStats MemoryPoolManager::get_statistics() const {
     // Calculate total pool capacity
     size_t total_capacity = 0;
     for (int i = 0; i < NUM_POOL_SIZES; ++i) {
-        std::lock_guard<std::mutex> lock(pool_mutexes_[i]);
+        std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i]);
         total_capacity += pools_[i].size() * POOL_SIZES[i];
     }
     stats.total_pool_capacity = total_capacity;
@@ -752,7 +1020,7 @@ void MemoryPoolManager::print_statistics() const {
     
     std::cout << "\nPool Details:\n";
     for (int i = 0; i < NUM_POOL_SIZES; ++i) {
-        std::lock_guard<std::mutex> lock(pool_mutexes_[i]);
+        std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i]);
         size_t total = pools_[i].size();
         size_t in_use = 0;
         size_t host_fallbacks = 0;
@@ -795,22 +1063,22 @@ void MemoryPoolManager::set_max_pool_size(size_t max_size) {
 // ============================================================================
 
 void MemoryPoolManager::set_fallback_config(const FallbackConfig& config) {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> lock(mode_mutex_);
     fallback_config_ = config;
 }
 
 const FallbackConfig& MemoryPoolManager::get_fallback_config() const {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> lock(mode_mutex_);
     return fallback_config_;
 }
 
 void MemoryPoolManager::set_degradation_mode(DegradationMode mode) {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> lock(mode_mutex_);
     current_mode_ = mode;
 }
 
 DegradationMode MemoryPoolManager::get_degradation_mode() const {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> lock(mode_mutex_);
     return current_mode_;
 }
 
@@ -873,7 +1141,7 @@ bool MemoryPoolManager::is_memory_pressure_critical() const {
 }
 
 void MemoryPoolManager::update_degradation_mode() {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> lock(mode_mutex_);
     
     // Only update if not already in emergency mode
     if (current_mode_ == DegradationMode::EMERGENCY) {
@@ -898,7 +1166,7 @@ void MemoryPoolManager::update_degradation_mode() {
 // ============================================================================
 
 size_t MemoryPoolManager::calculate_degraded_size(size_t original_size) const {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> lock(mode_mutex_);
     
     switch (current_mode_) {
         case DegradationMode::NORMAL:
@@ -924,7 +1192,7 @@ bool MemoryPoolManager::should_use_progressive_allocation(size_t requested_size)
 }
 
 bool MemoryPoolManager::is_emergency_mode() const {
-    std::lock_guard<std::mutex> lock(mode_mutex_);
+    std::lock_guard<std::timed_mutex> lock(mode_mutex_);
     return current_mode_ == DegradationMode::EMERGENCY;
 }
 
@@ -933,7 +1201,7 @@ void MemoryPoolManager::trigger_rollback_protection() {
     
     // In case of repeated failures, switch to more conservative mode
     if (allocation_failures_.load(std::memory_order_relaxed) > 10) {
-        std::lock_guard<std::mutex> lock(mode_mutex_);
+        std::lock_guard<std::timed_mutex> lock(mode_mutex_);
         if (current_mode_ == DegradationMode::NORMAL) {
             current_mode_ = DegradationMode::CONSERVATIVE;
         } else if (current_mode_ == DegradationMode::CONSERVATIVE) {

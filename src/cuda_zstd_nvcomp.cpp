@@ -256,17 +256,17 @@ Status NvcompV5BatchManager::compress_async(
     std::vector<void*> h_compressed_ptrs(num_chunks);
     
     // === FIX: Use async memcpy with explicit synchronization ===
-    CUDA_CHECK(cudaMemcpyAsync(h_uncompressed_sizes.data(), d_uncompressed_sizes, 
+    CUDA_CHECK(cudaMemcpy(h_uncompressed_sizes.data(), d_uncompressed_sizes, 
                               num_chunks * sizeof(size_t), 
-                              cudaMemcpyDeviceToHost, stream));
+                              cudaMemcpyDeviceToHost));
     
-    CUDA_CHECK(cudaMemcpyAsync(h_uncompressed_ptrs.data(), d_uncompressed_ptrs, 
+    CUDA_CHECK(cudaMemcpy(h_uncompressed_ptrs.data(), d_uncompressed_ptrs, 
                               num_chunks * sizeof(void*), 
-                              cudaMemcpyDeviceToHost, stream));
+                              cudaMemcpyDeviceToHost));
     
-    CUDA_CHECK(cudaMemcpyAsync(h_compressed_ptrs.data(), d_compressed_ptrs, 
+    CUDA_CHECK(cudaMemcpy(h_compressed_ptrs.data(), d_compressed_ptrs, 
                               num_chunks * sizeof(void*), 
-                              cudaMemcpyDeviceToHost, stream));
+                              cudaMemcpyDeviceToHost));
     
     // === FIX: CRITICAL - Synchronize stream before using host copies ===
     CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -296,9 +296,9 @@ Status NvcompV5BatchManager::compress_async(
     CUDA_CHECK(cudaStreamSynchronize(stream));
     
     // Copy result sizes to device
-    CUDA_CHECK(cudaMemcpyAsync(d_compressed_sizes, h_compressed_sizes.data(), 
+    CUDA_CHECK(cudaMemcpy(d_compressed_sizes, h_compressed_sizes.data(), 
                               num_chunks * sizeof(size_t), 
-                              cudaMemcpyHostToDevice, stream));
+                              cudaMemcpyHostToDevice));
     
     return status;
 }
@@ -321,17 +321,17 @@ Status NvcompV5BatchManager::decompress_async(
     std::vector<void*> h_uncompressed_ptrs(num_chunks);
     
     // === FIX: Use async memcpy with explicit synchronization ===
-    CUDA_CHECK(cudaMemcpyAsync(h_compressed_sizes.data(), d_compressed_sizes, 
+    CUDA_CHECK(cudaMemcpy(h_compressed_sizes.data(), d_compressed_sizes, 
                               num_chunks * sizeof(size_t), 
-                              cudaMemcpyDeviceToHost, stream));
+                              cudaMemcpyDeviceToHost));
     
-    CUDA_CHECK(cudaMemcpyAsync(h_compressed_ptrs.data(), d_compressed_ptrs, 
+    CUDA_CHECK(cudaMemcpy(h_compressed_ptrs.data(), d_compressed_ptrs, 
                               num_chunks * sizeof(void*), 
-                              cudaMemcpyDeviceToHost, stream));
+                              cudaMemcpyDeviceToHost));
     
-    CUDA_CHECK(cudaMemcpyAsync(h_uncompressed_ptrs.data(), d_uncompressed_ptrs, 
+    CUDA_CHECK(cudaMemcpy(h_uncompressed_ptrs.data(), d_uncompressed_ptrs, 
                               num_chunks * sizeof(void*), 
-                              cudaMemcpyDeviceToHost, stream));
+                              cudaMemcpyDeviceToHost));
     
     // === FIX: CRITICAL - Synchronize before using host arrays ===
     CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -361,9 +361,9 @@ Status NvcompV5BatchManager::decompress_async(
     }
     
     // Copy result sizes to device
-    CUDA_CHECK(cudaMemcpyAsync(d_uncompressed_sizes, h_uncompressed_sizes_out.data(), 
+    CUDA_CHECK(cudaMemcpy(d_uncompressed_sizes, h_uncompressed_sizes_out.data(), 
                               num_chunks * sizeof(size_t), 
-                              cudaMemcpyHostToDevice, stream));
+                              cudaMemcpyHostToDevice));
     
     return status;
 }
@@ -388,9 +388,8 @@ Status get_metadata_async(
     std::vector<byte_t> h_compressed_header(header_peek_size);
     
     if (h_compressed_header.empty()) return Status::ERROR_OUT_OF_MEMORY;
-    CUDA_CHECK(cudaMemcpyAsync(h_compressed_header.data(), d_compressed_data, header_peek_size,
-                         cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(cudaMemcpy(h_compressed_header.data(), d_compressed_data, header_peek_size,
+                         cudaMemcpyDeviceToHost));
 
     NvcompMetadata internal_meta;
     Status status = extract_metadata(

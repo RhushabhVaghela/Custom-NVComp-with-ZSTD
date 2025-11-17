@@ -5,7 +5,6 @@
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_dictionary.h"
 #include "cuda_error_checking.h"
-#include "cuda_zstd_manager.h"
 #include <iostream>
 #include <vector>
 #include <cstring>
@@ -29,6 +28,8 @@ std::vector<byte_t> create_sample(size_t size, const char* prefix) {
 }
 
 int main() {
+    // Skip on systems without a CUDA device to avoid false negatives.
+    SKIP_IF_NO_CUDA_RET(0);
     std::cout << "\n========================================\n";
     std::cout << "  Test: Dictionary Training & Usage\n";
     std::cout << "========================================\n\n";

@@ -361,11 +361,25 @@ public:
     Status cleanup_failed_allocation_state(RollbackContext& context);
     Status rollback_partial_allocation(RollbackContext& context, const std::string& reason);
     void log_fallback_event(const std::string& event_type, const std::string& details);
+
+    // Utility to check whether a returned pointer is a GPU device pointer
+    // (useful to detect host-fallback entries returned from pool).
+    bool is_device_pointer(void* ptr) const;
+    
+    // Options for host fallback handling
+    // TODO: consider making these non-static config members in the future
+    static bool disable_host_fallback_env();
+    static bool auto_migrate_host_env();
+
+    // Migrate a block of host memory into device memory. Returns device
+    // pointer on success or nullptr on failure. The 'host_ptr' will be
+    // freed on success.
+    void* migrate_host_to_device(void* host_ptr, size_t size, cudaStream_t stream = 0);
     
 private:
     // Pool storage - one pool per size class
     std::vector<PoolEntry> pools_[NUM_POOL_SIZES];
-    mutable std::mutex pool_mutexes_[NUM_POOL_SIZES];
+    mutable std::timed_mutex pool_mutexes_[NUM_POOL_SIZES];
     
     // Pool size thresholds
     static constexpr size_t POOL_SIZES[NUM_POOL_SIZES] = {
@@ -380,7 +394,7 @@ private:
     // Fallback and degradation configuration
     FallbackConfig fallback_config_;
     DegradationMode current_mode_ = DegradationMode::NORMAL;
-    mutable std::mutex mode_mutex_;
+    mutable std::timed_mutex mode_mutex_;
     
     // Memory pressure tracking
     mutable std::atomic<size_t> host_memory_usage_{0};

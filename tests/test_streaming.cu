@@ -38,9 +38,11 @@ void print_separator() {
 void generate_test_data(std::vector<uint8_t>& data, size_t size, const char* pattern) {
     data.resize(size);
     if (strcmp(pattern, "repetitive") == 0) {
-        // Highly compressible - repeated pattern
+        // Highly compressible - long runs of repeated values
+        const size_t run_len = 16;
+        const u8 unique_values = 4;
         for (size_t i = 0; i < size; i++) {
-            data[i] = static_cast<uint8_t>(i % 16);
+            data[i] = static_cast<uint8_t>(((i / run_len) % unique_values));
         }
     } else if (strcmp(pattern, "random") == 0) {
         // Low compressibility - pseudo-random

@@ -135,8 +135,12 @@ Status AdaptiveLevelSelector::analyze_entropy(
     
     // Copy frequencies to host
     uint32_t h_frequencies[256];
-    CUDA_CHECK(cudaMemcpyAsync(h_frequencies, d_frequencies, 256 * sizeof(uint32_t),
-                               cudaMemcpyDeviceToHost, stream));
+    // Copy frequencies to host - use synchronous copy to regular host memory.
+    // cudaMemcpyAsync requires pinned host memory for device->host copies; the
+    // tests and callers allocate a stack buffer (non-pinned). Using cudaMemcpy
+    // avoids undefined behavior on some driver/host configurations.
+    CUDA_CHECK(cudaMemcpy(h_frequencies, d_frequencies, 256 * sizeof(uint32_t),
+                          cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaStreamSynchronize(stream));
     CUDA_CHECK(cudaFree(d_frequencies));
     
@@ -174,10 +178,10 @@ Status AdaptiveLevelSelector::analyze_repetition(
     );
     
     uint32_t h_repeated_count = 0;
-    CUDA_CHECK(cudaMemcpyAsync(&h_repeated_count, d_repeated_count, sizeof(uint32_t),
-                               cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaMemcpyAsync(&last_characteristics_.max_run_length, d_max_run, sizeof(uint32_t),
-                               cudaMemcpyDeviceToHost, stream));
+    // Use synchronous copies for host-local variables; Async would require
+    // pinned host memory to be safe.
+    CUDA_CHECK(cudaMemcpy(&h_repeated_count, d_repeated_count, sizeof(uint32_t), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(&last_characteristics_.max_run_length, d_max_run, sizeof(uint32_t), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaStreamSynchronize(stream));
     
     CUDA_CHECK(cudaFree(d_repeated_count));
@@ -225,8 +229,7 @@ Status AdaptiveLevelSelector::analyze_patterns(
     );
     
     uint32_t h_pattern_score = 0;
-    CUDA_CHECK(cudaMemcpyAsync(&h_pattern_score, d_pattern_score, sizeof(uint32_t),
-                               cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpy(&h_pattern_score, d_pattern_score, sizeof(uint32_t), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaStreamSynchronize(stream));
     CUDA_CHECK(cudaFree(d_pattern_score));
     

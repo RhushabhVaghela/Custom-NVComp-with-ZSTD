@@ -132,7 +132,7 @@ Status encode_huffman(
 Status decode_huffman(
     const byte_t* d_input,
     size_t input_size,
-    const HuffmanTable& table,
+    [[maybe_unused]] const HuffmanTable& table,
     byte_t* d_output,
     size_t* d_output_size,
     u32 decompressed_size,

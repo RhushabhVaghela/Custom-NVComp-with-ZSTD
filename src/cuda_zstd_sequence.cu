@@ -524,8 +524,7 @@ Status compute_sequence_statistics(
         d_sequences, num_sequences, total_literal_count, d_stats
     );
     
-    CUDA_CHECK(cudaMemcpyAsync(h_stats, d_stats, sizeof(SequenceStats),
-                                cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpy(h_stats, d_stats, sizeof(SequenceStats), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaStreamSynchronize(stream)); // Wait for host stats
     
     cudaFree(d_stats);
@@ -556,8 +555,7 @@ Status validate_sequences(
     );
     
     u32 h_validation_errors = 0;
-    CUDA_CHECK(cudaMemcpyAsync(&h_validation_errors, d_validation_errors, sizeof(u32),
-                                cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpy(&h_validation_errors, d_validation_errors, sizeof(u32), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaStreamSynchronize(stream)); // Wait for result
     
     cudaFree(d_validation_errors);

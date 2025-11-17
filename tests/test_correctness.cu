@@ -954,10 +954,26 @@ int main() {
     std::cout << "SUITE 1: Round-trip Validation" << std::endl;
     print_separator();
     
-    total++; if (test_identity_property()) passed++;
-    total++; if (test_random_inputs_roundtrip()) passed++;
-    total++; if (test_all_compression_levels()) passed++;
-    total++; if (test_various_sizes_roundtrip()) passed++;
+    const char* single_test = getenv("CUDA_ZSTD_SINGLE_TEST");
+    if (single_test && std::string(single_test) == "random_inputs_roundtrip") {
+        total++; if (test_random_inputs_roundtrip()) passed++;
+    } else if (single_test && std::string(single_test) == "identity_property") {
+        total++; if (test_identity_property()) passed++;
+        // Optionally reset CUDA device between tests to avoid stale device errors
+        if (getenv("CUDA_ZSTD_RESET_BETWEEN_TESTS") != nullptr && std::string(getenv("CUDA_ZSTD_RESET_BETWEEN_TESTS")) == "1") {
+            std::cerr << "Resetting CUDA device between tests...\n";
+            cudaDeviceReset();
+        }
+    } else {
+        total++; if (test_identity_property()) passed++;
+        total++; if (test_random_inputs_roundtrip()) passed++;
+        if (getenv("CUDA_ZSTD_RESET_BETWEEN_TESTS") != nullptr && std::string(getenv("CUDA_ZSTD_RESET_BETWEEN_TESTS")) == "1") {
+            std::cerr << "Resetting CUDA device between tests...\n";
+            cudaDeviceReset();
+        }
+        total++; if (test_all_compression_levels()) passed++;
+        total++; if (test_various_sizes_roundtrip()) passed++;
+    }
     
     // RFC 8878 Compliance
     std::cout << "\n";

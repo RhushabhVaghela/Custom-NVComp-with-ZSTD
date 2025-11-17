@@ -471,9 +471,9 @@ Status xxhash64(
         d_input, input_size, seed, d_hash
     );
     
-    CUDA_CHECK(cudaMemcpyAsync(h_hash_out, d_hash, sizeof(u64),
-                               cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    // h_hash_out is a host-side pointer; use synchronous copy to avoid
+    // requiring pinned memory for the host buffer.
+    CUDA_CHECK(cudaMemcpy(h_hash_out, d_hash, sizeof(u64), cudaMemcpyDeviceToHost));
     
     cudaFree(d_hash);
     CUDA_CHECK(cudaGetLastError());
@@ -611,7 +611,7 @@ __host__ u64 xxhash_64_cpu(
 // Utility Functions
 // ============================================================================
 
-void print_xxhash64(u64 hash) {
+[[maybe_unused]] static void print_xxhash64(u64 hash) {
     printf("XXH64: 0x%016lX\n", hash);
 }
 

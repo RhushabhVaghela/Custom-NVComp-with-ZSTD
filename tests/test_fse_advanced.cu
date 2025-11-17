@@ -135,10 +135,17 @@ int main() {
         
         // FEATURE 1 & 2: Analyze with adaptive table log + accurate normalization
         printf("--- Feature 1 & 2: Adaptive + Accurate ---\n");
-        // FseManager is undefined; comment out or remove to fix build error
-        // FseManager fse_manager;
+        // Compute FSE block statistics on the device and print them.
+        // This replaces the old commented-out FseManager usage.
         cuda_zstd::fse::FSEStats stats;
-        // fse_manager.analyze_block_statistics(d_input, input_size, &stats);
+        Status s = cuda_zstd::fse::analyze_block_statistics(d_input, input_size, &stats, 0);
+        if (s != Status::SUCCESS) {
+            printf("ERROR: analyze_block_statistics failed: %s\n", status_to_string(s));
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_output);
+            safe_cuda_free(d_output_size);
+            return 1;
+        }
         cuda_zstd::fse::print_fse_stats(stats);
     
         // FEATURE 3: GPU-optimized encoding

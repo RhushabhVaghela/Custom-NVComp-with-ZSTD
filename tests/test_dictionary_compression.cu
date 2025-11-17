@@ -5,7 +5,7 @@
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_utils.h"
-#include "cuda_zstd_manager.h"
+#include "cuda_error_checking.h"
 #include <iostream>
 #include <vector>
 #include <cstring>
@@ -34,6 +34,8 @@ void print_test_header(const char* title) {
 }
 
 int main() {
+    // Skip when no CUDA device is available on the machine (useful for CI).
+    SKIP_IF_NO_CUDA_RET(0);
     std::cout << "\n==================================================\n";
     std::cout << "  Test: Dictionary Compression Feature\n";
     std::cout << "==================================================\n";

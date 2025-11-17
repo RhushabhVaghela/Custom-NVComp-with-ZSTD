@@ -855,7 +855,14 @@ Status normalize_frequencies_accurate(
     }
     
     // Step 3: Final verification (CRITICAL)
-    assert(current_sum == table_size);
+    // When normalization rounding leads to a mismatch between the computed
+    // sum and the desired table size we should report an error instead of
+    // aborting the process. Using an assert() here can crash tests and
+    // prevent CI from reporting failure gracefully; convert to an error
+    // return so callers can handle it.
+    if (current_sum != table_size) {
+        return Status::ERROR_CORRUPT_DATA;
+    }
     
     // Convert to u16
     for (u32 s = 0; s < 256; s++) {
@@ -1438,9 +1445,8 @@ __host__ Status encode_fse_advanced(
 
     // === Step 7: Calculate final size and write final state ===
     u32 h_last_chunk_offset, h_last_chunk_size;
-    CUDA_CHECK(cudaMemcpyAsync(&h_last_chunk_offset, d_chunk_bit_offsets + num_chunks - 1, sizeof(u32), cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaMemcpyAsync(&h_last_chunk_size, d_chunk_bit_counts + num_chunks - 1, sizeof(u32), cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(cudaMemcpy(&h_last_chunk_offset, d_chunk_bit_offsets + num_chunks - 1, sizeof(u32), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(&h_last_chunk_size, d_chunk_bit_counts + num_chunks - 1, sizeof(u32), cudaMemcpyDeviceToHost));
 
     u32 total_data_bits = h_last_chunk_offset + h_last_chunk_size;
     u32 total_data_bytes = (total_data_bits + 7) / 8;
@@ -1683,8 +1689,7 @@ __host__ Status decode_fse(
 
     // Step 1: Read header from d_input
     std::vector<byte_t> h_header(sizeof(u32) * 3);
-    CUDA_CHECK(cudaMemcpyAsync(h_header.data(), d_input, h_header.size(), cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(cudaMemcpy(h_header.data(), d_input, h_header.size(), cudaMemcpyDeviceToHost));
 
     u32 table_log = *reinterpret_cast<u32*>(h_header.data());
     u32 output_size_expected = *reinterpret_cast<u32*>(h_header.data() + 4);
@@ -1698,9 +1703,8 @@ __host__ Status decode_fse(
 
     // Step 2: Read normalized table from header
     std::vector<u16> h_normalized(max_symbol + 1);
-    CUDA_CHECK(cudaMemcpyAsync(h_normalized.data(), d_input + (sizeof(u32) * 3), 
-                                header_table_size, cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(cudaMemcpy(h_normalized.data(), d_input + (sizeof(u32) * 3), 
+                                header_table_size, cudaMemcpyDeviceToHost));
 
     // Step 3: Build Decode Table on Host
     FSEDecodeTable h_table;
@@ -2024,7 +2028,16 @@ Status build_fse_decoder_table(
     // 1. Allocate device table
     const size_t table_size = 1 << table_log;
     const size_t table_bytes = table_size * sizeof(FSEDecoderEntry);
-    CUDA_CHECK(cudaMallocAsync(&d_table_out->d_table, table_bytes, stream));
+    cudaError_t err = cudaMallocAsync(&d_table_out->d_table, table_bytes, stream);
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA WARNING: cudaMallocAsync failed for FSE table; err=" << cudaGetErrorName(err)
+                  << ", trying cudaMalloc fallback" << std::endl;
+        cudaError_t fallback_err = cudaMalloc(&d_table_out->d_table, table_bytes);
+        if (fallback_err != cudaSuccess) {
+            std::cerr << "CUDA ERROR: failed to allocate FSE table (async and fallback)" << std::endl;
+            return Status::ERROR_IO;
+        }
+    }
 
     // 2. (NEW) Build table on the HOST
     std::vector<FSEDecoderEntry> h_table;
