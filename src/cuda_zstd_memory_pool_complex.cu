@@ -413,6 +413,8 @@ Status MemoryPoolManager::grow_pool(int pool_idx, size_t min_entries) {
             return Status::ERROR_OUT_OF_MEMORY;
         }
         new_pool_entries.emplace_back(ptr, entry_size);
+        // Assign UID so that pointer map entries can detect reused slots
+        new_pool_entries.back().uid = ++entry_uid_counter_;
     }
     
     std::cerr << "grow_pool: Allocation succeeded for new_entries=" << new_entries << "; about to insert into pool" << std::endl;
