@@ -613,6 +613,13 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
     if (entry) {
         cache_hits_.fetch_add(1, std::memory_order_relaxed);
         entry->in_use = true;
+        // Record allocation sequence and map pointer to pool index for
+        // deterministic deallocation and race-detection.
+        entry->alloc_seq = ++allocation_sequence_counter_;
+        {
+            std::lock_guard<std::mutex> m(pointer_map_mutex_);
+            pointer_index_map_[entry->ptr] = PointerMeta{pool_idx, entry->alloc_seq, entry->uid};
+        }
         return entry->ptr;
     }
     
@@ -628,6 +635,11 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
         // Try again after growing
         entry = find_free_entry(pool_idx, stream);
         if (entry) {
+                entry->alloc_seq = ++allocation_sequence_counter_;
+                {
+                    std::lock_guard<std::mutex> m(pointer_map_mutex_);
+                    pointer_index_map_[entry->ptr] = PointerMeta{pool_idx, entry->alloc_seq, entry->uid};
+                }
             return entry->ptr;
         }
     }
