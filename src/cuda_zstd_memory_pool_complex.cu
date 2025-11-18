@@ -128,7 +128,7 @@ void* MemoryPoolManager::allocate_from_host(size_t size) {
 // will optionally use the same environment-driven timeout as other pool
 // locking operations and return false if the deadline is reached.
 bool MemoryPoolManager::lock_pools_ordered(const std::vector<int>& indices, unsigned timeout_ms,
-                               std::vector<std::unique_lock<std::timed_mutex>>& locks) {
+                               std::vector<std::unique_lock<std::timed_mutex>>& locks) const {
     // Make a local sorted copy of indices (remove duplicates)
     std::vector<int> idxs = indices;
     std::sort(idxs.begin(), idxs.end());
