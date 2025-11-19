@@ -193,16 +193,37 @@ size_t NvcompV5BatchManager::get_compress_temp_size(
     
     std::vector<size_t> h_chunk_sizes(num_chunks);
     
-    // === FIX: Ensure all GPU work is complete before reading ===
-    if (stream != 0) {
-        CUDA_CHECK_SIZE_T(cudaStreamSynchronize(stream));
-    } else {
-        CUDA_CHECK_SIZE_T(cudaDeviceSynchronize());
+    // If the caller passed a device pointer then the GPU must be synchronized
+    // before we copy device memory back to the host. If the pointer is a
+    // host pointer (tests sometimes pass host arrays) then do a plain memcpy
+    // instead.
+    {
+        cudaPointerAttributes patts;
+        cudaError_t attr_err = cudaPointerGetAttributes(&patts, d_chunk_sizes);
+        bool is_device_ptr = false;
+
+        if (attr_err == cudaSuccess) {
+#if CUDART_VERSION >= 10000
+            is_device_ptr = (patts.type == cudaMemoryTypeDevice);
+#else
+            is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
+#endif
+        }
+
+        if (is_device_ptr) {
+            if (stream != 0) {
+                CUDA_CHECK_SIZE_T(cudaStreamSynchronize(stream));
+            } else {
+                CUDA_CHECK_SIZE_T(cudaDeviceSynchronize());
+            }
+
+            // Now it's safe to copy the completed results from device
+            CUDA_CHECK_SIZE_T(cudaMemcpy(h_chunk_sizes.data(), d_chunk_sizes,
+                                 num_chunks * sizeof(size_t), cudaMemcpyDeviceToHost));
+        } else {
+            memcpy(h_chunk_sizes.data(), d_chunk_sizes, num_chunks * sizeof(size_t));
+        }
     }
-    
-    // Now it's safe to copy the completed results
-    CUDA_CHECK_SIZE_T(cudaMemcpy(h_chunk_sizes.data(), d_chunk_sizes,
-                         num_chunks * sizeof(size_t), cudaMemcpyDeviceToHost));
     
     return pimpl_->manager->get_batch_compress_temp_size(h_chunk_sizes);
 }
@@ -216,15 +237,31 @@ size_t NvcompV5BatchManager::get_decompress_temp_size(
     
     std::vector<size_t> h_compressed_sizes(num_chunks);
     
-    // === FIX: Ensure all GPU work is complete ===
-    if (stream != 0) {
-        CUDA_CHECK_SIZE_T(cudaStreamSynchronize(stream));
-    } else {
-        CUDA_CHECK_SIZE_T(cudaDeviceSynchronize());
+    {
+        cudaPointerAttributes patts;
+        cudaError_t attr_err = cudaPointerGetAttributes(&patts, d_compressed_sizes);
+        bool is_device_ptr = false;
+
+        if (attr_err == cudaSuccess) {
+#if CUDART_VERSION >= 10000
+            is_device_ptr = (patts.type == cudaMemoryTypeDevice);
+#else
+            is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
+#endif
+        }
+
+        if (is_device_ptr) {
+            if (stream != 0) {
+                CUDA_CHECK_SIZE_T(cudaStreamSynchronize(stream));
+            } else {
+                CUDA_CHECK_SIZE_T(cudaDeviceSynchronize());
+            }
+            CUDA_CHECK_SIZE_T(cudaMemcpy(h_compressed_sizes.data(), d_compressed_sizes,
+                                 num_chunks * sizeof(size_t), cudaMemcpyDeviceToHost));
+        } else {
+            memcpy(h_compressed_sizes.data(), d_compressed_sizes, num_chunks * sizeof(size_t));
+        }
     }
-    
-    CUDA_CHECK_SIZE_T(cudaMemcpy(h_compressed_sizes.data(), d_compressed_sizes,
-                         num_chunks * sizeof(size_t), cudaMemcpyDeviceToHost));
     
     return pimpl_->manager->get_batch_decompress_temp_size(h_compressed_sizes);
 }

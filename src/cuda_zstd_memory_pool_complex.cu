@@ -14,6 +14,7 @@
 #include <queue>
 #include <functional>
 #include <random>
+#include "cuda_zstd_stacktrace.h"
 
 // Logging macro for fallback events
 #define LOG_INFO(msg) std::cout << "[MEMORY_POOL] " << msg << std::endl
@@ -114,7 +115,11 @@ void* MemoryPoolManager::allocate_from_host(size_t size) {
         return nullptr;
     }
     
-    void* ptr = malloc(size);
+    void* ptr = nullptr;
+    cudaError_t err = cudaMallocHost(&ptr, size);
+    if (err != cudaSuccess) {
+        return nullptr;
+    }
     if (ptr) {
         host_memory_usage_.fetch_add(size, std::memory_order_relaxed);
         host_memory_allocations_.fetch_add(1, std::memory_order_relaxed);
@@ -254,12 +259,40 @@ void* MemoryPoolManager::migrate_host_to_device(void* host_ptr, size_t size, cud
     if (stream == 0) cudaDeviceSynchronize();
 
     // Free host pointer
+    std::cerr << "MemoryPoolManager::migrate_host_to_device: freeing host_ptr=" << host_ptr << " size=" << size << "\n";
     free(host_ptr);
 
     // Log
     std::cerr << "MemoryPoolManager: migrated host ptr to device ptr=" << d_ptr << " size=" << size << "\n";
     return d_ptr;
 }
+
+void* MemoryPoolManager::migrate_pool_host_entry_to_device(void* host_ptr, size_t size, cudaStream_t stream) {
+    if (!host_ptr) return nullptr;
+
+    // Search for the pool entry that has this host fallback pointer
+    for (int i = 0; i < NUM_POOL_SIZES; ++i) {
+        std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i]);
+        for (auto &entry : pools_[i]) {
+            if (entry.is_host_fallback && entry.host_ptr == host_ptr) {
+                // Attempt migration
+                void* d_ptr = migrate_host_to_device(host_ptr, size, stream);
+                if (!d_ptr) return nullptr;
+
+                // Update pool entry metadata
+                entry.ptr = d_ptr;
+                entry.is_host_fallback = false;
+                entry.host_ptr = nullptr;
+                entry.host_size = 0;
+                return d_ptr;
+            }
+        }
+    }
+    return nullptr;
+}
+
+// Note: migrate_host_to_device is implemented above; it is exposed in the header
+// to allow external use when necessary.
 
 FallbackAllocation MemoryPoolManager::allocate_with_cuda_fallback(size_t size, cudaStream_t stream) {
     FallbackAllocation result;
@@ -769,7 +802,10 @@ Status MemoryPoolManager::deallocate(void* ptr) {
                     return Status::ERROR_INVALID_PARAMETER;  // Double free
                 }
                 
-                free(entry.host_ptr);
+                std::cerr << "MemoryPoolManager::deallocate: freeing host fallback ptr=" << entry.host_ptr
+                          << " size=" << entry.host_size << " pool_idx=" << i << "\n";
+                // Use debug_free wrapper to capture a stacktrace and free safely
+                cuda_zstd::util::debug_free(entry.host_ptr);
                 entry.host_ptr = nullptr;
                 entry.in_use = false;
                 
@@ -785,15 +821,16 @@ Status MemoryPoolManager::deallocate(void* ptr) {
     // Check if it's host memory (we can't easily distinguish)
     // For safety, try both CUDA and host deallocation
     
-    // First try CUDA deallocation
-    cudaError_t cuda_err = cudaFree(ptr);
-    if (cuda_err == cudaSuccess) {
-        return Status::SUCCESS;
-    }
-    
-    // If CUDA deallocation failed, assume it might be host memory
-    // Note: This is a potential limitation - we can't always distinguish
-    // In production, you might want to maintain separate tracking
+    // Not in pool, must be a direct allocation. For portability and safety
+    // avoid calling cudaFree blindly in debug/memcheck runs where pointers
+    // might have been corrupted by kernel bugs. Instead, attempt a safe
+    // CUDA deallocation only if this appears to be a pointer returned by
+    // our pool fallback. We do not have a perfect way to distinguish
+    // allocated pointers; to avoid double-crash we log and return error.
+    // Nothing matched; do not call cudaFree for unknown pointer. This
+    // prevents invalid argument errors when kernels corrupted pointers
+    // or when the pointer belongs to a caller-managed buffer.
+    std::cerr << "MemoryPoolManager::deallocate: pointer not found in pools: ptr=" << ptr << " - skipping free" << std::endl;
     return Status::ERROR_INVALID_PARAMETER;
 }
 
@@ -805,7 +842,7 @@ Status MemoryPoolManager::prewarm(size_t total_memory) {
     // Distribute memory across pool sizes proportionally
     // Strategy: Smaller sizes get more entries, larger sizes get fewer
     
-    size_t remaining = total_memory;
+    // remaining was previously unused; memory distribution is computed per-pool
     
     // Weights for each pool size (smaller = more weight)
     const float weights[NUM_POOL_SIZES] = {4.0f, 3.0f, 2.5f, 2.0f, 1.5f, 1.0f};

@@ -186,6 +186,8 @@ struct PoolEntry {
     PoolEntry() = default;
     PoolEntry(void* p, size_t s) : ptr(p), size(s), in_use(false),
                                    stream(nullptr), ready_event(nullptr) {}
+    uint64_t alloc_seq = 0; // Sequence number for last allocation
+    uint64_t uid = 0;       // Unique entry id (to detect reused entries across races)
     
     // Cleanup both GPU and host memory
     ~PoolEntry() {
@@ -264,6 +266,9 @@ public:
     static bool disable_host_fallback_env();
     static bool auto_migrate_host_env();
     void* migrate_host_to_device(void* host_ptr, size_t size, cudaStream_t stream = 0);
+    // Migrate a pool entry's host fallback pointer to device and update the pool
+    // metadata accordingly. Returns the new device pointer on success or nullptr on failure.
+    void* migrate_pool_host_entry_to_device(void* host_ptr, size_t size, cudaStream_t stream = 0);
     
     // Statistics
     PoolStats get_statistics() const;
@@ -279,7 +284,7 @@ public:
     // The test harness uses this to verify ordering avoids deadlocks.
     bool lock_pools_ordered(const std::vector<int>& indices,
                             unsigned timeout_ms,
-                            std::vector<std::unique_lock<std::timed_mutex>>& locks);
+                            std::vector<std::unique_lock<std::timed_mutex>>& locks) const;
 
     // Try to lock multiple pools in a deterministic order (public for testing)
     
@@ -389,6 +394,17 @@ private:
     Status perform_health_check();
     void optimize_memory_distribution();
     void log_fallback_event(const std::string& event_type, const std::string& details);
+
+    // Mapping from active pointer -> pool index and allocation sequence
+    // Sequence values help correlate allocate/deallocate logs and detect
+    // stale/reused pointers across races. The value is pair<pool_idx, seq>.
+    struct PointerMeta { int pool_idx; uint64_t alloc_seq; uint64_t entry_uid; };
+    std::unordered_map<void*, PointerMeta> pointer_index_map_;
+    // Per-entry unique id counter to avoid stale pointer mappings
+    mutable std::atomic<uint64_t> entry_uid_counter_{0};
+    mutable std::mutex pointer_map_mutex_;
+    // Monotonic allocation sequence counter for log correlation
+    mutable std::atomic<uint64_t> allocation_sequence_counter_{0};
 };
 
 // ============================================================================

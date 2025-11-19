@@ -28,7 +28,7 @@ using namespace cuda_zstd::memory;
 #define ASSERT_EQ(a, b, msg) if ((a) != (b)) { LOG_FAIL(__func__, msg); return false; }
 #define ASSERT_NE(a, b, msg) if ((a) == (b)) { LOG_FAIL(__func__, msg); return false; }
 #define ASSERT_TRUE(cond, msg) if (!(cond)) { LOG_FAIL(__func__, msg); return false; }
-#define ASSERT_STATUS(status, msg) if ((status) != Status::SUCCESS) { LOG_FAIL(__func__, msg << " Status: " << status_to_string(status)); return false; }
+#define ASSERT_STATUS(status, msg) if ((status) != cuda_zstd::Status::SUCCESS) { LOG_FAIL(__func__, msg << " Status: " << status_to_string(status)); return false; }
 
 void print_separator() {
     std::cout << "========================================" << std::endl;
@@ -41,86 +41,104 @@ void print_separator() {
 bool test_basic_allocation_deallocation() {
     LOG_TEST("Basic Allocation and Deallocation");
     
-    MemoryPoolManager pool; // Disable defrag for simpler testing
-    
-    // Test all pool sizes
-    std::vector<size_t> test_sizes = {
-        MemoryPoolManager::SIZE_4KB,
-        MemoryPoolManager::SIZE_16KB,
-        MemoryPoolManager::SIZE_64KB,
-        MemoryPoolManager::SIZE_256KB,
-        MemoryPoolManager::SIZE_1MB,
-        MemoryPoolManager::SIZE_4MB
-    };
-    
-    std::vector<void*> ptrs;
-    
-    for (size_t size : test_sizes) {
-        void* ptr = pool.allocate(size);
-        ASSERT_NE(ptr, nullptr, "Failed to allocate " << size << " bytes");
-        ptrs.push_back(ptr);
+    try {
+        MemoryPoolManager pool; // Disable defrag for simpler testing
         
-        LOG_INFO("Allocated " << size / 1024 << " KB at " << ptr);
+        // Test all pool sizes
+        std::vector<size_t> test_sizes = {
+            MemoryPoolManager::SIZE_4KB,
+            MemoryPoolManager::SIZE_16KB,
+            MemoryPoolManager::SIZE_64KB,
+            MemoryPoolManager::SIZE_256KB,
+            MemoryPoolManager::SIZE_1MB,
+            MemoryPoolManager::SIZE_4MB
+        };
+        
+        std::vector<void*> ptrs;
+        
+        for (size_t size : test_sizes) {
+            void* ptr = pool.allocate(size);
+            ASSERT_NE(ptr, nullptr, "Failed to allocate " << size << " bytes");
+            ptrs.push_back(ptr);
+            
+            LOG_INFO("Allocated " << size / 1024 << " KB at " << ptr);
+        }
+        
+        // Verify all allocations
+        ASSERT_EQ(ptrs.size(), test_sizes.size(), "Allocation count mismatch");
+        
+        // Deallocate all
+        for (void* ptr : ptrs) {
+            cuda_zstd::Status status = pool.deallocate(ptr);
+            ASSERT_STATUS(status, "Deallocation failed");
+        }
+        
+        // Get statistics
+        PoolStats stats = pool.get_statistics();
+        LOG_INFO("Total allocations: " << stats.total_allocations);
+        LOG_INFO("Total deallocations: " << stats.total_deallocations);
+        LOG_INFO("Cache hits: " << stats.cache_hits);
+        LOG_INFO("Cache misses: " << stats.cache_misses);
+        
+        ASSERT_EQ(stats.total_allocations, test_sizes.size(), "Allocation stats mismatch");
+        ASSERT_EQ(stats.total_deallocations, test_sizes.size(), "Deallocation stats mismatch");
+        
+        LOG_PASS("Basic Allocation and Deallocation");
+        return true;
+        
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_basic_allocation_deallocation", std::string("Exception: ") + e.what());
+        return false;
+    } catch (...) {
+        LOG_FAIL("test_basic_allocation_deallocation", "Unknown exception");
+        return false;
     }
-    
-    // Verify all allocations
-    ASSERT_EQ(ptrs.size(), test_sizes.size(), "Allocation count mismatch");
-    
-    // Deallocate all
-    for (void* ptr : ptrs) {
-        Status status = pool.deallocate(ptr);
-        ASSERT_STATUS(status, "Deallocation failed");
-    }
-    
-    // Get statistics
-    PoolStats stats = pool.get_statistics();
-    LOG_INFO("Total allocations: " << stats.total_allocations);
-    LOG_INFO("Total deallocations: " << stats.total_deallocations);
-    LOG_INFO("Cache hits: " << stats.cache_hits);
-    LOG_INFO("Cache misses: " << stats.cache_misses);
-    
-    ASSERT_EQ(stats.total_allocations, test_sizes.size(), "Allocation stats mismatch");
-    ASSERT_EQ(stats.total_deallocations, test_sizes.size(), "Deallocation stats mismatch");
-    
-    LOG_PASS("Basic Allocation and Deallocation");
-    return true;
 }
 
 bool test_pool_reuse() {
     LOG_TEST("Pool Reuse (Cache Hit Testing)");
     
-    MemoryPoolManager pool;
-    const size_t test_size = MemoryPoolManager::SIZE_64KB;
-    
-    // Allocate
-    void* ptr1 = pool.allocate(test_size);
-    ASSERT_NE(ptr1, nullptr, "First allocation failed");
-    
-    // Deallocate
-    Status status = pool.deallocate(ptr1);
-    ASSERT_STATUS(status, "Deallocation failed");
-    
-    PoolStats stats1 = pool.get_statistics();
-    uint64_t cache_hits_before = stats1.cache_hits;
-    
-    // Allocate again - should reuse the same pool entry
-    void* ptr2 = pool.allocate(test_size);
-    ASSERT_NE(ptr2, nullptr, "Second allocation failed");
-    
-    PoolStats stats2 = pool.get_statistics();
-    uint64_t cache_hits_after = stats2.cache_hits;
-    
-    LOG_INFO("Cache hits before: " << cache_hits_before);
-    LOG_INFO("Cache hits after: " << cache_hits_after);
-    LOG_INFO("Hit rate: " << std::fixed << std::setprecision(1) 
-             << (stats2.get_hit_rate() * 100) << "%");
-    
-    ASSERT_TRUE(cache_hits_after > cache_hits_before, "Expected cache hit on reuse");
-    
-    pool.deallocate(ptr2);
-    
-    LOG_PASS("Pool Reuse");
-    return true;
+    try {
+        MemoryPoolManager pool;
+        const size_t test_size = MemoryPoolManager::SIZE_64KB;
+        
+        // Allocate
+        void* ptr1 = pool.allocate(test_size);
+        ASSERT_NE(ptr1, nullptr, "First allocation failed");
+        
+        // Deallocate
+        cuda_zstd::Status status = pool.deallocate(ptr1);
+        ASSERT_STATUS(status, "Deallocation failed");
+        
+        PoolStats stats1 = pool.get_statistics();
+        uint64_t cache_hits_before = stats1.cache_hits;
+        
+        // Allocate again - should reuse the same pool entry
+        void* ptr2 = pool.allocate(test_size);
+        ASSERT_NE(ptr2, nullptr, "Second allocation failed");
+        
+        PoolStats stats2 = pool.get_statistics();
+        uint64_t cache_hits_after = stats2.cache_hits;
+        
+        LOG_INFO("Cache hits before: " << cache_hits_before);
+        LOG_INFO("Cache hits after: " << cache_hits_after);
+        LOG_INFO("Hit rate: " << std::fixed << std::setprecision(1) 
+                 << (stats2.get_hit_rate() * 100) << "%");
+        
+        ASSERT_TRUE(cache_hits_after > cache_hits_before, "Expected cache hit on reuse");
+        
+        pool.deallocate(ptr2);
+        
+        LOG_PASS("Pool Reuse");
+        return true;
+        
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_pool_reuse", std::string("Exception: ") + e.what());
+        return false;
+    } catch (...) {
+        LOG_FAIL("test_pool_reuse", "Unknown exception");
+        return false;
+    }
 }
 
 bool test_pool_growth() {
@@ -605,11 +623,23 @@ int main() {
     std::cout << "SUITE 1: Basic Functionality" << std::endl;
     print_separator();
     
-    total++; if (test_basic_allocation_deallocation()) passed++;
-    total++; if (test_pool_reuse()) passed++;
-    total++; if (test_pool_growth()) passed++;
-    total++; if (test_concurrent_allocations()) passed++;
-    total++; if (test_stream_based_allocation()) passed++;
+    // Allow running a single test for debugging via env var TEST_NAME
+    const char* debug_test = getenv("TEST_NAME");
+    auto run_or_skip = [&](bool (*fn)(), const char* name) {
+        total++;
+        if (!debug_test || strcmp(debug_test, name) == 0) {
+            if (fn()) passed++;
+        } else {
+            // Skip test if debug set and doesn't match
+            std::cout << "[SKIP] " << name << std::endl;
+        }
+    };
+
+    run_or_skip(test_basic_allocation_deallocation, "test_basic_allocation_deallocation");
+    run_or_skip(test_pool_reuse, "test_pool_reuse");
+    run_or_skip(test_pool_growth, "test_pool_growth");
+    run_or_skip(test_concurrent_allocations, "test_concurrent_allocations");
+    run_or_skip(test_stream_based_allocation, "test_stream_based_allocation");
     
     // Performance Tests
     std::cout << "\n";

@@ -38,6 +38,8 @@ void init_hash_table(u32* hash_table, int size, u32 value, cudaStream_t stream)
             __ctx.cuda_error = __err;
             log_error(__ctx);
         }
+        // Runtime toggle: perform synchronous verification if enabled
+        cuda_zstd::utils::debug_kernel_verify("hash::init_hash_table: after init_hash_table_kernel");
     }
 }
 
@@ -77,6 +79,7 @@ Status insert_hash_table(u32* hash_table, const u32* positions, const u32* hashe
     int grid_size = (count + block_size - 1) / block_size;
     insert_hash_table_kernel<<<grid_size, block_size, 0, stream>>>(hash_table, positions, hashes, count);
     CUDA_CHECK(cudaGetLastError());
+    cuda_zstd::utils::debug_kernel_verify("hash::insert_hash_table: after insert_hash_table_kernel");
     return Status::SUCCESS;
 }
 
@@ -115,6 +118,7 @@ Status lookup_hash_table(const u32* hash_table, const u32* hashes, u32* results,
     int grid_size = (count + block_size - 1) / block_size;
     lookup_hash_table_kernel<<<grid_size, block_size, 0, stream>>>(hash_table, hashes, results, count);
     CUDA_CHECK(cudaGetLastError());
+    cuda_zstd::utils::debug_kernel_verify("hash::lookup_hash_table: after lookup_hash_table_kernel");
     return Status::SUCCESS;
 }
 

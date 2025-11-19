@@ -22,7 +22,7 @@ int main() {
     std::cout << "==============================\n\n";
     
     // Check for CUDA device
-    int deviceCount;
+    [[maybe_unused]] int deviceCount;
     SKIP_IF_NO_CUDA_RET(0);
     check_cuda_device();
     

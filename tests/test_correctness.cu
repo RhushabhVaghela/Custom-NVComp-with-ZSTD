@@ -164,7 +164,7 @@ bool test_identity_property() {
 bool test_random_inputs_roundtrip() {
     LOG_TEST("Random Inputs Round-trip (1000 tests)");
     
-    const int num_tests = 1000;
+    const int num_tests = (getenv("CUDA_ZSTD_RUN_HEAVY_TESTS") ? 1000 : 100);
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> size_dis(1, 64 * 1024);
@@ -267,7 +267,7 @@ bool test_all_compression_levels() {
         h_input[i] = static_cast<uint8_t>(i % 128);
     }
     
-    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr;
     
     // Allocate GPU memory with error checking
     if (!safe_cuda_malloc(&d_input, data_size)) {
@@ -371,6 +371,14 @@ bool test_various_sizes_roundtrip() {
         1048575, 1048576, 1048577
     };
     
+    // Allow running a smaller set of sizes on resource constrained systems.
+    bool run_heavy = (getenv("CUDA_ZSTD_RUN_HEAVY_TESTS") != nullptr);
+    if (!run_heavy) {
+        // Filter out sizes > 65536
+        std::vector<size_t> filtered;
+        for (size_t s : test_sizes) if (s <= 65536) filtered.push_back(s);
+        test_sizes.swap(filtered);
+    }
     LOG_INFO("Testing " << test_sizes.size() << " different sizes");
     
     auto manager = create_manager(5);

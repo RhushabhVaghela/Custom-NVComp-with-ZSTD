@@ -350,6 +350,38 @@ bool is_pressure_high = pool.is_memory_pressure_high();
 - Pool management with fallback support
 - Stream-based allocation fallback
 
+Additional debugging & safety features (new in recent updates):
+- Allocation sequence mapping: the pool maintains an `allocation_sequence_counter_` and stores `alloc_seq` in each `PoolEntry`. This is useful for correlating allocations and deallocation log messages to debug races or pointer re-use.
+- Pointer metadata mapping: `pointer_index_map_` now stores a `PointerMeta{pool_idx, alloc_seq}` tuple so that deallocation checks are sequence-aware and can detect mapping mismatches.
+- New tests:
+    - `tests/test_memory_pool_double_free.cu`: Verifies that sequential double-free calls are detected and return `Status::ERROR_INVALID_PARAMETER`.
+    - `tests/test_memory_pool_double_free_race.cu`: Performs concurrent deallocation of the same pointer across two threads. The test verifies that at least one deallocation succeeds and that the system does not crash; the other deallocation will return a sensible error (`ERROR_INVALID_PARAMETER` or `ERROR_TIMEOUT`).
+
+    Debugging helpers:
+
+    - Stack trace logging: enable per-allocation / deallocation stack traces for deeper diagnosis by setting an environment variable:
+
+        - Linux/WSL / macOS: `export CUDA_ZSTD_ALLOC_TRACE=1`
+        - Windows PowerShell (for WSL): `$env:CUDA_ZSTD_ALLOC_TRACE = '1'` (and re-run tests in WSL)
+
+        Stack traces are emitted to stderr when `CUDA_ZSTD_ALLOC_TRACE` is set. This is an inexpensive way to correlate the call sites of allocate/deallocate during debugging but is off by default for CI.
+
+    - Running CUDA memcheck:
+
+        To get GPU stack traces that point to a specific kernel error and device code line, run the failing test under `cuda-memcheck` on a CUDA-enabled Linux machine or WSL setup. Example:
+
+        ```bash
+        # Run memcheck for the roundtrip regression
+        CUDA_LAUNCH_BLOCKING=1 cuda-memcheck ./build/test_roundtrip --gtest_filter=random_inputs_roundtrip
+        ```
+
+        Or run all tests matching a pattern using the included script:
+
+        ```bash
+        # From the repo root on Linux/WSL
+        ./scripts/run_tests_memcheck.sh test_roundtrip
+        ```
+
 ### Test Scenarios
 
 #### Memory Pressure Simulation

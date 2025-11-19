@@ -135,10 +135,30 @@ bool test_compression_timing_breakdown() {
         return false;
     }
     
-    cuda_zstd::CompressionConfig config{.level = 5};
-    ZstdBatchManager manager(config);
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    ASSERT_TRUE(cudaMalloc(&d_temp, temp_size) == cudaSuccess, "cudaMalloc d_temp failed");
+    // Create manager with safe error handling
+    std::unique_ptr<ZstdManager> manager;
+    try {
+        manager = create_manager(5);
+        if (!manager) {
+            LOG_FAIL("test_compression_timing_breakdown", "Failed to create manager");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_output);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_compression_timing_breakdown", std::string("Manager creation failed: ") + e.what());
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_compression_timing_breakdown", "CUDA malloc for d_temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     // Enable profiling
     PerformanceProfiler::enable_profiling(true);
@@ -148,8 +168,8 @@ bool test_compression_timing_breakdown() {
     CudaTimer timer;
     timer.start();
     
-    Status status = manager.compress(d_input, data_size, d_output, &compressed_size,
-                                     d_temp, temp_size, nullptr, 0);
+    Status status = manager->compress(d_input, data_size, d_output, &compressed_size,
+                                     d_temp, temp_size, nullptr, 0, 0);
     
     float total_time = timer.elapsed_ms();
     
@@ -189,26 +209,66 @@ bool test_decompression_timing() {
     std::vector<uint8_t> h_data;
     generate_test_data(h_data, data_size, "compressible");
     
-    void *d_input, *d_compressed, *d_output, *d_temp;
-    ASSERT_TRUE(cudaMalloc(&d_input, data_size) == cudaSuccess, "cudaMalloc d_input failed");
-    ASSERT_TRUE(cudaMalloc(&d_compressed, data_size * 2) == cudaSuccess, "cudaMalloc d_compressed failed");
-    ASSERT_TRUE(cudaMalloc(&d_output, data_size) == cudaSuccess, "cudaMalloc d_output failed");
-    ASSERT_TRUE(cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice) == cudaSuccess, "cudaMemcpy d_input failed");
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    cuda_zstd::CompressionConfig config{.level = 5};
-    ZstdBatchManager manager(config);
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
-        LOG_FAIL("test_compression_timing_breakdown", "CUDA malloc for d_temp failed");
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_decompression_timing", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+        LOG_FAIL("test_decompression_timing", "CUDA malloc for d_compressed failed");
         safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size)) {
+        LOG_FAIL("test_decompression_timing", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_decompression_timing", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    // Create manager with safe error handling
+    std::unique_ptr<ZstdManager> manager;
+    try {
+        manager = create_manager(5);
+        if (!manager) {
+            LOG_FAIL("test_decompression_timing", "Failed to create manager");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_decompression_timing", std::string("Manager creation failed: ") + e.what());
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_decompression_timing", "CUDA malloc for d_temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
         safe_cuda_free(d_output);
         return false;
     }
     
     // Compress first
     size_t compressed_size;
-    Status status = manager.compress(d_input, data_size, d_compressed, &compressed_size,
-                                     d_temp, temp_size, nullptr, 0);
+    Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
+                                     d_temp, temp_size, nullptr, 0, 0);
     ASSERT_STATUS(status, "Compression failed");
     
     LOG_INFO("Compressed: " << data_size << " -> " << compressed_size << " bytes");
@@ -221,8 +281,8 @@ bool test_decompression_timing() {
     timer.start();
     
     size_t decompressed_size;
-    status = manager.decompress(d_compressed, compressed_size, d_output, &decompressed_size,
-                                 d_temp, temp_size);
+    status = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
+                                d_temp, temp_size);
     
     float decomp_time = timer.elapsed_ms();
     
@@ -235,10 +295,11 @@ bool test_decompression_timing() {
     LOG_INFO("Entropy decode time: " << metrics.entropy_decode_time_ms << " ms");
     LOG_INFO("Throughput: " << (data_size / (1024.0 * 1024.0)) / (decomp_time / 1000.0) << " MB/s");
     
-    ASSERT_TRUE(cudaFree(d_input) == cudaSuccess, "cudaFree d_input failed");
-    ASSERT_TRUE(cudaFree(d_compressed) == cudaSuccess, "cudaFree d_compressed failed");
-    ASSERT_TRUE(cudaFree(d_output) == cudaSuccess, "cudaFree d_output failed");
-    ASSERT_TRUE(cudaFree(d_temp) == cudaSuccess, "cudaFree d_temp failed");
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     PerformanceProfiler::enable_profiling(false);
     
@@ -257,10 +318,25 @@ bool test_compression_throughput() {
     std::vector<uint8_t> h_data;
     generate_test_data(h_data, data_size, "compressible");
     
-    void *d_input, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_output, data_size * 2);
-    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_output = nullptr;
+    
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_compression_throughput", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+        LOG_FAIL("test_compression_throughput", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_compression_throughput", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     std::cout << "\n  Level | Time (ms) | Throughput (MB/s) | Ratio | Size (KB)\n";
     std::cout << "  ------|-----------|-------------------|-------|----------\n";
@@ -268,17 +344,31 @@ bool test_compression_throughput() {
     std::vector<int> levels = {1, 3, 5, 9, 15, 19};
     
     for (int level : levels) {
-        cuda_zstd::CompressionConfig config{.level = level};
-        ZstdBatchManager manager(config);
-        size_t temp_size = manager.get_compress_temp_size(data_size);
-        cudaMalloc(&d_temp, temp_size);
+        std::unique_ptr<ZstdManager> manager;
+        try {
+            manager = create_manager(level);
+            if (!manager) {
+                LOG_FAIL("test_compression_throughput", "Failed to create manager for level " + std::to_string(level));
+                continue;
+            }
+        } catch (const std::exception& e) {
+            LOG_FAIL("test_compression_throughput", "Manager creation failed for level " + std::to_string(level) + ": " + e.what());
+            continue;
+        }
+        
+        size_t temp_size = manager->get_compress_temp_size(data_size);
+        void* d_temp = nullptr;
+        if (!safe_cuda_malloc(&d_temp, temp_size)) {
+            LOG_FAIL("test_compression_throughput", "CUDA malloc for d_temp failed");
+            continue;
+        }
         
         CudaTimer timer;
         timer.start();
         
         size_t compressed_size;
-        Status status = manager.compress(d_input, data_size, d_output, &compressed_size,
-                                         d_temp, temp_size, nullptr, 0);
+        Status status = manager->compress(d_input, data_size, d_output, &compressed_size,
+                                        d_temp, temp_size, nullptr, 0, 0);
         
         float time_ms = timer.elapsed_ms();
         
@@ -291,13 +381,15 @@ bool test_compression_throughput() {
                      << " | " << std::setw(17) << std::fixed << std::setprecision(1) << throughput
                      << " | " << std::setw(5) << std::fixed << std::setprecision(2) << ratio
                      << " | " << std::setw(8) << compressed_size / 1024 << "\n";
+        } else {
+            std::cout << "  " << std::setw(5) << level << " | ERROR | - | - | -\n";
         }
         
-        cudaFree(d_temp);
+        safe_cuda_free(d_temp);
     }
     
-    cudaFree(d_input);
-    cudaFree(d_output);
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
     
     LOG_PASS("Compression Throughput");
     return true;
@@ -310,20 +402,66 @@ bool test_decompression_throughput() {
     std::vector<uint8_t> h_data;
     generate_test_data(h_data, data_size, "compressible");
     
-    void *d_input, *d_compressed, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_compressed, data_size * 2);
-    cudaMalloc(&d_output, data_size);
-    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    cuda_zstd::CompressionConfig config{.level = 5};
-    ZstdBatchManager manager(config);
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_decompression_throughput", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+        LOG_FAIL("test_decompression_throughput", "CUDA malloc for d_compressed failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size)) {
+        LOG_FAIL("test_decompression_throughput", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_decompression_throughput", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    // Create manager with safe error handling
+    std::unique_ptr<ZstdManager> manager;
+    try {
+        manager = create_manager(5);
+        if (!manager) {
+            LOG_FAIL("test_decompression_throughput", "Failed to create manager");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_decompression_throughput", std::string("Manager creation failed: ") + e.what());
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_decompression_throughput", "CUDA malloc for d_temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     // Compress
     size_t compressed_size;
-    manager.compress(d_input, data_size, d_compressed, &compressed_size, d_temp, temp_size, nullptr, 0);
+    Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    ASSERT_STATUS(status, "Compression failed");
     
     // Decompress multiple times for average
     const int num_iterations = 10;
@@ -334,8 +472,17 @@ bool test_decompression_throughput() {
         timer.start();
         
         size_t decompressed_size;
-        manager.decompress(d_compressed, compressed_size, d_output, &decompressed_size,
+        status = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
                            d_temp, temp_size);
+        
+        if (status != Status::SUCCESS) {
+            LOG_FAIL("test_decompression_throughput", "Decompression iteration " + std::to_string(i) + " failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            safe_cuda_free(d_temp);
+            return false;
+        }
         
         total_time += timer.elapsed_ms();
     }
@@ -346,10 +493,11 @@ bool test_decompression_throughput() {
     LOG_INFO("Average decompression time: " << std::fixed << std::setprecision(2) << avg_time << " ms");
     LOG_INFO("Decompression throughput: " << std::fixed << std::setprecision(1) << throughput << " MB/s");
     
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     LOG_PASS("Decompression Throughput");
     return true;
@@ -362,22 +510,57 @@ bool test_memory_bandwidth() {
     std::vector<uint8_t> h_data;
     generate_test_data(h_data, data_size, "compressible");
     
-    void *d_input, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_output, data_size * 2);
-    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    cuda_zstd::CompressionConfig config{.level = 5};
-    ZstdBatchManager manager(config);
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_memory_bandwidth", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+        LOG_FAIL("test_memory_bandwidth", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_memory_bandwidth", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    // Create manager with safe error handling
+    std::unique_ptr<ZstdManager> manager;
+    try {
+        manager = create_manager(5);
+        if (!manager) {
+            LOG_FAIL("test_memory_bandwidth", "Failed to create manager");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_output);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_memory_bandwidth", std::string("Manager creation failed: ") + e.what());
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_memory_bandwidth", "CUDA malloc for d_temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     PerformanceProfiler::enable_profiling(true);
     PerformanceProfiler::reset_metrics();
     
     size_t compressed_size;
-    Status status = manager.compress(d_input, data_size, d_output, &compressed_size,
-                                     d_temp, temp_size, nullptr, 0);
+    Status status = manager->compress(d_input, data_size, d_output, &compressed_size,
+                                     d_temp, temp_size, nullptr, 0, 0);
     ASSERT_STATUS(status, "Compression failed");
     
     const auto& metrics = PerformanceProfiler::get_metrics();
@@ -390,9 +573,10 @@ bool test_memory_bandwidth() {
     LOG_INFO("Total bandwidth: " << std::fixed << std::setprecision(2)
              << metrics.total_bandwidth_gbps << " GB/s");
     
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     PerformanceProfiler::enable_profiling(false);
     
@@ -460,22 +644,58 @@ bool test_metrics_reset() {
     std::vector<uint8_t> h_data;
     generate_test_data(h_data, data_size, "compressible");
     
-    void *d_input, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_output, data_size * 2);
-    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    cuda_zstd::CompressionConfig config{.level = 3};
-    ZstdBatchManager manager(config);
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_metrics_reset", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+        LOG_FAIL("test_metrics_reset", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_metrics_reset", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    // Create manager with safe error handling
+    std::unique_ptr<ZstdManager> manager;
+    try {
+        manager = create_manager(3);
+        if (!manager) {
+            LOG_FAIL("test_metrics_reset", "Failed to create manager");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_output);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_metrics_reset", std::string("Manager creation failed: ") + e.what());
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_metrics_reset", "CUDA malloc for d_temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     PerformanceProfiler::enable_profiling(true);
     PerformanceProfiler::reset_metrics();
     
     // Run compression
     size_t compressed_size;
-    manager.compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0);
+    Status status = manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    ASSERT_STATUS(status, "Compression failed");
     
     auto metrics_before = PerformanceProfiler::get_metrics();
     LOG_INFO("Before reset - total time: " << metrics_before.total_time_ms << " ms");
@@ -489,9 +709,10 @@ bool test_metrics_reset() {
     ASSERT_TRUE(metrics_after.total_time_ms == 0.0, "Metrics should be reset");
     LOG_INFO("✓ Metrics reset successfully");
     
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     PerformanceProfiler::enable_profiling(false);
     
@@ -506,21 +727,57 @@ bool test_csv_export() {
     std::vector<uint8_t> h_data;
     generate_test_data(h_data, data_size, "compressible");
     
-    void *d_input, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_output, data_size * 2);
-    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    cuda_zstd::CompressionConfig config{.level = 5};
-    ZstdBatchManager manager(config);
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_csv_export", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+        LOG_FAIL("test_csv_export", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_csv_export", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    // Create manager with safe error handling
+    std::unique_ptr<ZstdManager> manager;
+    try {
+        manager = create_manager(5);
+        if (!manager) {
+            LOG_FAIL("test_csv_export", "Failed to create manager");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_output);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_csv_export", std::string("Manager creation failed: ") + e.what());
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_csv_export", "CUDA malloc for d_temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     PerformanceProfiler::enable_profiling(true);
     PerformanceProfiler::reset_metrics();
     
     size_t compressed_size;
-    manager.compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0);
+    Status status = manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    ASSERT_STATUS(status, "Compression failed");
     
     // Export to CSV
     const char* csv_file = "performance_metrics.csv";
@@ -541,9 +798,10 @@ bool test_csv_export() {
     ASSERT_TRUE(line_count > 0, "CSV should have content");
     LOG_INFO("✓ CSV export successful");
     
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     PerformanceProfiler::enable_profiling(false);
     
@@ -558,21 +816,57 @@ bool test_json_export() {
     std::vector<uint8_t> h_data;
     generate_test_data(h_data, data_size, "compressible");
     
-    void *d_input, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_output, data_size * 2);
-    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    cuda_zstd::CompressionConfig config{.level = 5};
-    ZstdBatchManager manager(config);
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_json_export", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+        LOG_FAIL("test_json_export", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_json_export", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    // Create manager with safe error handling
+    std::unique_ptr<ZstdManager> manager;
+    try {
+        manager = create_manager(5);
+        if (!manager) {
+            LOG_FAIL("test_json_export", "Failed to create manager");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_output);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_json_export", std::string("Manager creation failed: ") + e.what());
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_json_export", "CUDA malloc for d_temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     PerformanceProfiler::enable_profiling(true);
     PerformanceProfiler::reset_metrics();
     
     size_t compressed_size;
-    manager.compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0);
+    Status status = manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    ASSERT_STATUS(status, "Compression failed");
     
     // Export to JSON
     const char* json_file = "performance_metrics.json";
@@ -590,9 +884,10 @@ bool test_json_export() {
     LOG_INFO("JSON file created (" << content.length() << " bytes)");
     LOG_INFO("✓ JSON export successful");
     
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     PerformanceProfiler::enable_profiling(false);
     
@@ -613,26 +908,69 @@ bool test_memory_pool_performance_impact() {
     std::vector<uint8_t> h_data;
     generate_test_data(h_data, data_size, "compressible");
     
-    void *d_input, *d_output, *d_temp;
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_output, data_size * 2);
-    cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
+    void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    cuda_zstd::CompressionConfig config{.level = 5};
-    ZstdBatchManager manager(config);
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    cudaMalloc(&d_temp, temp_size);
+    if (!safe_cuda_malloc(&d_input, data_size)) {
+        LOG_FAIL("test_memory_pool_performance_impact", "CUDA malloc for d_input failed");
+        return false;
+    }
+    
+    if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+        LOG_FAIL("test_memory_pool_performance_impact", "CUDA malloc for d_output failed");
+        safe_cuda_free(d_input);
+        return false;
+    }
+    
+    if (!safe_cuda_memcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice)) {
+        LOG_FAIL("test_memory_pool_performance_impact", "CUDA memcpy to d_input failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    // Create manager with safe error handling
+    std::unique_ptr<ZstdManager> manager;
+    try {
+        manager = create_manager(5);
+        if (!manager) {
+            LOG_FAIL("test_memory_pool_performance_impact", "Failed to create manager");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_output);
+            return false;
+        }
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_memory_pool_performance_impact", std::string("Manager creation failed: ") + e.what());
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
+    
+    size_t temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        LOG_FAIL("test_memory_pool_performance_impact", "CUDA malloc for d_temp failed");
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_output);
+        return false;
+    }
     
     // Warm up
     size_t compressed_size;
-    manager.compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0);
+    Status status = manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+    ASSERT_STATUS(status, "Warm-up compression failed");
     
     // Measure with pool (multiple compressions)
     Timer timer;
     timer.start();
     
     for (int i = 0; i < num_iterations; i++) {
-        manager.compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0);
+        status = manager->compress(d_input, data_size, d_output, &compressed_size, d_temp, temp_size, nullptr, 0, 0);
+        if (status != Status::SUCCESS) {
+            LOG_FAIL("test_memory_pool_performance_impact", "Compression iteration " + std::to_string(i) + " failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_output);
+            safe_cuda_free(d_temp);
+            return false;
+        }
     }
     cudaDeviceSynchronize();
     
@@ -644,9 +982,10 @@ bool test_memory_pool_performance_impact() {
     LOG_INFO("Total time for " << num_iterations << " iterations: " 
              << std::fixed << std::setprecision(2) << total_time << " ms");
     
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    // Cleanup with safe free functions
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
     
     LOG_PASS("Memory Pool Performance Impact");
     return true;

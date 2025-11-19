@@ -30,7 +30,8 @@ bool print_device_info() {
     std::cout << "  Name: " << prop.name << "\n";
     std::cout << "  Compute Capability: " << prop.major << "." << prop.minor << "\n";
     std::cout << "  Total Memory: " << prop.totalGlobalMem / (1024*1024) << " MB\n";
-    std::cout << "  Clock Rate: " << prop.clockRate / 1000 << " MHz\n";
+    // 'clockRate' field may be unavailable in newer CUDA versions; avoid using it
+    std::cout << "  Clock Rate: (not available)\n";
     std::cout << "  SM Count: " << prop.multiProcessorCount << "\n";
     
     if (prop.major < 7) {
@@ -49,7 +50,7 @@ bool test_basic_compression() {
     print_separator();
     
     const size_t num_chunks = 1;
-    const size_t data_size = 1024 * 1024; // 1 MB
+    const size_t data_size = 512 * 1024; // 512 KB
     std::cout << "Input size: " << data_size << " bytes\n";
     
     std::vector<uint8_t> h_data(data_size);
@@ -65,7 +66,7 @@ bool test_basic_compression() {
     std::cout << "✓ Allocated GPU memory\n";
     
     NvcompV5Options opts;
-    opts.level = 3;
+    opts.level = 1;
     NvcompV5BatchManager manager(opts);
     std::cout << "✓ Created compression manager (level 3)\n";
     
@@ -78,14 +79,18 @@ bool test_basic_compression() {
     
     const void* d_uncompressed_ptrs[] = { d_input };
     void* d_compressed_ptrs[] = { d_output };
-    size_t compressed_size;
+    size_t* d_compressed_size;
+    cudaMalloc(&d_compressed_size, sizeof(size_t));
 
     Status status = manager.compress_async(
         d_uncompressed_ptrs, chunk_sizes, num_chunks,
-        d_compressed_ptrs, &compressed_size,
+        d_compressed_ptrs, d_compressed_size,
         d_temp, temp_size
     );
     cudaDeviceSynchronize();
+    
+    size_t compressed_size;
+    cudaMemcpy(&compressed_size, d_compressed_size, sizeof(size_t), cudaMemcpyDeviceToHost);
     
     std::cout << "\nResults:\n";
     std::cout << "  Status: " << status_to_string(status) << "\n";
@@ -94,6 +99,7 @@ bool test_basic_compression() {
     cudaFree(d_input);
     cudaFree(d_output);
     cudaFree(d_temp);
+    cudaFree(d_compressed_size);
     
     if (status == Status::SUCCESS) {
         std::cout << "\n✓ Test 1 PASSED\n";

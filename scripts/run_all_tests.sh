@@ -14,6 +14,24 @@ SUMMARY_FILE="$ROOT_DIR/build/test_results.txt"
 TEST_TIMEOUT=${TEST_TIMEOUT:-100}
 # Optionally make kernel launches synchronous for debugging
 CUDA_LAUNCH_BLOCKING=${CUDA_LAUNCH_BLOCKING:-0}
+# Optional: verify kernel launches by synchronizing after each kernel invocation.
+# Set via env var or use the CLI flag '--debug-kernel-verify'
+CUDA_ZSTD_DEBUG_KERNEL_VERIFY=${CUDA_ZSTD_DEBUG_KERNEL_VERIFY:-0}
+
+# Parse optional CLI flags
+for arg in "$@"; do
+    case "$arg" in
+        --debug-kernel-verify)
+            CUDA_ZSTD_DEBUG_KERNEL_VERIFY=1
+            ;;
+        --cuda-launch-blocking)
+            CUDA_LAUNCH_BLOCKING=1
+            ;;
+        *)
+            echo "Unknown flag: $arg" || true
+            ;;
+    esac
+done
 
 # Build
 rm -rf "$BUILD_DIR"
@@ -57,7 +75,7 @@ for T in $TESTS; do
         # Use timeout to kill hanging tests. We also export CUDA_LAUNCH_BLOCKING to help debug kernel hangs.
         # Run inside a non-fatal context so a failing or timed-out test does not abort the whole script.
         set +e
-        CUDA_LAUNCH_BLOCKING=$CUDA_LAUNCH_BLOCKING timeout ${TEST_TIMEOUT}s bash -lc "./\"$T\"" 2>&1 | tee -a "$LOG_FILE"
+        CUDA_LAUNCH_BLOCKING=$CUDA_LAUNCH_BLOCKING CUDA_ZSTD_DEBUG_KERNEL_VERIFY=$CUDA_ZSTD_DEBUG_KERNEL_VERIFY timeout ${TEST_TIMEOUT}s bash -lc "./\"$T\"" 2>&1 | tee -a "$LOG_FILE"
         EXIT_CODE=${PIPESTATUS[0]}
         set -e
     else

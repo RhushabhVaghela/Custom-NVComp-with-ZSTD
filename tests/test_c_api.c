@@ -28,6 +28,8 @@ int main() {
     
     cudaMalloc(&d_input, data_size);
     cudaMalloc(&d_output, data_size * 2);
+    cudaMemset(d_input, 0, data_size);
+    cudaMemcpy(d_input, h_data, data_size, cudaMemcpyHostToDevice);
     
     size_t temp_size = nvcomp_zstd_get_compress_temp_size_v5(manager, data_size);
     cudaMalloc(&d_temp, temp_size);

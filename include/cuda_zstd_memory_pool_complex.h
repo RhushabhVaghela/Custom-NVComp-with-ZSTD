@@ -185,6 +185,8 @@ struct PoolEntry {
     PoolEntry() = default;
     PoolEntry(void* p, size_t s) : ptr(p), size(s), in_use(false),
                                    stream(nullptr), ready_event(nullptr) {}
+    uint64_t alloc_seq = 0; // Sequence number for last allocation
+    uint64_t uid = 0;       // Unique entry id per pool entry
     
     // Cleanup both GPU and host memory
     ~PoolEntry() {
@@ -192,7 +194,8 @@ struct PoolEntry {
             cudaFree(ptr);
         }
         if (host_ptr) {
-            free(host_ptr);
+            std::cerr << "PoolEntry::~PoolEntry: freeing host_ptr=" << host_ptr << " host_size=" << host_size << "\n";
+            cuda_zstd::util::debug_free(host_ptr);
         }
         if (ready_event) {
             cudaEventDestroy(ready_event);
@@ -256,6 +259,16 @@ public:
     // Statistics
     PoolStats get_statistics() const;
     void reset_statistics();
+
+    // Try migrating a host-fallback pointer to device memory. Returns device pointer
+    // on success or nullptr on failure. This mirrors internal migrate_host_to_device
+    // and is exposed for tests that manage host->device behavior.
+    void* migrate_host_to_device(void* host_ptr, size_t size, cudaStream_t stream = 0);
+    // Migrate a pool entry's host fallback pointer to device and update the pool
+    // metadata accordingly. Returns true on success.
+    // Attempt to migrate a host fallback pool entry to device memory. Returns the
+    // new device pointer on success or nullptr on failure.
+    void* migrate_pool_host_entry_to_device(void* host_ptr, size_t size, cudaStream_t stream = 0);
     void print_statistics() const;
     
     // Configuration

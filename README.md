@@ -1408,6 +1408,22 @@ All contributions must include:
 3. **Documentation**: Update relevant markdown files
 4. **Code Coverage**: Maintain >85% coverage
 
+Tip: For kernel-level debugging and reproduction of GPU OOBs, use the test harness 'scripts/run_all_tests.sh' with the flag
+`--debug-kernel-verify` to force a `cudaDeviceSynchronize()` after kernel invocations and print diagnostics. Also enable `CUDA_ZSTD_DEBUG_BOUNDS=ON` at CMake time to compile device debug prints.
+
+If you are on CUDA 12 or newer, `cuda-memcheck` is replaced by the NVIDIA Compute Sanitizer. To run memory checks locally, build with debug info and run the memcheck tool:
+
+```bash
+# Configure with debug info to enable source-level reports
+cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CUDA_FLAGS="-g -G"
+cmake --build .
+
+# Use the helper script which will fallback to compute-sanitizer when cuda-memcheck is not available
+./scripts/run_tests_memcheck.sh test_roundtrip 1
+```
+
+The script sets `CUDA_ZSTD_DEBUG_KERNEL_VERIFY` to 1 for added synchronous checking and will invoke either `cuda-memcheck` or `compute-sanitizer --tool memcheck` depending on your toolkit.
+
 ### Submission Process
 
 1. **Create tests** for new features

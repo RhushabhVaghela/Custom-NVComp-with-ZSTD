@@ -259,7 +259,7 @@ __host__ Status validate_fse_roundtrip(
     }
     
     // ===== STEP 2: Extract Normalized Frequencies =====
-    u32 table_size = 1u << table_log;
+    [[maybe_unused]] u32 table_size = 1u << table_log;
     u32 header_size = 12 + (max_symbol + 1) * 2;
     
     if (encoded_size_bytes < header_size) {
@@ -451,7 +451,7 @@ __host__ Status encode_fse_advanced_fixed(
             stats.unique_symbols
         );
     }
-    u32 table_size = 1u << table_log;
+    [[maybe_unused]] u32 table_size = 1u << table_log;
     
     // ===== STEP 3: Normalize Frequencies =====
     std::vector<u16> h_normalized(256, 0);
@@ -999,7 +999,7 @@ __host__ Status FSE_buildCTable_Host(
         return Status::ERROR_INVALID_PARAMETER;
     }
     
-    u32 table_size = 1u << table_log;
+    [[maybe_unused]] u32 table_size = 1u << table_log;
     // === Step 1: Allocate output table ===
     h_table->table_log = table_log;
     h_table->table_size = table_size;
@@ -1130,7 +1130,7 @@ __global__ void fse_parallel_encode_setup_kernel(
         const FSEEncodeTable::FSEEncodeSymbol& stateInfo = d_symbol_table[symbol];
         
         u32 nb_bits = stateInfo.nbBits;
-        u32 state_lsb = state & ((1u << nb_bits) - 1);
+        [[maybe_unused]] u32 state_lsb = state & ((1u << nb_bits) - 1);
         
         state = stateInfo.newStateBase + (state >> nb_bits);
     }
@@ -1177,7 +1177,7 @@ __global__ void fse_parallel_encode_kernel(
         const FSEEncodeTable::FSEEncodeSymbol& stateInfo = d_symbol_table[symbol];
         
         u32 nb_bits = stateInfo.nbBits;
-        u32 state_lsb = state & ((1u << nb_bits) - 1);
+        [[maybe_unused]] u32 state_lsb = state & ((1u << nb_bits) - 1);
         
         // Write the low bits of the state
         bit_buffer |= (u64)state_lsb << bits_in_buffer;
@@ -1247,7 +1247,13 @@ __global__ void fse_parallel_bitstream_copy_kernel(
             // writes to a unique byte location (out_byte_start + i).
             // Using atomicOr ensures that writes from different warps to the same
             // byte (at the boundary) are handled correctly.
-            atomicOr(reinterpret_cast<unsigned int*>(&d_output[out_idx]), (unsigned int)merged);
+            // atomicOr expects a 4-byte aligned destination. Align writes to
+            // a 32-bit word and shift `merged` to the correct byte position.
+            u32 byte_offset = out_idx;
+            u32 aligned_word_idx = byte_offset >> 2; // /4
+            u32 byte_shift = (byte_offset & 3) * 8;
+            u32* out_words = reinterpret_cast<u32*>(d_output);
+            atomicOr(&out_words[aligned_word_idx], (u32)merged << byte_shift);
         }
     }
 }
@@ -1330,7 +1336,7 @@ __host__ Status FSE_buildDTable_Host(
         h_table.nbBits[i] = (u8)nb_bits;
         
         // newState formula for FSE
-        u32 bits_mask = (1u << nb_bits) - 1;
+        [[maybe_unused]] u32 bits_mask = (1u << nb_bits) - 1;
         u32 base = (freq << nb_bits) - table_size;
         h_table.newState[i] = (u16)(base & 0xFFFF);
     }
@@ -1356,7 +1362,33 @@ __host__ Status encode_fse_advanced(
     // Step 1: Analyze input
     FSEStats stats;
     auto status = analyze_block_statistics(d_input, input_size, &stats, stream);
-    if (status != Status::SUCCESS) return status;
+    if (status != Status::SUCCESS) {
+        fprintf(stderr, "[FSE] analyze_block_statistics failed: status=%d, input_size=%u\n", (int)status, input_size);
+        return status;
+    }
+
+    // Step 1.5: CRITICAL FIX - Detect RLE case (single unique symbol)
+    // When there's only 1 unique symbol, we should use RLE encoding instead of FSE
+    if (stats.unique_symbols == 1) {
+        // Find the single symbol
+        u8 rle_symbol = 0;
+        for (u32 i = 0; i < 256; i++) {
+            if (stats.frequencies[i] > 0) {
+                rle_symbol = (u8)i;
+                break;
+            }
+        }
+        
+        // RLE format: just write the symbol once
+        // The caller (compress_literals) will detect this and handle it appropriately
+        std::vector<byte_t> h_output(1);
+        h_output[0] = rle_symbol;
+        
+        CUDA_CHECK(cudaMemcpyAsync(d_output, h_output.data(), 1, cudaMemcpyHostToDevice, stream));
+        *d_output_size = 1;
+        
+        return Status::SUCCESS;
+    }
 
     // Step 2: Select table size
     u32 table_log = FSE_DEFAULT_TABLELOG;
@@ -1366,7 +1398,7 @@ __host__ Status encode_fse_advanced(
             stats.max_symbol, stats.unique_symbols
         );
     }
-    u32 table_size = 1u << table_log;
+    [[maybe_unused]] u32 table_size = 1u << table_log;
 
     // Step 3: Normalize frequencies
     std::vector<u16> h_normalized(stats.max_symbol + 1);
@@ -1379,6 +1411,14 @@ __host__ Status encode_fse_advanced(
         nullptr
     );
     if (status != Status::SUCCESS) {
+        fprintf(stderr, "[FSE] normalize_frequencies_accurate failed: status=%d, table_log=%u, input_size=%u, max_symbol=%u, unique_symbols=%u\n",
+                (int)status, table_log, input_size, stats.max_symbol, stats.unique_symbols);
+        // Print non-zero frequencies for debugging
+        for (u32 i = 0; i <= stats.max_symbol; ++i) {
+            if (stats.frequencies[i] > 0) {
+                fprintf(stderr, "[FSE] freq[%u]=%u\n", i, stats.frequencies[i]);
+            }
+        }
         return status;
     }
 
@@ -1401,7 +1441,17 @@ __host__ Status encode_fse_advanced(
         table_log,
         &h_ctable
     );
-    if (status != Status::SUCCESS) return status;
+    if (status != Status::SUCCESS) {
+        fprintf(stderr, "[FSE] FSE_buildCTable_Host failed: status=%d, max_symbol=%u, table_log=%u\n",
+                (int)status, stats.max_symbol, table_log);
+        // Dump normalized frequencies
+        for (u32 i = 0; i <= stats.max_symbol; ++i) {
+            if (h_normalized[i] > 0) {
+                fprintf(stderr, "[FSE] norm[%u]=%u\n", i, (u32)h_normalized[i]);
+            }
+        }
+        return status;
+    }
 
     FSEEncodeTable::FSEEncodeSymbol* d_symbol_table;
     u32 ctable_size_bytes = (h_ctable.max_symbol + 1) * sizeof(FSEEncodeTable::FSEEncodeSymbol);
@@ -1695,7 +1745,7 @@ __host__ Status decode_fse(
     u32 output_size_expected = *reinterpret_cast<u32*>(h_header.data() + 4);
     u32 max_symbol = *reinterpret_cast<u32*>(h_header.data() + 8);
     
-    u32 table_size = 1u << table_log;
+    [[maybe_unused]] u32 table_size = 1u << table_log;
     u32 header_table_size = (max_symbol + 1) * sizeof(u16);
     u32 header_size = (sizeof(u32) * 3) + header_table_size;
     
@@ -1826,7 +1876,7 @@ __host__ Status decode_fse_predefined(
         return Status::ERROR_INVALID_PARAMETER;
     }
     
-    u32 table_size = 1u << table_log;
+    [[maybe_unused]] u32 table_size = 1u << table_log;
     
     // === Step 2: Build DTable ===
     FSEDecodeTable h_table;

@@ -9,6 +9,8 @@
 #include "cuda_zstd_dictionary.h"
 #include <cuda_runtime.h>
 #include <algorithm> // for std::min
+#include <cstdlib>
+#include <iostream>
 
 namespace cuda_zstd {
 namespace utils {
@@ -137,12 +139,30 @@ __host__ Status parallel_scan(
     cudaFree(d_block_sums);
     cudaFree(d_scanned_block_sums);
     CUDA_CHECK(cudaGetLastError());
+    cuda_zstd::utils::debug_kernel_verify("utils::parallel_scan: after block_scan_prefix_sum_kernel");
     return Status::SUCCESS;
 }
 
 // Explicit template instantiation
 template __host__ Status parallel_scan<u32>(const u32*, u32*, u32, cudaStream_t);
 template __host__ Status parallel_scan<dictionary::DictSegment>(const dictionary::DictSegment*, u32*, u32, cudaStream_t);
+
+__host__ cudaError_t debug_kernel_verify(const char* where) {
+    const char* env = std::getenv("CUDA_ZSTD_DEBUG_KERNEL_VERIFY");
+    if (!env || env[0] == '\0') {
+        return cudaSuccess;
+    }
+
+    // Force synchronous behavior and print an informative message
+    cudaError_t err = cudaDeviceSynchronize();
+    if (where) {
+        std::cerr << "[DEBUG] debug_kernel_verify: " << where << " cudaDeviceSynchronize()=" << err << " (" << cudaGetErrorString(err) << ")\n";
+    } else {
+        std::cerr << "[DEBUG] debug_kernel_verify: cudaDeviceSynchronize()=" << err << " (" << cudaGetErrorString(err) << ")\n";
+    }
+
+    return err;
+}
 
 /**
  * @brief (NEW) Radix Sort Pass 1: Histogram Kernel
@@ -288,6 +308,7 @@ __host__ Status parallel_sort_dmers(dictionary::Dmer* d_dmers, u32 num_dmers, cu
     cudaFree(d_scanned_offsets);
 
     CUDA_CHECK(cudaGetLastError());
+    cuda_zstd::utils::debug_kernel_verify("utils::parallel_scan: after add_block_offsets_kernel");
     return Status::SUCCESS;
 }
 

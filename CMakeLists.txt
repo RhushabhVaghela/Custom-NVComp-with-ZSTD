@@ -13,6 +13,12 @@ option(CUDA_ZSTD_BUILD_TESTS "Build test programs" ON)
 option(CUDA_ZSTD_BUILD_EXAMPLES "Build example programs" ON)
 option(CUDA_ZSTD_BUILD_BENCHMARKS "Build benchmarks" ON)
 
+# Debug bounds checking for GPU kernels (off by default). Turn this on for
+# runs where you want additional printf-based diagnostics of out-of-bounds
+# accesses during kernel processing. This will add a compile-time
+# definition `CUDA_ZSTD_DEBUG_BOUNDS` to all CUDA targets.
+option(CUDA_ZSTD_DEBUG_BOUNDS "Enable debug bounds checks in CUDA kernels" OFF)
+
 # Option to treat warnings as errors in CI or developer builds
 option(BUILD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
@@ -68,6 +74,8 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_nvcomp.cpp
     src/cuda_zstd_utils.cu
     src/cuda_zstd_memory_pool_complex.cu
+    src/cuda_zstd_stacktrace.cpp
+    src/cuda_zstd_debug.cu
     src/cuda_zstd_adaptive.cu
     src/cuda_zstd_stream_pool.cpp
 )
@@ -94,6 +102,12 @@ set_target_properties(cuda_zstd_shared PROPERTIES
 target_link_libraries(cuda_zstd_shared PUBLIC CUDA::cudart Threads::Threads)
 if(DEFINED CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
     target_include_directories(cuda_zstd_shared PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+endif()
+
+if(CUDA_ZSTD_DEBUG_BOUNDS)
+    # Apply debug macro to library targets so .cu kernel files compile with checks
+    target_compile_definitions(cuda_zstd_static PUBLIC CUDA_ZSTD_DEBUG_BOUNDS)
+    target_compile_definitions(cuda_zstd_shared PUBLIC CUDA_ZSTD_DEBUG_BOUNDS)
 endif()
 
 # Examples
@@ -134,6 +148,7 @@ if(CUDA_ZSTD_BUILD_TESTS)
 
     # C-API test
     add_executable(test_c_api tests/test_c_api.c)
+    # test_find_matches_small will be auto-discovered by the test pattern
     # Ensure this test file (C-style filename) is compiled as C++ so it can
     # include C++-only compatibility headers and link against the C++ library.
     set_source_files_properties(tests/test_c_api.c PROPERTIES LANGUAGE CXX)

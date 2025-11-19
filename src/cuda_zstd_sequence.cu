@@ -92,7 +92,7 @@ Status build_sequences(
 constexpr u32 REPEAT_OFFSET_1 = 1;
 constexpr u32 REPEAT_OFFSET_2 = 2;
 constexpr u32 REPEAT_OFFSET_3 = 3;
-constexpr u32 MINMATCHLENGTH = 3;
+[[maybe_unused]] constexpr u32 MINMATCHLENGTH = 3;
 constexpr u32 ML_MIN = 3;  // Minimum match length for validation
 
 // ============================================================================

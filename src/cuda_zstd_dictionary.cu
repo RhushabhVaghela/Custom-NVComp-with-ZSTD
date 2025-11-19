@@ -297,7 +297,7 @@ Status build_entropy_tables(
             fse::analyze_block_statistics(d_stats_buffer, seq_ctx.num_sequences, &stats, stream);
             
             *table_log = fse::select_optimal_table_log(stats.frequencies, seq_ctx.num_sequences, stats.max_symbol, stats.unique_symbols);
-            u32 table_size = 1u << *table_log;
+            // table_size calculation not used here; left out to avoid compiler warning
             
             std::vector<u16> h_norm(stats.max_symbol + 1);
             fse::normalize_frequencies_accurate(stats.frequencies, seq_ctx.num_sequences, stats.max_symbol, h_norm.data(), *table_log, nullptr);

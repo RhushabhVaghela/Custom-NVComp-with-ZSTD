@@ -240,7 +240,9 @@ __global__ void huffman_encode_phase2_kernel(
     u32 header_size_bits
 ) {
     const u32 BUFFER_SIZE = 512; // Bytes per block buffer
-    __shared__ byte_t shared_buffer[BUFFER_SIZE];
+    static_assert((BUFFER_SIZE % 4) == 0, "BUFFER_SIZE must be a multiple of 4 for 32-bit atomics");
+    const u32 BUFFER_WORDS = BUFFER_SIZE / 4;
+    __shared__ u32 shared_words[BUFFER_WORDS];
     
     // Each block processes THREADS_PER_BLOCK symbols
     u32 block_start_idx = blockIdx.x * blockDim.x;
@@ -248,9 +250,9 @@ __global__ void huffman_encode_phase2_kernel(
     
     if (block_start_idx >= input_size) return;
     
-    // Clear shared buffer
-    for (u32 i = threadIdx.x; i < BUFFER_SIZE; i += blockDim.x) {
-        shared_buffer[i] = 0;
+    // Clear shared buffer in 32-bit words; ensures 4-byte alignment for atomics
+    for (u32 i = threadIdx.x; i < BUFFER_WORDS; i += blockDim.x) {
+        shared_words[i] = 0u;
     }
     __syncthreads();
     
@@ -279,8 +281,15 @@ __global__ void huffman_encode_phase2_kernel(
             for (u32 i = 0; i < 3 && local_byte_pos + i < BUFFER_SIZE; i++) {
                 u8 byte_val = (shifted_code >> (i * 8)) & 0xFF;
                 if (byte_val != 0) {
-                    atomicOr(reinterpret_cast<unsigned int*>(&shared_buffer[local_byte_pos + i]),
-                             static_cast<unsigned int>(byte_val));
+                    // Use 32-bit atomic OR on 4-byte aligned words in shared memory.
+                    // atomicOr on a byte pointer is invalid if the address is not
+                    // 4-byte aligned; compute the aligned word index and shift
+                    // the byte into the correct position.
+                    u32 byte_offset = local_byte_pos + i;
+                    u32 aligned_word_idx = byte_offset >> 2; // /4
+                    u32 byte_shift = (byte_offset & 3) * 8;  // 0..24
+                    // shared_words is 4-byte aligned by construction
+                    atomicOr(&shared_words[aligned_word_idx], (u32)byte_val << byte_shift);
                 }
             }
         }
@@ -291,8 +300,10 @@ __global__ void huffman_encode_phase2_kernel(
     u32 global_byte_start = (header_size_bits + block_first_bit) >> 3;
     u32 bytes_to_write = ((block_last_bit - block_first_bit) + 7) / 8;
     
+    // Write from the word-aligned shared array back to bytes for global output
+    const byte_t* shared_bytes = reinterpret_cast<const byte_t*>(shared_words);
     for (u32 i = threadIdx.x; i < bytes_to_write && i < BUFFER_SIZE; i += blockDim.x) {
-        output[global_byte_start + i] |= shared_buffer[i];
+        output[global_byte_start + i] |= shared_bytes[i];
     }
 }
 
@@ -327,7 +338,7 @@ __global__ void parallel_huffman_encode_kernel(
     const u32 lane_id = threadIdx.x & 31;
     
     // Each thread prepares its write
-    u64 shifted_code = static_cast<u64>(c.code) << bit_offset;
+    [[maybe_unused]] u64 shifted_code = static_cast<u64>(c.code) << bit_offset;
     
     // Determine which 64-bit word this thread writes to
     u32 word_idx = byte_pos >> 3;
@@ -354,9 +365,20 @@ __global__ void parallel_huffman_encode_kernel(
             }
         }
         
-        // Single atomic write for the entire warp group
-        atomicOr(reinterpret_cast<unsigned long long*>(output + (word_idx << 3)),
-                 aggregated_value);
+        // Single atomic write for the entire warp group.
+        // If the 64-bit target is misaligned we split into two 32-bit atomics
+        // to avoid invalid 64-bit atomic on platforms that require 8-byte alignment.
+        byte_t* out_ptr = output + (word_idx << 3);
+        uintptr_t out_addr = reinterpret_cast<uintptr_t>(out_ptr);
+        if ((out_addr & 7) == 0) {
+            atomicOr(reinterpret_cast<unsigned long long*>(out_ptr), aggregated_value);
+        } else {
+            // Fall back to two 32-bit atomicOr operations. This assumes
+            // the device global allocation is at least 4-byte aligned.
+            u32* out_words = reinterpret_cast<u32*>(out_ptr);
+            atomicOr(&out_words[0], (u32)aggregated_value);
+            atomicOr(&out_words[1], (u32)(aggregated_value >> 32));
+        }
     }
 }
 

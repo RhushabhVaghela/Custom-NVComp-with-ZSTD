@@ -53,6 +53,15 @@ __host__ Status parallel_sort_dmers(
     cudaStream_t stream
 );
 
+/**
+ * @brief If the environment variable CUDA_ZSTD_DEBUG_KERNEL_VERIFY is set (non-empty),
+ * synchronize the device and print the error string for diagnostics.
+ *
+ * @param where Optional textual location to help identify where the verification was invoked.
+ * @return cudaError_t The result of cudaDeviceSynchronize() or cudaSuccess if not enabled.
+ */
+__host__ cudaError_t debug_kernel_verify(const char* where = nullptr);
+
 inline u32 get_literal_length_code(u32 ll) {
     if (ll < 32) return ll;
     if (ll < 64) return 32;
@@ -69,6 +78,22 @@ __device__ __forceinline__ u64 hash_dmer(const byte_t* data, u32 d) {
         hash = hash * prime + data[i];
     }
     return hash;
+}
+
+// Utility function to calculate compression ratio
+inline float get_compression_ratio(size_t original_size, size_t compressed_size) {
+    if (original_size == 0) return 1.0f;
+    return static_cast<float>(original_size) / static_cast<float>(compressed_size);
+}
+
+// Utility function to verify data integrity
+inline bool verify_data_exact(const uint8_t* original, const uint8_t* decompressed, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        if (original[i] != decompressed[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace utils

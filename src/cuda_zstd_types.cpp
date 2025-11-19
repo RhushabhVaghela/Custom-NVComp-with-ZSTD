@@ -5,6 +5,7 @@
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_memory_pool.h"
 #include "cuda_zstd_lz77.h"
+#include "cuda_zstd_stacktrace.h"
 #include <cstdio>
 #include <mutex>
 
@@ -258,11 +259,24 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_matches)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_matches is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_matches is not device memory - attempting pool migration" << std::endl;
+        // Attempt to migrate a host-fallback pool entry into device memory
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_matches,
+                                                               workspace.max_matches * sizeof(lz77::Match));
+        if (!migrated) {
+            std::cerr << "allocate_compression_workspace: migrate_pool_host_entry_to_device did not find a pool entry, trying direct migrate_host_to_device" << std::endl;
+            migrated = pool.migrate_host_to_device(workspace.d_matches, workspace.max_matches * sizeof(lz77::Match));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_matches host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_matches = migrated;
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_matches failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_costs size=" << workspace.max_costs * sizeof(lz77::ParseCost) << std::endl;
@@ -275,12 +289,23 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_costs)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_costs is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_costs is not device memory - attempting pool migration" << std::endl;
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_costs,
+                                                               workspace.max_costs * sizeof(lz77::ParseCost));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_costs, workspace.max_costs * sizeof(lz77::ParseCost));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_costs host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_costs = migrated;
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_costs failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_literal_lengths_reverse size=" << workspace.max_sequences * sizeof(u32) << std::endl;
@@ -295,13 +320,24 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_literal_lengths_reverse)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_literal_lengths_reverse is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        pool.deallocate(workspace.d_literal_lengths_reverse);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_literal_lengths_reverse is not device memory - attempting pool migration" << std::endl;
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_literal_lengths_reverse,
+                                                               workspace.max_sequences * sizeof(u32));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_literal_lengths_reverse, workspace.max_sequences * sizeof(u32));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_literal_lengths_reverse host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_literal_lengths_reverse = static_cast<u32*>(migrated);
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_literal_lengths_reverse failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            pool.deallocate(workspace.d_literal_lengths_reverse);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_match_lengths_reverse size=" << workspace.max_sequences * sizeof(u32) << std::endl;
@@ -317,14 +353,25 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_match_lengths_reverse)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_match_lengths_reverse is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        pool.deallocate(workspace.d_literal_lengths_reverse);
-        pool.deallocate(workspace.d_match_lengths_reverse);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_match_lengths_reverse is not device memory - attempting pool migration" << std::endl;
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_match_lengths_reverse,
+                                                               workspace.max_sequences * sizeof(u32));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_match_lengths_reverse, workspace.max_sequences * sizeof(u32));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_match_lengths_reverse host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_match_lengths_reverse = static_cast<u32*>(migrated);
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_match_lengths_reverse failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            pool.deallocate(workspace.d_literal_lengths_reverse);
+            pool.deallocate(workspace.d_match_lengths_reverse);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_offsets_reverse size=" << workspace.max_sequences * sizeof(u32) << std::endl;
@@ -341,15 +388,26 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_offsets_reverse)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_offsets_reverse is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        pool.deallocate(workspace.d_literal_lengths_reverse);
-        pool.deallocate(workspace.d_match_lengths_reverse);
-        pool.deallocate(workspace.d_offsets_reverse);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_offsets_reverse is not device memory - attempting pool migration" << std::endl;
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_offsets_reverse,
+                                                               workspace.max_sequences * sizeof(u32));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_offsets_reverse, workspace.max_sequences * sizeof(u32));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_offsets_reverse host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_offsets_reverse = static_cast<u32*>(migrated);
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_offsets_reverse failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            pool.deallocate(workspace.d_literal_lengths_reverse);
+            pool.deallocate(workspace.d_match_lengths_reverse);
+            pool.deallocate(workspace.d_offsets_reverse);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_frequencies size=" << 256 * sizeof(u32) << std::endl;
@@ -367,16 +425,26 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_frequencies)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_frequencies is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        pool.deallocate(workspace.d_literal_lengths_reverse);
-        pool.deallocate(workspace.d_match_lengths_reverse);
-        pool.deallocate(workspace.d_offsets_reverse);
-        pool.deallocate(workspace.d_frequencies);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_frequencies is not device memory - attempting pool migration" << std::endl;
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_frequencies, 256 * sizeof(u32));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_frequencies, 256 * sizeof(u32));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_frequencies host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_frequencies = static_cast<u32*>(migrated);
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_frequencies failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            pool.deallocate(workspace.d_literal_lengths_reverse);
+            pool.deallocate(workspace.d_match_lengths_reverse);
+            pool.deallocate(workspace.d_offsets_reverse);
+            pool.deallocate(workspace.d_frequencies);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_code_lengths size=" << max_block_size * sizeof(u32) << std::endl;
@@ -395,17 +463,28 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_code_lengths)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_code_lengths is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        pool.deallocate(workspace.d_literal_lengths_reverse);
-        pool.deallocate(workspace.d_match_lengths_reverse);
-        pool.deallocate(workspace.d_offsets_reverse);
-        pool.deallocate(workspace.d_frequencies);
-        pool.deallocate(workspace.d_code_lengths);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_code_lengths is not device memory - attempting pool migration" << std::endl;
+        // The code lengths size depends on the header; use 256 as a reasonable default
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_code_lengths, 256 * sizeof(u32));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_code_lengths, 256 * sizeof(u32));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_code_lengths host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_code_lengths = static_cast<u32*>(migrated);
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_code_lengths failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            pool.deallocate(workspace.d_literal_lengths_reverse);
+            pool.deallocate(workspace.d_match_lengths_reverse);
+            pool.deallocate(workspace.d_offsets_reverse);
+            pool.deallocate(workspace.d_frequencies);
+            pool.deallocate(workspace.d_code_lengths);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_bit_offsets size=" << max_block_size * sizeof(u32) << std::endl;
@@ -425,18 +504,28 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_bit_offsets)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_bit_offsets is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        pool.deallocate(workspace.d_literal_lengths_reverse);
-        pool.deallocate(workspace.d_match_lengths_reverse);
-        pool.deallocate(workspace.d_offsets_reverse);
-        pool.deallocate(workspace.d_frequencies);
-        pool.deallocate(workspace.d_code_lengths);
-        pool.deallocate(workspace.d_bit_offsets);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_bit_offsets is not device memory - attempting pool migration" << std::endl;
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_bit_offsets, 2 * workspace.num_blocks * sizeof(u32));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_bit_offsets, 2 * workspace.num_blocks * sizeof(u32));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_bit_offsets host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_bit_offsets = static_cast<u32*>(migrated);
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_bit_offsets failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            pool.deallocate(workspace.d_literal_lengths_reverse);
+            pool.deallocate(workspace.d_match_lengths_reverse);
+            pool.deallocate(workspace.d_offsets_reverse);
+            pool.deallocate(workspace.d_frequencies);
+            pool.deallocate(workspace.d_code_lengths);
+            pool.deallocate(workspace.d_bit_offsets);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_block_sums size=" << workspace.num_blocks * sizeof(u32) << std::endl;
@@ -457,19 +546,29 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_block_sums)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_block_sums is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        pool.deallocate(workspace.d_literal_lengths_reverse);
-        pool.deallocate(workspace.d_match_lengths_reverse);
-        pool.deallocate(workspace.d_offsets_reverse);
-        pool.deallocate(workspace.d_frequencies);
-        pool.deallocate(workspace.d_code_lengths);
-        pool.deallocate(workspace.d_bit_offsets);
-        pool.deallocate(workspace.d_block_sums);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_block_sums is not device memory - attempting pool migration" << std::endl;
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_block_sums, workspace.num_blocks * sizeof(u32));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_block_sums, workspace.num_blocks * sizeof(u32));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_block_sums host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_block_sums = static_cast<u32*>(migrated);
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_block_sums failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            pool.deallocate(workspace.d_literal_lengths_reverse);
+            pool.deallocate(workspace.d_match_lengths_reverse);
+            pool.deallocate(workspace.d_offsets_reverse);
+            pool.deallocate(workspace.d_frequencies);
+            pool.deallocate(workspace.d_code_lengths);
+            pool.deallocate(workspace.d_bit_offsets);
+            pool.deallocate(workspace.d_block_sums);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     std::cerr << "allocate_compression_workspace: allocation d_scanned_block_sums size=" << workspace.num_blocks * sizeof(u32) << std::endl;
@@ -491,20 +590,31 @@ Status allocate_compression_workspace(
         return Status::ERROR_OUT_OF_MEMORY;
     }
     if (!pool.is_device_pointer(workspace.d_scanned_block_sums)) {
-        std::cerr << "allocate_compression_workspace: ERROR - d_scanned_block_sums is not device memory" << std::endl;
-        pool.deallocate(workspace.d_hash_table);
-        pool.deallocate(workspace.d_chain_table);
-        pool.deallocate(workspace.d_matches);
-        pool.deallocate(workspace.d_costs);
-        pool.deallocate(workspace.d_literal_lengths_reverse);
-        pool.deallocate(workspace.d_match_lengths_reverse);
-        pool.deallocate(workspace.d_offsets_reverse);
-        pool.deallocate(workspace.d_frequencies);
-        pool.deallocate(workspace.d_code_lengths);
-        pool.deallocate(workspace.d_bit_offsets);
-        pool.deallocate(workspace.d_block_sums);
-        pool.deallocate(workspace.d_scanned_block_sums);
-        return Status::ERROR_OUT_OF_MEMORY;
+        std::cerr << "allocate_compression_workspace: d_scanned_block_sums is not device memory - attempting pool migration" << std::endl;
+        void* migrated = pool.migrate_pool_host_entry_to_device(workspace.d_scanned_block_sums,
+                                                               workspace.num_blocks * sizeof(u32));
+        if (!migrated) {
+            migrated = pool.migrate_host_to_device(workspace.d_scanned_block_sums, workspace.num_blocks * sizeof(u32));
+        }
+        if (migrated) {
+            std::cerr << "allocate_compression_workspace: migrated d_scanned_block_sums host-fallback to device ptr=" << migrated << std::endl;
+            workspace.d_scanned_block_sums = static_cast<u32*>(migrated);
+        } else {
+            std::cerr << "allocate_compression_workspace: migration of d_scanned_block_sums failed" << std::endl;
+            pool.deallocate(workspace.d_hash_table);
+            pool.deallocate(workspace.d_chain_table);
+            pool.deallocate(workspace.d_matches);
+            pool.deallocate(workspace.d_costs);
+            pool.deallocate(workspace.d_literal_lengths_reverse);
+            pool.deallocate(workspace.d_match_lengths_reverse);
+            pool.deallocate(workspace.d_offsets_reverse);
+            pool.deallocate(workspace.d_frequencies);
+            pool.deallocate(workspace.d_code_lengths);
+            pool.deallocate(workspace.d_bit_offsets);
+            pool.deallocate(workspace.d_block_sums);
+            pool.deallocate(workspace.d_scanned_block_sums);
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
     }
     
     // Calculate total size
@@ -530,18 +640,68 @@ Status free_compression_workspace(CompressionWorkspace& workspace) {
     // Use memory pool for deallocation
     memory::MemoryPoolManager& pool = memory::get_global_pool();
     
-    if (workspace.d_hash_table) pool.deallocate(workspace.d_hash_table);
-    if (workspace.d_chain_table) pool.deallocate(workspace.d_chain_table);
-    if (workspace.d_matches) pool.deallocate(workspace.d_matches);
-    if (workspace.d_costs) pool.deallocate(workspace.d_costs);
-    if (workspace.d_literal_lengths_reverse) pool.deallocate(workspace.d_literal_lengths_reverse);
-    if (workspace.d_match_lengths_reverse) pool.deallocate(workspace.d_match_lengths_reverse);
-    if (workspace.d_offsets_reverse) pool.deallocate(workspace.d_offsets_reverse);
-    if (workspace.d_frequencies) pool.deallocate(workspace.d_frequencies);
-    if (workspace.d_code_lengths) pool.deallocate(workspace.d_code_lengths);
-    if (workspace.d_bit_offsets) pool.deallocate(workspace.d_bit_offsets);
-    if (workspace.d_block_sums) pool.deallocate(workspace.d_block_sums);
-    if (workspace.d_scanned_block_sums) pool.deallocate(workspace.d_scanned_block_sums);
+    if (workspace.d_hash_table) {
+        std::cerr << "free_compression_workspace: dealloc d_hash_table=" << (void*)workspace.d_hash_table << std::endl;
+        std::string st = cuda_zstd::util::capture_stacktrace(32);
+        std::cerr << "free_compression_workspace: stacktrace: \n" << st << std::endl;
+        auto _s = pool.deallocate(workspace.d_hash_table);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_hash_table -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_chain_table) {
+        std::cerr << "free_compression_workspace: dealloc d_chain_table=" << (void*)workspace.d_chain_table << std::endl;
+        auto _s = pool.deallocate(workspace.d_chain_table);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_chain_table -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_matches) {
+        std::cerr << "free_compression_workspace: dealloc d_matches=" << (void*)workspace.d_matches << std::endl;
+        auto _s = pool.deallocate(workspace.d_matches);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_matches -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_costs) {
+        std::cerr << "free_compression_workspace: dealloc d_costs=" << (void*)workspace.d_costs << std::endl;
+        auto _s = pool.deallocate(workspace.d_costs);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_costs -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_literal_lengths_reverse) {
+        std::cerr << "free_compression_workspace: dealloc d_literal_lengths_reverse=" << (void*)workspace.d_literal_lengths_reverse << std::endl;
+        auto _s = pool.deallocate(workspace.d_literal_lengths_reverse);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_literal_lengths_reverse -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_match_lengths_reverse) {
+        std::cerr << "free_compression_workspace: dealloc d_match_lengths_reverse=" << (void*)workspace.d_match_lengths_reverse << std::endl;
+        auto _s = pool.deallocate(workspace.d_match_lengths_reverse);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_match_lengths_reverse -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_offsets_reverse) {
+        std::cerr << "free_compression_workspace: dealloc d_offsets_reverse=" << (void*)workspace.d_offsets_reverse << std::endl;
+        auto _s = pool.deallocate(workspace.d_offsets_reverse);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_offsets_reverse -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_frequencies) {
+        std::cerr << "free_compression_workspace: dealloc d_frequencies=" << (void*)workspace.d_frequencies << std::endl;
+        auto _s = pool.deallocate(workspace.d_frequencies);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_frequencies -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_code_lengths) {
+        std::cerr << "free_compression_workspace: dealloc d_code_lengths=" << (void*)workspace.d_code_lengths << std::endl;
+        auto _s = pool.deallocate(workspace.d_code_lengths);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_code_lengths -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_bit_offsets) {
+        std::cerr << "free_compression_workspace: dealloc d_bit_offsets=" << (void*)workspace.d_bit_offsets << std::endl;
+        auto _s = pool.deallocate(workspace.d_bit_offsets);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_bit_offsets -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_block_sums) {
+        std::cerr << "free_compression_workspace: dealloc d_block_sums=" << (void*)workspace.d_block_sums << std::endl;
+        auto _s = pool.deallocate(workspace.d_block_sums);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_block_sums -> " << status_to_string(_s) << std::endl;
+    }
+    if (workspace.d_scanned_block_sums) {
+        std::cerr << "free_compression_workspace: dealloc d_scanned_block_sums=" << (void*)workspace.d_scanned_block_sums << std::endl;
+        auto _s = pool.deallocate(workspace.d_scanned_block_sums);
+        if (_s != Status::SUCCESS) std::cerr << "free_compression_workspace: dealloc failed for d_scanned_block_sums -> " << status_to_string(_s) << std::endl;
+    }
     
     // Reset all pointers and metadata
     workspace.d_hash_table = nullptr;

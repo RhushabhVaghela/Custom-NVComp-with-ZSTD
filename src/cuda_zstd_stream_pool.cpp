@@ -52,14 +52,38 @@ StreamPool::~StreamPool() {
     fprintf(stderr, "StreamPool dtor\n");
     std::unique_lock<std::mutex> lock(mtx_);
     while (!free_idx_.empty()) free_idx_.pop();
+    
+    // Check if CUDA is still initialized before cleanup
+    // cudaGetDeviceCount will return cudaErrorInitializationError if CUDA is deinitialized
+    int device_count = 0;
+    cudaError_t init_check = cudaGetDeviceCount(&device_count);
+    bool cuda_initialized = (init_check == cudaSuccess || init_check == cudaErrorNoDevice);
+    
+    if (!cuda_initialized) {
+        // CUDA context is already torn down, skip cleanup to avoid errors
+        fprintf(stderr, "StreamPool dtor: CUDA already deinitialized, skipping cleanup\n");
+        return;
+    }
+    
     // Cleanup resources
     for (auto &r : resources_) {
         if (r.checksum_buf) {
-            cudaFree(r.checksum_buf);
+            cudaError_t err = cudaFree(r.checksum_buf);
+            if (err != cudaSuccess && err != cudaErrorCudartUnloading) {
+                std::cerr << "StreamPool::~StreamPool: cudaFree checksum_buf failed -> " << err << std::endl;
+            }
             r.checksum_buf = nullptr;
         }
         if (r.stream) {
-            cudaStreamDestroy(r.stream);
+            // Ensure stream has completed any work before destroying.
+            cudaError_t sync_err = cudaStreamSynchronize(r.stream);
+            if (sync_err != cudaSuccess && sync_err != cudaErrorCudartUnloading) {
+                std::cerr << "StreamPool::~StreamPool: cudaStreamSynchronize failed -> " << sync_err << std::endl;
+            }
+            cudaError_t destroy_err = cudaStreamDestroy(r.stream);
+            if (destroy_err != cudaSuccess && destroy_err != cudaErrorCudartUnloading) {
+                std::cerr << "StreamPool::~StreamPool: cudaStreamDestroy failed -> " << destroy_err << std::endl;
+            }
             r.stream = 0;
         }
     }

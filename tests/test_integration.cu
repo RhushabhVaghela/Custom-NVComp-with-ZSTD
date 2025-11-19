@@ -74,89 +74,116 @@ bool verify_data(const uint8_t* original, const uint8_t* decompressed, size_t si
 bool test_complete_compression_pipeline() {
     LOG_TEST("Complete Compression Pipeline");
     
-    const size_t data_size = 1024 * 1024;
-    std::vector<uint8_t> h_input;
-    generate_test_data(h_input, data_size, "compressible");
-    
-    LOG_INFO("Testing complete pipeline: input -> compress -> decompress -> verify");
-    
-    // Allocate GPU memory with error checking
-    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
-    
-    if (!safe_cuda_malloc(&d_input, data_size)) {
-        LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_input failed");
-        return false;
-    }
-    
-    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
-        LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_compressed failed");
-        safe_cuda_free(d_input);
-        return false;
-    }
-    
-    if (!safe_cuda_malloc(&d_output, data_size)) {
-        LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_output failed");
-        safe_cuda_free(d_input);
-        safe_cuda_free(d_compressed);
-        return false;
-    }
-    
-    // Copy input data to device
-    if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
-        LOG_FAIL("Complete Compression Pipeline", "CUDA memcpy to d_input failed");
-        safe_cuda_free(d_input);
-        safe_cuda_free(d_compressed);
-        safe_cuda_free(d_output);
-        return false;
-    }
-    
-    ZstdBatchManager manager(CompressionConfig{.level = 5});
-    size_t temp_size = manager.get_compress_temp_size(data_size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
-        LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for temp failed");
-        safe_cuda_free(d_input);
-        safe_cuda_free(d_compressed);
-        safe_cuda_free(d_output);
-        return false;
-    }
-    
-    // Compress
-    size_t compressed_size;
-    Status status = manager.compress(d_input, data_size, d_compressed, &compressed_size,
-                                     d_temp, temp_size, nullptr, 0);
-    ASSERT_STATUS(status, "Compression failed");
-    LOG_INFO("✓ Compression: " << data_size << " -> " << compressed_size << " bytes");
-    
-    // Decompress
-    size_t decompressed_size;
-    status = manager.decompress(d_compressed, compressed_size, d_output, &decompressed_size,
-                                 d_temp, temp_size);
-    ASSERT_STATUS(status, "Decompression failed");
-    ASSERT_EQ(decompressed_size, data_size, "Size mismatch");
-    LOG_INFO("✓ Decompression: " << compressed_size << " -> " << decompressed_size << " bytes");
-    
-    // Verify
-    std::vector<uint8_t> h_output(data_size);
-    if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
-        LOG_FAIL("Complete Compression Pipeline", "CUDA memcpy from d_output failed");
+    try {
+        const size_t data_size = 1024 * 1024;
+        std::vector<uint8_t> h_input;
+        generate_test_data(h_input, data_size, "compressible");
+        
+        LOG_INFO("Testing complete pipeline: input -> compress -> decompress -> verify");
+        
+        // Allocate GPU memory with error checking
+        void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+        
+        if (!safe_cuda_malloc(&d_input, data_size)) {
+            LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_input failed");
+            return false;
+        }
+        
+        if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+            LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_compressed failed");
+            safe_cuda_free(d_input);
+            return false;
+        }
+        
+        if (!safe_cuda_malloc(&d_output, data_size)) {
+            LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for d_output failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            return false;
+        }
+        
+        // Copy input data to device
+        if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+            LOG_FAIL("Complete Compression Pipeline", "CUDA memcpy to d_input failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            return false;
+        }
+        
+        // Create manager safely
+        std::unique_ptr<ZstdManager> manager;
+        try {
+            manager = create_manager(5); // Level 5
+            if (!manager) {
+                LOG_FAIL("Complete Compression Pipeline", "Failed to create compression manager");
+                safe_cuda_free(d_input);
+                safe_cuda_free(d_compressed);
+                safe_cuda_free(d_output);
+                return false;
+            }
+        } catch (const std::exception& e) {
+            LOG_FAIL("Complete Compression Pipeline", "Manager creation failed: " << e.what());
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            return false;
+        }
+        
+        size_t temp_size = manager->get_compress_temp_size(data_size);
+        if (!safe_cuda_malloc(&d_temp, temp_size)) {
+            LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for temp failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            return false;
+        }
+        
+        // Compress
+        size_t compressed_size;
+        Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
+                                          d_temp, temp_size, nullptr, 0, 0);
+        ASSERT_STATUS(status, "Compression failed");
+        LOG_INFO("✓ Compression: " << data_size << " -> " << compressed_size << " bytes");
+        
+        // Decompress
+        size_t decompressed_size;
+        status = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
+                                     d_temp, temp_size);
+        ASSERT_STATUS(status, "Decompression failed");
+        ASSERT_EQ(decompressed_size, data_size, "Size mismatch");
+        LOG_INFO("✓ Decompression: " << compressed_size << " -> " << decompressed_size << " bytes");
+        
+        // Verify
+        std::vector<uint8_t> h_output(data_size);
+        if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
+            LOG_FAIL("Complete Compression Pipeline", "CUDA memcpy from d_output failed");
+            safe_cuda_free(d_input);
+            safe_cuda_free(d_compressed);
+            safe_cuda_free(d_output);
+            safe_cuda_free(d_temp);
+            return false;
+        }
+        
+        ASSERT_TRUE(verify_data(h_input.data(), h_output.data(), data_size), "Data verification failed");
+        LOG_INFO("✓ Data verified correctly");
+        
+        // Cleanup with safe free functions
         safe_cuda_free(d_input);
         safe_cuda_free(d_compressed);
         safe_cuda_free(d_output);
         safe_cuda_free(d_temp);
+        
+        LOG_PASS("Complete Compression Pipeline");
+        return true;
+        
+    } catch (const std::exception& e) {
+        LOG_FAIL("test_complete_compression_pipeline", std::string("Exception: ") + e.what());
+        return false;
+    } catch (...) {
+        LOG_FAIL("test_complete_compression_pipeline", "Unknown exception");
         return false;
     }
-    
-    ASSERT_TRUE(verify_data(h_input.data(), h_output.data(), data_size), "Data verification failed");
-    LOG_INFO("✓ Data verified correctly");
-    
-    // Cleanup with safe free functions
-    safe_cuda_free(d_input);
-    safe_cuda_free(d_compressed);
-    safe_cuda_free(d_output);
-    safe_cuda_free(d_temp);
-    
-    LOG_PASS("Complete Compression Pipeline");
-    return true;
 }
 
 bool test_dictionary_integration() {

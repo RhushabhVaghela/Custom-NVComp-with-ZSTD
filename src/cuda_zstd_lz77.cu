@@ -13,8 +13,16 @@
 #include "cuda_zstd_lz77.h"
 #include "cuda_zstd_hash.h"
 #include "cuda_zstd_sequence.h"
+#include <cstdint>
+#include "cuda_zstd_utils.h"
+#include "cuda_zstd_internal.h"
+#include "cuda_zstd_debug.h"
 #include <cstring> // For memset
 #include <algorithm> // for std::min
+#
+#if !defined(CUDA_ZSTD_DEBUG_BOUNDS)
+#define CUDA_ZSTD_DEBUG_BOUNDS 1
+#endif
 
 namespace cuda_zstd {
 namespace lz77 {
@@ -182,7 +190,31 @@ __global__ void build_hash_chains_kernel(
                     u32 h = s_updates[i].hash;
                     u32 pos = s_updates[i].position;
                     u32 prev_pos = atomicExch(&hash_table.table[h], pos);
-                    chain_table.prev[pos] = prev_pos;
+#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
+                    if (h >= hash_table.size) {
+                        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                            printf("[DEBUG] build_hash_chains_kernel OOB hash=%u hash_size=%u pos=%u block=%d thread=%d\n", h, hash_table.size, pos, blockIdx.x, threadIdx.x);
+                        }
+                    }
+                    if (pos >= chain_table.size) {
+                        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                            printf("[DEBUG] build_hash_chains_kernel OOB pos=%u chain_size=%u block=%d thread=%d\n", pos, chain_table.size, blockIdx.x, threadIdx.x);
+                        }
+                    }
+#endif
+                    // Safety: guard against position overflow to avoid illegal
+                    // memory accesses. If this occurs, the chain table is
+                    // undersized for the combined dictionary+input positions.
+                    if (pos < chain_table.size) {
+                        chain_table.prev[pos] = prev_pos;
+                    } else {
+#if defined(__CUDACC__)
+                           if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                            printf("[SAFEGUARD] build_hash_chains_kernel: OOB write pos=%u chain_size=%u\n",
+                                pos, chain_table.size);
+                           }
+#endif
+                    }
                 }
             }
             
@@ -275,7 +307,25 @@ __global__ void build_hash_chains_kernel(
                 u32 h = s_updates[i].hash;
                 u32 pos = s_updates[i].position;
                 u32 prev_pos = atomicExch(&hash_table.table[h], pos);
-                chain_table.prev[pos] = prev_pos;
+#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
+                if (h >= hash_table.size) {
+                    printf("[DEBUG] build_hash_chains_kernel (input) OOB hash=%u hash_size=%u pos=%u block=%d thread=%d\n", h, hash_table.size, pos, blockIdx.x, threadIdx.x);
+                }
+                if (pos >= chain_table.size) {
+                    printf("[DEBUG] build_hash_chains_kernel (input) OOB pos=%u chain_size=%u block=%d thread=%d\n", pos, chain_table.size, blockIdx.x, threadIdx.x);
+                }
+#endif
+                // Guard: avoid OOB writes into the chain_table when chain size
+                // is 1 (chain disabled) or otherwise too small.
+                if (pos < chain_table.size) {
+                    chain_table.prev[pos] = prev_pos;
+                } else {
+#if defined(__CUDACC__)
+                    if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                        printf("[SAFEGUARD] build_hash_chains_kernel (input): OOB write pos=%u chain_size=%u\n", pos, chain_table.size);
+                    }
+#endif
+                }
             }
         }
         
@@ -329,13 +379,79 @@ __device__ inline Match find_best_match_parallel(
     // Use CRC32 hash for better distribution and performance
     u32 h = crc32_hash(input + current_pos, config.min_match, config.hash_log);
     u32 match_candidate_pos = hash_table_lookup(hash_table, h);
+    // Guard: ensure that any candidate position falls within the known
+    // chain table bounds; if it doesn't, treat as invalid. Skip this
+    // guard when chain indices are disabled (config.chain_log == 0)
+    // because we will use the candidate directly for hash-only mode.
+    if (config.chain_log > 0 && match_candidate_pos != 0xFFFFFFFF && match_candidate_pos >= chain_table.size) {
+#if defined(__CUDACC__)
+        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+            printf("[SAFEGUARD] find_best_match_parallel: Invalid match_candidate_pos=%u chain_size=%u\n",
+                   match_candidate_pos, chain_table.size);
+        }
+#endif
+        match_candidate_pos = 0xFFFFFFFF;
+    }
 
     // Early exit optimization: if hash table entry is invalid, no matches possible
     if (match_candidate_pos == 0xFFFFFFFF) {
         return Match{current_pos, 0, 0, 0};
     }
 
-    while (search_depth-- > 0 && match_candidate_pos >= window_min) {
+    // If chain-based indexing is disabled (e.g., chain_log == 0), only use
+    // the single candidate returned from the hash table rather than
+    // walking the chain table; this prevents OOB and illegal accesses when
+    // the chain table is intentionally small.
+    if (config.chain_log == 0) {
+        if (match_candidate_pos == 0xFFFFFFFF || match_candidate_pos < window_min) {
+            return Match{current_pos, 0, 0, 0};
+        }
+        const byte_t* match_ptr;
+        if (match_candidate_pos < dict_size) {
+            match_ptr = dict->d_buffer + match_candidate_pos;
+        } else {
+            match_ptr = input + (match_candidate_pos - dict_size);
+        }
+
+        u32 max_possible_len = max_match_len;
+        if (match_candidate_pos < dict_size) {
+            u32 dict_remain = dict_size - match_candidate_pos;
+            if (dict_remain < max_possible_len) max_possible_len = dict_remain;
+        } else {
+            u32 in_input_pos = match_candidate_pos - dict_size;
+            u32 input_remain = input_size - in_input_pos;
+            if (input_remain < max_possible_len) max_possible_len = input_remain;
+        }
+
+        u32 len = 0;
+        // Avoid misaligned 4-byte reads: only compare 32-bit words if both pointers
+        // are 4-byte aligned. Otherwise fall back to byte-by-byte compare.
+        bool aligned32_local = (((uintptr_t)match_ptr & 3u) == 0u) && (((uintptr_t)(input + current_pos) & 3u) == 0u);
+
+        if (max_possible_len >= 4 && aligned32_local) {
+            if (*reinterpret_cast<const u32*>(match_ptr) == *reinterpret_cast<const u32*>(input + current_pos)) {
+                len = 4;
+                while (len < max_possible_len && match_ptr[len] == input[current_pos + len]) {
+                    ++len;
+                }
+            }
+        } else {
+            while (len < max_possible_len && match_ptr[len] == input[current_pos + len]) ++len;
+        }
+
+        if (len >= config.min_match) {
+            return Match{current_pos, len, match_candidate_pos >= dict_size ? (match_candidate_pos - dict_size) : match_candidate_pos, 0};
+        }
+        return Match{current_pos, 0, 0, 0};
+    }
+
+    // Protect against runaway chain traversal for debug. MAX_CHAIN_TRAVERSAL
+    // is a compile-time adjustable bound (defaults to 1024).
+#ifndef MAX_CHAIN_TRAVERSAL
+#define MAX_CHAIN_TRAVERSAL 1024
+#endif
+    u32 chain_iterations = 0;
+    while (search_depth-- > 0 && match_candidate_pos >= window_min && chain_iterations++ < MAX_CHAIN_TRAVERSAL) {
         const byte_t* match_ptr;
         const byte_t* current_ptr = input + current_pos;
 
@@ -347,9 +463,48 @@ __device__ inline Match find_best_match_parallel(
             match_ptr = input + (match_candidate_pos - dict_size);
         }
 
-        if (*reinterpret_cast<const u32*>(match_ptr) == *reinterpret_cast<const u32*>(current_ptr)) {
-            u32 len = 4;
-            while (len < max_match_len && match_ptr[len] == current_ptr[len]) {
+        // Calculate safe bounds for comparing data - protect dictionary & input boundaries
+        u32 max_possible_len = max_match_len;
+        if (match_candidate_pos < dict_size) {
+            // Match in dictionary - ensure we don't read past the end of dict
+            u32 dict_remain = dict_size - match_candidate_pos;
+            if (dict_remain < max_possible_len) max_possible_len = dict_remain;
+        } else {
+            // Match in current input
+            u32 in_input_pos = match_candidate_pos - dict_size;
+            u32 input_remain = input_size - in_input_pos;
+            if (input_remain < max_possible_len) max_possible_len = input_remain;
+        }
+
+#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
+        if (match_candidate_pos >= chain_table.size) {
+            if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                printf("[DEBUG] find_best_match_parallel OOB match_candidate_pos=%u chain_size=%u idx=%u current_global_pos=%u\n",
+                       match_candidate_pos, chain_table.size, current_pos, current_global_pos);
+            }
+        }
+#endif
+
+        // Avoid misaligned 4-byte reads: only compare 32-bit words if both pointers
+        // are 4-byte aligned. Otherwise fall back to byte-by-byte compare.
+        bool aligned32 = (((uintptr_t)match_ptr & 3u) == 0u) && (((uintptr_t)current_ptr & 3u) == 0u);
+
+        if (max_possible_len >= 4 && aligned32) {
+            if (*reinterpret_cast<const u32*>(match_ptr) == *reinterpret_cast<const u32*>(current_ptr)) {
+                u32 len = 4;
+                while (len < max_possible_len && match_ptr[len] == current_ptr[len]) {
+                    len++;
+                }
+
+                if (len > best_len) {
+                best_len = len;
+                best_off = current_global_pos - match_candidate_pos;
+            }
+            }
+        } else if (max_possible_len > 0) {
+            // Fall back to safe single-byte compare when 4-byte aligned read isn't safe
+            u32 len = 0;
+            while (len < max_possible_len && match_ptr[len] == current_ptr[len]) {
                 len++;
             }
 
@@ -360,7 +515,19 @@ __device__ inline Match find_best_match_parallel(
         }
 
         if (best_len >= config.nice_length || match_candidate_pos == 0) break;
-        match_candidate_pos = chain_table_lookup(chain_table, match_candidate_pos);
+        // Advance through chain; guard against invalid indices from the chain
+        u32 next_candidate = chain_table_lookup(chain_table, match_candidate_pos);
+        if (next_candidate != 0xFFFFFFFF && next_candidate >= chain_table.size) {
+            // If the chain points outside of bounds then stop chain traversal
+            #if defined(__CUDACC__)
+            if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                printf("[SAFEGUARD] find_best_match_parallel: Invalid chain next_candidate=%u chain_size=%u\n",
+                       next_candidate, chain_table.size);
+            }
+            #endif
+            break;
+        }
+        match_candidate_pos = next_candidate;
     }
 
     if (best_len < config.min_match) {
@@ -403,6 +570,15 @@ __global__ void parallel_find_all_matches_kernel(
     u32 dict_size = (dict && dict->d_buffer) ? dict->size : 0;
     u32 current_global_pos = dict_size + idx;
     u32 window_min = (current_global_pos > max_dist) ? (current_global_pos - max_dist) : 0;
+
+#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
+    // Low-volume debug prints: throttle via bitmask so console isn't flooded.
+    const u32 DEBUG_LOG_STRIDE = 1u << 16; // print once every 65536 idx
+    if ((idx & (DEBUG_LOG_STRIDE - 1)) == 0u) {
+        printf("[DEBUG] parallel_find_all_matches_kernel: idx=%u current_global_pos=%u dict_size=%u window_min=%u hash_size=%u chain_size=%u\n",
+               idx, current_global_pos, dict_size, window_min, hash_table.size, chain_table.size);
+    }
+#endif
 
     // 1. Find the best match at the current position `idx`
     Match current_match = find_best_match_parallel(
@@ -522,6 +698,16 @@ __global__ void optimal_parse_kernel(
                     u32 total_cost = current_cost + match_cost;
                     u32 end_pos = pos + match.length;
                     
+                    if (end_pos > input_size) {
+#if defined(__CUDACC__)
+                        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                            printf("[SAFEGUARD] optimal_parse_kernel: end_pos (%u) > input_size (%u) at pos=%u thread=%d block=%d\n",
+                                   end_pos, input_size, pos, threadIdx.x, blockIdx.x);
+                        }
+#endif
+                        // Clamp to input_size to avoid OOB write
+                        end_pos = input_size;
+                    }
                     if (end_pos <= input_size) {
                         u32 old_cost = atomicMin(&d_costs[end_pos].cost, total_cost);
                         
@@ -532,6 +718,23 @@ __global__ void optimal_parse_kernel(
                             d_costs[end_pos].is_match = true;
                         }
                     }
+#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
+                    // Reduce verbosity: only log a subset of positions
+                    if ((pos & 0x3FFu) == 0x3FFu) {
+                        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                            printf("[DEBUG] optimal_parse_kernel: pos=%u end_pos=%u input_size=%u match_len=%u offset=%u\n",
+                                   pos, end_pos, input_size, match.length, match.offset);
+                        }
+                    }
+#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
+                    if (end_pos > input_size) {
+                        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                            printf("[DEBUG] optimal_parse_kernel OOB end_pos=%u pos=%u match_len=%u input_size=%u block=%d thread=%d\n",
+                                   end_pos, pos, match.length, input_size, blockIdx.x, threadIdx.x);
+                        }
+                    }
+#endif
+#endif
                 }
             }
             
@@ -659,6 +862,17 @@ __global__ void backtrack_build_sequences_kernel(
             d_offsets_reverse[seq_idx] = 0;
             seq_idx++;
         }
+        __syncthreads();
+#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
+        if (seq_idx >= max_sequences) {
+            // Throttle debug output, but ensure we don't loop forever.
+            if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+                printf("[DEBUG] backtrack_build_sequences_kernel: seq_idx (%u) >= max_sequences (%u) at pos=%u\n",
+                       seq_idx, max_sequences, pos);
+            }
+            break; // Stop adding more sequences to avoid overflow
+        }
+#endif
     }
     
     // ✅ SAFE: Write to pre-allocated device memory, not stack
@@ -705,10 +919,14 @@ __global__ void reverse_and_build_sequences_kernel(
     for (u32 i = tid; i < num_sequences; i += stride) {
         u32 reverse_idx = num_sequences - 1 - i;
         
-        // Copy with reversed index
-        d_literal_lengths[i] = d_literal_lengths_reverse[reverse_idx];
-        d_match_lengths[i] = d_match_lengths_reverse[reverse_idx];
-        d_offsets[i] = d_offsets_reverse[reverse_idx];
+        // Map raw lengths/offsets to FSE symbol codes before storing
+        // This prevents the FSE encoder from indexing out of range
+        // and ensures we compress the categorical symbols, not raw values.
+        // NOTE: mapping helpers are defined inside the `cuda_zstd::sequence`
+        // namespace as static methods of `ZstdSequence`.
+        d_literal_lengths[i] = cuda_zstd::sequence::ZstdSequence::get_lit_len_code(d_literal_lengths_reverse[reverse_idx]);
+        d_match_lengths[i] = cuda_zstd::sequence::ZstdSequence::get_match_len_code(d_match_lengths_reverse[reverse_idx]);
+        d_offsets[i] = cuda_zstd::sequence::ZstdSequence::get_offset_code(d_offsets_reverse[reverse_idx]);
     }
     
     __syncthreads();  // Ensure phase 1 complete
@@ -839,13 +1057,25 @@ Status find_matches(
     ctx.d_matches = static_cast<Match*>(workspace->d_matches);
     ctx.d_costs = static_cast<ParseCost*>(workspace->d_costs);
 
+    // DIAGNOSTIC: Print pointer values before memset
+    std::cerr << "find_matches: ctx.d_matches=" << (void*)ctx.d_matches 
+              << " workspace->d_matches=" << workspace->d_matches 
+              << " workspace->max_matches=" << workspace->max_matches
+              << " input_size=" << input_size 
+              << " memset_size=" << (input_size * sizeof(Match)) << "\n";
+
     // 1. Clear tables (which are in workspace - NO ALLOCATION)
     u32 invalid_pos = 0xFFFFFFFF;
     hash::init_hash_table(ctx.hash_table.table, ctx.hash_table.size, invalid_pos, stream);
     hash::init_hash_table(ctx.chain_table.prev, ctx.chain_table.size, invalid_pos, stream);
     
     // Clear d_matches
-    CUDA_CHECK(cudaMemsetAsync(ctx.d_matches, 0, input_size * sizeof(Match), stream));
+    std::cerr << "find_matches: about to call cudaMemsetAsync\n";
+    cudaError_t memset_err = cudaMemsetAsync(ctx.d_matches, 0, input_size * sizeof(Match), stream);
+    std::cerr << "find_matches: cudaMemsetAsync returned err=" << memset_err << " (" << cudaGetErrorString(memset_err) << ")\n";
+    if (memset_err != cudaSuccess) {
+        return Status::ERROR_CUDA_ERROR;
+    }
 
     const u32 threads = 256;
     const u32 blocks = (input_size + threads - 1) / threads;
@@ -857,12 +1087,30 @@ Status find_matches(
     std::cerr << "find_matches: cudaPointerGetAttributes hash_err=" << p_err_hash << " chain_err=" << p_err_chain << "\n";
     std::cerr << "find_matches: hash_table.ptr=" << (void*)ctx.hash_table.table << " type=" << ((int)hash_attr.type) << " dev=" << hash_attr.device << "\n";
     std::cerr << "find_matches: chain_table.ptr=" << (void*)ctx.chain_table.prev << " type=" << ((int)chain_attr.type) << " dev=" << chain_attr.device << "\n";
+    std::cerr << "find_matches: hash_table.size=" << ctx.hash_table.size << " chain_table.size=" << ctx.chain_table.size << "\n";
 
     // Safety checks: ensure these workspace buffers are device memory so
     // we don't accidentally launch kernels with host pointers from the pool.
     if (hash_attr.type != cudaMemoryTypeDevice || chain_attr.type != cudaMemoryTypeDevice) {
         std::cerr << "find_matches: ERROR - workspace hash/chain table not device memory (hash_type="
                   << (int)hash_attr.type << ", chain_type=" << (int)chain_attr.type << ")" << std::endl;
+        return Status::ERROR_IO;
+    }
+
+    // Additional safety: ensure workspace chain table is large enough to
+    // index by a global position (dict_size + input_size). If chain table
+    // is too small then the kernel would write/read out-of-bounds when
+    // inserting positions into the chain table. For configurations where
+    // chain_log == 0 (disabled) we return an error to match expected
+    // behavior in unit tests.
+    u32 required_chain_size = (dict && dict->d_buffer) ? (dict->size + input_size) : input_size;
+    // If chain_log == 0, chain table is disabled and we will use hash-only
+    // matching; skip the size check in that mode. Use the context's config
+    // (we're in a host function) instead of the device-side `config` symbol.
+    bool chain_disabled = (ctx.config.chain_log == 0);
+    if (!chain_disabled && ctx.chain_table.size < required_chain_size) {
+        std::cerr << "find_matches: ERROR - chain table too small (size=" << ctx.chain_table.size
+                  << ", required=" << required_chain_size << ")" << std::endl;
         return Status::ERROR_IO;
     }
 
@@ -874,15 +1122,27 @@ Status find_matches(
     }
 
     // 2. Build hash chains (parallel) - NO ALLOCATION
-    build_hash_chains_kernel<<<blocks, threads, 0, stream>>>(
-        input, input_size, dict, ctx.hash_table, ctx.chain_table, ctx.config.min_match, ctx.config.hash_log);
+    // If chain indexing is disabled (chain_log == 0) then skip the
+    // chain building kernel: the chain table is effectively disabled
+    // and we will fall back to hash-only matching in the kernels.
+    if (!chain_disabled) {
+        build_hash_chains_kernel<<<blocks, threads, 0, stream>>>(
+            input, input_size, dict, ctx.hash_table, ctx.chain_table, ctx.config.min_match, ctx.config.hash_log);
+    } else {
+        // Zero the chain table to a known invalid value if needed
+        u32 invalid_pos_local = 0xFFFFFFFFu;
+        hash::init_hash_table(ctx.chain_table.prev, ctx.chain_table.size, invalid_pos_local, stream);
+    }
 
     // 3. Find all matches with lazy logic (parallel) - NO ALLOCATION
     parallel_find_all_matches_kernel<<<blocks, threads, 0, stream>>>(
         input, input_size, dict, ctx.hash_table, ctx.chain_table, ctx.config, ctx.d_matches);
 
     cudaError_t __err = cudaGetLastError();
-    std::cerr << "find_matches: after kernels cudaGetLastError=" << __err << "\n";
+    // Runtime gate: optionally call debug verifier if enabled in the environment.
+    cuda_zstd::utils::debug_kernel_verify("find_matches: after kernels");
+    std::cerr << "find_matches: after kernels cudaGetLastError=" << __err \
+              << " (" << cudaGetErrorString(__err) << ")" << "\n";
     CUDA_CHECK(__err);
     return Status::SUCCESS;
 }
@@ -975,8 +1235,9 @@ Status find_optimal_parse(
         lz77_ctx.d_matches,
         lz77_ctx.d_costs
     );
-    
     CUDA_CHECK(cudaGetLastError());
+    // Optionally synchronize and print kernel error string for CI toggles
+    cuda_zstd::utils::debug_kernel_verify("find_optimal_parse: after optimal_parse_kernel");
     
     // ===== PHASE 2: Count sequences needed - USE WORKSPACE BUFFER =====
     
@@ -987,8 +1248,8 @@ Status find_optimal_parse(
         lz77_ctx.d_costs,
         d_num_sequences
     );
-    
     CUDA_CHECK(cudaGetLastError());
+    cuda_zstd::utils::debug_kernel_verify("find_optimal_parse: after count_sequences_kernel");
     
     // Use pinned memory for async transfer
     u32* h_num_sequences_pinned = nullptr;
@@ -1028,6 +1289,19 @@ Status find_optimal_parse(
     );
     
     CUDA_CHECK(cudaGetLastError());
+    cuda_zstd::utils::debug_kernel_verify("find_optimal_parse: after backtrack_build_sequences_kernel");
+
+    // Read actual number of sequences written by the backtrack step. The
+    // backtrack kernel may truncate to `max_sequences` capacity; the DP count
+    // recorded earlier (num_sequences) may therefore be an overestimate and
+    // must not be used for subsequent kernels which would read OOB.
+    u32 actual_num_sequences = 0;
+    CUDA_CHECK(cudaMemcpyAsync(&actual_num_sequences, d_num_sequences_out, sizeof(u32), cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+
+    // Update host-visible count and local variable
+    *h_num_sequences = actual_num_sequences;
+    num_sequences = actual_num_sequences;
     
     // ===== PHASE 5: Reverse sequences and build literal buffer - NO ALLOCATION =====
     
@@ -1052,10 +1326,11 @@ Status find_optimal_parse(
     );
     
     CUDA_CHECK(cudaGetLastError());
+    cuda_zstd::utils::debug_kernel_verify("find_optimal_parse: after reverse_and_build_sequences_kernel");
     
     // ===== PHASE 6: Copy results back to host =====
     
-    u32 total_literals = 0;
+    // total_literals not needed here; result is read via h_total_literals_count
     CUDA_CHECK(cudaMemcpyAsync(h_total_literals_count, d_total_literals, sizeof(u32),
                                cudaMemcpyDeviceToHost, stream));
     
