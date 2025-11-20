@@ -651,6 +651,70 @@ public:
         memset(&ctx, 0, sizeof(CompressionContext));
         std::cerr << "DefaultZstdManager ctor end" << std::endl;
     }
+
+    void cleanup_context() {
+        if (!ctx_initialized) return;
+
+        // FIX: Synchronize device BEFORE destroying streams
+        cudaError_t sync_err = cudaDeviceSynchronize();
+        if (sync_err != cudaSuccess) {
+            std::cerr << "[cleanup_context] cudaDeviceSynchronize failed: " 
+                    << cudaGetErrorString(sync_err) << std::endl;
+        }
+
+        // FIX: Synchronize each stream individually before destroying
+        if (ctx.streams) {
+            for (u32 i = 0; i < ctx.num_streams; ++i) {
+                if (ctx.streams[i]) {
+                    sync_err = cudaStreamSynchronize(ctx.streams[i]);
+                    if (sync_err != cudaSuccess) {
+                        std::cerr << "[cleanup_context] Stream " << i << " sync failed: "
+                                << cudaGetErrorString(sync_err) << std::endl;
+                    }
+
+                    // Now safe to destroy
+                    cudaError_t destroy_err = cudaStreamDestroy(ctx.streams[i]);
+                    if (destroy_err != cudaSuccess) {
+                        std::cerr << "[cleanup_context] Stream " << i << " destroy failed: "
+                                << cudaGetErrorString(destroy_err) << std::endl;
+                    }
+                }
+
+                if (ctx.events[i]) {
+                    cudaEventDestroy(ctx.events[i]);
+                }
+            }
+            delete[] ctx.streams;
+            delete[] ctx.events;
+            ctx.streams = nullptr;
+            ctx.events = nullptr;
+        }
+
+        // Free workspace AFTER synchronization
+        free_compression_workspace(ctx.workspace);
+
+        // Free other resources...
+        if (ctx.seq_ctx) {
+            cudaFree(ctx.seq_ctx->d_literals_buffer);
+            cudaFree(ctx.seq_ctx->d_literal_lengths);
+            cudaFree(ctx.seq_ctx->d_match_lengths);
+            cudaFree(ctx.seq_ctx->d_offsets);
+            cudaFree(ctx.seq_ctx->d_num_sequences);
+            delete ctx.seq_ctx;
+        }
+
+        if (ctx.huff_ctx) {
+            cudaFree(ctx.huff_ctx->codes);
+            delete ctx.huff_ctx;
+        }
+
+        delete ctx.lit_fse_table;
+        delete ctx.ml_fse_table;
+        delete ctx.of_fse_table;
+        delete ctx.lz77_ctx;
+
+        ctx_initialized = false;
+    }
     
     virtual ~DefaultZstdManager() {
         // Cleanup any device-side checksum buffer allocated lazily
@@ -1418,84 +1482,6 @@ private:
         std::unique_lock<std::mutex> init_lock(init_mutex);
         std::cerr << "initialize_context() entered (guarded)" << std::endl;
         std::cerr << "initialize_context: before allocate_compression_workspace" << std::endl;
-        // (NEW) Allocate workspace ONCE for all compression operations
-        Status ws_status = allocate_compression_workspace(
-            ctx.workspace,
-            ZSTD_BLOCKSIZE_MAX,
-            config
-        );
-        if (ws_status != Status::SUCCESS) {
-            return ws_status;
-        }
-        std::cerr << "initialize_context: after allocate_compression_workspace, status=" << (int)ws_status << std::endl;
-        
-        // (NEW) Initialize multi-stream support
-        ctx.num_streams = 3; // Pipeline: H2D transfer, Compute, D2H transfer
-        ctx.current_stream_idx = 0;
-        ctx.streams = new cudaStream_t[ctx.num_streams];
-        ctx.events = new cudaEvent_t[ctx.num_streams];
-        
-        std::cerr << "initialize_context: creating streams and events" << std::endl;
-        for (u32 i = 0; i < ctx.num_streams; ++i) {
-            CUDA_CHECK(cudaStreamCreate(&ctx.streams[i]));
-            cudaError_t err_stream = cudaGetLastError();
-            std::cerr << "initialize_context: cudaStreamCreate lastError=" << err_stream << "\n";
-            cudaError_t ds_err = cudaDeviceSynchronize();
-            std::cerr << "initialize_context: cudaDeviceSynchronize after stream create err=" << ds_err << "\n";
-
-            CUDA_CHECK(cudaEventCreate(&ctx.events[i]));
-            cudaError_t err_event = cudaGetLastError();
-            std::cerr << "initialize_context: cudaEventCreate lastError=" << err_event << "\n";
-            cudaError_t ds_err2 = cudaDeviceSynchronize();
-            std::cerr << "initialize_context: cudaDeviceSynchronize after event create err=" << ds_err2 << "\n";
-        }
-        
-        ctx.lz77_ctx = new lz77::LZ77Context();
-        std::cerr << "initialize_context: created lz77_ctx" << std::endl;
-                         
-        lz77::LZ77Config lz77_cfg;
-        lz77_cfg.window_log = config.window_log;
-        lz77_cfg.hash_log = config.hash_log;
-        lz77_cfg.chain_log = config.chain_log;
-        lz77_cfg.min_match = config.min_match;
-        lz77_cfg.strategy = config.strategy;
-        lz77_cfg.search_depth = config.search_log;
-        ctx.lz77_ctx->config = lz77_cfg;
-        
-        ctx.seq_ctx = new sequence::SequenceContext();
-        std::cerr << "initialize_context: created seq_ctx" << std::endl;
-        ctx.seq_ctx->max_sequences = ZSTD_BLOCKSIZE_MAX;
-        ctx.seq_ctx->max_literals = ZSTD_BLOCKSIZE_MAX;
-        // (MODIFIED) Allocate persistent buffers.
-        // Temp buffers (d_sequences) will come from workspace.
-        std::cerr << "initialize_context: before cudaMalloc d_literals_buffer" << std::endl;
-        cudaMalloc(&ctx.seq_ctx->d_literals_buffer, ZSTD_BLOCKSIZE_MAX);
-        cudaError_t err_dm = cudaGetLastError();
-        std::cerr << "initialize_context: cudaMalloc d_literals_buffer err=" << err_dm << "\n";
-        cudaError_t ds_err3 = cudaDeviceSynchronize();
-        std::cerr << "initialize_context: cudaDeviceSynchronize after d_literals_buffer err=" << ds_err3 << "\n";
-        cudaMalloc(&ctx.seq_ctx->d_literal_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
-        cudaError_t err_ll = cudaGetLastError();
-        std::cerr << "initialize_context: cudaMalloc d_literal_lengths err=" << err_ll << "\n";
-        cudaMalloc(&ctx.seq_ctx->d_match_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
-        cudaMalloc(&ctx.seq_ctx->d_offsets, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
-        // Allocate device counter for num sequences used by build_sequences
-        cudaMalloc(&ctx.seq_ctx->d_num_sequences, sizeof(u32));
-        std::cerr << "initialize_context: allocated ctx.seq_ctx->d_num_sequences" << std::endl;
-        
-        ctx.lit_fse_table = new fse::FSEEncodeTable(); 
-        ctx.ml_fse_table = new fse::FSEEncodeTable();
-        ctx.of_fse_table = new fse::FSEEncodeTable();
-        std::cerr << "initialize_context: created FSE tables" << std::endl;
-        
-        ctx.huff_ctx = new huffman::HuffmanTable();
-        cudaMalloc(&ctx.huff_ctx->codes, 256 * sizeof(huffman::HuffmanCode));
-        cudaError_t err_huff = cudaGetLastError();
-        std::cerr << "initialize_context: cudaMalloc huff.codes err=" << err_huff << "\n";
-        std::cerr << "initialize_context: created huff_ctx and allocated codes" << std::endl;
-        
-        // (REMOVED) d_temp_buffer and d_sequences are now
-        // allocated from the temp_workspace in compress/decompress
         
         ctx.total_matches = 0;
         ctx.total_literals = 0;
@@ -1505,65 +1491,6 @@ private:
         return Status::SUCCESS;
     }
     
-    void cleanup_context() {
-        // (NEW) Free workspace first
-        free_compression_workspace(ctx.workspace);
-        
-        // (NEW) Clean up multi-stream resources
-        if (ctx.streams) {
-            // Ensure device is synchronized before destroying streams/events
-            cudaError_t ds_err = cudaDeviceSynchronize();
-            if (ds_err != cudaSuccess) {
-                std::cerr << "cleanup_context: cudaDeviceSynchronize before stream destroy failed -> " << ds_err << std::endl;
-            }
-            for (u32 i = 0; i < ctx.num_streams; ++i) {
-                if (ctx.streams[i]) {
-                    cudaError_t sync_err = cudaStreamSynchronize(ctx.streams[i]);
-                    if (sync_err != cudaSuccess) {
-                        std::cerr << "cleanup_context: cudaStreamSynchronize failed for stream " << i << " -> " << sync_err << std::endl;
-                    }
-                    cudaError_t destroy_err = cudaStreamDestroy(ctx.streams[i]);
-                    if (destroy_err != cudaSuccess) {
-                        std::cerr << "cleanup_context: cudaStreamDestroy failed for stream " << i << " -> " << destroy_err << std::endl;
-                    }
-                }
-                if (ctx.events[i]) {
-                    cudaError_t ev_err = cudaEventDestroy(ctx.events[i]);
-                    if (ev_err != cudaSuccess) {
-                        std::cerr << "cleanup_context: cudaEventDestroy failed for event " << i << " -> " << ev_err << std::endl;
-                    }
-                }
-            }
-            delete[] ctx.streams;
-            delete[] ctx.events;
-            ctx.streams = nullptr;
-            ctx.events = nullptr;
-        }
-        
-        if (ctx.lz77_ctx) {
-            delete ctx.lz77_ctx;
-        }
-        if (ctx.seq_ctx) {
-            cudaFree(ctx.seq_ctx->d_literals_buffer);
-            // (REMOVED) cudaFree(ctx.seq_ctx->d_sequences);
-            cudaFree(ctx.seq_ctx->d_literal_lengths);
-            cudaFree(ctx.seq_ctx->d_match_lengths);
-            cudaFree(ctx.seq_ctx->d_offsets);
-            cudaFree(ctx.seq_ctx->d_num_sequences);
-            delete ctx.seq_ctx;
-        }
-        if (ctx.lit_fse_table) { /*fse::free_fse_table(*ctx.lit_fse_table);*/ delete ctx.lit_fse_table; }
-        if (ctx.ml_fse_table) { /*fse::free_fse_table(*ctx.ml_fse_table);*/ delete ctx.ml_fse_table; }
-        if (ctx.of_fse_table) { /*fse::free_fse_table(*ctx.of_fse_table);*/ delete ctx.of_fse_table; }
-        if (ctx.huff_ctx) {
-            cudaFree(ctx.huff_ctx->codes);
-            delete ctx.huff_ctx;
-        }
-        // (REMOVED) if (ctx.d_temp_buffer) cudaFree(ctx.d_temp_buffer);
-        
-        memset(&ctx, 0, sizeof(CompressionContext));
-        ctx_initialized = false;
-    }
 
     // ==========================================================================
     // Frame operations

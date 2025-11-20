@@ -12,14 +12,7 @@ set(CMAKE_CUDA_ARCHITECTURES 75 80 86 89 90)
 option(CUDA_ZSTD_BUILD_TESTS "Build test programs" ON)
 option(CUDA_ZSTD_BUILD_EXAMPLES "Build example programs" ON)
 option(CUDA_ZSTD_BUILD_BENCHMARKS "Build benchmarks" ON)
-
-# Debug bounds checking for GPU kernels (off by default). Turn this on for
-# runs where you want additional printf-based diagnostics of out-of-bounds
-# accesses during kernel processing. This will add a compile-time
-# definition `CUDA_ZSTD_DEBUG_BOUNDS` to all CUDA targets.
 option(CUDA_ZSTD_DEBUG_BOUNDS "Enable debug bounds checks in CUDA kernels" OFF)
-
-# Option to treat warnings as errors in CI or developer builds
 option(BUILD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 # Find packages
@@ -29,20 +22,9 @@ find_package(Threads REQUIRED)
 # Compiler flags
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda --expt-relaxed-constexpr")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -use_fast_math")
-# Deprecated: global suppression of CUDA diagnostics. Instead apply per-target
-# compile options to avoid hiding diagnostics across unrelated targets.
 
-## We prefer local target compile options over global suppression flags.
-## Keep the kernel code clean and annotate unused parameters with
-## [[maybe_unused]] where necessary. Add localized NVCC suppressions for
-# Compiler-specific warning suppression
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4100 /wd4101")
-else()
-    # Clear global "no-unused" suppressions. If specific unused parameters are
-    # necessary, annotate them with [[maybe_unused]] or locally disable the
-    # warning. This helps discover latent issues and keeps the codebase clean.
-    # Developers can enable warnings-as-errors with BUILD_WARNINGS_AS_ERRORS.
 endif()
 
 if(BUILD_WARNINGS_AS_ERRORS)
@@ -53,8 +35,6 @@ endif()
 
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-# Also add CUDA Toolkit include paths so host compilation (C++ files) can
-# find CUDA headers like <cuda_runtime.h> when compiling non-CUDA files.
 if(DEFINED CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
     include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
@@ -78,6 +58,10 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_debug.cu
     src/cuda_zstd_adaptive.cu
     src/cuda_zstd_stream_pool.cpp
+
+    # NEW: Workspace pattern implementations
+    src/workspace_manager.cu
+    src/error_context.cpp
 )
 
 # Static library
@@ -105,7 +89,6 @@ if(DEFINED CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
 endif()
 
 if(CUDA_ZSTD_DEBUG_BOUNDS)
-    # Apply debug macro to library targets so .cu kernel files compile with checks
     target_compile_definitions(cuda_zstd_static PUBLIC CUDA_ZSTD_DEBUG_BOUNDS)
     target_compile_definitions(cuda_zstd_shared PUBLIC CUDA_ZSTD_DEBUG_BOUNDS)
 endif()
@@ -119,27 +102,21 @@ endif()
 # Tests
 if(CUDA_ZSTD_BUILD_TESTS)
     enable_testing()
-    
+
     file(GLOB TEST_CU_FILES "tests/test_*.cu")
     list(FILTER TEST_CU_FILES EXCLUDE REGEX ".*test_alternative_allocation_strategies.cu")
+
     foreach(test_file ${TEST_CU_FILES})
         get_filename_component(test_name ${test_file} NAME_WE)
         add_executable(${test_name} ${test_file})
         target_link_libraries(${test_name} cuda_zstd_static)
         add_test(NAME ${test_name} COMMAND ${test_name})
-        # Protect against long-running or hung tests: set a reasonable default
-        # timeout for ctest (seconds). Developers can override with the
-        # `TEST_TIMEOUT` CMake cache variable when configuring the project.
+
         if(NOT DEFINED TEST_TIMEOUT)
-            # For developer runs make tests quick-failing if something
-            # hangs - 100 seconds is a reasonable default while debugging
-            # since many GPU tasks are long-running. CI can override
-            # TEST_TIMEOUT to a larger value as needed.
             set(TEST_TIMEOUT 100 CACHE STRING "Default timeout (s) for ctest tests")
         endif()
+
         if("${test_name}" STREQUAL "test_stream_pool")
-            # Stream-pool tests can deadlock causally; lower the timeout so
-            # CTest fails fast during CI and local runs.
             set_tests_properties(${test_name} PROPERTIES TIMEOUT 100)
         else()
             set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TEST_TIMEOUT})
@@ -148,13 +125,10 @@ if(CUDA_ZSTD_BUILD_TESTS)
 
     # C-API test
     add_executable(test_c_api tests/test_c_api.c)
-    # test_find_matches_small will be auto-discovered by the test pattern
-    # Ensure this test file (C-style filename) is compiled as C++ so it can
-    # include C++-only compatibility headers and link against the C++ library.
     set_source_files_properties(tests/test_c_api.c PROPERTIES LANGUAGE CXX)
     target_link_libraries(test_c_api cuda_zstd_static)
     add_test(NAME test_c_api COMMAND test_c_api)
-    
+
     # level_nvcomp_demo test
     add_executable(level_nvcomp_demo tests/level_nvcomp_demo.cu)
     target_link_libraries(level_nvcomp_demo cuda_zstd_static)
@@ -167,14 +141,6 @@ install(TARGETS cuda_zstd_static cuda_zstd_shared
     LIBRARY DESTINATION lib
 )
 install(DIRECTORY include/ DESTINATION include/cuda_zstd)
-
-# Apply the CUDA-specific suppression flags only to our CUDA targets to
-# avoid hiding warnings in other components. This keeps global settings
-# clean and localizes suppressed diagnostics.
-## No global NVCC suppressions applied - use [[maybe_unused]] or local
-## diagnostics to silence specific false positives. If necessary, add
-## per-source suppression with target_compile_options for a small set of
-## files rather than disabling diagnostics globally.
 
 # Summary
 message(STATUS "")

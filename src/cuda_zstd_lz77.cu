@@ -1037,115 +1037,7 @@ Status free_lz77_context(LZ77Context& ctx) {
  * @brief (MODIFIED) Host function for Pass 1: Parallel Match Finding
  * Now accepts workspace parameter to eliminate allocations
  */
-Status find_matches(
-    LZ77Context& ctx,
-    const byte_t* input, // Device pointer
-    size_t input_size,
-    const DictionaryContent* dict,
-    CompressionWorkspace* workspace,
-    const byte_t* d_window,
-    size_t window_size,
-    cudaStream_t stream
-) {
-    if (!input || input_size == 0 || !workspace) {
-        return Status::ERROR_INVALID_PARAMETER;
-    }
 
-    // (NEW) Set workspace pointers into context
-    ctx.hash_table.table = workspace->d_hash_table;
-    ctx.chain_table.prev = workspace->d_chain_table;
-    ctx.d_matches = static_cast<Match*>(workspace->d_matches);
-    ctx.d_costs = static_cast<ParseCost*>(workspace->d_costs);
-
-    // DIAGNOSTIC: Print pointer values before memset
-    std::cerr << "find_matches: ctx.d_matches=" << (void*)ctx.d_matches 
-              << " workspace->d_matches=" << workspace->d_matches 
-              << " workspace->max_matches=" << workspace->max_matches
-              << " input_size=" << input_size 
-              << " memset_size=" << (input_size * sizeof(Match)) << "\n";
-
-    // 1. Clear tables (which are in workspace - NO ALLOCATION)
-    u32 invalid_pos = 0xFFFFFFFF;
-    hash::init_hash_table(ctx.hash_table.table, ctx.hash_table.size, invalid_pos, stream);
-    hash::init_hash_table(ctx.chain_table.prev, ctx.chain_table.size, invalid_pos, stream);
-    
-    // Clear d_matches
-    std::cerr << "find_matches: about to call cudaMemsetAsync\n";
-    cudaError_t memset_err = cudaMemsetAsync(ctx.d_matches, 0, input_size * sizeof(Match), stream);
-    std::cerr << "find_matches: cudaMemsetAsync returned err=" << memset_err << " (" << cudaGetErrorString(memset_err) << ")\n";
-    if (memset_err != cudaSuccess) {
-        return Status::ERROR_CUDA_ERROR;
-    }
-
-    const u32 threads = 256;
-    const u32 blocks = (input_size + threads - 1) / threads;
-    std::cerr << "find_matches: input=" << (void*)input << " input_size=" << input_size << " blocks=" << blocks << " threads=" << threads << "\n";
-    cudaPointerAttributes hash_attr = {};
-    cudaPointerAttributes chain_attr = {};
-    cudaError_t p_err_hash = cudaPointerGetAttributes(&hash_attr, ctx.hash_table.table);
-    cudaError_t p_err_chain = cudaPointerGetAttributes(&chain_attr, ctx.chain_table.prev);
-    std::cerr << "find_matches: cudaPointerGetAttributes hash_err=" << p_err_hash << " chain_err=" << p_err_chain << "\n";
-    std::cerr << "find_matches: hash_table.ptr=" << (void*)ctx.hash_table.table << " type=" << ((int)hash_attr.type) << " dev=" << hash_attr.device << "\n";
-    std::cerr << "find_matches: chain_table.ptr=" << (void*)ctx.chain_table.prev << " type=" << ((int)chain_attr.type) << " dev=" << chain_attr.device << "\n";
-    std::cerr << "find_matches: hash_table.size=" << ctx.hash_table.size << " chain_table.size=" << ctx.chain_table.size << "\n";
-
-    // Safety checks: ensure these workspace buffers are device memory so
-    // we don't accidentally launch kernels with host pointers from the pool.
-    if (hash_attr.type != cudaMemoryTypeDevice || chain_attr.type != cudaMemoryTypeDevice) {
-        std::cerr << "find_matches: ERROR - workspace hash/chain table not device memory (hash_type="
-                  << (int)hash_attr.type << ", chain_type=" << (int)chain_attr.type << ")" << std::endl;
-        return Status::ERROR_IO;
-    }
-
-    // Additional safety: ensure workspace chain table is large enough to
-    // index by a global position (dict_size + input_size). If chain table
-    // is too small then the kernel would write/read out-of-bounds when
-    // inserting positions into the chain table. For configurations where
-    // chain_log == 0 (disabled) we return an error to match expected
-    // behavior in unit tests.
-    u32 required_chain_size = (dict && dict->d_buffer) ? (dict->size + input_size) : input_size;
-    // If chain_log == 0, chain table is disabled and we will use hash-only
-    // matching; skip the size check in that mode. Use the context's config
-    // (we're in a host function) instead of the device-side `config` symbol.
-    bool chain_disabled = (ctx.config.chain_log == 0);
-    if (!chain_disabled && ctx.chain_table.size < required_chain_size) {
-        std::cerr << "find_matches: ERROR - chain table too small (size=" << ctx.chain_table.size
-                  << ", required=" << required_chain_size << ")" << std::endl;
-        return Status::ERROR_IO;
-    }
-
-    cudaPointerAttributes matches_attr = {};
-    cudaError_t p_err_matches = cudaPointerGetAttributes(&matches_attr, ctx.d_matches);
-    if (p_err_matches != cudaSuccess || matches_attr.type != cudaMemoryTypeDevice) {
-        std::cerr << "find_matches: ERROR - d_matches is not device memory or cudaPointerGetAttributes failed (err=" << p_err_matches << ")" << std::endl;
-        return Status::ERROR_IO;
-    }
-
-    // 2. Build hash chains (parallel) - NO ALLOCATION
-    // If chain indexing is disabled (chain_log == 0) then skip the
-    // chain building kernel: the chain table is effectively disabled
-    // and we will fall back to hash-only matching in the kernels.
-    if (!chain_disabled) {
-        build_hash_chains_kernel<<<blocks, threads, 0, stream>>>(
-            input, input_size, dict, ctx.hash_table, ctx.chain_table, ctx.config.min_match, ctx.config.hash_log);
-    } else {
-        // Zero the chain table to a known invalid value if needed
-        u32 invalid_pos_local = 0xFFFFFFFFu;
-        hash::init_hash_table(ctx.chain_table.prev, ctx.chain_table.size, invalid_pos_local, stream);
-    }
-
-    // 3. Find all matches with lazy logic (parallel) - NO ALLOCATION
-    parallel_find_all_matches_kernel<<<blocks, threads, 0, stream>>>(
-        input, input_size, dict, ctx.hash_table, ctx.chain_table, ctx.config, ctx.d_matches);
-
-    cudaError_t __err = cudaGetLastError();
-    // Runtime gate: optionally call debug verifier if enabled in the environment.
-    cuda_zstd::utils::debug_kernel_verify("find_matches: after kernels");
-    std::cerr << "find_matches: after kernels cudaGetLastError=" << __err \
-              << " (" << cudaGetErrorString(__err) << ")" << "\n";
-    CUDA_CHECK(__err);
-    return Status::SUCCESS;
-}
 
 Status get_matches(
     const LZ77Context& ctx,
@@ -1362,6 +1254,73 @@ __global__ void parallel_find_all_matches_with_window_kernel(
         // Use window for context matching
         // ... match finding with window context ...
     }
+}
+
+// ============================================================================
+// PUBLIC API: find_matches - Main Entry Point
+// ============================================================================
+
+/**
+ * @brief Main API function for LZ77 match finding
+ * 
+ * This is the primary entry point called by the compression manager.
+ * It orchestrates the three-pass parallel LZ77 algorithm:
+ *   Pass 1: Build hash chains
+ *   Pass 2: Find all matches in parallel
+ *   Pass 3: Compute optimal parse via dynamic programming
+ */
+Status find_matches(
+    LZ77Context& ctx,
+    const byte_t* d_input,
+    size_t input_size,
+    const DictionaryContent* dict,
+    CompressionWorkspace* workspace,
+    const byte_t* d_window,
+    size_t window_size,
+    cudaStream_t stream
+) {
+    if (!d_input || input_size == 0 || !workspace) {
+        return Status::ERROR_INVALID_PARAMETER;
+    }
+
+    // Set workspace pointers into context
+    ctx.hash_table.table = workspace->d_hash_table;
+    ctx.hash_table.size = workspace->hash_table_size;
+    ctx.chain_table.prev = workspace->d_chain_table;
+    ctx.chain_table.size = workspace->chain_table_size;
+    ctx.d_matches = static_cast<Match*>(workspace->d_matches);
+    ctx.d_costs = static_cast<ParseCost*>(workspace->d_costs);
+
+    // Pass 1: Build hash chains
+    const u32 threads_per_block = 256;
+    const u32 num_blocks = (input_size + threads_per_block - 1) / threads_per_block;
+
+    build_hash_chains_kernel<<<num_blocks, threads_per_block, 0, stream>>>(
+        d_input,
+        input_size,
+        dict,
+        ctx.hash_table,
+        ctx.chain_table,
+        ctx.config.min_match,
+        ctx.config.hash_log
+    );
+
+    CUDA_CHECK(cudaGetLastError());
+
+    // Pass 2: Find all matches in parallel
+    parallel_find_all_matches_kernel<<<num_blocks, threads_per_block, 0, stream>>>(
+        d_input,
+        input_size,
+        dict,
+        ctx.hash_table,
+        ctx.chain_table,
+        ctx.config,
+        ctx.d_matches
+    );
+
+    CUDA_CHECK(cudaGetLastError());
+
+    return Status::SUCCESS;
 }
 
 } // namespace lz77
