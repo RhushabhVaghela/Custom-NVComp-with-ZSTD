@@ -24,6 +24,7 @@
 #include "cuda_zstd_xxhash.h"
 #include "cuda_zstd_sequence.h"
 #include "cuda_zstd_stream_pool.h"
+#include "workspace_manager.h"
 #include <memory>
 #include <cstring>
 #include <algorithm>
@@ -36,6 +37,26 @@
 #include <optional>
 
 namespace cuda_zstd {
+
+// Simple CUDA error checking
+#define CUDA_CHECK(call) \
+    do { \
+        cudaError_t err = call; \
+        if (err != cudaSuccess) { \
+            std::cerr << "[CUDA Error] " << __FILE__ << ":" << __LINE__ \
+                      << " - " << cudaGetErrorString(err) << std::endl; \
+            return Status::ERROR_CUDA_ERROR; \
+        } \
+    } while(0)
+
+// Wrapper for workspace allocation
+static Status allocate_workspace_internal(
+    compression::CompressionWorkspace& ws,
+    size_t max_size,
+    const compression::CompressionConfig& cfg
+) {
+    return compression::allocate_compression_workspace(ws, max_size, cfg);
+}
 
 // Add alignment constants
 constexpr u32 GPU_MEMORY_ALIGNMENT = 256;  // Most GPU requirements
@@ -1025,7 +1046,7 @@ public:
         
         // Copy input to workspace if it's on host (already determined above)
         if (!input_is_device) {
-            cudaError_t err = cudaMemcpyAsync(d_input, uncompressed_data, uncompressed_size, cudaMemcpyHostToDevice, stream);
+            cudaError_t err = CUDA_CHECK(cudaMemcpyAsync(d_input, uncompressed_data, uncompressed_size, cudaMemcpyHostToDevice, stream));
             if (err != cudaSuccess) {
                 std::cerr << "[compress] cudaMemcpyAsync d_input failed: " << cudaGetErrorString(err) << " (" << err << ")" << std::endl;
                 return Status::ERROR_CUDA_ERROR;
@@ -1481,7 +1502,6 @@ private:
         static std::mutex init_mutex;
         std::unique_lock<std::mutex> init_lock(init_mutex);
         std::cerr << "initialize_context() entered (guarded)" << std::endl;
-        std::cerr << "initialize_context: before allocate_compression_workspace" << std::endl;
         
         ctx.total_matches = 0;
         ctx.total_literals = 0;

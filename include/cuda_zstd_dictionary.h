@@ -20,6 +20,13 @@ namespace dictionary {
 
 constexpr u32 DICT_MAGIC_NUMBER = 0xEC30A437;
 
+struct DictionaryTrainingParams {
+    u32 optimization_level = 0;
+    bool use_gpu = true;
+    u32 max_threads = 256;
+    u32 reserved[5];
+};
+
 struct DictionaryHeader {
     u32 magic_number;
     u32 dictionary_id;

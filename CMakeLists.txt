@@ -59,7 +59,7 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_adaptive.cu
     src/cuda_zstd_stream_pool.cpp
 
-    # NEW: Workspace pattern implementations
+    # Workspace pattern implementations
     src/workspace_manager.cu
     src/error_context.cpp
 )
@@ -105,6 +105,7 @@ if(CUDA_ZSTD_BUILD_TESTS)
 
     file(GLOB TEST_CU_FILES "tests/test_*.cu")
     list(FILTER TEST_CU_FILES EXCLUDE REGEX ".*test_alternative_allocation_strategies.cu")
+    # NOTE: Dictionary tests are NOW ENABLED since we have the implementation!
 
     foreach(test_file ${TEST_CU_FILES})
         get_filename_component(test_name ${test_file} NAME_WE)

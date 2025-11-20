@@ -1,5 +1,5 @@
 // ==============================================================================
-// workspace_manager.cu - Workspace Pre-Allocation Pattern (FULL IMPLEMENTATION)
+// workspace_manager.cu - Workspace Pre-Allocation Pattern (COMPLETE)
 // ==============================================================================
 
 #include "workspace_manager.h"
@@ -9,7 +9,61 @@
 
 namespace compression {
 
+// ==============================================================================
+// Constructor and Destructor Implementations
+// ==============================================================================
+
+// Constructor - Initialize all pointers to nullptr
+CompressionWorkspace::CompressionWorkspace() 
+    : d_hash_table(nullptr),
+      hash_table_size(0),
+      d_chain_table(nullptr),
+      chain_table_size(0),
+      d_matches(nullptr),
+      max_matches(0),
+      d_costs(nullptr),
+      max_costs(0),
+      d_literal_lengths_reverse(nullptr),
+      d_match_lengths_reverse(nullptr),
+      d_offsets_reverse(nullptr),
+      max_sequences(0),
+      d_frequencies(nullptr),
+      d_code_lengths(nullptr),
+      d_bit_offsets(nullptr),
+      d_block_sums(nullptr),
+      d_scanned_block_sums(nullptr),
+      num_blocks(0),
+      d_base_ptr(nullptr),
+      total_size_bytes(0),
+      is_allocated(false),
+      stream(nullptr),
+      event_complete(nullptr)
+{
+    // All initialization done in initializer list
+}
+
+// Destructor - Cleanup resources if allocated
+CompressionWorkspace::~CompressionWorkspace() {
+    if (is_allocated) {
+        // Clean up CUDA resources
+        free_compression_workspace(*this);
+    }
+
+    // Clean up stream and event if created
+    if (event_complete) {
+        cudaEventDestroy(event_complete);
+        event_complete = nullptr;
+    }
+
+    if (stream) {
+        cudaStreamDestroy(stream);
+        stream = nullptr;
+    }
+}
+
+// ==============================================================================
 // Helper macro for CUDA error checking
+// ==============================================================================
 #define CUDA_CHECK_WORKSPACE(call) \
     do { \
         cudaError_t err = call; \
@@ -19,6 +73,10 @@ namespace compression {
             return Status::ERROR_CUDA_ERROR; \
         } \
     } while(0)
+
+// ==============================================================================
+// Workspace Management Functions
+// ==============================================================================
 
 // Calculate workspace size needed for compression
 size_t calculate_workspace_size(size_t max_block_size, const CompressionConfig& config) {
