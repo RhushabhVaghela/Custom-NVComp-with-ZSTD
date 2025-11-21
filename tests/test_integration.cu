@@ -201,7 +201,7 @@ bool test_dictionary_integration() {
     }
     
     // Train dictionary
-    std::vector<const byte_t*> sample_ptrs;
+    std::vector<const void*> sample_ptrs;
     std::vector<size_t> sample_sizes;
     for (const auto& s : samples) {
         sample_ptrs.push_back(s.data());
@@ -210,8 +210,9 @@ bool test_dictionary_integration() {
     
     dictionary::Dictionary dict;
     dictionary::DictionaryManager::allocate_dictionary_gpu(dict, dict_size, 0);
+    dictionary::CoverParams params;
     Status status = dictionary::DictionaryTrainer::train_dictionary(sample_ptrs, sample_sizes,
-                                                 dict, dict_size, dictionary::CoverParams(), 0);
+                                                 dict, dict_size, &params, 0);
     ASSERT_STATUS(status, "Dictionary training failed");
     LOG_INFO("✓ Dictionary trained (" << dict_size << " bytes)");
     

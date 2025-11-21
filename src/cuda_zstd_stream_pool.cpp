@@ -11,45 +11,36 @@
 namespace cuda_zstd {
 
 StreamPool::StreamPool(size_t pool_size) {
-    fprintf(stderr, "StreamPool ctor() pool_size=%zu\n", pool_size);
+    std::cerr << "StreamPool ctor() pool_size=" << pool_size << std::endl;
     if (pool_size == 0) pool_size = 1;
 
     resources_.resize(pool_size);
-        const char* dbg = getenv("CUDA_ZSTD_DEBUG_POOL");
-        bool debug = (dbg && std::atoi(dbg) != 0);
+    const char* dbg = getenv("CUDA_ZSTD_DEBUG_POOL");
+    bool debug = (dbg && std::atoi(dbg) != 0);
+    
     for (size_t i = 0; i < pool_size; ++i) {
         PerStreamResources& r = resources_[i];
-        r.checksum_buf = nullptr;
-            if (debug) std::cerr << "StreamPool: creating stream " << i << " of " << pool_size << std::endl;
-            cudaError_t err = cudaStreamCreate(&r.stream);
-        fprintf(stderr, "StreamPool: created stream index=%zu, err=%d\n", i, (int)err);
+        
+        if (debug) std::cerr << "StreamPool: creating stream " << i << " of " << pool_size << std::endl;
+        cudaError_t err = cudaStreamCreate(&r.stream);
+        std::cerr << "StreamPool: created stream index=" << i << ", err=" << (int)err << std::endl;
+        
         if (err != cudaSuccess) {
             // Cleanup any resources created so far
-                if (debug) std::cerr << "StreamPool: cudaStreamCreate failed at " << i << " -> " << err << std::endl;
+            std::cerr << "StreamPool: cudaStreamCreate failed at " << i << " -> " << err << std::endl;
             for (size_t j = 0; j < i; ++j) {
                 cudaStreamDestroy(resources_[j].stream);
             }
             throw std::runtime_error("Failed to create CUDA stream pool");
         }
-        // Pre-allocate checksum buffer for each stream (u64)
-            if (debug) std::cerr << "StreamPool: creating checksum_buf " << i << std::endl;
-        err = cudaMalloc(&r.checksum_buf, sizeof(u64));
-        fprintf(stderr, "StreamPool: allocated checksum_buf for index=%zu, err=%d\n", i, (int)err);
-        if (err != cudaSuccess) {
-            for (size_t j = 0; j <= i; ++j) {
-                if (resources_[j].checksum_buf) cudaFree(resources_[j].checksum_buf);
-                cudaStreamDestroy(resources_[j].stream);
-            }
-            throw std::runtime_error("Failed to allocate checksum buffer for stream pool");
-        }
 
         free_idx_.push((int)i);
-            if (debug) std::cerr << "StreamPool: pushed free index " << i << "\n";
+        if (debug) std::cerr << "StreamPool: pushed free index " << i << std::endl;
     }
 }
 
 StreamPool::~StreamPool() {
-    fprintf(stderr, "StreamPool dtor\n");
+    std::cerr << "StreamPool dtor" << std::endl;
     std::unique_lock<std::mutex> lock(mtx_);
     while (!free_idx_.empty()) free_idx_.pop();
     
@@ -61,19 +52,12 @@ StreamPool::~StreamPool() {
     
     if (!cuda_initialized) {
         // CUDA context is already torn down, skip cleanup to avoid errors
-        fprintf(stderr, "StreamPool dtor: CUDA already deinitialized, skipping cleanup\n");
+        std::cerr << "StreamPool dtor: CUDA already deinitialized, skipping cleanup" << std::endl;
         return;
     }
     
     // Cleanup resources
     for (auto &r : resources_) {
-        if (r.checksum_buf) {
-            cudaError_t err = cudaFree(r.checksum_buf);
-            if (err != cudaSuccess && err != cudaErrorCudartUnloading) {
-                std::cerr << "StreamPool::~StreamPool: cudaFree checksum_buf failed -> " << err << std::endl;
-            }
-            r.checksum_buf = nullptr;
-        }
         if (r.stream) {
             // Ensure stream has completed any work before destroying.
             cudaError_t sync_err = cudaStreamSynchronize(r.stream);
@@ -165,9 +149,9 @@ namespace {
 }
 
 cuda_zstd::StreamPool* cuda_zstd::get_global_stream_pool(size_t default_size) {
-    fprintf(stderr, "get_global_stream_pool called. default_size=%zu\n", default_size);
+    std::cerr << "get_global_stream_pool called. default_size=" << default_size << std::endl;
     std::call_once(g_stream_pool_once_flag, [&](){
-        fprintf(stderr, "get_global_stream_pool: initializing pool...\n");
+        std::cerr << "get_global_stream_pool: initializing pool..." << std::endl;
         if (!g_stream_pool) {
             const char* env_pool = getenv("CUDA_ZSTD_STREAM_POOL_SIZE");
             size_t size = default_size;
@@ -180,7 +164,7 @@ cuda_zstd::StreamPool* cuda_zstd::get_global_stream_pool(size_t default_size) {
                 // If allocation fails, keep g_stream_pool null.
                 g_stream_pool.reset();
             }
-            fprintf(stderr, "get_global_stream_pool: init complete\n");
+            std::cerr << "get_global_stream_pool: init complete" << std::endl;
         }
     });
     return g_stream_pool.get();

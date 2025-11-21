@@ -1,0 +1,1096 @@
+Test project /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+      Start  1: test_adaptive_level
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_adaptive_level
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_adaptive_level
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_adaptive_level
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_adaptive_level
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_adaptive_level
+ 1/32 Test  #1: test_adaptive_level .......................***Not Run   0.00 sec
+      Start  2: test_alternative_allocation_strategies
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_alternative_allocation_strategies
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_alternative_allocation_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_alternative_allocation_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_alternative_allocation_strategies
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_alternative_allocation_strategies
+ 2/32 Test  #2: test_alternative_allocation_strategies ....***Not Run   0.00 sec
+      Start  3: test_basic_profile
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_basic_profile
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_basic_profile
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_basic_profile
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_basic_profile
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_basic_profile
+ 3/32 Test  #3: test_basic_profile ........................***Not Run   0.00 sec
+      Start  4: test_comprehensive_fallback
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_comprehensive_fallback
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_comprehensive_fallback
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_comprehensive_fallback
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_comprehensive_fallback
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_comprehensive_fallback
+ 4/32 Test  #4: test_comprehensive_fallback ...............***Not Run   0.00 sec
+      Start  5: test_correctness
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_correctness
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_correctness
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_correctness
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_correctness
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_correctness
+ 5/32 Test  #5: test_correctness ..........................***Not Run   0.00 sec
+      Start  6: test_dictionary
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_dictionary
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_dictionary
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_dictionary
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary
+ 6/32 Test  #6: test_dictionary ...........................***Not Run   0.00 sec
+      Start  7: test_dictionary_compression
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary_compression
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_dictionary_compression
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_dictionary_compression
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_dictionary_compression
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_dictionary_compression
+ 7/32 Test  #7: test_dictionary_compression ...............***Not Run   0.00 sec
+      Start  8: test_error_handling
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_error_handling
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_error_handling
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_error_handling
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_error_handling
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_error_handling
+ 8/32 Test  #8: test_error_handling .......................***Not Run   0.00 sec
+      Start  9: test_fallback_strategies
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fallback_strategies
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fallback_strategies
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fallback_strategies
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fallback_strategies
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fallback_strategies
+ 9/32 Test  #9: test_fallback_strategies ..................***Not Run   0.00 sec
+      Start 10: test_find_matches_small
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_find_matches_small
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_find_matches_small
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_find_matches_small
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_find_matches_small
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_find_matches_small
+10/32 Test #10: test_find_matches_small ...................***Not Run   0.00 sec
+      Start 11: test_fse_advanced
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fse_advanced
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fse_advanced
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fse_advanced
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced
+11/32 Test #11: test_fse_advanced .........................***Not Run   0.00 sec
+      Start 12: test_fse_advanced_function
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced_function
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fse_advanced_function
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fse_advanced_function
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_fse_advanced_function
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_fse_advanced_function
+12/32 Test #12: test_fse_advanced_function ................***Not Run   0.00 sec
+      Start 13: test_integration
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_integration
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_integration
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_integration
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_integration
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_integration
+13/32 Test #13: test_integration ..........................***Not Run   0.00 sec
+      Start 14: test_memory_pool
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool
+14/32 Test #14: test_memory_pool ..........................***Not Run   0.00 sec
+      Start 15: test_memory_pool_deallocate_timeout
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_deallocate_timeout
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_deallocate_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_deallocate_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_deallocate_timeout
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_deallocate_timeout
+15/32 Test #15: test_memory_pool_deallocate_timeout .......***Not Run   0.00 sec
+      Start 16: test_memory_pool_double_free
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free
+16/32 Test #16: test_memory_pool_double_free ..............***Not Run   0.00 sec
+      Start 17: test_memory_pool_double_free_fixed
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_fixed
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_fixed
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_fixed
+17/32 Test #17: test_memory_pool_double_free_fixed ........***Not Run   0.00 sec
+      Start 18: test_memory_pool_double_free_race
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_race
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_race
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_race
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race
+18/32 Test #18: test_memory_pool_double_free_race .........***Not Run   0.00 sec
+      Start 19: test_memory_pool_double_free_race_fixed
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race_fixed
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_race_fixed
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_race_fixed
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_double_free_race_fixed
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_double_free_race_fixed
+19/32 Test #19: test_memory_pool_double_free_race_fixed ...***Not Run   0.00 sec
+      Start 20: test_memory_pool_lock_ordering
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_ordering
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_lock_ordering
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_lock_ordering
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_lock_ordering
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_ordering
+20/32 Test #20: test_memory_pool_lock_ordering ............***Not Run   0.00 sec
+      Start 21: test_memory_pool_lock_timeout
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_timeout
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_lock_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_lock_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_memory_pool_lock_timeout
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_memory_pool_lock_timeout
+21/32 Test #21: test_memory_pool_lock_timeout .............***Not Run   0.00 sec
+      Start 22: test_metadata_roundtrip
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_metadata_roundtrip
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_metadata_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_metadata_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_metadata_roundtrip
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_metadata_roundtrip
+22/32 Test #22: test_metadata_roundtrip ...................***Not Run   0.00 sec
+      Start 23: test_multitable_fse
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_multitable_fse
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_multitable_fse
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_multitable_fse
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_multitable_fse
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_multitable_fse
+23/32 Test #23: test_multitable_fse .......................***Not Run   0.00 sec
+      Start 24: test_nvcomp_batch
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_nvcomp_batch
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_nvcomp_batch
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_nvcomp_batch
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_nvcomp_batch
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_nvcomp_batch
+24/32 Test #24: test_nvcomp_batch .........................***Not Run   0.00 sec
+      Start 25: test_performance
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_performance
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_performance
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_performance
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_performance
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_performance
+25/32 Test #25: test_performance ..........................***Not Run   0.00 sec
+      Start 26: test_roundtrip
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_roundtrip
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_roundtrip
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_roundtrip
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_roundtrip
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_roundtrip
+26/32 Test #26: test_roundtrip ............................***Not Run   0.00 sec
+      Start 27: test_stream_pool
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_stream_pool
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_stream_pool
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_stream_pool
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool
+27/32 Test #27: test_stream_pool ..........................***Not Run   0.00 sec
+      Start 28: test_stream_pool_timeout
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool_timeout
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_stream_pool_timeout
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_stream_pool_timeout
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_stream_pool_timeout
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_stream_pool_timeout
+28/32 Test #28: test_stream_pool_timeout ..................***Not Run   0.00 sec
+      Start 29: test_streaming
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_streaming
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_streaming
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_streaming
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_streaming
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_streaming
+29/32 Test #29: test_streaming ............................***Not Run   0.00 sec
+      Start 30: test_workspace_patterns
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_workspace_patterns
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+30/32 Test #30: test_workspace_patterns ...................***Not Run   0.00 sec
+      Start 31: test_c_api
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_c_api
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_c_api
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_c_api
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_c_api
+31/32 Test #31: test_c_api ................................***Not Run   0.00 sec
+      Start 32: level_nvcomp_demo
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/level_nvcomp_demo
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/level_nvcomp_demo
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/level_nvcomp_demo
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/level_nvcomp_demo
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/level_nvcomp_demo
+32/32 Test #32: level_nvcomp_demo .........................***Not Run   0.00 sec
+
+0% tests passed, 32 tests failed out of 32
+
+Total Test time (real) =   0.81 sec
+
+The following tests FAILED:
+	  1 - test_adaptive_level (Not Run)
+	  2 - test_alternative_allocation_strategies (Not Run)
+	  3 - test_basic_profile (Not Run)
+	  4 - test_comprehensive_fallback (Not Run)
+	  5 - test_correctness (Not Run)
+	  6 - test_dictionary (Not Run)
+	  7 - test_dictionary_compression (Not Run)
+	  8 - test_error_handling (Not Run)
+	  9 - test_fallback_strategies (Not Run)
+	 10 - test_find_matches_small (Not Run)
+	 11 - test_fse_advanced (Not Run)
+	 12 - test_fse_advanced_function (Not Run)
+	 13 - test_integration (Not Run)
+	 14 - test_memory_pool (Not Run)
+	 15 - test_memory_pool_deallocate_timeout (Not Run)
+	 16 - test_memory_pool_double_free (Not Run)
+	 17 - test_memory_pool_double_free_fixed (Not Run)
+	 18 - test_memory_pool_double_free_race (Not Run)
+	 19 - test_memory_pool_double_free_race_fixed (Not Run)
+	 20 - test_memory_pool_lock_ordering (Not Run)
+	 21 - test_memory_pool_lock_timeout (Not Run)
+	 22 - test_metadata_roundtrip (Not Run)
+	 23 - test_multitable_fse (Not Run)
+	 24 - test_nvcomp_batch (Not Run)
+	 25 - test_performance (Not Run)
+	 26 - test_roundtrip (Not Run)
+	 27 - test_stream_pool (Not Run)
+	 28 - test_stream_pool_timeout (Not Run)
+	 29 - test_streaming (Not Run)
+	 30 - test_workspace_patterns (Not Run)
+	 31 - test_c_api (Not Run)
+	 32 - level_nvcomp_demo (Not Run)
+Errors while running CTest

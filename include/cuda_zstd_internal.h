@@ -13,6 +13,32 @@
 
 namespace cuda_zstd {
 
+// Dictionary segment structure for block processing
+struct DictSegment {
+    u32 start_offset;      // Starting offset in the input data
+    u32 length;           // Length of this segment
+    u32 block_index;      // Block index this segment belongs to
+};
+
+// Make DictSegment available at global scope for compatibility
+using DictSegment = DictSegment;
+
+// Dictionary D-mer structure for compression
+namespace dictionary {
+    struct Dmer {
+        u64 hash;          // Hash value for the D-mer
+        u32 position;      // Position in the input data
+        u32 length;        // Length of the D-mer
+        
+        Dmer() : hash(0), position(0), length(0) {}
+        Dmer(u64 h, u32 p, u32 l) : hash(h), position(p), length(l) {}
+        
+        __device__ __host__ bool operator<(const Dmer& other) const {
+            return hash < other.hash;
+        }
+    };
+}
+
 namespace huffman {
 
 constexpr u16 HUFFMAN_NULL_IDX = 0xFFFF;

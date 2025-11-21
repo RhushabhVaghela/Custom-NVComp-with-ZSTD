@@ -1,0 +1,100 @@
+      Start 30: test_workspace_patterns
+Could not find executable /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+Looked in the following places:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_workspace_patterns
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Release/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Debug/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/MinSizeRel/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/RelWithDebInfo/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Deployment/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_workspace_patterns
+mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Development/test_workspace_patterns
+Unable to find executable: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_workspace_patterns
+30/32 Test #30: test_workspace_patterns ...................***Not Run   0.00 sec
+      Start 31: test_c_api
+31/32 Test #31: test_c_api ................................***Exception: SegFault  3.33 sec
+
+========================================
+  Test: C-API Validation (NVCOMP v5)
+========================================
+
+DefaultZstdManager ctor start
+get_global_stream_pool called. default_size=8
+get_global_stream_pool: initializing pool...
+StreamPool ctor() pool_size=8
+StreamPool: created stream index=0, err=0
+StreamPool: allocated checksum_buf for index=0, err=0
+StreamPool: created stream index=1, err=0
+StreamPool: allocated checksum_buf for index=1, err=0
+StreamPool: created stream index=2, err=0
+StreamPool: allocated checksum_buf for index=2, err=0
+StreamPool: created stream index=3, err=0
+StreamPool: allocated checksum_buf for index=3, err=0
+StreamPool: created stream index=4, err=0
+StreamPool: allocated checksum_buf for index=4, err=0
+StreamPool: created stream index=5, err=0
+StreamPool: allocated checksum_buf for index=5, err=0
+StreamPool: created stream index=6, err=0
+StreamPool: allocated checksum_buf for index=6, err=0
+StreamPool: created stream index=7, err=0
+StreamPool: allocated checksum_buf for index=7, err=0
+get_global_stream_pool: init complete
+DefaultZstdManager ctor after get_global_stream_pool
+DefaultZstdManager ctor end
+initialize_context() entered (guarded)
+  ✓ nvcomp_zstd_create_manager_v5 passed.
+  ✓ Workspace allocated: 7168 KB
+compress: input already on device, using directly: d_input=0x90ba01000
+
+      Start 32: level_nvcomp_demo
+32/32 Test #32: level_nvcomp_demo .........................   Passed    0.45 sec
+
+28% tests passed, 23 tests failed out of 32
+
+Total Test time (real) = 1256.52 sec
+
+The following tests FAILED:
+	  2 - test_alternative_allocation_strategies (Subprocess aborted)
+	  4 - test_comprehensive_fallback (Failed)
+	  5 - test_correctness (SEGFAULT)
+	  6 - test_dictionary (SEGFAULT)
+	  7 - test_dictionary_compression (SEGFAULT)
+	  8 - test_error_handling (SEGFAULT)
+	  9 - test_fallback_strategies (Failed)
+	 10 - test_find_matches_small (SEGFAULT)
+	 11 - test_fse_advanced (SEGFAULT)
+	 12 - test_fse_advanced_function (Subprocess aborted)
+	 13 - test_integration (SEGFAULT)
+	 14 - test_memory_pool (SEGFAULT)
+	 16 - test_memory_pool_double_free (Timeout)
+	 17 - test_memory_pool_double_free_fixed (Timeout)
+	 18 - test_memory_pool_double_free_race (Timeout)
+	 19 - test_memory_pool_double_free_race_fixed (Timeout)
+	 22 - test_metadata_roundtrip (SEGFAULT)
+	 24 - test_nvcomp_batch (Failed)
+	 25 - test_performance (SEGFAULT)
+	 26 - test_roundtrip (SEGFAULT)
+	 29 - test_streaming (Failed)
+	 30 - test_workspace_patterns (Not Run)
+	 31 - test_c_api (SEGFAULT)
+Errors while running CTest

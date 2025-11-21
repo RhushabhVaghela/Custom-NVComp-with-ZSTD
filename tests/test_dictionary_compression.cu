@@ -44,13 +44,13 @@ int main() {
     print_test_header("Dictionary Training");
     const size_t dict_capacity = 16 * 1024; // 16 KB
     std::vector<std::vector<byte_t>> h_samples;
-    std::vector<const byte_t*> h_sample_ptrs;
+    std::vector<const void*> h_sample_ptrs;
     std::vector<size_t> h_sample_sizes;
 
     h_samples.push_back(create_sample(1024 * 32, "REPEATING_SEQUENCE_"));
     h_samples.push_back(create_sample(1024 * 48, "REPEATING_SEQUENCE_"));
     for(const auto& s : h_samples) {
-        h_sample_ptrs.push_back(s.data());
+        h_sample_ptrs.push_back(static_cast<const void*>(s.data()));
         h_sample_sizes.push_back(s.size());
     }
 
@@ -62,7 +62,7 @@ int main() {
     params.d = 8;
 
     Status status = DictionaryTrainer::train_dictionary(
-        h_sample_ptrs, h_sample_sizes, gpu_dict, dict_capacity, params, 0);
+        h_sample_ptrs, h_sample_sizes, gpu_dict, dict_capacity, &params, 0);
     cudaDeviceSynchronize();
 
     if (status != Status::SUCCESS || gpu_dict.raw_size == 0) {

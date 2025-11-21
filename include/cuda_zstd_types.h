@@ -379,6 +379,8 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
  #endif // CUDA_CHECK_RETURN
 
 // Status validation macros
+// Status validation macros
+#ifndef CHECK_STATUS
 #define CHECK_STATUS(status) do { \
     if ((status) != Status::SUCCESS) { \
         ErrorContext __ctx((status), __FILE__, __LINE__, __FUNCTION__); \
@@ -386,7 +388,9 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
         return (status); \
     } \
 } while(0)
+#endif
 
+#ifndef CHECK_STATUS_MSG
 #define CHECK_STATUS_MSG(status, msg) do { \
     if ((status) != Status::SUCCESS) { \
         ErrorContext __ctx((status), __FILE__, __LINE__, __FUNCTION__, (msg)); \
@@ -394,8 +398,10 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
         return (status); \
     } \
 } while(0)
+#endif
 
 // Input validation macros
+#ifndef VALIDATE_NOT_NULL
 #define VALIDATE_NOT_NULL(ptr, name) do { \
     if (!(ptr)) { \
         ErrorContext __ctx(Status::ERROR_INVALID_PARAMETER, __FILE__, __LINE__, __FUNCTION__, \
@@ -404,7 +410,9 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
         return Status::ERROR_INVALID_PARAMETER; \
     } \
 } while(0)
+#endif
 
+#ifndef VALIDATE_RANGE
 #define VALIDATE_RANGE(val, min, max, name) do { \
     if ((val) < (min) || (val) > (max)) { \
         ErrorContext __ctx(Status::ERROR_INVALID_PARAMETER, __FILE__, __LINE__, __FUNCTION__, \
@@ -413,6 +421,7 @@ Status free_compression_workspace(CompressionWorkspace& workspace);
         return Status::ERROR_INVALID_PARAMETER; \
     } \
 } while(0)
+#endif
 #endif // __cplusplus
 
 #ifdef __cplusplus

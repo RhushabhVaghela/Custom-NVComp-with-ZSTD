@@ -7,6 +7,7 @@
 
 #include "cuda_zstd_utils.h"
 #include "cuda_zstd_dictionary.h"
+#include "cuda_zstd_internal.h"
 #include <cuda_runtime.h>
 #include <algorithm> // for std::min
 #include <cstdlib>
@@ -39,7 +40,7 @@ __global__ void block_scan_prefix_sum_kernel(
     if (g_idx < num_elements) {
         if constexpr (std::is_same<T, u32>::value) {
             s_data[tid] = d_input[g_idx];
-        } else if constexpr (std::is_same<T, dictionary::DictSegment>::value) {
+        } else if constexpr (std::is_same<T, DictSegment>::value) {
             s_data[tid] = d_input[g_idx].length;
         }
     } else {
@@ -145,7 +146,7 @@ __host__ Status parallel_scan(
 
 // Explicit template instantiation
 template __host__ Status parallel_scan<u32>(const u32*, u32*, u32, cudaStream_t);
-template __host__ Status parallel_scan<dictionary::DictSegment>(const dictionary::DictSegment*, u32*, u32, cudaStream_t);
+template __host__ Status parallel_scan<DictSegment>(const DictSegment*, u32*, u32, cudaStream_t);
 
 __host__ cudaError_t debug_kernel_verify(const char* where) {
     const char* env = std::getenv("CUDA_ZSTD_DEBUG_KERNEL_VERIFY");

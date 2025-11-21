@@ -1,6 +1,6 @@
-// ============================================================================
-// cuda_zstd_dictionary.h - Dictionary Training (COVER Algorithm)
-// ============================================================================
+// ==============================================================================
+// cuda_zstd_dictionary.h - Dictionary Training and Management
+// ==============================================================================
 
 #ifndef CUDA_ZSTD_DICTIONARY_H_
 #define CUDA_ZSTD_DICTIONARY_H_
@@ -8,237 +8,303 @@
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_huffman.h"
+
 #ifdef __cplusplus
 #include <vector>
+#include <cstdlib>
 #include <cstring>
-#include <iostream>
 #endif
 
 #ifdef __cplusplus
 namespace cuda_zstd {
 namespace dictionary {
 
+// ==============================================================================
+// Constants
+// ==============================================================================
+
 constexpr u32 DICT_MAGIC_NUMBER = 0xEC30A437;
+constexpr u32 MIN_DICT_SIZE = 256;
+constexpr u32 MAX_DICT_SIZE = 128 * 1024;  // 128 KB
+
+// ==============================================================================
+// Dictionary Training Parameters
+// ==============================================================================
 
 struct DictionaryTrainingParams {
-    u32 optimization_level = 0;
-    bool use_gpu = true;
-    u32 max_threads = 256;
-    u32 reserved[5];
+    u32 optimization_level = 0;  // 0 = default, higher = more optimization
+    bool use_gpu = true;          // Use GPU acceleration if available
+    u32 max_threads = 256;        // Max CUDA threads per block
+    u32 reserved[5] = {0};        // Future expansion
 };
+
+// Legacy parameter structure (for backward compatibility)
+struct CoverParams {
+    u32 k = 0;                    // Segment size
+    u32 d = 0;                    // Dmer size
+    u32 steps = 0;                // Number of steps
+    u32 splitPoint = 0;           // Split point percentage
+    double accel = 0.0;           // Acceleration factor
+};
+
+// ==============================================================================
+// Dictionary Structure
+// ==============================================================================
 
 struct DictionaryHeader {
     u32 magic_number;
     u32 dictionary_id;
-    u32 raw_content_size;
     u32 entropy_tables_size;
-    DictionaryHeader() : magic_number(DICT_MAGIC_NUMBER), dictionary_id(0), raw_content_size(0), entropy_tables_size(0) {}
+    u32 offsets_size;
+    u32 match_lengths_size;
+    u32 literal_lengths_size;
+    u32 huffman_table_size;
+    u32 raw_content_size;
 };
 
+struct DictionaryContent {
+    byte_t* d_buffer;
+    u32 size;
+    u32 dict_id;
+};
+
+// Complete Dictionary struct for backward compatibility
 struct Dictionary {
     DictionaryHeader header;
     byte_t* raw_content;
-    size_t raw_size;
-    fse::FSEEncodeTable* ll_fse_table;
-    fse::FSEEncodeTable* of_fse_table;
-    fse::FSEEncodeTable* ml_fse_table;
-    huffman::HuffmanCode* huffman_table;
-    u32 ll_table_log;
-    u32 of_table_log;
-    u32 ml_table_log;
-    u32 huf_table_log;
-    Dictionary() : raw_content(nullptr), raw_size(0), ll_fse_table(nullptr), of_fse_table(nullptr), ml_fse_table(nullptr), huffman_table(nullptr), ll_table_log(0), of_table_log(0), ml_table_log(0), huf_table_log(0) {}
-};
-
-struct CoverParams {
-    u32 k, d, steps;
-    double split_point;
-    bool optimize_for_size;
-    CoverParams() : k(1024), d(8), steps(32), split_point(0.75), optimize_for_size(false) {}
-};
-
-struct DictSegment {
-    u32 offset, length, frequency;
-    double score;
-    __device__ __host__ DictSegment() : offset(0), length(0), frequency(0), score(0.0) {}
-    __device__ __host__ DictSegment(u32 o, u32 l, u32 f, double s) : offset(o), length(l), frequency(f), score(s) {}
-    __device__ __host__ bool operator>(const DictSegment& other) const { return score > other.score; }
-};
-
-struct Dmer {
-    u64 hash;
-    u32 position;
-    __host__ __device__ Dmer() : hash(0), position(0) {}
-    __host__ __device__ bool operator<(const Dmer& other) const { return hash < other.hash; }
-};
-
-// ============================================================================
-// Dictionary Training Host Functions
-// ============================================================================
-
-class DictionaryTrainer {
-public:
-    /**
-     * @brief Trains a dictionary using a COVER variant (Fast or Exact).
-     * This now serves as the consolidated training function.
-     */
-    static Status train_dictionary(
-        const std::vector<const byte_t*>& samples,
-        const std::vector<size_t>& sample_sizes,
-        Dictionary& output_dict,
-        size_t max_dict_size,
-        const CoverParams& params,
-        cudaStream_t stream = 0);
-
-    /**
-     * @brief Finds optimal parameters (k, d) using a validation set.
-     */
-    static Status train_dictionary_optimized(
-        const std::vector<const byte_t*>& samples,
-        const std::vector<size_t>& sample_sizes,
-        Dictionary& output_dict,
-        size_t max_dict_size,
-        cudaStream_t stream = 0);
-
-    /**
-     * @brief Validates a dictionary against a single flat validation buffer.
-     */
-    static double validate_dictionary(
-        const Dictionary& dict,
-        const byte_t* validation_data, // Host pointer
-        size_t validation_size,
-        cudaStream_t stream);
-
-    /**
-     * @brief Validates a dictionary against a set of validation samples.
-     */
-    static double validate_dictionary(
-        const Dictionary& dict,
-        const std::vector<const byte_t*>& val_samples,
-        const std::vector<size_t>& val_sizes,
-        cudaStream_t stream);
-};
-
-// ============================================================================
-// Dictionary I/O & Management
-// ============================================================================
-
-class DictionaryIO {
-public:
-    static Status save_dictionary(
-        const Dictionary& dict,
-        const char* filename
-    );
+    u32 raw_size;
     
-    static Status load_dictionary(
-        Dictionary& dict,
-        const char* filename,
-        cudaStream_t stream = 0
-    );
+    Dictionary() : raw_content(nullptr), raw_size(0) {
+        header.magic_number = DICT_MAGIC_NUMBER;
+        header.dictionary_id = 0;
+        header.entropy_tables_size = 0;
+        header.offsets_size = 0;
+        header.match_lengths_size = 0;
+        header.literal_lengths_size = 0;
+        header.huffman_table_size = 0;
+        header.raw_content_size = 0;
+    }
     
-    static Status serialize_dictionary(
-        const Dictionary& dict,
-        byte_t* buffer,
-        size_t buffer_size,
-        size_t* bytes_written
-    );
+    ~Dictionary() {
+        if (raw_content) {
+            free(raw_content);
+            raw_content = nullptr;
+        }
+    }
     
-    static Status deserialize_dictionary(
-        Dictionary& dict,
-        const byte_t* buffer,
-        size_t buffer_size,
-        cudaStream_t stream = 0
-    );
+    // Copy constructor with deep copy
+    Dictionary(const Dictionary& other) : raw_content(nullptr), raw_size(0) {
+        header = other.header;
+        raw_size = other.raw_size;
+        if (other.raw_content && raw_size > 0) {
+            raw_content = (byte_t*)malloc(raw_size);
+            if (raw_content) {
+                memcpy(raw_content, other.raw_content, raw_size);
+            }
+        }
+    }
     
-    static u32 compute_dictionary_id(
-        const byte_t* dict_content,
-        size_t content_size
-    );
-};
-
-class DictionaryManager {
-public:
-    static Status allocate_dictionary_gpu(
-        Dictionary& dict,
-        size_t max_raw_size,
-        cudaStream_t stream = 0) {
-        // Allocate GPU memory for dictionary
-        dict.raw_size = max_raw_size;
-        {
-            cudaError_t error = cudaMallocAsync(&dict.raw_content, max_raw_size, stream);
-            if (error != cudaSuccess) {
-                // Some environments may not support async or report misaligned address
-                // Try fallback to synchronous cudaMalloc to increase robustness in tests.
-                std::cerr << "CUDA WARNING: cudaMallocAsync failed; err=" << cudaGetErrorName(error)
-                          << ", trying cudaMalloc fallback" << std::endl;
-                cudaError_t fallback_err = cudaMalloc(&dict.raw_content, max_raw_size);
-                if (fallback_err != cudaSuccess) {
-                    std::cerr << "CUDA ERROR at " << __FILE__ << ":" << __LINE__ << std::endl;
-                    std::cerr << "  Function: cudaMallocAsync(&dict.raw_content, max_raw_size, stream)" << std::endl;
-                    std::cerr << "  Error: " << cudaGetErrorName(error) << std::endl;
-                    std::cerr << "  Description: " << cudaGetErrorString(error) << std::endl;
-                    return Status::ERROR_IO;
+    // Copy assignment with deep copy
+    Dictionary& operator=(const Dictionary& other) {
+        if (this != &other) {
+            // Free existing content
+            if (raw_content) {
+                free(raw_content);
+                raw_content = nullptr;
+            }
+            
+            // Copy header and size
+            header = other.header;
+            raw_size = other.raw_size;
+            
+            // Deep copy content
+            if (other.raw_content && raw_size > 0) {
+                raw_content = (byte_t*)malloc(raw_size);
+                if (raw_content) {
+                    memcpy(raw_content, other.raw_content, raw_size);
                 }
             }
         }
-        {
-            cudaError_t error = cudaMemsetAsync(dict.raw_content, 0, max_raw_size, stream);
-            if (error != cudaSuccess) {
-                std::cerr << "CUDA ERROR at " << __FILE__ << ":" << __LINE__ << std::endl;
-                std::cerr << "  Function: cudaMemsetAsync(dict.raw_content, 0, max_raw_size, stream)" << std::endl;
-                std::cerr << "  Error: " << cudaGetErrorName(error) << std::endl;
-                std::cerr << "  Description: " << cudaGetErrorString(error) << std::endl;
-                return Status::ERROR_IO;
-            }
-        }
-        
-        // Initialize header
-        dict.header.magic_number = DICT_MAGIC_NUMBER;
-        dict.header.raw_content_size = max_raw_size;
-        dict.header.dictionary_id = 0;
-        dict.header.entropy_tables_size = 0;
-        
-        return Status::SUCCESS;
+        return *this;
     }
-    
-    static Status free_dictionary_gpu(Dictionary& dict, 
-        cudaStream_t stream = 0
-    );
-    
-    static Status copy_dictionary_to_gpu(
-        Dictionary& gpu_dict,
-        const Dictionary& cpu_dict,
-        cudaStream_t stream = 0
-    );
-    
-    static Status copy_dictionary_to_cpu(
-        Dictionary& cpu_dict,
-        const Dictionary& gpu_dict,
-        cudaStream_t stream = 0
-    );
 };
 
-// ============================================================================
-// Entropy Table Builder
-// ============================================================================
+// ==============================================================================
+// Main API Functions (New Implementation)
+// ==============================================================================
 
-Status build_entropy_tables(
-    Dictionary& dict,
-    const byte_t* training_data, // device pointer (optional)
-    size_t data_size,
-    cudaStream_t stream
-);
-
-// Create prefix dictionary (no training, just use raw data)
-Status create_prefix_dictionary(
-    Dictionary& dict,
-    const byte_t* prefix_data,
-    size_t prefix_size,
+/**
+ * @brief Train a dictionary from multiple samples (GPU-accelerated)
+ * 
+ * @param samples Array of sample data pointers (host memory)
+ * @param sample_sizes Array of sample sizes
+ * @param dict_buffer Output buffer for trained dictionary (host memory)
+ * @param dict_size Size of dictionary to train
+ * @param params Training parameters (optional)
+ * @param stream CUDA stream for async operations
+ * @return Status code
+ */
+Status train_dictionary(
+    const std::vector<const void*>& samples,
+    const std::vector<size_t>& sample_sizes,
+    void* dict_buffer,
+    size_t dict_size,
+    const DictionaryTrainingParams* params = nullptr,
     cudaStream_t stream = 0
 );
 
+/**
+ * @brief Create dictionary from concatenated samples buffer
+ * 
+ * @param samples_buffer Concatenated samples (host memory)
+ * @param sample_offsets Array of byte offsets for each sample
+ * @param num_samples Number of samples
+ * @param dict_buffer Output dictionary buffer
+ * @param dict_size Dictionary size
+ * @param params Training parameters (optional)
+ * @param stream CUDA stream
+ * @return Status code
+ */
+Status create_dictionary_from_samples(
+    const void* samples_buffer,
+    const size_t* sample_offsets,
+    size_t num_samples,
+    void* dict_buffer,
+    size_t dict_size,
+    const DictionaryTrainingParams* params = nullptr,
+    cudaStream_t stream = 0
+);
+
+/**
+ * @brief Get optimal dictionary size for given data size
+ * 
+ * @param total_data_size Total size of data to compress
+ * @return Recommended dictionary size (clamped to valid range)
+ */
+u32 get_optimal_dict_size(size_t total_data_size);
+
+/**
+ * @brief Validate dictionary size
+ */
+bool is_valid_dictionary_size(size_t size);
+
+// ==============================================================================
+// Backward Compatibility API (for existing test code)
+// ==============================================================================
+
+namespace compat {
+
+/**
+ * @brief Backward-compatible dictionary trainer wrapper
+ */
+class DictionaryTrainerWrapper {
+public:
+    static Status train_dictionary(
+        const std::vector<const void*>& samples,
+        const std::vector<size_t>& sample_sizes,
+        Dictionary& dict_out,
+        size_t dict_size,
+        const CoverParams* params = nullptr,
+        cudaStream_t stream = 0
+    ) {
+        // Allocate dictionary buffer
+        dict_out.raw_content = (byte_t*)malloc(dict_size);
+        if (!dict_out.raw_content) {
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
+        dict_out.raw_size = dict_size;
+
+        // Convert params
+        DictionaryTrainingParams train_params;
+        if (params) {
+            train_params.optimization_level = params->k;
+        }
+
+        // Call new API
+        Status status = ::cuda_zstd::dictionary::train_dictionary(
+            samples, sample_sizes, 
+            dict_out.raw_content, dict_size,
+            &train_params, stream
+        );
+
+        if (status == Status::SUCCESS) {
+            // Compute dictionary ID (simple hash)
+            dict_out.header.dictionary_id = 0;
+            for (size_t i = 0; i < dict_size && i < 256; i++) {
+                dict_out.header.dictionary_id = 
+                    (dict_out.header.dictionary_id * 31) + dict_out.raw_content[i];
+            }
+        } else {
+            free(dict_out.raw_content);
+            dict_out.raw_content = nullptr;
+            dict_out.raw_size = 0;
+        }
+
+        return status;
+    }
+};
+
+/**
+ * @brief Backward-compatible dictionary manager wrapper
+ */
+class DictionaryManagerWrapper {
+public:
+    static Status allocate_dictionary_gpu(Dictionary& dict, size_t size, cudaStream_t stream = 0) {
+        (void)stream; // Suppress unused parameter warning
+        
+        dict.raw_content = (byte_t*)malloc(size);
+        if (!dict.raw_content) {
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
+        dict.raw_size = size;
+        return Status::SUCCESS;
+    }
+
+    static Status free_dictionary_gpu(Dictionary& dict, cudaStream_t stream = 0) {
+        (void)stream; // Suppress unused parameter warning
+        
+        if (dict.raw_content) {
+            free(dict.raw_content);
+            dict.raw_content = nullptr;
+            dict.raw_size = 0;
+        }
+        dict.header.dictionary_id = 0;
+        return Status::SUCCESS;
+    }
+
+    static Status load_dictionary(
+        const void* dict_buffer,
+        size_t dict_size,
+        Dictionary& dict_out
+    ) {
+        dict_out.raw_content = (byte_t*)malloc(dict_size);
+        if (!dict_out.raw_content) {
+            return Status::ERROR_OUT_OF_MEMORY;
+        }
+
+        memcpy(dict_out.raw_content, dict_buffer, dict_size);
+        dict_out.raw_size = dict_size;
+
+        // Compute dictionary ID
+        dict_out.header.dictionary_id = 0;
+        for (size_t i = 0; i < dict_size && i < 256; i++) {
+            dict_out.header.dictionary_id = 
+                (dict_out.header.dictionary_id * 31) + dict_out.raw_content[i];
+        }
+
+        return Status::SUCCESS;
+    }
+};
+
+} // namespace compat
+
+// Alias old names to new wrappers for backward compatibility
+using DictionaryTrainer = compat::DictionaryTrainerWrapper;
+using DictionaryManager = compat::DictionaryManagerWrapper;
+
 } // namespace dictionary
 } // namespace cuda_zstd
-#endif
 
-#endif // CUDA_ZSTD_DICTIONARY_H
+#endif // __cplusplus
+
+#endif // CUDA_ZSTD_DICTIONARY_H_

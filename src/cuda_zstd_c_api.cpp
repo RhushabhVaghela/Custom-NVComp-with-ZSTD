@@ -136,8 +136,8 @@ cuda_zstd_dict_t* cuda_zstd_train_dictionary(
     }
 
     try {
-        // Prepare sample vectors for trainer
-        std::vector<const cuda_zstd::byte_t*> sample_vec;
+        // Prepare sample vectors for trainer (cast to const void*)
+        std::vector<const void*> sample_vec;
         std::vector<size_t> size_vec;
         sample_vec.reserve(num_samples);
         size_vec.reserve(num_samples);
@@ -145,7 +145,7 @@ cuda_zstd_dict_t* cuda_zstd_train_dictionary(
             if (!samples[i] || sample_sizes[i] == 0) {
                 return nullptr;
             }
-            sample_vec.push_back(reinterpret_cast<const cuda_zstd::byte_t*>(samples[i]));
+            sample_vec.push_back(reinterpret_cast<const void*>(samples[i]));
             size_vec.push_back(sample_sizes[i]);
         }
 
@@ -156,13 +156,13 @@ cuda_zstd_dict_t* cuda_zstd_train_dictionary(
         // Use default COVER parameters (can be extended)
         cuda_zstd::dictionary::CoverParams params;
 
-        // Train dictionary (on default stream)
+        // Train dictionary (on default stream) - pass nullptr for optional params
         cuda_zstd::Status status = cuda_zstd::dictionary::DictionaryTrainer::train_dictionary(
             sample_vec,
             size_vec,
             *dict_handle->dict,
             dict_size,
-            params,
+            nullptr,  // Pass nullptr instead of params to avoid type mismatch
             0 // cudaStream_t
         );
         if (status != cuda_zstd::Status::SUCCESS) {

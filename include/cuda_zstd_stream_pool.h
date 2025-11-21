@@ -15,8 +15,6 @@ class StreamPool {
 public:
     struct PerStreamResources {
         cudaStream_t stream;
-        // A small device-side buffer reserved for checksums per stream
-        u64* checksum_buf;
     };
 
     class Guard {
@@ -28,7 +26,6 @@ public:
         Guard(const Guard&) = delete;
         Guard& operator=(const Guard&) = delete;
         cudaStream_t get_stream() const { return resources_->stream; }
-        u64* get_checksum_buf() const { return resources_->checksum_buf; }
     private:
         StreamPool* pool_;
         PerStreamResources* resources_;

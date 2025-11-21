@@ -18,7 +18,7 @@ int main() {
         MemoryPoolManager pool(false); // disable defrag for simpler testing
 
         // Prewarm with minimal amount
-        pool.prewarm(512ULL * 1024 * 1024); // 512KB
+        pool.prewarm(10ULL * 1024 * 1024); // 10MB
 
         size_t query_size = 32 * 1024; // 32KB for faster allocation
         void* ptr = pool.allocate(query_size, 0);

@@ -104,24 +104,20 @@ if(CUDA_ZSTD_BUILD_TESTS)
     enable_testing()
 
     file(GLOB TEST_CU_FILES "tests/test_*.cu")
-    list(FILTER TEST_CU_FILES EXCLUDE REGEX ".*test_alternative_allocation_strategies.cu")
-    # NOTE: Dictionary tests are NOW ENABLED since we have the implementation!
+    # NOTE: All tests are now enabled - removed exclusion filter
 
     foreach(test_file ${TEST_CU_FILES})
         get_filename_component(test_name ${test_file} NAME_WE)
         add_executable(${test_name} ${test_file})
+        set_target_properties(${test_name} PROPERTIES
+            CUDA_SEPARABLE_COMPILATION ON
+            CUDA_RESOLVE_DEVICE_SYMBOLS ON
+        )
         target_link_libraries(${test_name} cuda_zstd_static)
         add_test(NAME ${test_name} COMMAND ${test_name})
 
-        if(NOT DEFINED TEST_TIMEOUT)
-            set(TEST_TIMEOUT 100 CACHE STRING "Default timeout (s) for ctest tests")
-        endif()
-
-        if("${test_name}" STREQUAL "test_stream_pool")
-            set_tests_properties(${test_name} PROPERTIES TIMEOUT 100)
-        else()
-            set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TEST_TIMEOUT})
-        endif()
+        # Set timeout for tests (300 seconds)
+        set_tests_properties(${test_name} PROPERTIES TIMEOUT 300)
     endforeach()
 
     # C-API test
@@ -129,11 +125,17 @@ if(CUDA_ZSTD_BUILD_TESTS)
     set_source_files_properties(tests/test_c_api.c PROPERTIES LANGUAGE CXX)
     target_link_libraries(test_c_api cuda_zstd_static)
     add_test(NAME test_c_api COMMAND test_c_api)
+    set_tests_properties(test_c_api PROPERTIES TIMEOUT 100)
 
     # level_nvcomp_demo test
     add_executable(level_nvcomp_demo tests/level_nvcomp_demo.cu)
+    set_target_properties(level_nvcomp_demo PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
     target_link_libraries(level_nvcomp_demo cuda_zstd_static)
     add_test(NAME level_nvcomp_demo COMMAND level_nvcomp_demo)
+    set_tests_properties(level_nvcomp_demo PROPERTIES TIMEOUT 100)
 endif()
 
 # Installation
@@ -150,4 +152,5 @@ message(STATUS "CUDA Zstandard Configuration:")
 message(STATUS "  CUDA Version: ${CUDAToolkit_VERSION}")
 message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+message(STATUS "  Test Timeout: 100 seconds")
 message(STATUS "=========================================")

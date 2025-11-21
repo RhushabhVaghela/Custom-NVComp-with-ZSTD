@@ -37,7 +37,7 @@ int main() {
     // 1. Create training data
     std::cout << "Creating training samples...\n";
     std::vector<std::vector<byte_t>> h_samples;
-    std::vector<const byte_t*> h_sample_ptrs;
+    std::vector<const void*> h_sample_ptrs;
     std::vector<size_t> h_sample_sizes;
     
     h_samples.push_back(create_sample(1024 * 64, "COMMON_HEADER_PATTERN_"));
@@ -45,7 +45,7 @@ int main() {
     h_samples.push_back(create_sample(1024 * 48, "COMMON_HEADER_PATTERN_"));
     
     for(const auto& s : h_samples) {
-        h_sample_ptrs.push_back(s.data());
+        h_sample_ptrs.push_back(static_cast<const void*>(s.data()));
         h_sample_sizes.push_back(s.size());
     }
 
@@ -61,7 +61,7 @@ int main() {
 
     Status status = DictionaryTrainer::train_dictionary(
         h_sample_ptrs, h_sample_sizes,
-        gpu_dict, 32 * 1024, params, 0
+        gpu_dict, 32 * 1024, &params, 0
     );
     cudaDeviceSynchronize();
     

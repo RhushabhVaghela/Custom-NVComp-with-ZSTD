@@ -91,7 +91,7 @@ bool test_host_memory_limit_enforcement() {
     // Try to exceed host memory limit
     int successful_allocs = 0;
     for (int i = 0; i < 5; i++) {
-        FallbackAllocation result = pool.allocate_with_fallback(alloc_size);
+        FallbackAllocation result = pool.allocate_with_strategy(alloc_size, AllocationStrategy::PREFER_HOST);
         if (result.is_valid()) {
             allocations.push_back(result.ptr);
             successful_allocs++;
@@ -179,7 +179,7 @@ bool test_degradation_modes() {
         
         pool.set_degradation_mode(mode);
         
-        size_t degraded_size = 0; //pool.calculate_degraded_size(original_size);
+        size_t degraded_size = pool.calculate_degraded_size(original_size);
         size_t expected_size = static_cast<size_t>(original_size * expected_factor);
         
         LOG_INFO("Mode " << static_cast<int>(mode) << ": " << degraded_size / 1024 << " KB (expected ~" << expected_size / 1024 << " KB)");
@@ -278,6 +278,7 @@ bool test_rollback_protection() {
     FallbackConfig config;
     config.enable_rollback_protection = true;
     config.max_retry_attempts = 1; // Limit attempts to trigger rollback
+    config.enable_host_memory_fallback = false; // Disable host fallback to ensure fast failure
     pool.set_fallback_config(config);
     
     PoolStats initial_stats = pool.get_statistics();
@@ -287,15 +288,83 @@ bool test_rollback_protection() {
     LOG_INFO("Initial failures: " << initial_failures);
     LOG_INFO("Initial rollbacks: " << initial_rollbacks);
     
-    // Try allocations that should fail to trigger rollback protection
-    size_t huge_size = 1024ULL * 1024 * 1024; // 1GB - likely to fail
+    // Simulate realistic memory pressure by pre-allocating GPU memory
+    size_t total_mem = 0, free_mem = 0;
+    cudaMemGetInfo(&free_mem, &total_mem);
+    LOG_INFO("GPU total memory: " << (total_mem / 1024 / 1024) << " MB");
+    LOG_INFO("GPU free memory: " << (free_mem / 1024 / 1024) << " MB");
     
-    for (int i = 0; i < 5; i++) {
-        FallbackAllocation result = pool.allocate_with_fallback(huge_size);
-        if (!result.is_valid()) {
-            LOG_INFO("Intentional failure " << i << " recorded");
+    // Fill GPU until we hit OOM to ensure we are truly at the limit
+    std::vector<void*> pressure_allocs;
+    size_t chunk_size = 256 * 1024 * 1024; // Start with 256MB chunks
+    size_t allocated = 0;
+    
+    LOG_INFO("Creating memory pressure (filling until OOM)...");
+    
+    // Phase 1: Large chunks
+    while (true) {
+        void* ptr = nullptr;
+        cudaError_t err = cudaMalloc(&ptr, chunk_size);
+        if (err == cudaSuccess && ptr != nullptr) {
+            pressure_allocs.push_back(ptr);
+            allocated += chunk_size;
+        } else {
+            break; // Failed to allocate large chunk
         }
     }
+    
+    // Phase 2: Small chunks to fill the gaps
+    chunk_size = 10 * 1024 * 1024; // 10MB chunks
+    while (true) {
+        void* ptr = nullptr;
+        cudaError_t err = cudaMalloc(&ptr, chunk_size);
+        if (err == cudaSuccess && ptr != nullptr) {
+            pressure_allocs.push_back(ptr);
+            allocated += chunk_size;
+        } else {
+            break; // Failed to allocate small chunk
+        }
+    }
+
+    LOG_INFO("Applied memory pressure: " << (allocated / 1024 / 1024) << " MB allocated. GPU should be full.");
+    
+    size_t free_after_pressure = 0, total_after_pressure = 0;
+    cudaMemGetInfo(&free_after_pressure, &total_after_pressure);
+    LOG_INFO("Free memory after pressure: " << (free_after_pressure / 1024 / 1024) << " MB");
+
+    // Now try allocations that should fail due to memory pressure
+    size_t test_size = 512 * 1024 * 1024; // 512MB - should definitely fail now
+    int failure_count = 0;
+    
+    for (int i = 0; i < 5; i++) {
+        FallbackAllocation result = pool.allocate_with_fallback(test_size);
+        if (!result.is_valid()) {
+            LOG_INFO("Expected failure " << i << " recorded under memory pressure");
+            failure_count++;
+        } else {
+            // Unexpected success, clean it up
+            LOG_INFO("Unexpected success " << i << " ptr=" << result.ptr);
+            pool.deallocate(result.ptr);
+        }
+    }
+    
+    for (int i = 0; i < 5; i++) {
+        FallbackAllocation result = pool.allocate_with_fallback(test_size);
+        if (!result.is_valid()) {
+            LOG_INFO("Expected failure " << i << " recorded under memory pressure");
+            failure_count++;
+        } else {
+            // Unexpected success, clean it up
+            pool.deallocate(result.ptr);
+        }
+    }
+    
+    // Cleanup pressure allocations
+    for (void* ptr : pressure_allocs) {
+        cudaFree(ptr);
+    }
+    
+    LOG_INFO("Cleanup complete, freed " << pressure_allocs.size() << " pressure allocations");
     
     // Check if rollback protection was triggered
     PoolStats final_stats = pool.get_statistics();
@@ -304,8 +373,9 @@ bool test_rollback_protection() {
     
     LOG_INFO("Final failures: " << final_failures);
     LOG_INFO("Final rollbacks: " << final_rollbacks);
+    LOG_INFO("Failures during test: " << failure_count);
     
-    // Should have recorded failures
+    // Should have recorded failures (we expect at least some failures under pressure)
     ASSERT_TRUE(final_failures > initial_failures, "Should have recorded allocation failures");
     
     // Check if degradation mode changed due to failures
@@ -367,6 +437,16 @@ bool test_fallback_stress_test() {
         }
     }
     
+    // Check for duplicates - TEMPORARILY DISABLED TO SEE REAL ERROR
+    /*
+    std::sort(allocations.begin(), allocations.end());
+    for (size_t i = 1; i < allocations.size(); ++i) {
+        if (allocations[i].first == allocations[i-1].first) {
+            LOG_INFO("DUPLICATE POINTER DETECTED: " << allocations[i].first);
+        }
+    }
+    */
+    
     LOG_INFO("Stress test results:");
     LOG_INFO("  Successful: " << successful_allocs << "/" << num_allocations);
     LOG_INFO("  Host memory: " << host_allocs);
@@ -375,6 +455,9 @@ bool test_fallback_stress_test() {
     // Cleanup all allocations
     for (const auto& alloc : allocations) {
         Status status = pool.deallocate(alloc.first);
+        if (status != Status::SUCCESS) {
+            std::cerr << "CLEANUP FAILED for ptr=" << alloc.first << " status=" << (int)status << "\n";
+        }
         ASSERT_STATUS(status, "Cleanup deallocation failed");
     }
     

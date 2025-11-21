@@ -186,6 +186,51 @@ struct PoolEntry {
     PoolEntry() = default;
     PoolEntry(void* p, size_t s) : ptr(p), size(s), in_use(false),
                                    stream(nullptr), ready_event(nullptr) {}
+    
+    // Delete copy operations to prevent accidental double-frees
+    PoolEntry(const PoolEntry&) = delete;
+    PoolEntry& operator=(const PoolEntry&) = delete;
+    
+    // Implement move operations to transfer ownership
+    PoolEntry(PoolEntry&& other) noexcept 
+        : ptr(other.ptr), host_ptr(other.host_ptr), size(other.size), host_size(other.host_size),
+          in_use(other.in_use), is_host_fallback(other.is_host_fallback), 
+          is_degraded(other.is_degraded), stream(other.stream), ready_event(other.ready_event),
+          alloc_seq(other.alloc_seq), uid(other.uid) {
+        // Nullify source pointers to prevent destructor from freeing them
+        other.ptr = nullptr;
+        other.host_ptr = nullptr;
+        other.ready_event = nullptr;
+    }
+    
+    PoolEntry& operator=(PoolEntry&& other) noexcept {
+        if (this != &other) {
+            // Free current resources
+            if (ptr && !is_host_fallback) cudaFree(ptr);
+            if (host_ptr) free(host_ptr);
+            if (ready_event) cudaEventDestroy(ready_event);
+            
+            // Transfer resources
+            ptr = other.ptr;
+            host_ptr = other.host_ptr;
+            size = other.size;
+            host_size = other.host_size;
+            in_use = other.in_use;
+            is_host_fallback = other.is_host_fallback;
+            is_degraded = other.is_degraded;
+            stream = other.stream;
+            ready_event = other.ready_event;
+            alloc_seq = other.alloc_seq;
+            uid = other.uid;
+            
+            // Nullify source
+            other.ptr = nullptr;
+            other.host_ptr = nullptr;
+            other.ready_event = nullptr;
+        }
+        return *this;
+    }
+
     uint64_t alloc_seq = 0; // Sequence number for last allocation
     uint64_t uid = 0;       // Unique entry id (to detect reused entries across races)
     
@@ -299,6 +344,9 @@ public:
     FallbackAllocation allocate_with_strategy(size_t size, AllocationStrategy strategy, cudaStream_t stream = 0);
     FallbackAllocation allocate_dual_memory(size_t size, cudaStream_t stream = 0);
     
+    // Helper for calculating degraded sizes (public for testing)
+    size_t calculate_degraded_size(size_t original_size) const;
+    
     // Resource-aware allocation
     ResourceState get_current_resource_state() const;
     AllocationStrategy select_optimal_strategy(const ResourceState& state, size_t size) const;
@@ -337,6 +385,10 @@ private:
     
     // Statistics (atomic for thread safety)
     mutable std::atomic<uint64_t> total_allocations_{0};
+    mutable std::atomic<uint64_t> total_allocation_latency_ns_{0};
+    mutable std::atomic<uint64_t> allocation_latency_count_{0};
+    mutable std::atomic<uint64_t> total_deallocation_latency_ns_{0};
+    mutable std::atomic<uint64_t> deallocation_latency_count_{0};
     mutable std::atomic<uint64_t> total_deallocations_{0};
     mutable std::atomic<uint64_t> cache_hits_{0};
     mutable std::atomic<uint64_t> cache_misses_{0};
@@ -348,6 +400,11 @@ private:
     mutable std::atomic<uint64_t> rollback_operations_{0};
     mutable std::atomic<size_t> peak_memory_usage_{0};
     mutable std::atomic<size_t> current_memory_usage_{0};
+    mutable std::atomic<uint64_t> dual_memory_allocations_{0};
+    
+    // Resource tracking
+    mutable std::chrono::steady_clock::time_point last_resource_update_;
+    mutable ResourceState cached_resource_state_;
     
     // Helper functions
     int get_pool_index(size_t size) const;
@@ -363,7 +420,6 @@ private:
     FallbackAllocation allocate_degraded(size_t size, cudaStream_t stream);
     
     // Progressive allocation helpers
-    size_t calculate_degraded_size(size_t original_size) const;
     bool should_use_progressive_allocation(size_t requested_size) const;
     bool is_emergency_mode() const;
     
@@ -394,11 +450,19 @@ private:
     Status perform_health_check();
     void optimize_memory_distribution();
     void log_fallback_event(const std::string& event_type, const std::string& details);
+    void update_allocation_latency(uint64_t latency_ns);
 
     // Mapping from active pointer -> pool index and allocation sequence
     // Sequence values help correlate allocate/deallocate logs and detect
     // stale/reused pointers across races. The value is pair<pool_idx, seq>.
-    struct PointerMeta { int pool_idx; uint64_t alloc_seq; uint64_t entry_uid; };
+    struct PointerMeta { 
+        int pool_idx; 
+        uint64_t alloc_seq; 
+        uint64_t entry_uid; 
+        void* host_ptr;  // For dual memory allocations, nullptr otherwise
+        size_t size;     // Size of allocation (for host memory deallocation)
+        bool is_host_memory;  // true if ptr is host memory (use free), false if GPU (use cudaFree)
+    };
     std::unordered_map<void*, PointerMeta> pointer_index_map_;
     // Per-entry unique id counter to avoid stale pointer mappings
     mutable std::atomic<uint64_t> entry_uid_counter_{0};

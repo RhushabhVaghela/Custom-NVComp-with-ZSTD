@@ -189,10 +189,11 @@ bool test_rollback_protection() {
     FallbackConfig config;
     config.enable_rollback_protection = true;
     config.max_retry_attempts = 1;
+    config.enable_host_memory_fallback = false; // Disable host fallback to ensure fast failure
     pool.set_fallback_config(config);
     
     // Trigger rollback protection by causing failures
-    size_t huge_size = 1024ULL * 1024 * 1024; // 1GB
+    size_t huge_size = 100ULL * 1024 * 1024 * 1024; // 100GB - Should fail on almost all GPUs
     
     uint64_t pre_rollback_failures = pool.get_statistics().allocation_failures;
     

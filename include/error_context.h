@@ -67,18 +67,8 @@ namespace error_handling {
     }
 }
 
-// CUDA error checking macro
-#define CUDA_CHECK(call) do { \
-    cudaError_t __err = (call); \
-    if (__err != cudaSuccess) { \
-        ErrorContext __ctx(Status::ERROR_CUDA_ERROR, __FILE__, __LINE__, __FUNCTION__); \
-        __ctx.cuda_error = __err; \
-        error_handling::log_error(__ctx); \
-        return Status::ERROR_CUDA_ERROR; \
-    } \
-} while(0)
-
 // Status checking macro
+#ifndef CHECK_STATUS
 #define CHECK_STATUS(status) do { \
     if ((status) != Status::SUCCESS) { \
         ErrorContext __ctx((status), __FILE__, __LINE__, __FUNCTION__); \
@@ -86,8 +76,10 @@ namespace error_handling {
         return (status); \
     } \
 } while(0)
+#endif
 
 // Status checking with message
+#ifndef CHECK_STATUS_MSG
 #define CHECK_STATUS_MSG(status, msg) do { \
     if ((status) != Status::SUCCESS) { \
         ErrorContext __ctx((status), __FILE__, __LINE__, __FUNCTION__, (msg)); \
@@ -95,8 +87,10 @@ namespace error_handling {
         return (status); \
     } \
 } while(0)
+#endif
 
 // Validation macros
+#ifndef VALIDATE_NOT_NULL
 #define VALIDATE_NOT_NULL(ptr, name) do { \
     if (!(ptr)) { \
         ErrorContext __ctx(Status::ERROR_INVALID_PARAMETER, __FILE__, __LINE__, __FUNCTION__, \
@@ -105,7 +99,9 @@ namespace error_handling {
         return Status::ERROR_INVALID_PARAMETER; \
     } \
 } while(0)
+#endif
 
+#ifndef VALIDATE_RANGE
 #define VALIDATE_RANGE(val, min, max, name) do { \
     if ((val) < (min) || (val) > (max)) { \
         ErrorContext __ctx(Status::ERROR_INVALID_PARAMETER, __FILE__, __LINE__, __FUNCTION__, \
@@ -114,6 +110,7 @@ namespace error_handling {
         return Status::ERROR_INVALID_PARAMETER; \
     } \
 } while(0)
+#endif
 
 } // namespace compression
 

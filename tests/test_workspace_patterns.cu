@@ -3,12 +3,17 @@
 // ==============================================================================
 
 #include "workspace_manager.h"
+#include "cuda_zstd_types.h"
 #include "error_context.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <cassert>
 
-using namespace compression;
+// Bring types and functions into scope
+using compression::CompressionConfig;
+using compression::allocate_compression_workspace;
+using compression::free_compression_workspace;
+using compression::calculate_workspace_size;
 
 void test_workspace_allocation() {
     std::cout << "[TEST] Workspace Allocation\n";

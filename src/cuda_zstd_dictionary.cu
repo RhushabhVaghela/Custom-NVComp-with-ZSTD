@@ -19,8 +19,6 @@ namespace dictionary {
 
 constexpr u32 MIN_SAMPLES_FOR_TRAINING = 1;
 constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
-constexpr u32 MIN_DICT_SIZE = 256;
-constexpr u32 MAX_DICT_SIZE = 128 * 1024;  // 128 KB
 constexpr u32 DEFAULT_SAMPLE_SIZE = 8 * 1024;  // 8 KB per sample
 
 // ==============================================================================

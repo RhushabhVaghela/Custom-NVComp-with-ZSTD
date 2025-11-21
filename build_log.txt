@@ -1,0 +1,563 @@
+[  2%] Building CXX object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_c_api.cpp.o
+[  3%] Building CXX object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_types.cpp.o
+[  3%] Building CXX object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_c_api.cpp.o
+[  3%] Building CXX object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_types.cpp.o
+[  5%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_manager.cu.o
+[  5%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_manager.cu.o
+[  7%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_lz77.cu.o
+[  7%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_lz77.cu.o
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+[  8%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_fse.cu.o
+[  9%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_fse.cu.o
+[ 11%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_huffman.cu.o
+[ 11%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_huffman.cu.o
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/workspace_manager.h:9,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:27:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:71: warning: "CHECK_STATUS" redefined
+   71 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+In file included from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_manager.h:8,
+                 from /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:17:
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:382: note: this is the location of the previous definition
+  382 | #define CHECK_STATUS(status) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:80: warning: "CHECK_STATUS_MSG" redefined
+   80 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:390: note: this is the location of the previous definition
+  390 | #define CHECK_STATUS_MSG(status, msg) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:89: warning: "VALIDATE_NOT_NULL" redefined
+   89 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:399: note: this is the location of the previous definition
+  399 | #define VALIDATE_NOT_NULL(ptr, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/error_context.h:98: warning: "VALIDATE_RANGE" redefined
+   98 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_types.h:408: note: this is the location of the previous definition
+  408 | #define VALIDATE_RANGE(val, min, max, name) do { \
+      | 
+[ 11%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_dictionary.cu.o
+[ 12%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_sequence.cu.o
+[ 14%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_hash.cu.o
+[ 14%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_dictionary.cu.o
+[ 15%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_sequence.cu.o
+[ 16%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_hash.cu.o
+[ 17%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_xxhash.cu.o
+[ 18%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_xxhash.cu.o
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(31): error: function "cuda_zstd::xxhash::xxh_read64" has already been defined (previous definition at line 47 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u64 xxh_read64(const byte_t* ptr) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(35): error: function "cuda_zstd::xxhash::xxh_read32" has already been defined (previous definition at line 51 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u32 xxh_read32(const byte_t* ptr) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(39): error: function "cuda_zstd::xxhash::xxh64_round" has already been defined (previous definition at line 55 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u64 xxh64_round(u64 acc, u64 input) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(46): error: function "cuda_zstd::xxhash::xxh64_merge_round" has already been defined (previous definition at line 130 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u64 xxh64_merge_round(u64 acc, u64 val) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(53): error: function "cuda_zstd::xxhash::xxh64_avalanche" has already been defined (previous definition at line 69 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u64 xxh64_avalanche(u64 h64) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(66): error: variable "cuda_zstd::xxhash::PRIME32_1" has already been defined (previous definition at line 26 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_1 = 0x9E3779B1U;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(67): error: variable "cuda_zstd::xxhash::PRIME32_2" has already been defined (previous definition at line 27 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_2 = 0x85EBCA77U;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(68): error: variable "cuda_zstd::xxhash::PRIME32_3" has already been defined (previous definition at line 28 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_3 = 0xC2B2AE3DU;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(69): error: variable "cuda_zstd::xxhash::PRIME32_4" has already been defined (previous definition at line 29 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_4 = 0x27D4EB2FU;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(70): error: variable "cuda_zstd::xxhash::PRIME32_5" has already been defined (previous definition at line 30 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_5 = 0x165667B1U;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(82): error: function "cuda_zstd::xxhash::xxh32_round" has already been defined (previous definition at line 62 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u32 xxh32_round(u32 acc, u32 input) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(89): error: function "cuda_zstd::xxhash::xxh32_avalanche" has already been defined (previous definition at line 78 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u32 xxh32_avalanche(u32 h32) {
+                                         ^
+
+12 errors detected in the compilation of "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu".
+make[2]: *** [CMakeFiles/cuda_zstd_static.dir/build.make:210: CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_xxhash.cu.o] Error 2
+make[2]: *** Waiting for unfinished jobs....
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+[ 19%] Building CXX object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_nvcomp.cpp.o
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(31): error: function "cuda_zstd::xxhash::xxh_read64" has already been defined (previous definition at line 47 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u64 xxh_read64(const byte_t* ptr) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(35): error: function "cuda_zstd::xxhash::xxh_read32" has already been defined (previous definition at line 51 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u32 xxh_read32(const byte_t* ptr) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(39): error: function "cuda_zstd::xxhash::xxh64_round" has already been defined (previous definition at line 55 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u64 xxh64_round(u64 acc, u64 input) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(46): error: function "cuda_zstd::xxhash::xxh64_merge_round" has already been defined (previous definition at line 130 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u64 xxh64_merge_round(u64 acc, u64 val) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(53): error: function "cuda_zstd::xxhash::xxh64_avalanche" has already been defined (previous definition at line 69 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u64 xxh64_avalanche(u64 h64) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(66): error: variable "cuda_zstd::xxhash::PRIME32_1" has already been defined (previous definition at line 26 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_1 = 0x9E3779B1U;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(67): error: variable "cuda_zstd::xxhash::PRIME32_2" has already been defined (previous definition at line 27 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_2 = 0x85EBCA77U;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(68): error: variable "cuda_zstd::xxhash::PRIME32_3" has already been defined (previous definition at line 28 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_3 = 0xC2B2AE3DU;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(69): error: variable "cuda_zstd::xxhash::PRIME32_4" has already been defined (previous definition at line 29 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_4 = 0x27D4EB2FU;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(70): error: variable "cuda_zstd::xxhash::PRIME32_5" has already been defined (previous definition at line 30 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+  constexpr u32 PRIME32_5 = 0x165667B1U;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(82): error: function "cuda_zstd::xxhash::xxh32_round" has already been defined (previous definition at line 62 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u32 xxh32_round(u32 acc, u32 input) {
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu(89): error: function "cuda_zstd::xxhash::xxh32_avalanche" has already been defined (previous definition at line 78 of /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_xxhash.h)
+                                     u32 xxh32_avalanche(u32 h32) {
+                                         ^
+
+12 errors detected in the compilation of "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_xxhash.cu".
+make[2]: *** [CMakeFiles/cuda_zstd_shared.dir/build.make:210: CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_xxhash.cu.o] Error 2
+make[2]: *** Waiting for unfinished jobs....
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+make[1]: *** [CMakeFiles/Makefile2:151: CMakeFiles/cuda_zstd_static.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+make[1]: *** [CMakeFiles/Makefile2:177: CMakeFiles/cuda_zstd_shared.dir/all] Error 2
+make: *** [Makefile:146: all] Error 2

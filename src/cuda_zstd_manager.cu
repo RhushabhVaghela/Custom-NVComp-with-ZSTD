@@ -38,26 +38,6 @@
 
 namespace cuda_zstd {
 
-// Simple CUDA error checking
-#define CUDA_CHECK(call) \
-    do { \
-        cudaError_t err = call; \
-        if (err != cudaSuccess) { \
-            std::cerr << "[CUDA Error] " << __FILE__ << ":" << __LINE__ \
-                      << " - " << cudaGetErrorString(err) << std::endl; \
-            return Status::ERROR_CUDA_ERROR; \
-        } \
-    } while(0)
-
-// Wrapper for workspace allocation
-static Status allocate_workspace_internal(
-    compression::CompressionWorkspace& ws,
-    size_t max_size,
-    const compression::CompressionConfig& cfg
-) {
-    return compression::allocate_compression_workspace(ws, max_size, cfg);
-}
-
 // Add alignment constants
 constexpr u32 GPU_MEMORY_ALIGNMENT = 256;  // Most GPU requirements
 
@@ -414,6 +394,9 @@ struct StreamingContext {
     bool started_compression;
     bool finished_compression;
     u32 block_count;
+    
+    // Streaming xxHash state
+    xxhash::XXH64_State* d_xxhash_state;
 };
 
 // ==============================================================================
@@ -1017,11 +1000,13 @@ public:
         ctx.lz77_ctx->hash_table.table = reinterpret_cast<u32*>(workspace_ptr);
         ctx.lz77_ctx->hash_table.size = (1 << config.hash_log);
         call_workspace.d_hash_table = reinterpret_cast<u32*>(workspace_ptr);
+        call_workspace.hash_table_size = (1 << config.hash_log);  // FIX: Set size field!
         workspace_ptr = align_ptr(workspace_ptr + ctx.lz77_ctx->hash_table.size * sizeof(u32), alignment);
         
         ctx.lz77_ctx->chain_table.prev = reinterpret_cast<u32*>(workspace_ptr);
         ctx.lz77_ctx->chain_table.size = (1 << config.chain_log);
         call_workspace.d_chain_table = reinterpret_cast<u32*>(workspace_ptr);
+        call_workspace.chain_table_size = (1 << config.chain_log);  // FIX: Set size field!
         workspace_ptr = align_ptr(workspace_ptr + ctx.lz77_ctx->chain_table.size * sizeof(u32), alignment);
 
         // Partition d_matches and d_costs from workspace
@@ -1046,11 +1031,7 @@ public:
         
         // Copy input to workspace if it's on host (already determined above)
         if (!input_is_device) {
-            cudaError_t err = CUDA_CHECK(cudaMemcpyAsync(d_input, uncompressed_data, uncompressed_size, cudaMemcpyHostToDevice, stream));
-            if (err != cudaSuccess) {
-                std::cerr << "[compress] cudaMemcpyAsync d_input failed: " << cudaGetErrorString(err) << " (" << err << ")" << std::endl;
-                return Status::ERROR_CUDA_ERROR;
-            }
+            CUDA_CHECK(cudaMemcpyAsync(d_input, uncompressed_data, uncompressed_size, cudaMemcpyHostToDevice, stream));
         }
 
         u32 compressed_offset = 0;
@@ -1503,11 +1484,54 @@ private:
         std::unique_lock<std::mutex> init_lock(init_mutex);
         std::cerr << "initialize_context() entered (guarded)" << std::endl;
         
+        // Initialize LZ77 context
+        if (!ctx.lz77_ctx) {
+            ctx.lz77_ctx = new lz77::LZ77Context();
+            lz77::LZ77Config lz77_config;
+            lz77_config.hash_log = config.hash_log;
+            lz77_config.chain_log = config.chain_log;
+            lz77_config.search_depth = 8;  // Standard search depth
+            lz77_config.min_match = config.min_match;
+            lz77::init_lz77_context(*ctx.lz77_ctx, lz77_config, ZSTD_BLOCKSIZE_MAX);
+            std::cerr << "initialize_context: initialized lz77_ctx" << std::endl;
+        }
+        
+        // Initialize sequence context
+        if (!ctx.seq_ctx) {
+            ctx.seq_ctx = new sequence::SequenceContext();
+            cudaMalloc(&ctx.seq_ctx->d_literals_buffer, ZSTD_BLOCKSIZE_MAX);
+            cudaMalloc(&ctx.seq_ctx->d_literal_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
+            cudaMalloc(&ctx.seq_ctx->d_match_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
+            cudaMalloc(&ctx.seq_ctx->d_offsets, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
+            cudaMalloc(&ctx.seq_ctx->d_num_sequences, sizeof(u32));
+            cudaMalloc(&ctx.seq_ctx->d_sequences, ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence));
+            std::cerr << "initialize_context: initialized seq_ctx" << std::endl;
+        }
+        
+        // Initialize FSE tables
+        if (!ctx.lit_fse_table) {
+            ctx.lit_fse_table = new fse::FSEEncodeTable();
+        }
+        if (!ctx.ml_fse_table) {
+            ctx.ml_fse_table = new fse::FSEEncodeTable();
+        }
+        if (!ctx.of_fse_table) {
+            ctx.of_fse_table = new fse::FSEEncodeTable();
+        }
+        
+        // Initialize Huffman context
+        if (!ctx.huff_ctx) {
+            ctx.huff_ctx = new huffman::HuffmanTable();
+            cudaMalloc(&ctx.huff_ctx->codes, 256 * sizeof(huffman::HuffmanCode));
+            std::cerr << "initialize_context: initialized huff_ctx" << std::endl;
+        }
+        
         ctx.total_matches = 0;
         ctx.total_literals = 0;
         ctx.total_sequences = 0;
         
         ctx_initialized = true;
+        std::cerr << "initialize_context: complete" << std::endl;
         return Status::SUCCESS;
     }
     
@@ -2584,8 +2608,28 @@ public:
     }
 
     ~Impl() {
+        cleanup_streaming_context();
         if (d_workspace) {
             cudaFree(d_workspace);
+        }
+    }
+    
+    void cleanup_streaming_context() {
+        if (streaming_ctx.d_window_history) {
+            cudaFree(streaming_ctx.d_window_history);
+            streaming_ctx.d_window_history = nullptr;
+        }
+        if (streaming_ctx.d_hash_table_state) {
+            cudaFree(streaming_ctx.d_hash_table_state);
+            streaming_ctx.d_hash_table_state = nullptr;
+        }
+        if (streaming_ctx.d_chain_table_state) {
+            cudaFree(streaming_ctx.d_chain_table_state);
+            streaming_ctx.d_chain_table_state = nullptr;
+        }
+        if (streaming_ctx.d_xxhash_state) {
+            cudaFree(streaming_ctx.d_xxhash_state);
+            streaming_ctx.d_xxhash_state = nullptr;
         }
     }
 
@@ -2631,6 +2675,10 @@ Status ZstdStreamingManager::set_dictionary(const dictionary::Dictionary& dict) 
 Status ZstdStreamingManager::init_compression(cudaStream_t stream) {
     if (pimpl_->comp_initialized) reset();
     
+    // Allocate workspace for compress operations
+    auto status = pimpl_->alloc_workspace(stream);
+    if (status != Status::SUCCESS) return status;
+    
     // Allocate window history
     const u32 WINDOW_SIZE = 128 * 1024;  // 128 KB
     
@@ -2655,6 +2703,10 @@ Status ZstdStreamingManager::init_compression(cudaStream_t stream) {
                          hash_table_size, invalid_pos, stream);
     hash::init_hash_table(pimpl_->streaming_ctx.d_chain_table_state,
                          chain_table_size, invalid_pos, stream);
+    
+    // Allocate and initialize xxHash state
+    CUDA_CHECK(cudaMalloc(&pimpl_->streaming_ctx.d_xxhash_state, sizeof(xxhash::XXH64_State)));
+    xxhash::xxhash64_init_kernel<<<1, 1, 0, stream>>>(pimpl_->streaming_ctx.d_xxhash_state, 0); // Seed 0
     
     pimpl_->streaming_ctx.total_bytes_processed = 0;
     pimpl_->streaming_ctx.block_count = 0;
@@ -2681,6 +2733,7 @@ Status ZstdStreamingManager::init_decompression(cudaStream_t stream) {
 }
 
 Status ZstdStreamingManager::reset() {
+    pimpl_->cleanup_streaming_context();
     if (pimpl_->d_workspace) {
         cudaFree(pimpl_->d_workspace);
         pimpl_->d_workspace = nullptr;
@@ -2853,23 +2906,22 @@ Status ZstdStreamingManager::compress_chunk(
     sctx.total_bytes_processed += input_size;
     sctx.block_count++;
     
+    // Update incremental hash
+    if (pimpl_->config.checksum != ChecksumPolicy::NO_COMPUTE_NO_VERIFY) {
+        xxhash::xxhash64_update_kernel<<<1, 1, 0, stream>>>(sctx.d_xxhash_state, d_input, input_size);
+    }
+    
     if (is_last_chunk) {
         sctx.finished_compression = true;
         
         // Write checksum if enabled
         if (pimpl_->config.checksum != ChecksumPolicy::NO_COMPUTE_NO_VERIFY) {
             // Allocate a temporary device-side buffer for checksum output.
-            // (We previously tried to reuse a shared device buffer, but that
-            // buffer belongs to DefaultZstdManager; here allocate locally
-            // to keep streaming manager self-contained while avoiding
-            // exposing manager internals.)
             u64* d_checksum = nullptr;
             CUDA_CHECK(cudaMalloc(&d_checksum, sizeof(u64)));
             
-            // TODO: Implement a true incremental/streaming xxHash for better performance and memory efficiency.
-            // The current implementation re-hashes the entire chunk, which is inefficient for large streams.
-            // Compute checksum of all processed data (simplified - should hash incrementally)
-            xxhash::compute_xxhash64(d_input, input_size, 0, d_checksum, stream);
+            // Finalize the incremental hash
+            xxhash::xxhash64_digest_kernel<<<1, 1, 0, stream>>>(sctx.d_xxhash_state, d_checksum);
             
             CUDA_CHECK(cudaMemcpyAsync(d_output + output_offset, d_checksum, sizeof(u64),
                                       cudaMemcpyDeviceToDevice, stream));

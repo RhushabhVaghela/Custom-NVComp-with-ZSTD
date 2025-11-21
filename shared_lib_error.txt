@@ -1,0 +1,33 @@
+/usr/bin/cmake -S"/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD" -B"/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build" --check-build-system CMakeFiles/Makefile.cmake 0
+make  -f CMakeFiles/Makefile2 cuda_zstd_shared
+make[1]: Entering directory '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build'
+/usr/bin/cmake -S"/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD" -B"/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build" --check-build-system CMakeFiles/Makefile.cmake 0
+/usr/bin/cmake -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/CMakeFiles" 19
+make  -f CMakeFiles/Makefile2 CMakeFiles/cuda_zstd_shared.dir/all
+make[2]: Entering directory '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build'
+make  -f CMakeFiles/cuda_zstd_shared.dir/build.make CMakeFiles/cuda_zstd_shared.dir/depend
+make[3]: Entering directory '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build'
+cd "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build" && /usr/bin/cmake -E cmake_depends "Unix Makefiles" "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD" "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD" "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build" "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build" "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/CMakeFiles/cuda_zstd_shared.dir/DependInfo.cmake" "--color="
+Dependencies file "CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_memory_pool_complex.cu.o.d" is newer than depends file "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/CMakeFiles/cuda_zstd_shared.dir/compiler_depend.internal".
+Dependencies file "CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_types.cpp.o.d" is newer than depends file "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/CMakeFiles/cuda_zstd_shared.dir/compiler_depend.internal".
+Consolidate compiler generated dependencies of target cuda_zstd_shared
+make[3]: Leaving directory '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build'
+make  -f CMakeFiles/cuda_zstd_shared.dir/build.make CMakeFiles/cuda_zstd_shared.dir/build
+make[3]: Entering directory '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build'
+[  5%] Linking CXX shared library libcuda_zstd.so
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cuda_zstd_shared.dir/link.txt --verbose=1
+/usr/bin/c++ -fPIC -shared -Wl,-soname,libcuda_zstd.so.1.0.0 -o libcuda_zstd.so.1.0.0 CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_c_api.cpp.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_types.cpp.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_manager.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_lz77.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_fse.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_huffman.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_dictionary.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_sequence.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_hash.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_xxhash.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_nvcomp.cpp.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_utils.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_memory_pool_complex.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_stacktrace.cpp.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_debug.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_adaptive.cu.o CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_stream_pool.cpp.o CMakeFiles/cuda_zstd_shared.dir/src/workspace_manager.cu.o CMakeFiles/cuda_zstd_shared.dir/src/error_context.cpp.o CMakeFiles/cuda_zstd_shared.dir/cmake_device_link.o   -L/usr/local/cuda/targets/x86_64-linux/lib/stubs  -L/usr/local/cuda/targets/x86_64-linux/lib  -Wl,-rpath,/usr/local/cuda-13.0/targets/x86_64-linux/lib: /usr/local/cuda-13.0/targets/x86_64-linux/lib/libcudart.so -lcudadevrt -lcudart_static -lrt -lpthread -ldl 
+/usr/bin/ld: CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_xxhash.cu.o: in function `cuda_zstd::xxhash::compute_xxhash64(void const*, unsigned long, unsigned long, unsigned long*, CUstream_st*)':
+tmpxft_000005eb_00000000-6_cuda_zstd_xxhash.compute_90.cudafe1.cpp:(.text+0x176): undefined reference to `cuda_zstd::xxhash::xxhash64_kernel(unsigned char const*, unsigned long, unsigned long, unsigned long*)'
+/usr/bin/ld: CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_xxhash.cu.o: in function `cuda_zstd::xxhash::compute_xxhash32(void const*, unsigned long, unsigned int, unsigned int*, CUstream_st*)':
+tmpxft_000005eb_00000000-6_cuda_zstd_xxhash.compute_90.cudafe1.cpp:(.text+0x2a9): undefined reference to `cuda_zstd::xxhash::xxhash32_kernel(unsigned char const*, unsigned long, unsigned int, unsigned int*)'
+/usr/bin/ld: libcuda_zstd.so.1.0.0: hidden symbol `_ZN9cuda_zstd6xxhash15xxhash32_kernelEPKhmjPj' isn't defined
+/usr/bin/ld: final link failed: bad value
+collect2: error: ld returned 1 exit status
+make[3]: *** [CMakeFiles/cuda_zstd_shared.dir/build.make:456: libcuda_zstd.so.1.0.0] Error 1
+make[3]: Leaving directory '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build'
+make[2]: *** [CMakeFiles/Makefile2:177: CMakeFiles/cuda_zstd_shared.dir/all] Error 2
+make[2]: Leaving directory '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build'
+make[1]: *** [CMakeFiles/Makefile2:184: CMakeFiles/cuda_zstd_shared.dir/rule] Error 2
+make[1]: Leaving directory '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build'
+make: *** [Makefile:192: cuda_zstd_shared] Error 2
