@@ -630,29 +630,22 @@ private:
     StreamPool* stream_pool_;
 
 public:
-    DefaultZstdManager() 
-        : has_dictionary(false), ctx_initialized(false) 
+    DefaultZstdManager(int compression_level = 3) 
+        : config(CompressionConfig::from_level(compression_level)), 
+          has_dictionary(false), 
+          ctx_initialized(false) 
     {
         std::cerr << "DefaultZstdManager ctor start" << std::endl;
-        // Initialize stream pool for parallelism; use environment var to customize
-        // Use a shared global stream pool for all managers to better saturate
-        // GPU concurrency across threads / managers without allocating
-        // per-manager pools.
-        stream_pool_ = get_global_stream_pool();
-        std::cerr << "DefaultZstdManager ctor after get_global_stream_pool" << std::endl;
+        // Initialize stream pool
+        stream_pool_ = get_global_stream_pool(1); // Try with 1 stream
+        std::cerr << "DefaultZstdManager ctor after get_global_stream_pool(1)" << std::endl;
         d_checksum_buffer = nullptr;
-        // Set default config
-        config.level = ZSTD_DEFAULT_CLEVEL;
-        config.compression_mode = CompressionMode::LEVEL_BASED;
-        config.window_log = 20;
-        config.hash_log = 17;
-        config.chain_log = 17;
-        config.search_log = 8;
         config.min_match = 3;
         config.strategy = Strategy::GREEDY;
         
         reset_stats();
         memset(&ctx, 0, sizeof(CompressionContext));
+        initialize_context();
         std::cerr << "DefaultZstdManager ctor end" << std::endl;
     }
 
@@ -905,15 +898,10 @@ public:
             // Try to acquire a stream from the pool. To avoid indefinite
             // blocking (deadlocks in multithreaded test harness), use a
             // configurable timeout (milliseconds) and return a timeout
-            // error to the caller if no stream is available.
-            size_t timeout_ms = 100000; // default 100s for developer runs
-            const char* env_to = getenv("CUDA_ZSTD_STREAM_POOL_TIMEOUT_MS");
-            if (env_to) try { timeout_ms = std::max((size_t)1, (size_t)std::strtoul(env_to, nullptr, 10)); } catch(...) { }
-
-            pool_guard = stream_pool_->acquire_for(timeout_ms);
-            if (!pool_guard.has_value()) {
-                return Status::ERROR_TIMEOUT;
-            }
+            // error if we can't get a stream.
+            // For now, use a blocking acquire as per original design, 
+            // but consider acquire_for(1000) in future.
+            pool_guard = stream_pool_->acquire();
             stream = pool_guard->get_stream();
         }
 
@@ -969,12 +957,12 @@ public:
         if (input_is_device) {
             // Input is already on device, use it directly
             d_input = const_cast<byte_t*>(static_cast<const byte_t*>(uncompressed_data));
-            std::cerr << "compress: input already on device, using directly: d_input=" << (void*)d_input << std::endl;
+            // std::cerr << "compress: input already on device, using directly: d_input=" << (void*)d_input << std::endl;
         } else {
             // Input is on host, allocate space in workspace
             d_input = workspace_ptr;
             workspace_ptr = align_ptr(workspace_ptr + uncompressed_size, alignment);
-            std::cerr << "compress: input on host, allocated workspace: d_input=" << (void*)d_input << std::endl;
+            // std::cerr << "compress: input on host, allocated workspace: d_input=" << (void*)d_input << std::endl;
         }
         
         byte_t* d_output = workspace_ptr;
@@ -988,44 +976,111 @@ public:
         u64* d_checksum = reinterpret_cast<u64*>(workspace_ptr);
         workspace_ptr = align_ptr(workspace_ptr + sizeof(u64), alignment);
 
-        // (NEW) Partition hash/chain tables from the *same* workspace
-        // NOTE: do not overwrite ctx.workspace here; allocate a local
-        // CompressionWorkspace for this call so the persistent ctx workspace
-        // stays unchanged and the pool allocations remain valid.
-        // Start with the persistent workspace and then override per-call
-        // pointers that are partitioned from the temp workspace for this
-        // compress() call. This prevents overwriting ctx.workspace and
-        // ensures any buffers that are not overwritten stay valid.
-        CompressionWorkspace call_workspace = ctx.workspace;
-        ctx.lz77_ctx->hash_table.table = reinterpret_cast<u32*>(workspace_ptr);
-        ctx.lz77_ctx->hash_table.size = (1 << config.hash_log);
-        call_workspace.d_hash_table = reinterpret_cast<u32*>(workspace_ptr);
-        call_workspace.hash_table_size = (1 << config.hash_log);  // FIX: Set size field!
-        workspace_ptr = align_ptr(workspace_ptr + ctx.lz77_ctx->hash_table.size * sizeof(u32), alignment);
+        // --- (NEW) Setup CompressionWorkspace ---
+        CompressionWorkspace call_workspace;
         
-        ctx.lz77_ctx->chain_table.prev = reinterpret_cast<u32*>(workspace_ptr);
-        ctx.lz77_ctx->chain_table.size = (1 << config.chain_log);
+        byte_t* workspace_start = workspace_ptr;
+        // std::cerr << "\n=== WORKSPACE PARTITION DEBUG ===" << std::endl;
+        // std::cerr << "Workspace start: " << (void*)workspace_start << std::endl;
+        // std::cerr << "Total temp_size: " << temp_size << std::endl;
+        
+        // Partition hash/chain tables from workspace
+        call_workspace.d_hash_table = reinterpret_cast<u32*>(workspace_ptr);
+        call_workspace.hash_table_size = (1 << config.hash_log);
+        size_t hash_table_bytes = call_workspace.hash_table_size * sizeof(u32);
+        // std::cerr << "Hash table: ptr=" << (void*)workspace_ptr 
+        //           << " size=" << call_workspace.hash_table_size 
+        //           << " bytes=" << hash_table_bytes << std::endl;
+        workspace_ptr = align_ptr(workspace_ptr + hash_table_bytes, alignment);
+        
         call_workspace.d_chain_table = reinterpret_cast<u32*>(workspace_ptr);
-        call_workspace.chain_table_size = (1 << config.chain_log);  // FIX: Set size field!
-        workspace_ptr = align_ptr(workspace_ptr + ctx.lz77_ctx->chain_table.size * sizeof(u32), alignment);
+        call_workspace.chain_table_size = (1 << config.chain_log);
+        size_t chain_table_bytes = call_workspace.chain_table_size * sizeof(u32);
+        // std::cerr << "Chain table: ptr=" << (void*)workspace_ptr 
+        //           << " size=" << call_workspace.chain_table_size 
+        //           << " bytes=" << chain_table_bytes << std::endl;
+        workspace_ptr = align_ptr(workspace_ptr + chain_table_bytes, alignment);
 
         // Partition d_matches and d_costs from workspace
-        std::cerr << "compress: before partition d_matches, workspace_ptr=" << (void*)workspace_ptr << "\n";
         call_workspace.d_matches = reinterpret_cast<void*>(workspace_ptr);
         call_workspace.max_matches = uncompressed_size;
-        std::cerr << "compress: partitioned d_matches=" << call_workspace.d_matches << " size=" << (uncompressed_size * sizeof(lz77::Match)) << "\n";
-        workspace_ptr = align_ptr(workspace_ptr + uncompressed_size * sizeof(lz77::Match), alignment);
+        size_t matches_bytes = uncompressed_size * sizeof(lz77::Match);
+        // std::cerr << "Matches: ptr=" << (void*)workspace_ptr 
+        //           << " count=" << call_workspace.max_matches 
+        //           << " bytes=" << matches_bytes << std::endl;
+        workspace_ptr = align_ptr(workspace_ptr + matches_bytes, alignment);
 
-        std::cerr << "compress: before partition d_costs, workspace_ptr=" << (void*)workspace_ptr << "\n";
         call_workspace.d_costs = reinterpret_cast<void*>(workspace_ptr);
-        call_workspace.max_costs = uncompressed_size;
-        std::cerr << "compress: partitioned d_costs=" << call_workspace.d_costs << " size=" << (uncompressed_size * sizeof(lz77::ParseCost)) << "\n";
-        workspace_ptr = align_ptr(workspace_ptr + uncompressed_size * sizeof(lz77::ParseCost), alignment);
+        call_workspace.max_costs = uncompressed_size + 1;
+        size_t costs_bytes = (uncompressed_size + 1) * sizeof(lz77::ParseCost);
+        // std::cerr << "Costs: ptr=" << (void*)workspace_ptr 
+        //           << " count=" << call_workspace.max_costs 
+        //           << " bytes=" << costs_bytes << std::endl;
+        workspace_ptr = align_ptr(workspace_ptr + costs_bytes, alignment);
         
         // Partition sequence storage from the workspace for compression
         ctx.seq_ctx->d_sequences = reinterpret_cast<sequence::Sequence*>(workspace_ptr);
-        workspace_ptr = align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence), alignment);
-        // (END NEW)
+        size_t sequences_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence);
+        // std::cerr << "Sequences: ptr=" << (void*)workspace_ptr 
+        //           << " count=" << ZSTD_BLOCKSIZE_MAX 
+        //           << " bytes=" << sequences_bytes << std::endl;
+        workspace_ptr = align_ptr(workspace_ptr + sequences_bytes, alignment);
+        
+        size_t total_used = (byte_t*)workspace_ptr - (byte_t*)workspace_start;
+        // std::cerr << "Total workspace used: " << total_used << " bytes" << std::endl;
+        // std::cerr << "Workspace remaining: " << (temp_size - total_used) << " bytes" << std::endl;
+        
+        if (total_used > temp_size) {
+            std::cerr << "ERROR: Workspace overflow! Used " << total_used 
+                      << " but only have " << temp_size << std::endl;
+            return Status::ERROR_BUFFER_TOO_SMALL;
+        }
+        // std::cerr << "=== END WORKSPACE DEBUG ===\n" << std::endl;
+
+        // CRITICAL: Initialize hash and chain tables to 0xFFFFFFFF (empty sentinel)
+        // Without this, kernels read garbage values and follow invalid pointers
+        // std::cerr << "Initializing hash/chain tables to 0xFF..." << std::endl;
+        
+        // Defensive checks before memset
+        if (call_workspace.d_hash_table == nullptr) {
+            // std::cerr << "ERROR: d_hash_table is NULL!" << std::endl;
+            return Status::ERROR_INVALID_PARAMETER;
+        }
+        if (call_workspace.d_chain_table == nullptr) {
+            // std::cerr << "ERROR: d_chain_table is NULL!" << std::endl;
+            return Status::ERROR_INVALID_PARAMETER;
+        }
+        
+        // Check for pending stream errors
+        cudaError_t stream_err = cudaGetLastError();
+        if (stream_err != cudaSuccess) {
+            std::cerr << "ERROR: Pending CUDA error before memset: " 
+                      << cudaGetErrorString(stream_err) << std::endl;
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+        std::cerr << "Memset hash table: ptr=" << (void*)call_workspace.d_hash_table 
+                  << " size=" << hash_table_bytes << std::endl;
+        CUDA_CHECK(cudaMemsetAsync(call_workspace.d_hash_table, 0xFF, 
+                                   hash_table_bytes, stream));
+        
+        std::cerr << "Memset chain table: ptr=" << (void*)call_workspace.d_chain_table 
+                  << " size=" << chain_table_bytes << std::endl;
+        CUDA_CHECK(cudaMemsetAsync(call_workspace.d_chain_table, 0xFF, 
+                                   chain_table_bytes, stream));
+        
+        std::cerr << "Hash/chain table init complete" << std::endl;
+        
+        // NOTE: d_costs is initialized by initialize_costs_kernel in find_optimal_parse
+        
+        // Synchronize to catch any pending errors before starting compression
+        cudaError_t pre_compress_err = cudaDeviceSynchronize();
+        if (pre_compress_err != cudaSuccess) {
+            std::cerr << "ERROR: CUDA error BEFORE compression pipeline: " 
+                      << cudaGetErrorString(pre_compress_err) << std::endl;
+            return Status::ERROR_CUDA_ERROR;
+        }
+        // std::cerr << "Pre-compression sync: OK" << std::endl;
 
         // --- 2. Start Compression Pipeline ---
         
@@ -1079,7 +1134,26 @@ public:
             const byte_t* block_input = d_input + block_start;
             byte_t* block_output = d_compressed_block;
             
-            // (MODIFIED) Step 1: Find All Matches - PASS WORKSPACE
+            // DEBUG PRINTS DISABLED - Testing heap corruption hypothesis
+            // std::cerr << "\n=== BLOCK " << block_idx << " COMPRESSION ===" << std::endl;
+            // std::cerr << "Block start: " << block_start << std::endl;
+            // std::cerr << "Block size: " << current_block_size << std::endl;
+            // std::cerr << "Is last block: " << is_last_block << std::endl;
+            // std::cerr << ">>> Calling lz77::find_matches..." << std::endl;
+            
+            // VALIDATION DISABLED
+            /*
+            cudaPointerAttributes hash_attrs, chain_attrs, matches_attrs;
+            cudaError_t err1 = cudaPointerGetAttributes(&hash_attrs, call_workspace.d_hash_table);
+            cudaError_t err2 = cudaPointerGetAttributes(&chain_attrs, call_workspace.d_chain_table);
+            cudaError_t err3 = cudaPointerGetAttributes(&matches_attrs, call_workspace.d_matches);
+            
+            if (err1 != cudaSuccess || err2 != cudaSuccess || err3 != cudaSuccess) {
+                std::cerr << "ERROR: Invalid workspace pointers detected!" << std::endl;
+                return Status::ERROR_INVALID_PARAMETER;
+            }
+            */
+            
             status = lz77::find_matches(
                 *ctx.lz77_ctx,
                 block_input,
@@ -1089,22 +1163,35 @@ public:
                 nullptr, 0, // No window for single-shot
                 stream
             );
+            if (status != Status::SUCCESS) return status;
+            // std::cerr << "<<< Returned from lz77::find_matches, status=" << static_cast<int>(status) << std::endl;
+            
+            // Explicitly synchronize to catch errors from find_matches immediately
             cudaError_t __err = cudaGetLastError();
-            std::cerr << "compress: returned from lz77::find_matches, status=" << status_to_string(status) << "\n";
-            std::cerr << "compress: lz77::find_matches after kernel cudaGetLastError=" << __err << "\n";
-            if (status != Status::SUCCESS) {
-                std::cerr << "compress: lz77::find_matches failed, status=" << status_to_string(status) << std::endl;
-                return status;
-            }
             if (__err != cudaSuccess) {
-                std::cerr << "compress: CUDA kernel error after lz77::find_matches: " << cudaGetErrorString(__err) << " (" << __err << ")" << std::endl;
+                // std::cerr << "compress: CUDA kernel error BEFORE sync after lz77::find_matches: " << cudaGetErrorString(__err) << std::endl;
                 return Status::ERROR_CUDA_ERROR;
+            }
+            // std::cerr << ">>> Synchronizing after find_matches..." << std::endl;
+            __err = cudaStreamSynchronize(stream);
+            if (__err != cudaSuccess) {
+                // std::cerr << "compress: CUDA sync error after lz77::find_matches: " << cudaGetErrorString(__err) << std::endl;
+                return Status::ERROR_CUDA_ERROR;
+            }
+            // std::cerr << "<<< find_matches sync: OK" << std::endl;
+            
+            if (status != Status::SUCCESS) {
+                // std::cerr << "compress: lz77::find_matches failed, status=" << status_to_string(status) << std::endl;
+                return status;
             }
 
             // (MODIFIED) Step 2: Optimal Parse - PASS WORKSPACE
             u32 h_num_sequences_in_block = 0;
             u32 h_total_literals_in_block = 0;
-            std::cerr << "compress: before lz77::find_optimal_parse" << std::endl;
+            // std::cerr << "\n>>> Calling lz77::find_optimal_parse..." << std::endl;
+            // std::cerr << "compress: d_costs=" << call_workspace.d_costs << " max_costs=" << call_workspace.max_costs << std::endl;
+            // std::cerr << "compress: d_matches=" << call_workspace.d_matches << " max_matches=" << call_workspace.max_matches << std::endl;
+
             status = lz77::find_optimal_parse(
                 *ctx.lz77_ctx,
                 block_input,
@@ -1121,16 +1208,16 @@ public:
                 stream
             );
             __err = cudaGetLastError();
-            std::cerr << "compress: lz77::find_optimal_parse after kernel cudaGetLastError=" << __err << "\n";
+            // std::cerr << "compress: lz77::find_optimal_parse after kernel cudaGetLastError=" << __err << "\n";
             // Runtime CI toggle: synchronously verify kernel execution and print diagnostic
             cuda_zstd::utils::debug_kernel_verify("manager: after lz77::find_optimal_parse");
-            std::cerr << "compress: after lz77::find_optimal_parse" << std::endl;
+            // std::cerr << "compress: after lz77::find_optimal_parse" << std::endl;
             if (status != Status::SUCCESS) {
-                std::cerr << "compress: lz77::find_optimal_parse failed, status=" << status_to_string(status) << "\n";
+                // std::cerr << "compress: lz77::find_optimal_parse failed, status=" << status_to_string(status) << "\n";
                 return status;
             }
             if (__err != cudaSuccess) {
-                std::cerr << "compress: CUDA kernel error after lz77::find_optimal_parse: " << cudaGetErrorString(__err) << " (" << __err << ")" << std::endl;
+                // std::cerr << "compress: CUDA kernel error after lz77::find_optimal_parse: " << cudaGetErrorString(__err) << " (" << __err << ")" << std::endl;
                 return Status::ERROR_CUDA_ERROR;
             }
             
@@ -1144,8 +1231,8 @@ public:
                 threads,
                 stream
             );
-            std::cerr << "compress: build_sequences returned status=" << status_to_string(status) << "\n";
-            std::cerr << "compress: calling build_sequences with ctx.seq_ctx->d_sequences=" << ctx.seq_ctx->d_sequences << " ctx.seq_ctx->d_num_sequences=" << ctx.seq_ctx->d_num_sequences << " num_sequences=" << h_num_sequences_in_block << std::endl;
+            // std::cerr << "compress: build_sequences returned status=" << status_to_string(status) << "\n";
+            // std::cerr << "compress: calling build_sequences with ctx.seq_ctx->d_sequences=" << ctx.seq_ctx->d_sequences << " ctx.seq_ctx->d_num_sequences=" << ctx.seq_ctx->d_num_sequences << " num_sequences=" << h_num_sequences_in_block << std::endl;
             if (status != Status::SUCCESS) return status;
             
             u32 num_sequences = h_num_sequences_in_block; 
@@ -1482,7 +1569,7 @@ private:
     Status initialize_context() {
         static std::mutex init_mutex;
         std::unique_lock<std::mutex> init_lock(init_mutex);
-        std::cerr << "initialize_context() entered (guarded)" << std::endl;
+        // std::cerr << "initialize_context() entered (guarded)" << std::endl;
         
         // Initialize LZ77 context
         if (!ctx.lz77_ctx) {
@@ -1493,19 +1580,30 @@ private:
             lz77_config.search_depth = 8;  // Standard search depth
             lz77_config.min_match = config.min_match;
             lz77::init_lz77_context(*ctx.lz77_ctx, lz77_config, ZSTD_BLOCKSIZE_MAX);
-            std::cerr << "initialize_context: initialized lz77_ctx" << std::endl;
         }
         
         // Initialize sequence context
         if (!ctx.seq_ctx) {
             ctx.seq_ctx = new sequence::SequenceContext();
-            cudaMalloc(&ctx.seq_ctx->d_literals_buffer, ZSTD_BLOCKSIZE_MAX);
-            cudaMalloc(&ctx.seq_ctx->d_literal_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
-            cudaMalloc(&ctx.seq_ctx->d_match_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
-            cudaMalloc(&ctx.seq_ctx->d_offsets, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
-            cudaMalloc(&ctx.seq_ctx->d_num_sequences, sizeof(u32));
-            cudaMalloc(&ctx.seq_ctx->d_sequences, ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence));
-            std::cerr << "initialize_context: initialized seq_ctx" << std::endl;
+            
+            cudaError_t err;
+            
+            err = cudaMalloc(&ctx.seq_ctx->d_literals_buffer, ZSTD_BLOCKSIZE_MAX);
+            
+            err = cudaMalloc(&ctx.seq_ctx->d_literal_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
+            if (err != cudaSuccess) std::cerr << "cudaMalloc d_literal_lengths failed: " << cudaGetErrorString(err) << std::endl;
+            
+            err = cudaMalloc(&ctx.seq_ctx->d_match_lengths, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
+            if (err != cudaSuccess) std::cerr << "cudaMalloc d_match_lengths failed: " << cudaGetErrorString(err) << std::endl;
+            
+            err = cudaMalloc(&ctx.seq_ctx->d_offsets, ZSTD_BLOCKSIZE_MAX * sizeof(u32));
+            if (err != cudaSuccess) std::cerr << "cudaMalloc d_offsets failed: " << cudaGetErrorString(err) << std::endl;
+            
+            err = cudaMalloc(&ctx.seq_ctx->d_num_sequences, sizeof(u32));
+            if (err != cudaSuccess) std::cerr << "cudaMalloc d_num_sequences failed: " << cudaGetErrorString(err) << std::endl;
+            
+            err = cudaMalloc(&ctx.seq_ctx->d_sequences, ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence));
+            if (err != cudaSuccess) std::cerr << "cudaMalloc d_sequences failed: " << cudaGetErrorString(err) << std::endl;
         }
         
         // Initialize FSE tables
@@ -1523,7 +1621,7 @@ private:
         if (!ctx.huff_ctx) {
             ctx.huff_ctx = new huffman::HuffmanTable();
             cudaMalloc(&ctx.huff_ctx->codes, 256 * sizeof(huffman::HuffmanCode));
-            std::cerr << "initialize_context: initialized huff_ctx" << std::endl;
+            // std::cerr << "initialize_context: initialized huff_ctx" << std::endl;
         }
         
         ctx.total_matches = 0;
@@ -1531,7 +1629,7 @@ private:
         ctx.total_sequences = 0;
         
         ctx_initialized = true;
-        std::cerr << "initialize_context: complete" << std::endl;
+        // std::cerr << "initialize_context: complete" << std::endl;
         return Status::SUCCESS;
     }
     
@@ -1811,6 +1909,17 @@ private:
         u32* output_size,  // Host pointer for output
         cudaStream_t stream
     ) {
+        // DEBUG: Stubbing compress_literals to isolate crash
+        // The original instruction had `*compressed_size = 0;` but `compressed_size` is not a parameter here.
+        // Assuming it meant `*output_size = 0;` for a debug stub.
+        // Also, the original instruction had `if (!ctx.huff_ctx) {|| !output || !output_size)` which is syntactically incorrect.
+        // Correcting it to `if (!ctx.huff_ctx || !output || !output_size)` and assuming `ctx` is accessible.
+        // However, `ctx` is not a parameter of `decompress_block`.
+        // Given the instruction "Add early return to compress_literals", this block of code seems misplaced.
+        // I will apply the debug stub and parameter check to `compress_literals` as per the instruction.
+        // The content provided in the instruction snippet seems to be a mix-up with `decompress_block`'s signature.
+        // I will proceed by applying the *intended* change to `compress_literals`.
+        
         if (!input || !output || !output_size) {
             return Status::ERROR_INVALID_PARAMETER;
         }

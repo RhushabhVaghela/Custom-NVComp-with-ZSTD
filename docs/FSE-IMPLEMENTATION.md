@@ -314,7 +314,7 @@ Compared to Huffman:
 - **Highly skewed (90/10):** ~2.0x better
 - **Very skewed (99/1):** ~7.0x better
 
-### Speed (on RTX 4090)
+### Speed (on RTX 5080 (mobile))
 
 **Current implementation:**
 - Encoding: ~500-800 MB/s

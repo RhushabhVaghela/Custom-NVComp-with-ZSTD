@@ -115,13 +115,13 @@ CompressionConfig CompressionConfig::from_level(int level) {
         config.strategy = Strategy::FAST;
         config.window_log = 18;
         config.hash_log = 15;
-        config.chain_log = 0;
+        config.chain_log = 15;  // FIX: Use hash_log instead of 0 to prevent OOB
         config.search_log = 1;
     } else if (level <= 3) {
         config.strategy = Strategy::DFAST;
         config.window_log = 19;
         config.hash_log = 17;
-        config.chain_log = 0;
+        config.chain_log = 17;  // FIX: Use hash_log instead of 0 to prevent OOB
         config.search_log = 1;
     } else if (level <= 6) {
         config.strategy = Strategy::GREEDY;

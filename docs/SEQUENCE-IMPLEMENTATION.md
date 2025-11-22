@@ -386,7 +386,7 @@ printf("Repeat offset 1 used: %u times\n",
 
 ## 📈 Expected Performance
 
-### Execution Speed (on RTX 4090)
+### Execution Speed (on RTX 5080 (mobile))
 
 **Current implementation:**
 - **Sequential execution:** ~1-2 GB/s

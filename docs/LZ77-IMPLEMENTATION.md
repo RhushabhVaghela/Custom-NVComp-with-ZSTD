@@ -368,7 +368,7 @@ For each match (in parallel):
 
 ## 📈 Expected Performance
 
-### Match Finding Speed (on RTX 4090)
+### Match Finding Speed (on RTX 5080 (mobile))
 
 **Current implementation:**
 - **Hash building:** ~5-8 GB/s

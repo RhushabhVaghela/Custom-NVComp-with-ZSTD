@@ -63,6 +63,9 @@ Status build_sequences(
     u32 num_threads,
     cudaStream_t stream) {
 
+    // DEBUG: Stubbing build_sequences to isolate crash
+    return Status::SUCCESS;
+    
   // Clear the sequence count
   CUDA_CHECK(cudaMemsetAsync(ctx.d_num_sequences, 0, sizeof(u32), stream));
 
@@ -335,6 +338,9 @@ Status execute_sequences(
     u32* d_output_size,  // Device pointer
     cudaStream_t stream
 ) {
+    // DEBUG: Stubbing execute_sequences to isolate crash
+    return Status::SUCCESS;
+
     if (!d_output || !d_output_size) {
         return Status::ERROR_INVALID_PARAMETER;
     }

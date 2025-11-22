@@ -359,7 +359,7 @@ u64 hash = finalize(state);
 
 ## 📈 Expected Performance
 
-### Hashing Speed (on RTX 4090)
+### Hashing Speed (on RTX 5080 (mobile))
 
 **Current implementation:**
 - **Single stream:** ~15-20 GB/s

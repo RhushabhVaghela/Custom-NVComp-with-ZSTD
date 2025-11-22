@@ -396,7 +396,7 @@ Result: "the cat sat on the mat"
 
 **Sweet spot:** 500 bytes - 5 KB files
 
-### Training Speed (on RTX 4090)
+### Training Speed (on RTX 5080 (mobile))
 
 **Sample data: 1000 × 1KB files = 1MB total**
 
@@ -409,7 +409,7 @@ Result: "the cat sat on the mat"
 
 **One-time cost:** Train once, use forever (for that data type).
 
-### Compression Speed (on RTX 4090)
+### Compression Speed (on RTX 5080 (mobile))
 
 **With trained dictionary:**
 - **Compression:** ~600-900 MB/s

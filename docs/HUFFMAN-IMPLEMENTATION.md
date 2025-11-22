@@ -385,7 +385,7 @@ Compared to fixed-length encoding:
 - **Highly skewed (90/10):** ~3-5x better
 - **Binary protocol data:** ~2-3x better
 
-### Speed (on RTX 4090)
+### Speed (on RTX 5080 (mobile))
 
 **Current implementation:**
 - Encoding: ~800-1200 MB/s
