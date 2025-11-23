@@ -101,10 +101,6 @@ __global__ void build_hash_chains_kernel(
     const u32 TILE_SIZE = 2048;
     const u32 MAX_UPDATES = 512;
     
-    // PROGRESSIVE RE-ENABLE: Step 1 - Empty kernel (return immediately)
-    // If this works, kernel launch mechanism is fine, issue is in kernel body
-    return;
-    
     // Phase 1: Process dictionary content (if present)
     if (dict && dict->d_buffer) {
         u32 dict_tiles = (dict->size + TILE_SIZE - 1) / TILE_SIZE;
@@ -1108,11 +1104,6 @@ Status find_optimal_parse(
     lz77_ctx.d_match_lengths_reverse = workspace->d_match_lengths_reverse;
     lz77_ctx.d_offsets_reverse = workspace->d_offsets_reverse;
     lz77_ctx.max_sequences_capacity = workspace->max_sequences;
-    
-    // DEBUG: Stubbing find_optimal_parse to isolate crash
-    *h_num_sequences = 0;
-    *h_total_literals_count = input_size; // Assume all literals if no matches
-    return Status::SUCCESS;
     
     // ===== PHASE 1: Run DP to generate costs (PARALLELIZED) - NO ALLOCATION =====
     

@@ -11,7 +11,7 @@
 namespace cuda_zstd {
 
 StreamPool::StreamPool(size_t pool_size) {
-    std::cerr << "StreamPool ctor() pool_size=" << pool_size << std::endl;
+    // std::cerr << "StreamPool ctor() pool_size=" << pool_size << std::endl;
     if (pool_size == 0) pool_size = 1;
 
     resources_.resize(pool_size);
@@ -21,13 +21,13 @@ StreamPool::StreamPool(size_t pool_size) {
     for (size_t i = 0; i < pool_size; ++i) {
         PerStreamResources& r = resources_[i];
         
-        if (debug) std::cerr << "StreamPool: creating stream " << i << " of " << pool_size << std::endl;
+        // if (debug) std::cerr << "StreamPool: creating stream " << i << " of " << pool_size << std::endl;
         cudaError_t err = cudaStreamCreate(&r.stream);
-        std::cerr << "StreamPool: created stream index=" << i << ", err=" << (int)err << std::endl;
+        // std::cerr << "StreamPool: created stream index=" << i << ", err=" << (int)err << std::endl;
         
         if (err != cudaSuccess) {
             // Cleanup any resources created so far
-            std::cerr << "StreamPool: cudaStreamCreate failed at " << i << " -> " << err << std::endl;
+            // std::cerr << "StreamPool: cudaStreamCreate failed at " << i << " -> " << err << std::endl;
             for (size_t j = 0; j < i; ++j) {
                 cudaStreamDestroy(resources_[j].stream);
             }
@@ -35,12 +35,12 @@ StreamPool::StreamPool(size_t pool_size) {
         }
 
         free_idx_.push((int)i);
-        if (debug) std::cerr << "StreamPool: pushed free index " << i << std::endl;
+        // if (debug) std::cerr << "StreamPool: pushed free index " << i << std::endl;
     }
 }
 
 StreamPool::~StreamPool() {
-    std::cerr << "StreamPool dtor" << std::endl;
+    // std::cerr << "StreamPool dtor" << std::endl;
     std::unique_lock<std::mutex> lock(mtx_);
     while (!free_idx_.empty()) free_idx_.pop();
     
@@ -52,7 +52,7 @@ StreamPool::~StreamPool() {
     
     if (!cuda_initialized) {
         // CUDA context is already torn down, skip cleanup to avoid errors
-        std::cerr << "StreamPool dtor: CUDA already deinitialized, skipping cleanup" << std::endl;
+        // std::cerr << "StreamPool dtor: CUDA already deinitialized, skipping cleanup" << std::endl;
         return;
     }
     
@@ -62,11 +62,11 @@ StreamPool::~StreamPool() {
             // Ensure stream has completed any work before destroying.
             cudaError_t sync_err = cudaStreamSynchronize(r.stream);
             if (sync_err != cudaSuccess && sync_err != cudaErrorCudartUnloading) {
-                std::cerr << "StreamPool::~StreamPool: cudaStreamSynchronize failed -> " << sync_err << std::endl;
+                // std::cerr << "StreamPool::~StreamPool: cudaStreamSynchronize failed -> " << sync_err << std::endl;
             }
             cudaError_t destroy_err = cudaStreamDestroy(r.stream);
             if (destroy_err != cudaSuccess && destroy_err != cudaErrorCudartUnloading) {
-                std::cerr << "StreamPool::~StreamPool: cudaStreamDestroy failed -> " << destroy_err << std::endl;
+                // std::cerr << "StreamPool::~StreamPool: cudaStreamDestroy failed -> " << destroy_err << std::endl;
             }
             r.stream = 0;
         }
@@ -149,9 +149,9 @@ namespace {
 }
 
 cuda_zstd::StreamPool* cuda_zstd::get_global_stream_pool(size_t default_size) {
-    std::cerr << "get_global_stream_pool called. default_size=" << default_size << std::endl;
+    // std::cerr << "get_global_stream_pool called. default_size=" << default_size << std::endl;
     std::call_once(g_stream_pool_once_flag, [&](){
-        std::cerr << "get_global_stream_pool: initializing pool..." << std::endl;
+        // std::cerr << "get_global_stream_pool: initializing pool..." << std::endl;
         if (!g_stream_pool) {
             const char* env_pool = getenv("CUDA_ZSTD_STREAM_POOL_SIZE");
             size_t size = default_size;
@@ -164,7 +164,7 @@ cuda_zstd::StreamPool* cuda_zstd::get_global_stream_pool(size_t default_size) {
                 // If allocation fails, keep g_stream_pool null.
                 g_stream_pool.reset();
             }
-            std::cerr << "get_global_stream_pool: init complete" << std::endl;
+            // std::cerr << "get_global_stream_pool: init complete" << std::endl;
         }
     });
     return g_stream_pool.get();

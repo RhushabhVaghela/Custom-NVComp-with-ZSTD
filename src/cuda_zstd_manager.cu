@@ -635,10 +635,10 @@ public:
           has_dictionary(false), 
           ctx_initialized(false) 
     {
-        std::cerr << "DefaultZstdManager ctor start" << std::endl;
+        // std::cerr << "DefaultZstdManager ctor start" << std::endl;
         // Initialize stream pool
         stream_pool_ = get_global_stream_pool(1); // Try with 1 stream
-        std::cerr << "DefaultZstdManager ctor after get_global_stream_pool(1)" << std::endl;
+        // std::cerr << "DefaultZstdManager ctor after get_global_stream_pool(1)" << std::endl;
         d_checksum_buffer = nullptr;
         config.min_match = 3;
         config.strategy = Strategy::GREEDY;
@@ -646,7 +646,7 @@ public:
         reset_stats();
         memset(&ctx, 0, sizeof(CompressionContext));
         initialize_context();
-        std::cerr << "DefaultZstdManager ctor end" << std::endl;
+        // std::cerr << "DefaultZstdManager ctor end" << std::endl;
     }
 
     void cleanup_context() {
@@ -761,13 +761,12 @@ public:
         total += align_to_boundary(chain_table_size, GPU_MEMORY_ALIGNMENT);
 
         // 5. Matches and costs buffers - CRITICAL FIX
-        // These are allocated per BLOCK, not per full input
-        // Use the smaller of input_size and BLOCKSIZE_MAX
-        size_t block_size = std::min((size_t)ZSTD_BLOCKSIZE_MAX, input_size);
-        size_t matches_size = block_size * sizeof(lz77::Match);
+        // These must be sized for the FULL input, not just one block,
+        // because find_optimal_parse processes the entire input at once
+        size_t matches_size = input_size * sizeof(lz77::Match);
         total += align_to_boundary(matches_size, GPU_MEMORY_ALIGNMENT);
         
-        size_t costs_size = block_size * sizeof(lz77::ParseCost);
+        size_t costs_size = (input_size + 1) * sizeof(lz77::ParseCost);
         total += align_to_boundary(costs_size, GPU_MEMORY_ALIGNMENT);
 
         // 6. Sequence storage (device)
@@ -1031,8 +1030,8 @@ public:
         // std::cerr << "Workspace remaining: " << (temp_size - total_used) << " bytes" << std::endl;
         
         if (total_used > temp_size) {
-            std::cerr << "ERROR: Workspace overflow! Used " << total_used 
-                      << " but only have " << temp_size << std::endl;
+            // std::cerr << "ERROR: Workspace overflow! Used " << total_used 
+            //           << " but only have " << temp_size << std::endl;
             return Status::ERROR_BUFFER_TOO_SMALL;
         }
         // std::cerr << "=== END WORKSPACE DEBUG ===\n" << std::endl;
@@ -1054,30 +1053,30 @@ public:
         // Check for pending stream errors
         cudaError_t stream_err = cudaGetLastError();
         if (stream_err != cudaSuccess) {
-            std::cerr << "ERROR: Pending CUDA error before memset: " 
-                      << cudaGetErrorString(stream_err) << std::endl;
+            // std::cerr << "ERROR: Pending CUDA error before memset: " 
+            //           << cudaGetErrorString(stream_err) << std::endl;
             return Status::ERROR_CUDA_ERROR;
         }
         
-        std::cerr << "Memset hash table: ptr=" << (void*)call_workspace.d_hash_table 
-                  << " size=" << hash_table_bytes << std::endl;
+        // std::cerr << "Memset hash table: ptr=" << (void*)call_workspace.d_hash_table 
+        //           << " size=" << hash_table_bytes << std::endl;
         CUDA_CHECK(cudaMemsetAsync(call_workspace.d_hash_table, 0xFF, 
                                    hash_table_bytes, stream));
         
-        std::cerr << "Memset chain table: ptr=" << (void*)call_workspace.d_chain_table 
-                  << " size=" << chain_table_bytes << std::endl;
+        // std::cerr << "Memset chain table: ptr=" << (void*)call_workspace.d_chain_table 
+        //           << " size=" << chain_table_bytes << std::endl;
         CUDA_CHECK(cudaMemsetAsync(call_workspace.d_chain_table, 0xFF, 
                                    chain_table_bytes, stream));
         
-        std::cerr << "Hash/chain table init complete" << std::endl;
+        // std::cerr << "Hash/chain table init complete" << std::endl;
         
         // NOTE: d_costs is initialized by initialize_costs_kernel in find_optimal_parse
         
         // Synchronize to catch any pending errors before starting compression
         cudaError_t pre_compress_err = cudaDeviceSynchronize();
         if (pre_compress_err != cudaSuccess) {
-            std::cerr << "ERROR: CUDA error BEFORE compression pipeline: " 
-                      << cudaGetErrorString(pre_compress_err) << std::endl;
+            // std::cerr << "ERROR: CUDA error BEFORE compression pipeline: " 
+            //           << cudaGetErrorString(pre_compress_err) << std::endl;
             return Status::ERROR_CUDA_ERROR;
         }
         // std::cerr << "Pre-compression sync: OK" << std::endl;

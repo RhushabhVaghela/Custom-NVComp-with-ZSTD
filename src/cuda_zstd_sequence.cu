@@ -63,9 +63,6 @@ Status build_sequences(
     u32 num_threads,
     cudaStream_t stream) {
 
-    // DEBUG: Stubbing build_sequences to isolate crash
-    return Status::SUCCESS;
-    
   // Clear the sequence count
   CUDA_CHECK(cudaMemsetAsync(ctx.d_num_sequences, 0, sizeof(u32), stream));
 
