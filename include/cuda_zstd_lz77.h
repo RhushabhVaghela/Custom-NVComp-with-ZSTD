@@ -153,22 +153,21 @@ Status get_matches(
  * Accepts workspace and optional window buffer.
  */
 Status find_optimal_parse(
-    LZ77Context& lz77_ctx,
+    LZ77Context& ctx,
     const byte_t* d_input,
     size_t input_size,
     const DictionaryContent* dict,
-    CompressionWorkspace* workspace,  // (NEW) Workspace for temp allocations
-    const byte_t* d_window = nullptr, // History buffer
-    size_t window_size = 0,           // Size of history
-    // Output buffers from SequenceContext
-    byte_t* d_literals_buffer = nullptr,
-    u32* d_literal_lengths = nullptr,
-    u32* d_match_lengths = nullptr,
-    u32* d_offsets = nullptr,
-    u32* h_num_sequences = nullptr,
-    u32* h_total_literals_count = nullptr,
-    cudaStream_t stream = 0
+    CompressionWorkspace* workspace,
+    const byte_t* d_window = nullptr,
+    size_t window_size = 0,
+    cudaStream_t stream = 0,
+    cuda_zstd::sequence::SequenceContext* seq_ctx = nullptr,
+    u32* num_sequences_out = nullptr,
+    u32* total_literals_out = nullptr,
+    bool output_raw_values = false
 );
+
+void test_linkage();
 
 // ============================================================================
 // LZ77 Device Functions

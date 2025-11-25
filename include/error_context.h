@@ -29,21 +29,22 @@ struct ErrorContext {
 
 // Global error handling
 namespace error_handling {
-    extern std::mutex error_mutex;
+    // CRITICAL FIX: Use accessor function instead of extern to enable lazy initialization
+    std::mutex& get_error_mutex();
     extern ErrorContext last_error;
 
     inline void set_last_error(const ErrorContext& ctx) {
-        std::lock_guard<std::mutex> lock(error_mutex);
+        std::lock_guard<std::mutex> lock(get_error_mutex());
         last_error = ctx;
     }
 
     inline ErrorContext get_last_error() {
-        std::lock_guard<std::mutex> lock(error_mutex);
+        std::lock_guard<std::mutex> lock(get_error_mutex());
         return last_error;
     }
 
     inline void clear_last_error() {
-        std::lock_guard<std::mutex> lock(error_mutex);
+        std::lock_guard<std::mutex> lock(get_error_mutex());
         last_error = ErrorContext();
     }
 

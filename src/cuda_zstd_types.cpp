@@ -21,7 +21,16 @@ namespace cuda_zstd {
 
 static ErrorCallback g_error_callback = nullptr;
 static ErrorContext g_last_error;
-static std::mutex g_error_mutex;
+// CRITICAL FIX: Use pointer to avoid static initialization heap corruption
+static std::mutex* g_error_mutex = nullptr;
+
+// Helper to get or create mutex (lazy initialization)
+static std::mutex& get_error_mutex() {
+    if (!g_error_mutex) {
+        g_error_mutex = new std::mutex();
+    }
+    return *g_error_mutex;
+}
 
 const char* status_to_string(Status status) {
     switch (status) {
@@ -77,13 +86,29 @@ const char* get_detailed_error_message(const ErrorContext& ctx) {
 }
 
 void set_error_callback(ErrorCallback callback) {
-    std::lock_guard<std::mutex> lock(g_error_mutex);
+    std::lock_guard<std::mutex> lock(get_error_mutex());
     g_error_callback = callback;
 }
 
 void log_error(const ErrorContext& ctx) {
-    std::lock_guard<std::mutex> lock(g_error_mutex);
+    std::lock_guard<std::mutex> lock(get_error_mutex());
     g_last_error = ctx;
+    
+    // Print to stderr for debugging
+    std::cerr << "[ERROR] " << status_to_string(ctx.status);
+    if (ctx.file) {
+        std::cerr << " at " << ctx.file << ":" << ctx.line;
+    }
+    if (ctx.function) {
+        std::cerr << " in " << ctx.function << "()";
+    }
+    if (ctx.message) {
+        std::cerr << ": " << ctx.message;
+    }
+    if (ctx.cuda_error != cudaSuccess) {
+        std::cerr << " (CUDA: " << cudaGetErrorString(ctx.cuda_error) << ")";
+    }
+    std::cerr << std::endl;
     
     if (g_error_callback) {
         g_error_callback(ctx);
@@ -91,12 +116,12 @@ void log_error(const ErrorContext& ctx) {
 }
 
 ErrorContext get_last_error() {
-    std::lock_guard<std::mutex> lock(g_error_mutex);
+    std::lock_guard<std::mutex> lock(get_error_mutex());
     return g_last_error;
 }
 
 void clear_last_error() {
-    std::lock_guard<std::mutex> lock(g_error_mutex);
+    std::lock_guard<std::mutex> lock(get_error_mutex());
     g_last_error = ErrorContext();
 }
 

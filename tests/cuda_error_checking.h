@@ -244,17 +244,14 @@ bool check_cuda_device(int device_id = 0) {
 // printing or exiting. Tests should use this to decide to skip device
 // specific checks on CPU-only environments.
 // --------------------------------------------------------------------------
-bool has_cuda_device(int device_id = 0) {
+inline bool has_cuda_device() {
     int device_count = 0;
-    cudaError_t err = cudaGetDeviceCount(&device_count);
-    if (err != cudaSuccess || device_count == 0) {
+    cudaError_t error = cudaGetDeviceCount(&device_count);
+    if (error != cudaSuccess) {
+        printf("has_cuda_device: cudaGetDeviceCount failed with error %d: %s\n", (int)error, cudaGetErrorString(error));
         return false;
     }
-    if (device_id >= device_count) return false;
-
-    // Do not print, just attempt to set device and return success/failure.
-    err = cudaSetDevice(device_id);
-    return (err == cudaSuccess);
+    return device_count > 0;
 }
 
 // --------------------------------------------------------------------------

@@ -64,6 +64,11 @@ struct SequenceContext {
     u32 max_literals = 0;
     u32 num_sequences = 0;
     u32 num_literals = 0;
+    
+    // Flag to indicate if offsets are raw (Tier 4) or FSE-encoded (Tier 1)
+    // true = Tier 4 raw u32 offsets (no +3 bias)
+    // false = Tier 1 FSE offsets (have +3 bias, need get_actual_offset decoding)
+    bool is_raw_offsets = false;
 };
 
 // ============================================================================
@@ -85,6 +90,9 @@ Status build_sequences(
 /**
  * @brief Executes the sequences to reconstruct the output data.
  * This function orchestrates the multi-pass parallel decompression.
+ * 
+ * @param is_raw_offsets If true, offsets are raw Tier 4 values (no bias).
+ *                        If false, offsets are FSE-encoded with +3 bias.
  */
 Status execute_sequences(
     const byte_t* d_literals,
@@ -93,6 +101,7 @@ Status execute_sequences(
     u32 num_sequences,
     byte_t* d_output,
     u32* d_output_size, // Device pointer to total output size
+    bool is_raw_offsets = false,
     cudaStream_t stream = 0
 );
 

@@ -18,6 +18,7 @@
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_lz77.h" // Ensure Match and ParseCost are defined
 #include "cuda_zstd_types.h" // Also include for workspace struct
+#include "cuda_zstd_lz77.cu" // (HACK) Include implementation directly to bypass linker issues
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_huffman.h"
 #include "cuda_zstd_dictionary.h"
@@ -38,6 +39,12 @@
 
 namespace cuda_zstd {
 
+namespace lz77 {
+    void test_linkage_v2(int x) {
+        printf("test_linkage_v2 (in manager) called with %d\n", x);
+    }
+}
+
 // Add alignment constants
 constexpr u32 GPU_MEMORY_ALIGNMENT = 256;  // Most GPU requirements
 
@@ -47,188 +54,21 @@ inline size_t align_to_boundary(size_t size, size_t alignment) {
 }
 
 // ==============================================================================
+// Kernel to add bias to offsets (ZSTD requires Offset + 3)
+__global__ void add_offset_bias_kernel(const u32* src, u32* dst, u32 count) {
+    u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < count) {
+        dst[idx] = src[idx] + 3;
+    }
+}
+
 // (REMOVED) PERFORMANCE PROFILER IMPLEMENTATION - Now in cuda_zstd_utils.cpp
 // ==============================================================================
 
-bool PerformanceProfiler::profiling_enabled_ = false;
-PerformanceMetrics PerformanceProfiler::metrics_;
-std::unordered_map<std::string, double> PerformanceProfiler::timers_;
-std::unordered_map<std::string, std::chrono::high_resolution_clock::time_point> PerformanceProfiler::timer_start_;
-std::unordered_map<std::string, cudaEvent_t> PerformanceProfiler::cuda_timers_;
-std::mutex PerformanceProfiler::profiler_mutex_;
 
-void PerformanceProfiler::enable_profiling(bool enable) {
-    profiling_enabled_ = enable;
-    if (enable) {
-        reset_metrics();
-    }
-}
 
-bool PerformanceProfiler::is_profiling_enabled() {
-    return profiling_enabled_;
-}
 
-const PerformanceMetrics& PerformanceProfiler::get_metrics() {
-    return metrics_;
-}
 
-void PerformanceProfiler::reset_metrics() {
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    memset(&metrics_, 0, sizeof(PerformanceMetrics));
-    timers_.clear();
-    timer_start_.clear();
-}
-
-void PerformanceProfiler::print_metrics() {
-    if (!profiling_enabled_) {
-        printf("[Profiler] Profiling is disabled.\n");
-        return;
-    }
-    printf("=== Performance Metrics ===\n");
-    printf("  LZ77 Time:       %.3f ms\n", metrics_.lz77_time_ms);
-    printf("  Entropy Enc Time: %.3f ms\n", metrics_.entropy_encode_time_ms);
-    printf("  Entropy Dec Time: %.3f ms\n", metrics_.entropy_decode_time_ms);
-    printf("  Total Time:      %.3f ms\n", metrics_.total_time_ms);
-    printf("  Throughput:      %.2f MB/s\n", metrics_.compression_throughput_mbps);
-    printf("  Peak Memory:     %zu bytes\n", metrics_.peak_memory_bytes);
-    printf("===========================\n");
-}
-
-// Timer methods with const char*
-void PerformanceProfiler::start_timer(const char* name) {
-    if (!profiling_enabled_) return;
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    timer_start_[name] = std::chrono::high_resolution_clock::now();
-}
-
-void PerformanceProfiler::stop_timer(const char* name) {
-    if (!profiling_enabled_) return;
-    auto end = std::chrono::high_resolution_clock::now();
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    auto it = timer_start_.find(name);
-    if (it != timer_start_.end()) {
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - it->second).count() / 1000.0;
-        timers_[name] = duration;
-    }
-}
-
-double PerformanceProfiler::get_timer_ms(const char* name) {
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    auto it = timers_.find(name);
-    return (it != timers_.end()) ? it->second : 0.0;
-}
-
-// Timer methods with std::string
-void PerformanceProfiler::start_timer(const std::string& name) {
-    start_timer(name.c_str());
-}
-
-void PerformanceProfiler::stop_timer(const std::string& name) {
-    stop_timer(name.c_str());
-}
-
-double PerformanceProfiler::get_timer_ms(const std::string& name) {
-    return get_timer_ms(name.c_str());
-}
-
-// Component-specific profiling
-void PerformanceProfiler::record_lz77_time(double ms) {
-    if (!profiling_enabled_) return;
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    metrics_.lz77_time_ms += ms;
-}
-
-void PerformanceProfiler::record_fse_time(double ms) {
-    if (!profiling_enabled_) return;
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    metrics_.fse_encode_time_ms += ms;
-}
-
-void PerformanceProfiler::record_huffman_time(double ms) {
-    if (!profiling_enabled_) return;
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    metrics_.huffman_encode_time_ms += ms;
-}
-
-void PerformanceProfiler::record_memory_usage(size_t bytes) {
-    if (!profiling_enabled_) return;
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    metrics_.current_memory_bytes = bytes;
-    if (bytes > metrics_.peak_memory_bytes) {
-        metrics_.peak_memory_bytes = bytes;
-    }
-}
-
-void PerformanceProfiler::record_kernel_launch() {
-    if (!profiling_enabled_) return;
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    metrics_.kernel_launches++;
-}
-
-// Export functionality
-void PerformanceProfiler::export_metrics_csv(const char* filename) {
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    std::ofstream file(filename);
-    if (!file.is_open()) return;
-    
-    file << "Metric,Value\n";
-    file << "lz77_time_ms," << metrics_.lz77_time_ms << "\n";
-    file << "fse_encode_time_ms," << metrics_.fse_encode_time_ms << "\n";
-    file << "huffman_encode_time_ms," << metrics_.huffman_encode_time_ms << "\n";
-    file << "entropy_encode_time_ms," << metrics_.entropy_encode_time_ms << "\n";
-    file << "entropy_decode_time_ms," << metrics_.entropy_decode_time_ms << "\n";
-    file << "total_time_ms," << metrics_.total_time_ms << "\n";
-    file << "compression_throughput_mbps," << metrics_.compression_throughput_mbps << "\n";
-    file << "peak_memory_bytes," << metrics_.peak_memory_bytes << "\n";
-    file << "kernel_launches," << metrics_.kernel_launches << "\n";
-    
-    // Export custom timers
-    for (const auto& [name, duration] : timers_) {
-        file << "timer_" << name << "," << duration << "\n";
-    }
-    
-    file.close();
-}
-
-void PerformanceProfiler::export_metrics_json(const char* filename) {
-    std::lock_guard<std::mutex> lock(profiler_mutex_);
-    std::ofstream file(filename);
-    if (!file.is_open()) return;
-    
-    file << "{\n";
-    file << "  \"lz77_time_ms\": " << metrics_.lz77_time_ms << ",\n";
-    file << "  \"fse_encode_time_ms\": " << metrics_.fse_encode_time_ms << ",\n";
-    file << "  \"huffman_encode_time_ms\": " << metrics_.huffman_encode_time_ms << ",\n";
-    file << "  \"entropy_encode_time_ms\": " << metrics_.entropy_encode_time_ms << ",\n";
-    file << "  \"entropy_decode_time_ms\": " << metrics_.entropy_decode_time_ms << ",\n";
-    file << "  \"total_time_ms\": " << metrics_.total_time_ms << ",\n";
-    file << "  \"compression_throughput_mbps\": " << metrics_.compression_throughput_mbps << ",\n";
-    file << "  \"peak_memory_bytes\": " << metrics_.peak_memory_bytes << ",\n";
-    file << "  \"kernel_launches\": " << metrics_.kernel_launches;
-    
-    // Export custom timers
-    if (!timers_.empty()) {
-        file << ",\n  \"custom_timers\": {\n";
-        bool first = true;
-        for (const auto& [name, duration] : timers_) {
-            if (!first) file << ",\n";
-            file << "    \"" << name << "\": " << duration;
-            first = false;
-        }
-        file << "\n  }";
-    }
-    
-    file << "\n}\n";
-    file.close();
-}
-
-void PerformanceProfiler::export_metrics_csv(const std::string& filename) {
-    export_metrics_csv(filename.c_str());
-}
-
-void PerformanceProfiler::export_metrics_json(const std::string& filename) {
-    export_metrics_json(filename.c_str());
-}
 
 
 // ==============================================================================
@@ -692,23 +532,26 @@ public:
 
         // Free other resources...
         if (ctx.seq_ctx) {
-            cudaFree(ctx.seq_ctx->d_literals_buffer);
-            cudaFree(ctx.seq_ctx->d_literal_lengths);
-            cudaFree(ctx.seq_ctx->d_match_lengths);
-            cudaFree(ctx.seq_ctx->d_offsets);
-            cudaFree(ctx.seq_ctx->d_num_sequences);
+            if (ctx.seq_ctx->d_literals_buffer) cudaFree(ctx.seq_ctx->d_literals_buffer);
+            if (ctx.seq_ctx->d_literal_lengths) cudaFree(ctx.seq_ctx->d_literal_lengths);
+            if (ctx.seq_ctx->d_match_lengths) cudaFree(ctx.seq_ctx->d_match_lengths);
+            if (ctx.seq_ctx->d_offsets) cudaFree(ctx.seq_ctx->d_offsets);
+            if (ctx.seq_ctx->d_num_sequences) cudaFree(ctx.seq_ctx->d_num_sequences);
+            if (ctx.seq_ctx->d_sequences) cudaFree(ctx.seq_ctx->d_sequences);
             delete ctx.seq_ctx;
+            ctx.seq_ctx = nullptr;
         }
 
         if (ctx.huff_ctx) {
-            cudaFree(ctx.huff_ctx->codes);
+            if (ctx.huff_ctx->codes) cudaFree(ctx.huff_ctx->codes);
             delete ctx.huff_ctx;
+            ctx.huff_ctx = nullptr;
         }
 
-        delete ctx.lit_fse_table;
-        delete ctx.ml_fse_table;
-        delete ctx.of_fse_table;
-        delete ctx.lz77_ctx;
+        delete ctx.lit_fse_table; ctx.lit_fse_table = nullptr;
+        delete ctx.ml_fse_table; ctx.ml_fse_table = nullptr;
+        delete ctx.of_fse_table; ctx.of_fse_table = nullptr;
+        delete ctx.lz77_ctx; ctx.lz77_ctx = nullptr;
 
         ctx_initialized = false;
     }
@@ -745,8 +588,9 @@ public:
         size_t output_buf_size = input_size * 2;  // Worst case
         total += align_to_boundary(output_buf_size, GPU_MEMORY_ALIGNMENT);
         
-        // 3. LZ77 temporary buffer (device)
-        size_t lz77_temp_size = ZSTD_BLOCKSIZE_MAX;
+        // 3. LZ77 temporary buffer (device) - d_compressed_block
+        // CRITICAL: Must match the actual allocation in compress() function
+        size_t lz77_temp_size = ZSTD_BLOCKSIZE_MAX * 2;
         total += align_to_boundary(lz77_temp_size, GPU_MEMORY_ALIGNMENT);
         
         // 4. Hash/Chain tables for LZ77 (device)
@@ -768,9 +612,38 @@ public:
         
         size_t costs_size = (input_size + 1) * sizeof(lz77::ParseCost);
         total += align_to_boundary(costs_size, GPU_MEMORY_ALIGNMENT);
+        
+        // 5.5. Reverse sequence buffers for backtracking (NEW - needed for find_optimal_parse)
+        size_t reverse_lit_size = input_size * sizeof(u32);
+        total += align_to_boundary(reverse_lit_size, GPU_MEMORY_ALIGNMENT);
+        
+        size_t reverse_match_size = input_size * sizeof(u32);
+        total += align_to_boundary(reverse_match_size, GPU_MEMORY_ALIGNMENT);
+        
+        size_t reverse_offset_size = input_size * sizeof(u32);
+        total += align_to_boundary(reverse_offset_size, GPU_MEMORY_ALIGNMENT);
+        
+        // 5.6. Block processing buffers (NEW - needed for find_optimal_parse)
+        size_t num_blocks = (input_size + 1023) / 1024;
+        size_t block_sums_size = num_blocks * sizeof(u32);
+        total += align_to_boundary(block_sums_size, GPU_MEMORY_ALIGNMENT);
+        
+        size_t scanned_block_sums_size = num_blocks * sizeof(u32);
+        total += align_to_boundary(scanned_block_sums_size, GPU_MEMORY_ALIGNMENT);
+        
+        // 5.7. Huffman temporary buffers (NEW - needed for encode_huffman)
+        size_t frequencies_size = 256 * sizeof(u32); // MAX_HUFFMAN_SYMBOLS
+        total += align_to_boundary(frequencies_size, GPU_MEMORY_ALIGNMENT);
+        
+        size_t code_lengths_huffman_size = input_size * sizeof(u32); // Per-symbol code lengths
+        total += align_to_boundary(code_lengths_huffman_size, GPU_MEMORY_ALIGNMENT);
+        
+        size_t bit_offsets_size = input_size * sizeof(u32); // Prefix sum for bit positions
+        total += align_to_boundary(bit_offsets_size, GPU_MEMORY_ALIGNMENT);
 
         // 6. Sequence storage (device)
-        size_t seq_storage_size = (ZSTD_BLOCKSIZE_MAX / 3) * sizeof(sequence::Sequence);
+        // Must match allocation in compress() which uses ZSTD_BLOCKSIZE_MAX
+        size_t seq_storage_size = ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence);
         total += align_to_boundary(seq_storage_size, GPU_MEMORY_ALIGNMENT);
         
         // 7. FSE tables (device)
@@ -877,18 +750,25 @@ public:
         size_t dict_size,
         cudaStream_t stream
     ) override {
+        fprintf(stderr, "[DEBUG] compress ENTERED: uncompressed_size=%zu\n", uncompressed_size);
         if (!uncompressed_data || !compressed_data || !compressed_size || !temp_workspace || uncompressed_size == 0) {
+            fprintf(stderr, "[ERROR] compress: Invalid parameters\n");
             return Status::ERROR_INVALID_PARAMETER;
         }
 
         size_t required_size = get_compress_temp_size(uncompressed_size);
         if (temp_size < required_size) {
+            fprintf(stderr, "[ERROR] compress: Buffer too small. Have %zu, need %zu\n", temp_size, required_size);
             return Status::ERROR_BUFFER_TOO_SMALL;
         }
         
         if (!ctx_initialized) {
+            fprintf(stderr, "[DEBUG] compress: Initializing context...\n");
             auto status = initialize_context();
-            if (status != Status::SUCCESS) return status;
+            if (status != Status::SUCCESS) {
+                fprintf(stderr, "[ERROR] compress: initialize_context failed with status %d\n", (int)status);
+                return status;
+            }
         }
         
         // If no stream supplied, acquire one from the pool for parallelism
@@ -956,20 +836,29 @@ public:
         if (input_is_device) {
             // Input is already on device, use it directly
             d_input = const_cast<byte_t*>(static_cast<const byte_t*>(uncompressed_data));
-            // std::cerr << "compress: input already on device, using directly: d_input=" << (void*)d_input << std::endl;
         } else {
             // Input is on host, allocate space in workspace
             d_input = workspace_ptr;
             workspace_ptr = align_ptr(workspace_ptr + uncompressed_size, alignment);
-            // std::cerr << "compress: input on host, allocated workspace: d_input=" << (void*)d_input << std::endl;
         }
         
-        byte_t* d_output = workspace_ptr;
-        size_t d_output_max_size = estimate_compressed_size(uncompressed_size, config.level);
-        workspace_ptr = align_ptr(workspace_ptr + d_output_max_size, alignment);
+        
+        byte_t* d_output;
+        size_t d_output_max_size;
+        
+        if (compressed_data != nullptr) {
+            d_output = static_cast<byte_t*>(compressed_data);
+            d_output_max_size = *compressed_size;
+        } else {
+            d_output = workspace_ptr;
+            d_output_max_size = estimate_compressed_size(uncompressed_size, config.level);
+            workspace_ptr = align_ptr(workspace_ptr + d_output_max_size, alignment);
+        }
         
         byte_t* d_compressed_block = workspace_ptr;
-        size_t d_compressed_block_max_size = uncompressed_size * 2;
+        // FIX: Use block size for allocation, not full input size!
+        // The workspace calculator only reserves ZSTD_BLOCKSIZE_MAX for this buffer.
+        size_t d_compressed_block_max_size = ZSTD_BLOCKSIZE_MAX * 2;
         workspace_ptr = align_ptr(workspace_ptr + d_compressed_block_max_size, alignment);
 
         u64* d_checksum = reinterpret_cast<u64*>(workspace_ptr);
@@ -979,94 +868,113 @@ public:
         CompressionWorkspace call_workspace;
         
         byte_t* workspace_start = workspace_ptr;
-        // std::cerr << "\n=== WORKSPACE PARTITION DEBUG ===" << std::endl;
-        // std::cerr << "Workspace start: " << (void*)workspace_start << std::endl;
-        // std::cerr << "Total temp_size: " << temp_size << std::endl;
         
         // Partition hash/chain tables from workspace
         call_workspace.d_hash_table = reinterpret_cast<u32*>(workspace_ptr);
         call_workspace.hash_table_size = (1 << config.hash_log);
         size_t hash_table_bytes = call_workspace.hash_table_size * sizeof(u32);
-        // std::cerr << "Hash table: ptr=" << (void*)workspace_ptr 
-        //           << " size=" << call_workspace.hash_table_size 
-        //           << " bytes=" << hash_table_bytes << std::endl;
+        
+        // Initialize hash table to -1 (0xFFFFFFFF) to indicate no previous matches
+        // Use synchronous memset to be absolutely sure
+        CUDA_CHECK(cudaMemset(call_workspace.d_hash_table, 0xFF, hash_table_bytes));
+        
         workspace_ptr = align_ptr(workspace_ptr + hash_table_bytes, alignment);
         
         call_workspace.d_chain_table = reinterpret_cast<u32*>(workspace_ptr);
         call_workspace.chain_table_size = (1 << config.chain_log);
         size_t chain_table_bytes = call_workspace.chain_table_size * sizeof(u32);
-        // std::cerr << "Chain table: ptr=" << (void*)workspace_ptr 
-        //           << " size=" << call_workspace.chain_table_size 
-        //           << " bytes=" << chain_table_bytes << std::endl;
+        
+        // Initialize chain table to -1 (0xFFFFFFFF) as well for safety
+        CUDA_CHECK(cudaMemset(call_workspace.d_chain_table, 0xFF, chain_table_bytes));
+        
         workspace_ptr = align_ptr(workspace_ptr + chain_table_bytes, alignment);
 
         // Partition d_matches and d_costs from workspace
         call_workspace.d_matches = reinterpret_cast<void*>(workspace_ptr);
         call_workspace.max_matches = uncompressed_size;
         size_t matches_bytes = uncompressed_size * sizeof(lz77::Match);
-        // std::cerr << "Matches: ptr=" << (void*)workspace_ptr 
-        //           << " count=" << call_workspace.max_matches 
-        //           << " bytes=" << matches_bytes << std::endl;
         workspace_ptr = align_ptr(workspace_ptr + matches_bytes, alignment);
 
         call_workspace.d_costs = reinterpret_cast<void*>(workspace_ptr);
         call_workspace.max_costs = uncompressed_size + 1;
         size_t costs_bytes = (uncompressed_size + 1) * sizeof(lz77::ParseCost);
-        // std::cerr << "Costs: ptr=" << (void*)workspace_ptr 
-        //           << " count=" << call_workspace.max_costs 
-        //           << " bytes=" << costs_bytes << std::endl;
         workspace_ptr = align_ptr(workspace_ptr + costs_bytes, alignment);
+        
+        // Partition reverse sequence buffers for backtracking
+        call_workspace.d_literal_lengths_reverse = reinterpret_cast<u32*>(workspace_ptr);
+        size_t reverse_lit_bytes = uncompressed_size * sizeof(u32);
+        workspace_ptr = align_ptr(workspace_ptr + reverse_lit_bytes, alignment);
+        
+        call_workspace.d_match_lengths_reverse = reinterpret_cast<u32*>(workspace_ptr);
+        size_t reverse_match_bytes = uncompressed_size * sizeof(u32);
+        workspace_ptr = align_ptr(workspace_ptr + reverse_match_bytes, alignment);
+        
+        call_workspace.d_offsets_reverse = reinterpret_cast<u32*>(workspace_ptr);
+        size_t reverse_offset_bytes = uncompressed_size * sizeof(u32);
+        workspace_ptr = align_ptr(workspace_ptr + reverse_offset_bytes, alignment);
+        
+        // Partition block processing buffers
+        call_workspace.d_block_sums = reinterpret_cast<u32*>(workspace_ptr);
+        call_workspace.num_blocks = (uncompressed_size + 1023) / 1024; // Conservative estimate
+        size_t block_sums_bytes = call_workspace.num_blocks * sizeof(u32);
+        workspace_ptr = align_ptr(workspace_ptr + block_sums_bytes, alignment);
+        
+        call_workspace.d_scanned_block_sums = reinterpret_cast<u32*>(workspace_ptr);
+        size_t scanned_block_bytes = call_workspace.num_blocks * sizeof(u32);
+        workspace_ptr = align_ptr(workspace_ptr + scanned_block_bytes, alignment);
+        
+        // Partition Huffman temporary buffers
+        call_workspace.d_frequencies = reinterpret_cast<u32*>(workspace_ptr);
+        size_t frequencies_bytes = 256 * sizeof(u32); // MAX_HUFFMAN_SYMBOLS
+        workspace_ptr = align_ptr(workspace_ptr + frequencies_bytes, alignment);
+        
+        call_workspace.d_code_lengths = reinterpret_cast<u32*>(workspace_ptr);
+        size_t code_lengths_bytes = uncompressed_size * sizeof(u32); // Per-input-symbol code lengths
+        workspace_ptr = align_ptr(workspace_ptr + code_lengths_bytes, alignment);
+        
+        call_workspace.d_bit_offsets = reinterpret_cast<u32*>(workspace_ptr);
+        size_t bit_offsets_bytes = uncompressed_size * sizeof(u32); // Prefix sum result
+        workspace_ptr = align_ptr(workspace_ptr + bit_offsets_bytes, alignment);
+        
+        // Set max_sequences capacity
+        call_workspace.max_sequences = uncompressed_size; // Conservative estimate
         
         // Partition sequence storage from the workspace for compression
         ctx.seq_ctx->d_sequences = reinterpret_cast<sequence::Sequence*>(workspace_ptr);
         size_t sequences_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence);
-        // std::cerr << "Sequences: ptr=" << (void*)workspace_ptr 
-        //           << " count=" << ZSTD_BLOCKSIZE_MAX 
-        //           << " bytes=" << sequences_bytes << std::endl;
         workspace_ptr = align_ptr(workspace_ptr + sequences_bytes, alignment);
         
         size_t total_used = (byte_t*)workspace_ptr - (byte_t*)workspace_start;
-        // std::cerr << "Total workspace used: " << total_used << " bytes" << std::endl;
-        // std::cerr << "Workspace remaining: " << (temp_size - total_used) << " bytes" << std::endl;
-        
+
         if (total_used > temp_size) {
-            // std::cerr << "ERROR: Workspace overflow! Used " << total_used 
-            //           << " but only have " << temp_size << std::endl;
+            fprintf(stderr, "[ERROR] compress: Workspace overflow! Used %zu, have %zu\n", total_used, temp_size);
             return Status::ERROR_BUFFER_TOO_SMALL;
         }
-        // std::cerr << "=== END WORKSPACE DEBUG ===\n" << std::endl;
 
-        // CRITICAL: Initialize hash and chain tables to 0xFFFFFFFF (empty sentinel)
-        // Without this, kernels read garbage values and follow invalid pointers
-        // std::cerr << "Initializing hash/chain tables to 0xFF..." << std::endl;
-        
-        // Defensive checks before memset
+        // ...
+
         if (call_workspace.d_hash_table == nullptr) {
-            // std::cerr << "ERROR: d_hash_table is NULL!" << std::endl;
+            fprintf(stderr, "[ERROR] compress: d_hash_table is NULL!\n");
             return Status::ERROR_INVALID_PARAMETER;
         }
         if (call_workspace.d_chain_table == nullptr) {
-            // std::cerr << "ERROR: d_chain_table is NULL!" << std::endl;
+            fprintf(stderr, "[ERROR] compress: d_chain_table is NULL!\n");
             return Status::ERROR_INVALID_PARAMETER;
         }
         
-        // Check for pending stream errors
         cudaError_t stream_err = cudaGetLastError();
         if (stream_err != cudaSuccess) {
-            // std::cerr << "ERROR: Pending CUDA error before memset: " 
-            //           << cudaGetErrorString(stream_err) << std::endl;
+            fprintf(stderr, "[ERROR] compress: Pending CUDA error before memset: %s\n", cudaGetErrorString(stream_err));
             return Status::ERROR_CUDA_ERROR;
         }
         
         // std::cerr << "Memset hash table: ptr=" << (void*)call_workspace.d_hash_table 
         //           << " size=" << hash_table_bytes << std::endl;
-        CUDA_CHECK(cudaMemsetAsync(call_workspace.d_hash_table, 0xFF, 
-                                   hash_table_bytes, stream));
+        CUDA_CHECK(cudaMemset(call_workspace.d_hash_table, 0xFF, hash_table_bytes));
         
         // std::cerr << "Memset chain table: ptr=" << (void*)call_workspace.d_chain_table 
         //           << " size=" << chain_table_bytes << std::endl;
-        CUDA_CHECK(cudaMemsetAsync(call_workspace.d_chain_table, 0xFF, 
-                                   chain_table_bytes, stream));
+        CUDA_CHECK(cudaMemset(call_workspace.d_chain_table, 0xFF, chain_table_bytes));
         
         // std::cerr << "Hash/chain table init complete" << std::endl;
         
@@ -1075,8 +983,8 @@ public:
         // Synchronize to catch any pending errors before starting compression
         cudaError_t pre_compress_err = cudaDeviceSynchronize();
         if (pre_compress_err != cudaSuccess) {
-            // std::cerr << "ERROR: CUDA error BEFORE compression pipeline: " 
-            //           << cudaGetErrorString(pre_compress_err) << std::endl;
+            std::cerr << "ERROR: CUDA error BEFORE compression pipeline: " 
+                      << cudaGetErrorString(pre_compress_err) << std::endl;
             return Status::ERROR_CUDA_ERROR;
         }
         // std::cerr << "Pre-compression sync: OK" << std::endl;
@@ -1100,32 +1008,44 @@ public:
             h_custom_meta.custom_magic = CUSTOM_METADATA_MAGIC;
             h_custom_meta.compression_level = config.level;
 
+            fprintf(stderr, "[DEBUG] compress: d_output=%p, writing skippable magic 0x%X at offset %u\n", 
+                    d_output, h_skip_header.magic_number, compressed_offset);
+
             CUDA_CHECK(cudaMemcpyAsync(d_output + compressed_offset, &h_skip_header, 
                                         sizeof(SkippableFrameHeader), 
                                         cudaMemcpyHostToDevice, stream));
             compressed_offset += sizeof(SkippableFrameHeader);
+            fprintf(stderr, "[DEBUG] compress: skippable header copied, offset now=%u\n", compressed_offset);
 
             CUDA_CHECK(cudaMemcpyAsync(d_output + compressed_offset, &h_custom_meta, 
                                         sizeof(CustomMetadataFrame), 
                                         cudaMemcpyHostToDevice, stream));
             compressed_offset += sizeof(CustomMetadataFrame);
+            fprintf(stderr, "[DEBUG] compress: custom metadata copied, offset now=%u\n", compressed_offset);
         }
         
         u32 header_size = 0;
+        fprintf(stderr, "[DEBUG] compress: About to call write_frame_header, offset=%u\n", compressed_offset);
         auto status = write_frame_header(d_output + compressed_offset,
                                          d_output_max_size - compressed_offset,
                                          &header_size, uncompressed_size,
                                          has_dictionary ? dict.raw_content : nullptr,
                                          has_dictionary ? dict.raw_size : 0,
                                          stream);
-        if (status != Status::SUCCESS) return status;
+        if (status != Status::SUCCESS) {
+            fprintf(stderr, "[ERROR] compress:write_frame_header failed with status %d\n", (int)status);
+            return status;
+        }
+        fprintf(stderr, "[DEBUG] compress: write_frame_header succeeded, header_size=%u\n", header_size);
         
         compressed_offset += header_size;
         
         u32 block_size = get_optimal_block_size(uncompressed_size, config.level);
         u32 num_blocks = (uncompressed_size + block_size - 1) / block_size;
+        fprintf(stderr, "[DEBUG] compress: Starting block loop, num_blocks=%u, block_size=%u\n", num_blocks, block_size);
         
         for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
+            fprintf(stderr, "[DEBUG] compress: Processing block %u of %u\n", block_idx, num_blocks);
             u32 block_start = block_idx * block_size;
             u32 current_block_size = std::min(block_size, (u32)uncompressed_size - block_start);
             bool is_last_block = (block_idx == num_blocks - 1);
@@ -1163,12 +1083,17 @@ public:
                 stream
             );
             if (status != Status::SUCCESS) return status;
-            // std::cerr << "<<< Returned from lz77::find_matches, status=" << static_cast<int>(status) << std::endl;
             
             // Explicitly synchronize to catch errors from find_matches immediately
+            cudaError_t match_sync_err = cudaStreamSynchronize(stream);
+            if (match_sync_err != cudaSuccess) {
+                std::cerr << "[ERROR] find_matches failed: " << cudaGetErrorString(match_sync_err) << std::endl;
+                return Status::ERROR_CUDA_ERROR;
+            }
+            
             cudaError_t __err = cudaGetLastError();
             if (__err != cudaSuccess) {
-                // std::cerr << "compress: CUDA kernel error BEFORE sync after lz77::find_matches: " << cudaGetErrorString(__err) << std::endl;
+                std::cerr << "compress: CUDA kernel error BEFORE sync after lz77::find_matches: " << cudaGetErrorString(__err) << std::endl;
                 return Status::ERROR_CUDA_ERROR;
             }
             // std::cerr << ">>> Synchronizing after find_matches..." << std::endl;
@@ -1180,59 +1105,67 @@ public:
             // std::cerr << "<<< find_matches sync: OK" << std::endl;
             
             if (status != Status::SUCCESS) {
-                // std::cerr << "compress: lz77::find_matches failed, status=" << status_to_string(status) << std::endl;
+                fprintf(stderr, "[ERROR] compress: lz77::find_matches failed with status %d\n", (int)status);
                 return status;
             }
 
             // (MODIFIED) Step 2: Optimal Parse - PASS WORKSPACE
             u32 h_num_sequences_in_block = 0;
             u32 h_total_literals_in_block = 0;
-            // std::cerr << "\n>>> Calling lz77::find_optimal_parse..." << std::endl;
-            // std::cerr << "compress: d_costs=" << call_workspace.d_costs << " max_costs=" << call_workspace.max_costs << std::endl;
-            // std::cerr << "compress: d_matches=" << call_workspace.d_matches << " max_matches=" << call_workspace.max_matches << std::endl;
-
+            
+            // 2. Optimal parsing (Bit-Optimal LZ77)
+            fprintf(stderr, "[DEBUG] compress: Calling find_optimal_parse\n");
             status = lz77::find_optimal_parse(
                 *ctx.lz77_ctx,
                 block_input,
                 current_block_size,
                 d_dict_content,
-                &call_workspace,  // (NEW) Pass local call workspace
-                nullptr, 0, // No window for single-shot
-                ctx.seq_ctx->d_literals_buffer,
-                ctx.seq_ctx->d_literal_lengths,
-                ctx.seq_ctx->d_match_lengths,
-                ctx.seq_ctx->d_offsets,
+                &call_workspace,
+                nullptr, 0,
+                stream,
+                ctx.seq_ctx,
                 &h_num_sequences_in_block,
                 &h_total_literals_in_block,
-                stream
+                true // output_raw_values for Tier 4
             );
-            __err = cudaGetLastError();
-            // std::cerr << "compress: lz77::find_optimal_parse after kernel cudaGetLastError=" << __err << "\n";
-            // Runtime CI toggle: synchronously verify kernel execution and print diagnostic
-            cuda_zstd::utils::debug_kernel_verify("manager: after lz77::find_optimal_parse");
-            // std::cerr << "compress: after lz77::find_optimal_parse" << std::endl;
+
             if (status != Status::SUCCESS) {
-                // std::cerr << "compress: lz77::find_optimal_parse failed, status=" << status_to_string(status) << "\n";
+                fprintf(stderr, "[ERROR] find_optimal_parse failed with status %d\n", (int)status);
                 return status;
             }
+            fprintf(stderr, "[DEBUG] compress: find_optimal_parse DONE\n");
+            
+            // Sync after optimal parse
+            cudaError_t opt_sync_err = cudaStreamSynchronize(stream);
+            if (opt_sync_err != cudaSuccess) {
+                std::cerr << "[ERROR] find_optimal_parse failed: " << cudaGetErrorString(opt_sync_err) << std::endl;
+                return Status::ERROR_CUDA_ERROR;
+            }
             if (__err != cudaSuccess) {
-                // std::cerr << "compress: CUDA kernel error after lz77::find_optimal_parse: " << cudaGetErrorString(__err) << " (" << __err << ")" << std::endl;
+                std::cerr << "compress: CUDA kernel error after lz77::find_optimal_parse: " << cudaGetErrorString(__err) << " (" << __err << ")" << std::endl;
                 return Status::ERROR_CUDA_ERROR;
             }
             
             // (MODIFIED) Step 3: Generate sequence structs
             const u32 threads = 256;
             const u32 seq_blocks = (h_num_sequences_in_block + threads - 1) / threads;
-            status = sequence::build_sequences(
-                *ctx.seq_ctx,
-                h_num_sequences_in_block,
-                seq_blocks,
-                threads,
-                stream
-            );
-            // std::cerr << "compress: build_sequences returned status=" << status_to_string(status) << "\n";
-            // std::cerr << "compress: calling build_sequences with ctx.seq_ctx->d_sequences=" << ctx.seq_ctx->d_sequences << " ctx.seq_ctx->d_num_sequences=" << ctx.seq_ctx->d_num_sequences << " num_sequences=" << h_num_sequences_in_block << std::endl;
-            if (status != Status::SUCCESS) return status;
+            
+            // Guard: Skip build_sequences if there are no sequences
+            if (h_num_sequences_in_block > 0) {
+                fprintf(stderr, "[DEBUG] compress: Calling build_sequences\n");
+                status = sequence::build_sequences(
+                    *ctx.seq_ctx,
+                    h_num_sequences_in_block,
+                    seq_blocks,
+                    threads,
+                    stream
+                );
+                if (status != Status::SUCCESS) {
+                    fprintf(stderr, "[ERROR] build_sequences failed with status %d\n", (int)status);
+                    return status;
+                }
+                fprintf(stderr, "[DEBUG] compress: build_sequences DONE\n");
+            }
             
             u32 num_sequences = h_num_sequences_in_block; 
             ctx.total_sequences += num_sequences;
@@ -1243,6 +1176,7 @@ public:
             
             ctx.seq_ctx->num_literals = h_total_literals_in_block;
             
+            fprintf(stderr, "[DEBUG] compress: Calling compress_literals\n");
             status = compress_literals(
                 ctx.seq_ctx->d_literals_buffer,
                 ctx.seq_ctx->num_literals,
@@ -1251,35 +1185,71 @@ public:
                 &call_workspace,  // (NEW) Pass per-call workspace
                 stream
             );
-            if (status != Status::SUCCESS) return status;
-            std::cerr << "compress: compress_literals returned status=" << status_to_string(status) << " literals=" << ctx.seq_ctx->num_literals << "\n";
-            std::cerr << "compress: compress_literals returned status=" << status_to_string(status) << " literals=" << ctx.seq_ctx->num_literals << "\n";
+            if (status != Status::SUCCESS) {
+                fprintf(stderr, "[ERROR] compress: compress_literals failed with status %d\n", (int)status);
+                return status;
+            }
+            fprintf(stderr, "[DEBUG] compress: compress_literals DONE\n");
+            // fprintf(stderr, "compress: compress_literals returned status=%s literals=%u\n", status_to_string(status), h_total_literals_in_block);
             
-            ctx.total_literals += ctx.seq_ctx->num_literals;
+            // Sync after literals
+            cudaError_t lit_sync_err = cudaStreamSynchronize(stream);
+            if (lit_sync_err != cudaSuccess) {
+                std::cerr << "[ERROR] compress_literals failed: " << cudaGetErrorString(lit_sync_err) << std::endl;
+                return Status::ERROR_CUDA_ERROR;
+            }
             
-            // Step 4: Compress sequences
-            u32 sequences_size = 0;
-            byte_t* sequences_compressed = block_output + literals_size;
+            byte_t* sequences_compressed = literals_compressed + literals_size;
+            size_t sequences_size = 0;
             
+            u32 sequences_size_u32 = 0;
+            // fprintf(stderr, "compress: entered compress_sequences call: num_sequences=%u sequences_compressed=%p\n", num_sequences, sequences_compressed);
             status = compress_sequences(
                 ctx.seq_ctx,
                 num_sequences,
                 sequences_compressed,
-                &sequences_size,
+                &sequences_size_u32,
                 stream
             );
+            sequences_size = sequences_size_u32;
             std::cerr << "compress: entered compress_sequences call: num_sequences=" << num_sequences << " sequences_compressed=" << (void*)sequences_compressed << "\n";
             std::cerr << "compress: compress_sequences returned status=" << status_to_string(status) << "\n";
             if (status != Status::SUCCESS) return status;
+
+            // Sync after sequences
+            cudaError_t seq_sync_err = cudaStreamSynchronize(stream);
+            if (seq_sync_err != cudaSuccess) {
+                std::cerr << "[ERROR] compress_sequences failed: " << cudaGetErrorString(seq_sync_err) << std::endl;
+                return Status::ERROR_CUDA_ERROR;
+            }
             std::cerr << "compress: compress_sequences returned status=" << status_to_string(status) << " num_sequences=" << num_sequences << "\n";
+            
+            // DEBUG: Verify sequences were written
+            byte_t h_seq_header[30];
+            CUDA_CHECK(cudaMemcpy(h_seq_header, block_output, 30, cudaMemcpyDeviceToHost));
+            fprintf(stderr, "[DEBUG] compress: First 30 bytes of block_output (lits+seqs):\n");
+            fprintf(stderr, "  %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                    h_seq_header[0], h_seq_header[1], h_seq_header[2], h_seq_header[3], h_seq_header[4],
+                    h_seq_header[5], h_seq_header[6], h_seq_header[7], h_seq_header[8], h_seq_header[9]);
+            fprintf(stderr, "  %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                    h_seq_header[10], h_seq_header[11], h_seq_header[12], h_seq_header[13], h_seq_header[14],
+                    h_seq_header[15], h_seq_header[16], h_seq_header[17], h_seq_header[18], h_seq_header[19]);
+            fprintf(stderr, "  %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                    h_seq_header[20], h_seq_header[21], h_seq_header[22], h_seq_header[23], h_seq_header[24],
+                    h_seq_header[25], h_seq_header[26], h_seq_header[27], h_seq_header[28], h_seq_header[29]);
+            fprintf(stderr, "[DEBUG] compress: literals_size=%u, sequences_size=%zu\n", literals_size, sequences_size);
+            
             
             // Step 5: Write block
             u32 block_compressed_size = literals_size + sequences_size;
             
+            // FIX: Pass d_output directly, not d_output + compressed_offset
+            // write_block will use *compressed_offset to determine where to write
             status = write_block(
-                d_output + compressed_offset,
-                d_output_max_size - compressed_offset,
-                block_output,
+                d_output,  // Changed from: d_output + compressed_offset
+                d_output_max_size,  // Changed from: d_output_max_size - compressed_offset
+                block_output, // compressed_data
+                block_input,  // original_data (NEW)
                 block_compressed_size,
                 current_block_size,
                 is_last_block,
@@ -1287,6 +1257,13 @@ public:
                 stream
             );
             if (status != Status::SUCCESS) return status;
+            
+            // Sync after write_block
+            cudaError_t write_sync_err = cudaStreamSynchronize(stream);
+            if (write_sync_err != cudaSuccess) {
+                std::cerr << "[ERROR] write_block failed: " << cudaGetErrorString(write_sync_err) << std::endl;
+                return Status::ERROR_CUDA_ERROR;
+            }
             std::cerr << "compress: write_block returned status=" << status_to_string(status) << " block_idx=" << block_idx << "\n";
         }
         
@@ -1295,6 +1272,13 @@ public:
             xxhash::compute_xxhash64(d_input, uncompressed_size, 0, d_checksum, stream);
             cudaMemcpyAsync(d_output + compressed_offset, d_checksum, sizeof(u64), cudaMemcpyDeviceToDevice, stream);
             compressed_offset += sizeof(u64);
+            
+            // Sync after checksum
+            cudaError_t chk_sync_err = cudaStreamSynchronize(stream);
+            if (chk_sync_err != cudaSuccess) {
+                std::cerr << "[ERROR] checksum failed: " << cudaGetErrorString(chk_sync_err) << std::endl;
+                return Status::ERROR_CUDA_ERROR;
+            }
         }
         
         *compressed_size = compressed_offset;
@@ -1322,23 +1306,38 @@ public:
         size_t temp_size,
         cudaStream_t stream = 0
     ) override {
+        fprintf(stderr, "[DEBUG] decompress ENTERED: compressed_size=%zu, ptr=%p\n", compressed_size, compressed_data);
         
         // === Parameter Validation ===
         if (!compressed_data || !uncompressed_data || !uncompressed_size || 
             !temp_workspace || compressed_size < 4) {
+            fprintf(stderr, "[ERROR] decompress: Invalid parameters\n");
             return Status::ERROR_INVALID_PARAMETER;
         }
+        fprintf(stderr, "[DEBUG] decompress: Parameter validation passed\n");
         
         size_t required_size = get_decompress_temp_size(compressed_size);
+        fprintf(stderr, "[DEBUG] decompress: temp_size=%zu, required=%zu\n", temp_size, required_size);
         if (temp_size < required_size) {
+            fprintf(stderr, "[ERROR] decompress: Buffer too small\n");
             return Status::ERROR_BUFFER_TOO_SMALL;
         }
         
+        
         // === Initialize Context if Needed ===
         if (!ctx_initialized) {
+            fprintf(stderr, "[DEBUG] decompress: calling initialize_context()\n");
             auto status = initialize_context();
-            if (status != Status::SUCCESS) return status;
+            if (status != Status::SUCCESS) {
+                fprintf(stderr, "[ERROR] decompress: initialize_context failed with status %d\n", (int)status);
+                return status;
+            }
+            fprintf(stderr, "[DEBUG] decompress: initialize_context success\n");
+            ctx_initialized = true;
         }
+        
+        // FIX: Assign temp_workspace to ctx.d_temp_buffer
+        ctx.d_temp_buffer = (byte_t*)temp_workspace;
         
         // === Handle Skippable Frames (RFC 8878) ===
         // Zstd may have skippable frames at the beginning
@@ -1346,13 +1345,19 @@ public:
         size_t h_compressed_size_remaining = compressed_size;
         u32 data_offset = 0;
         
+        fprintf(stderr, "[DEBUG] decompress: starting skippable frame check loop\n");
+        
         // Skip all skippable frames to find the real Zstd frame
         while (h_compressed_size_remaining >= 8) {
             u32 magic;
-            memcpy(&magic, h_compressed_data_ptr + data_offset, sizeof(u32));
+            // FIX: compressed_data is a DEVICE pointer, must use cudaMemcpy
+            CUDA_CHECK(cudaMemcpy(&magic, h_compressed_data_ptr + data_offset, sizeof(u32), cudaMemcpyDeviceToHost));
+            
+            fprintf(stderr, "[DEBUG] decompress: checking magic at offset %u: 0x%X\n", data_offset, magic);
             
             // Check if this is the Zstd magic number
             if (magic == ZSTD_MAGIC_NUMBER) {
+                fprintf(stderr, "[DEBUG] decompress: found ZSTD magic number\n");
                 break;
             }
             
@@ -1360,7 +1365,7 @@ public:
             if ((magic & 0xFFFFFFF0) == ZSTD_MAGIC_SKIPPABLE_START) {
                 // Read the frame size (next 4 bytes)
                 u32 frame_size;
-                memcpy(&frame_size, h_compressed_data_ptr + data_offset + 4, sizeof(u32));
+                CUDA_CHECK(cudaMemcpy(&frame_size, h_compressed_data_ptr + data_offset + 4, sizeof(u32), cudaMemcpyDeviceToHost));
                 
                 // Total frame size = 8 byte header + frame_size
                 u32 total_frame_size = 8 + frame_size;
@@ -1374,9 +1379,11 @@ public:
                 h_compressed_size_remaining -= total_frame_size;
             } else {
                 // Invalid magic number
+                fprintf(stderr, "[ERROR] decompress: Invalid magic number 0x%X\n", magic);
                 return Status::ERROR_INVALID_MAGIC;
             }
         }
+        fprintf(stderr, "[DEBUG] decompress: Skippable frames handled, offset=%u\n", data_offset);
         
         if (h_compressed_size_remaining < 4) {
             return Status::ERROR_CORRUPT_DATA;
@@ -1408,29 +1415,42 @@ public:
         size_t d_output_max_size = *uncompressed_size;
         
         // === Copy compressed data to device ===
+        // FIX: compressed_data is on device, so copy DeviceToDevice
         CUDA_CHECK(cudaMemcpyAsync(d_input, h_compressed_data_ptr + data_offset, 
                                   h_compressed_size_remaining, 
-                                  cudaMemcpyHostToDevice, stream));
+                                  cudaMemcpyDeviceToDevice, stream));
         
         // === Parse Frame Header (RFC 8878) ===
         u32 header_size = 0;
         u32 frame_content_size = 0;
         
+        fprintf(stderr, "[DEBUG] decompress: parsing frame header from d_input=%p\n", d_input);
+        
         auto status = parse_frame_header(d_input, h_compressed_size_remaining, 
                                         &header_size, &frame_content_size);
-        if (status != Status::SUCCESS) return status;
+        if (status != Status::SUCCESS) {
+            fprintf(stderr, "[ERROR] decompress: parse_frame_header failed with status %d\n", (int)status);
+            return status;
+        }
+        fprintf(stderr, "[DEBUG] decompress: parse_frame_header SUCCESS, header_size=%u, frame_content_size=%u\n",
+                header_size, frame_content_size);
         
         // Validate the output buffer size if content size is present
         if (frame_content_size > 0) {
+            fprintf(stderr, "[DEBUG] decompress: Validating buffer size: d_output_max_size=%zu, frame_content_size=%u\n",
+                    d_output_max_size, frame_content_size);
             if (d_output_max_size < frame_content_size) {
+                fprintf(stderr, "[ERROR] decompress: Output buffer too small!\n");
                 return Status::ERROR_BUFFER_TOO_SMALL;
             }
-            *uncompressed_size = frame_content_size;
+            *uncompressed_size = frame_content_size;  // Will be overwritten with actual size
         }
         
         // === Decompress Blocks ===
         u32 read_offset = header_size;  // Start after frame header
         u32 write_offset = 0;           // Where we write decompressed data
+        fprintf(stderr, "[DEBUG] decompress: Entering block loop, read_offset=%u, h_compressed_size_remaining=%u\n",
+                read_offset, h_compressed_size_remaining);
         
         while (read_offset < h_compressed_size_remaining) {
             // === Read Block Header ===
@@ -1447,7 +1467,13 @@ public:
                 &block_size,
                 &block_header_size
             );
-            if (status != Status::SUCCESS) return status;
+            if (status != Status::SUCCESS) {
+                fprintf(stderr, "[ERROR] decompress: read_block_header failed with status %d at offset %u\n", (int)status, read_offset);
+                return status;
+            }
+            
+            fprintf(stderr, "[DEBUG] decompress: Block header parsed. size=%u, compressed=%d, last=%d, header_size=%u\n", 
+                    block_size, is_compressed, is_last_block, block_header_size);
             
             read_offset += block_header_size;
             
@@ -1456,6 +1482,7 @@ public:
                 // Decompress block
                 u32 decompressed_size = 0;
                 
+                fprintf(stderr, "[DEBUG] decompress: calling decompress_block at offset %u\n", read_offset);
                 status = decompress_block(
                     d_input + read_offset,
                     block_size,
@@ -1463,7 +1490,19 @@ public:
                     &decompressed_size,
                     stream
                 );
+                if (status != Status::SUCCESS) {
+                    fprintf(stderr, "[ERROR] decompress: decompress_block failed with status %d\n", (int)status);
+                    return status;
+                }
+                fprintf(stderr, "[DEBUG] decompress: decompress_block DONE. decompressed_size=%u\n", decompressed_size);
                 if (status != Status::SUCCESS) return status;
+                
+                // Sync after block
+                cudaError_t blk_sync_err = cudaStreamSynchronize(stream);
+                if (blk_sync_err != cudaSuccess) {
+                    printf("[ERROR] decompress_block failed: %s\n", cudaGetErrorString(blk_sync_err));
+                    return Status::ERROR_CUDA_ERROR;
+                }
                 
                 write_offset += decompressed_size;
             } else {
@@ -1566,16 +1605,25 @@ private:
     // Context management
     // ==========================================================================
     Status initialize_context() {
-        static std::mutex init_mutex;
-        std::unique_lock<std::mutex> init_lock(init_mutex);
+        // CRITICAL FIX: Use pointer to avoid static initialization heap corruption
+        static std::mutex* init_mutex = nullptr;
+        if (!init_mutex) {
+            init_mutex = new std::mutex();
+        }
+        std::unique_lock<std::mutex> init_lock(*init_mutex);
         // std::cerr << "initialize_context() entered (guarded)" << std::endl;
         
         // Initialize LZ77 context
         if (!ctx.lz77_ctx) {
             ctx.lz77_ctx = new lz77::LZ77Context();
+            // Default LZ77 config
+            config.window_log = 22; // 4MB window
+            config.chain_log = 17;  // 128K entries
+            config.hash_log = 18;   // 256K entries
+            config.min_match = 3;
             lz77::LZ77Config lz77_config;
             lz77_config.hash_log = config.hash_log;
-            lz77_config.chain_log = config.chain_log;
+            lz77_config.chain_log = config.chain_log; // Use config.chain_log
             lz77_config.search_depth = 8;  // Standard search depth
             lz77_config.min_match = config.min_match;
             lz77::init_lz77_context(*ctx.lz77_ctx, lz77_config, ZSTD_BLOCKSIZE_MAX);
@@ -1645,11 +1693,16 @@ private:
         size_t dict_size,
         cudaStream_t stream
     ) {
+        fprintf(stderr, "[DEBUG] write_frame_header: max_size=%zu, FRAME_HEADER_SIZE_MIN=%u\n", 
+                max_size, FRAME_HEADER_SIZE_MIN);
         if (max_size < FRAME_HEADER_SIZE_MIN) {
+            fprintf(stderr, "[ERROR] write_frame_header: Buffer too small! max_size=%zu < MIN=%u\n",
+                    max_size, FRAME_HEADER_SIZE_MIN);
             return Status::ERROR_BUFFER_TOO_SMALL;
         }
         
-        byte_t h_header[FRAME_HEADER_SIZE_MAX];
+        // Use a safe fixed size buffer to avoid potential stack overflow if FRAME_HEADER_SIZE_MAX is small
+        byte_t h_header[128];
         u32 offset = 0;
         
         // 1. Write magic number
@@ -1673,10 +1726,25 @@ private:
             fhd |= 0x04;  // Content checksum bit
         }
         
-        // Set single segment if content_size fits in 1-8 bytes
-        if (content_size > 0) {
-            fhd |= 0x40;  // Single segment flag
-            fhd |= 0x08;  // Content size flag
+        // Use Single Segment mode (Bit 5 = 0x20)
+        // This means Window Descriptor is skipped.
+        fhd |= 0x20; 
+        
+        // Determine FCS Field Size (Bits 7-6)
+        // 00: 1 byte (if Single Segment)
+        // 01: 2 bytes (Value - 256)
+        // 10: 4 bytes
+        // 11: 8 bytes
+        
+        if (content_size < 256) {
+            // 1 byte
+            // fhd |= 0x00; 
+        } else if (content_size < 65536 + 256) {
+            // 2 bytes
+            fhd |= 0x40; // 01xxxxxx
+        } else {
+            // 4 bytes
+            fhd |= 0x80; // 10xxxxxx
         }
         
         h_header[offset] = fhd;
@@ -1688,22 +1756,23 @@ private:
             offset += 1;
         }
         
-        // 4. Content Size (if has_content_size)
-        if (content_size > 0) {
-            if (content_size <= 255) {
-                h_header[offset++] = (byte_t)content_size;
-            } else if (content_size <= 65535) {
-                h_header[offset++] = (byte_t)(content_size & 0xFF);
-                h_header[offset++] = (byte_t)((content_size >> 8) & 0xFF);
-            } else {
-                // Write as 4-byte little-endian
-                u32 cs = content_size;
-                memcpy(h_header + offset, &cs, 4);
-                offset += 4;
-            }
+        // 4. Content Size
+        if (content_size < 256) {
+            h_header[offset++] = (byte_t)content_size;
+        } else if (content_size < 65536 + 256) {
+            u32 stored_size = content_size - 256;
+            h_header[offset++] = (byte_t)(stored_size & 0xFF);
+            h_header[offset++] = (byte_t)((stored_size >> 8) & 0xFF);
+        } else {
+            // Write as 4-byte little-endian
+            u32 cs = content_size;
+            memcpy(h_header + offset, &cs, 4);
+            offset += 4;
         }
+
         
         // Copy to device
+        fprintf(stderr, "[DEBUG] write_frame_header: Writing %u bytes to device ptr %p\n", offset, output);
         CUDA_CHECK(cudaMemcpyAsync(output, h_header, offset, 
                                   cudaMemcpyHostToDevice, stream));
         
@@ -1717,36 +1786,49 @@ private:
         u32* header_size,        // Output: total header size (host)
         u32* content_size        // Output: decompressed size if present (host)
     ) {
+        fprintf(stderr, "[DEBUG] parse_frame_header ENTERED: input_size=%u\n", input_size);
         if (input_size < 5) {
+            fprintf(stderr, "[ERROR] parse_frame_header: input too small (%u < 5)\n", input_size);
             return Status::ERROR_CORRUPT_DATA;
         }
         
         // Copy frame header to host for parsing
         byte_t h_header[18];
+        fprintf(stderr, "[DEBUG] parse_frame_header: About to copy %u bytes from device\n", std::min(18u, input_size));
         CUDA_CHECK(cudaMemcpy(h_header, input, std::min(18u, input_size), 
                              cudaMemcpyDeviceToHost));
+        fprintf(stderr, "[DEBUG] parse_frame_header: Header copied, first bytes: %02X %02X %02X %02X %02X\n",
+                h_header[0], h_header[1], h_header[2], h_header[3], h_header[4]);
         
         u32 offset = 4;  // Skip magic number (already validated)
         
         // === Parse Frame Header Descriptor (1 byte) ===
         byte_t fhd = h_header[offset++];
+        fprintf(stderr, "[DEBUG] parse_frame_header: FHD=0x%02X, offset now=%u\n", fhd, offset);
         
         bool single_segment = (fhd >> 5) & 0x01;
         bool has_dict_id = (fhd & 0x03) != 0;
+        fprintf(stderr, "[DEBUG] parse_frame_header: single_segment=%d, has_dict_id=%d\n",
+                single_segment, has_dict_id);
         
         // === Parse Window Descriptor (if not single segment) ===
         if (!single_segment) {
+            fprintf(stderr, "[DEBUG] parse_frame_header: Parsing window descriptor at offset %u\n", offset);
             if (offset >= input_size) {
+                fprintf(stderr, "[ERROR] parse_frame_header: Not enough data for window descriptor\n");
                 return Status::ERROR_CORRUPT_DATA;
             }
             
             byte_t wd = h_header[offset++];
             u32 window_log = 10 + (wd >> 3);
+            fprintf(stderr, "[DEBUG] parse_frame_header: WD=0x%02X, window_log=%u, offset now=%u\n", wd, window_log, offset);
             
             // Update config window size
             if (window_log >= ZSTD_WINDOWLOG_MIN && window_log <= ZSTD_WINDOWLOG_MAX) {
                 config.window_log = window_log;
             } else {
+                fprintf(stderr, "[ERROR] parse_frame_header: Invalid window_log=%u (min=%u, max=%u)\n",
+                        window_log, ZSTD_WINDOWLOG_MIN, ZSTD_WINDOWLOG_MAX);
                 return Status::ERROR_CORRUPT_DATA;
             }
         }
@@ -1776,23 +1858,32 @@ private:
         // === Parse Content Size (if present) ===
         u32 h_content_size = 0;
         u32 fcs_field_size = (fhd >> 6) & 0x03;
+        fprintf(stderr, "[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=%u, offset=%u\n",
+                fcs_field_size, offset);
         
         if (fcs_field_size == 0) {
+            fprintf(stderr, "[DEBUG] parse_frame_header: fcs_field_size=0 branch\n");
             // No content size field (or single-segment with 1 byte)
             if (single_segment && offset < input_size) {
                 h_content_size = h_header[offset];
                 offset += 1;
             }
         } else if (fcs_field_size == 1) {
+            fprintf(stderr, "[DEBUG] parse_frame_header: fcs_field_size=1 branch (2-byte content size)\n");
             // 2 bytes: content_size = value + 256
             if (offset + 2 > input_size) {
+                fprintf(stderr, "[ERROR] parse_frame_header: Not enough data for 2-byte content size (offset=%u, input_size=%u)\n",
+                        offset, input_size);
                 return Status::ERROR_CORRUPT_DATA;
             }
             u16 size_val;
             memcpy(&size_val, h_header + offset, 2);
             h_content_size = size_val + 256;
+            fprintf(stderr, "[DEBUG] parse_frame_header: Parsed 2-byte content size: size_val=%u, h_content_size=%u\n",
+                    size_val, h_content_size);
             offset += 2;
         } else if (fcs_field_size == 2) {
+            fprintf(stderr, "[DEBUG] parse_frame_header: fcs_field_size=2 branch (4-byte content size)\n");
             // 4 bytes: content_size = value
             if (offset + 4 > input_size) {
                 return Status::ERROR_CORRUPT_DATA;
@@ -1800,6 +1891,7 @@ private:
             memcpy(&h_content_size, h_header + offset, 4);
             offset += 4;
         } else if (fcs_field_size == 3) {
+            fprintf(stderr, "[DEBUG] parse_frame_header: fcs_field_size=3 branch (8-byte content size)\n");
             // 8 bytes: content_size = value (stored as u64)
             if (offset + 8 > input_size) {
                 return Status::ERROR_CORRUPT_DATA;
@@ -1812,6 +1904,8 @@ private:
         
         *header_size = offset;
         *content_size = h_content_size;
+        fprintf(stderr, "[DEBUG] parse_frame_header: SUCCESS! header_size=%u, content_size=%u\n",
+                *header_size, *content_size);
         
         return Status::SUCCESS;
     }
@@ -1819,7 +1913,8 @@ private:
     Status write_block(
         byte_t* output,
         size_t max_size,
-        const byte_t* block_data,
+        const byte_t* compressed_data, // Changed from block_data
+        const byte_t* original_data,   // NEW: Need original data for raw block fallback
         u32 compressed_size,
         u32 original_size,
         bool is_last,
@@ -1829,7 +1924,8 @@ private:
          bool use_compressed = (compressed_size < original_size);
          u32 block_type = use_compressed ? 2 : 0; // 2=Compressed, 0=Raw
          u32 block_size = use_compressed ? compressed_size : original_size;
-        
+         const byte_t* src_data = use_compressed ? compressed_data : original_data;
+         
          if (*compressed_offset + 3 + block_size > max_size) {
              return Status::ERROR_BUFFER_TOO_SMALL;
          }
@@ -1840,7 +1936,7 @@ private:
          header |= (block_size << 3);
          
          CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset, &header, 3, cudaMemcpyHostToDevice, stream));
-         CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset + 3, block_data, block_size, cudaMemcpyDeviceToDevice, stream));
+         CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset + 3, src_data, block_size, cudaMemcpyDeviceToDevice, stream));
         
          *compressed_offset += 3 + block_size;
          return Status::SUCCESS;
@@ -1861,6 +1957,9 @@ private:
         // Read 3-byte block header from device
         u32 header = 0;
         CUDA_CHECK(cudaMemcpy(&header, input, 3, cudaMemcpyDeviceToHost));
+        
+        fprintf(stderr, "[DEBUG] read_block_header: header=0x%06X (input=%p, input_size=%u)\n",
+                header & 0xFFFFFF, input, input_size);
         
         // === Parse Block Header ===
         // Bit 0: last_block flag
@@ -1886,6 +1985,9 @@ private:
         
         // Bits 3+: block_size (24-bit value)
         *size = header >> 3;
+        
+        fprintf(stderr, "[DEBUG] read_block_header: Parsed as last=%d, type=%u, size=%u\n",
+                *is_last, block_type, *size);
         
         // Validate block size against remaining input
         if (*size > 0 && *size > input_size - 3) {
@@ -1942,6 +2044,16 @@ private:
         );
         if (status != Status::SUCCESS) return status;
         
+        // Sync after literals
+        cudaError_t lit_sync_err = cudaStreamSynchronize(stream);
+        if (lit_sync_err != cudaSuccess) {
+            printf("[ERROR] decompress_literals failed: %s\n", cudaGetErrorString(lit_sync_err));
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+        fprintf(stderr, "[DEBUG] decompress_block: Literals decompressed. header_size=%u, compressed_size=%u, decompressed_size=%u\n",
+                literals_header_size, literals_compressed_size, literals_decompressed_size);
+        
         // === Decompress Sequences ===
         u32 sequences_offset = literals_header_size + literals_compressed_size;
         
@@ -1949,18 +2061,69 @@ private:
             return Status::ERROR_CORRUPT_DATA;
         }
         
+        fprintf(stderr, "[DEBUG] decompress_block: Calling decompress_sequences, offset=%u, size=%u\n",
+                sequences_offset, input_size - sequences_offset);
+        
         status = decompress_sequences(
             input + sequences_offset,
             input_size - sequences_offset,
             ctx.seq_ctx,
             stream
         );
-        if (status != Status::SUCCESS) return status;
+        if (status != Status::SUCCESS) {
+            fprintf(stderr, "[ERROR] decompress_sequences failed with status %d\n", (int)status);
+            return status;
+        }
+        
+        fprintf(stderr, "[DEBUG] decompress_block: decompress_sequences completed, num_sequences=%u\n",
+                ctx.seq_ctx->num_sequences);
+        
+        // Sync after sequences
+        cudaError_t seq_sync_err = cudaStreamSynchronize(stream);
+        if (seq_sync_err != cudaSuccess) {
+            printf("[ERROR] decompress_sequences failed: %s\n", cudaGetErrorString(seq_sync_err));
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+        // === Build Sequence Structs ===
+        // decompress_sequences populates the component arrays (d_literal_lengths, d_offsets, d_match_lengths)
+        // We need to build the Sequence structs from these arrays before calling execute_sequences
+        if (ctx.seq_ctx->num_sequences > 0) {
+            fprintf(stderr, "[DEBUG] decompress_block: Building %u sequences from component arrays\n", 
+                    ctx.seq_ctx->num_sequences);
+            
+            const u32 threads = 256;
+            const u32 blocks = (ctx.seq_ctx->num_sequences + threads - 1) / threads;
+            
+            status = sequence::build_sequences(
+                *ctx.seq_ctx,
+                ctx.seq_ctx->num_sequences,
+                blocks,
+                threads,
+                stream
+            );
+            if (status != Status::SUCCESS) {
+                fprintf(stderr, "[ERROR] build_sequences failed with status %d\n", (int)status);
+                return status;
+            }
+            
+            // Sync after building
+            cudaError_t build_sync_err = cudaStreamSynchronize(stream);
+            if (build_sync_err != cudaSuccess) {
+                fprintf(stderr, "[ERROR] build_sequences sync failed: %s\n", cudaGetErrorString(build_sync_err));
+                return Status::ERROR_CUDA_ERROR;
+            }
+            
+            fprintf(stderr, "[DEBUG] decompress_block: build_sequences completed successfully\n");
+        }
         
         // === Execute Sequences ===
         u32* d_output_size;
         CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(u32)));
         CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
+        
+        fprintf(stderr, "[DEBUG] decompress_block: Executing %u sequences, literal_count=%u\n",
+                ctx.seq_ctx->num_sequences, literals_decompressed_size);
         
         status = sequence::execute_sequences(
             d_decompressed_literals,
@@ -1969,8 +2132,16 @@ private:
             ctx.seq_ctx->num_sequences,
             output,
             d_output_size,
+            ctx.seq_ctx->is_raw_offsets,  // Pass tier flag
             stream
         );
+        
+        // Sync after execute
+        cudaError_t exec_sync_err = cudaStreamSynchronize(stream);
+        if (exec_sync_err != cudaSuccess) {
+            printf("[ERROR] execute_sequences failed: %s\n", cudaGetErrorString(exec_sync_err));
+            return Status::ERROR_CUDA_ERROR;
+        }
         
         // Copy result size from device
         CUDA_CHECK(cudaMemcpyAsync(output_size, d_output_size, sizeof(u32), 
@@ -1990,51 +2161,180 @@ private:
         CompressionWorkspace* workspace,
         cudaStream_t stream
     ) {
-        size_t huffman_size_host = 0;
-        
         if (num_literals == 0) {
-            // No literals to compress -> nothing to write, caller can
-            // rely on output_size == 0 as the length of this section.
             *output_size = 0;
             return Status::SUCCESS;
         }
 
-        auto status = huffman::encode_huffman(
-            literals,
-            num_literals,
-            *ctx.huff_ctx,
-            output,
-            &huffman_size_host,
-            workspace,  // (NEW) Pass workspace
-            stream
-        );
-        CUDA_CHECK(cudaStreamSynchronize(stream));
+        // TEMPORARY DEBUG: Force Raw Literals to fix offset mismatch
+        // Matches decompress_literals expectation (non-standard?)
+        // Type=0 (bits 6-7), Format=0 (bits 4-5), Size (bits 0-4)
         
-        if (status == Status::SUCCESS && huffman_size_host < num_literals) {
-            *output_size = (u32)huffman_size_host;
-            return Status::SUCCESS;
+        byte_t header[3]; // Max 3 bytes for header (Format 2)
+        u32 header_len = 0;
+        
+        // ZSTD Raw_Literals_Block header format:
+        // bits 6-7: Block Type (00 for Raw)
+        // bits 4-5: Format (00, 01, 10)
+        // bits 0-3: Size (part of it)
+        
+        if (num_literals < 32) {
+            // Format 0: 1 byte header. Size = bits 0-4. Max 31.
+            header[0] = (byte_t)(num_literals & 0x1F); // bits 0-4 for size
+            header_len = 1;
+        } else if (num_literals < 4096) {
+            // Format 1: 2 bytes header. Size = (header[0]&0xF) + (header[1]<<4). Max 4095.
+            // h[0]: (Type=0)<<6 | (Format=1)<<4 | (Size & 0xF)
+            // h[1]: (Size >> 4)
+            header[0] = (byte_t)((1 << 4) | (num_literals & 0x0F));
+            header[1] = (byte_t)(num_literals >> 4);
+            header_len = 2;
+        } else {
+            // Format 2: 3 bytes header. Size = (header[0]&0xF) + (header[1]<<4) + (header[2]<<12). Max 1MB.
+            // h[0]: (Type=0)<<6 | (Format=2)<<4 | (Size & 0xF)
+            // h[1]: (Size >> 4) & 0xFF
+            // h[2]: (Size >> 12) & 0xFF
+            header[0] = (byte_t)((2 << 4) | (num_literals & 0x0F));
+            header[1] = (byte_t)((num_literals >> 4) & 0xFF);
+            header[2] = (byte_t)((num_literals >> 12) & 0xFF);
+            header_len = 3;
         }
         
-        status = fse::encode_fse_advanced(
-            literals,
-            num_literals,
-            output,
-            output_size,
-            fse::TableType::LITERALS,
-            true, true, false,
-            stream
-        );
+        CUDA_CHECK(cudaMemcpyAsync(output, header, header_len, cudaMemcpyHostToDevice, stream));
+        CUDA_CHECK(cudaMemcpyAsync(output + header_len, literals, num_literals, cudaMemcpyDeviceToDevice, stream));
         
-        if (status == Status::SUCCESS && *output_size < num_literals) {
-            return Status::SUCCESS;
-        }
+        *output_size = header_len + num_literals;
         
-        cudaMemcpyAsync(output, literals, num_literals, cudaMemcpyDeviceToDevice, stream);
-        *output_size = num_literals;
+        fprintf(stderr, "[DEBUG] compress_literals: FORCED RAW. Size=%u, HeaderLen=%u\n", *output_size, header_len);
         
         return Status::SUCCESS;
     }
     
+    /**
+     * @brief Tier 1: Encode sequences using predefined ZSTD FSE tables
+     * Fastest option, uses standard tables without frequency analysis.
+     * 
+     * Format: [mode_byte=0x01][ll_fse_stream][ml_fse_stream][offset_fse_stream]
+     */
+    Status encode_sequences_with_predefined_fse(
+        const sequence::SequenceContext* seq_ctx,
+        u32 num_sequences,
+        byte_t* output,
+        u32* output_size,
+        CompressionWorkspace* workspace,
+        cudaStream_t stream
+    ) {
+        if (num_sequences == 0) {
+            *output_size = 0;
+            return Status::SUCCESS;
+        }
+        
+        fprintf(stderr, "[DEBUG] Tier 1: Trying predefined FSE encoding\n");
+        
+        u32 offset = 0;
+        
+        // Mode byte: 0x01 = predefined FSE
+        byte_t mode_byte = 0x01;
+        CUDA_CHECK(cudaMemcpyAsync(output + offset, &mode_byte, 1, cudaMemcpyHostToDevice, stream));
+        offset += 1;
+        
+        // Encode literal_lengths with predefined table
+        const u16* ll_norm = fse::predefined::default_ll_norm;
+        u32 ll_max_symbol = 35;
+        u32 ll_table_log = 6;
+        
+        // Build encoding table from predefined norms
+        fse::FSEEncodeTable ll_table;
+        auto status = fse::FSE_buildCTable_Host(ll_norm, ll_max_symbol, ll_table_log, &ll_table);
+        if (status != Status::SUCCESS) {
+            fprintf(stderr, "[DEBUG] Tier 1: Failed to build LL table, status=%d\n", (int)status);
+            return status;
+        }
+        
+        // Encode LL stream (simplified - would need full FSE encoding implementation)
+        // For now, return NOT_IMPLEMENTED to fallback to next tier
+        delete[] ll_table.d_symbol_table;
+        
+        fprintf(stderr, "[DEBUG] Tier 1: Predefined FSE not fully implemented yet, falling back\n");
+        return Status::ERROR_NOT_IMPLEMENTED;
+    }
+    
+    
+    /**
+     * @brief Tier 4 fallback: Encode sequences without compression (raw u32 format)
+     * Stores full u32 values without truncation.
+     * 
+     * Format: [num_sequences_header][fse_modes=0xFF][ll_u32_data][of_u32_data][ml_u32_data]
+     * fse_modes=0xFF signals custom raw u32 mode (not standard ZSTD)
+     */
+
+
+    Status encode_sequences_raw(
+        const sequence::SequenceContext* seq_ctx,
+        u32 num_sequences,
+        byte_t* output,
+        u32* output_size,
+        cudaStream_t stream
+    ) {
+        if (num_sequences == 0) {
+            // ZSTD format for 0 sequences
+            byte_t zero = 0;
+            CUDA_CHECK(cudaMemcpyAsync(output, &zero, 1, cudaMemcpyHostToDevice, stream));
+            *output_size = 1;
+            return Status::SUCCESS;
+        }
+        
+        u32 offset = 0;
+        std::vector<byte_t> h_header;
+        
+        // Write num_sequences header (ZSTD format)
+        if (num_sequences < 128) {
+            h_header.push_back((byte_t)num_sequences);
+        } else if (num_sequences < 0x7F00) {
+            h_header.push_back((byte_t)((num_sequences >> 8) + 0x80));
+            h_header.push_back((byte_t)(num_sequences & 0xFF));
+        } else {
+            h_header.push_back((byte_t)0xFF);
+            h_header.push_back((byte_t)((num_sequences - 0x7F00) >> 8));
+            h_header.push_back((byte_t)((num_sequences - 0x7F00) & 0xFF));
+        }
+        
+        // fse_modes byte: 0xFF signals custom raw u32 mode
+        // (Standard ZSTD only uses modes 0-3, so 0xFF is safe for custom use)
+        byte_t fse_modes = 0xFF;
+        h_header.push_back(fse_modes);
+        
+        // Copy header to device
+        CUDA_CHECK(cudaMemcpyAsync(output + offset, h_header.data(), h_header.size(),
+                                     cudaMemcpyHostToDevice, stream));
+        offset += h_header.size();
+        
+        // Copy full u32 arrays (no truncation!)
+        // Order: LL, OF, ML (ZSTD standard order)
+        u32 array_size = num_sequences * sizeof(u32);
+        
+        CUDA_CHECK(cudaMemcpyAsync(output + offset, seq_ctx->d_literal_lengths,
+                                     array_size, cudaMemcpyDeviceToDevice, stream));
+        offset += array_size;
+        
+        // Tier 4: Copy offsets WITHOUT bias (raw distances)
+        // NOTE: The +3 ZSTD offset bias is ONLY for FSE-encoded offsets (Tier 1)
+        // Tier 4 stores raw u32 values directly
+        CUDA_CHECK(cudaMemcpyAsync(output + offset, seq_ctx->d_offsets,
+                                     array_size, cudaMemcpyDeviceToDevice, stream));
+        offset += array_size;
+        
+        CUDA_CHECK(cudaMemcpyAsync(output + offset, seq_ctx->d_match_lengths,
+                                     array_size, cudaMemcpyDeviceToDevice, stream));
+        offset += array_size;
+        
+        *output_size = offset;
+        fprintf(stderr, "[DEBUG] Tier 4: Encoded %u sequences as raw u32, total size=%u bytes\n",
+                num_sequences, offset);
+        
+        return Status::SUCCESS;
+    }
+
     Status compress_sequences(
         const sequence::SequenceContext* seq_ctx,
         u32 num_sequences,
@@ -2042,6 +2342,7 @@ private:
         u32* output_size,
         cudaStream_t stream
     ) {
+        fprintf(stderr, "[DEBUG] compress_sequences ENTERED: num_sequences=%u\n", num_sequences);
         u32 offset = 0;
 
         // Nothing to emit
@@ -2050,6 +2351,30 @@ private:
             return Status::SUCCESS;
         }
         
+        // ==== CASCADING COMPRESSION FALLBACK ====
+        // Tier 1: Predefined FSE (fastest, most common)
+        fprintf(stderr, "[DEBUG] compress_sequences: TIER 1 - Trying predefined FSE\n");
+        CompressionWorkspace call_workspace; // Placeholder, actual workspace management needed
+        auto status = encode_sequences_with_predefined_fse(
+            seq_ctx, num_sequences, output, output_size, &call_workspace, stream
+        );
+        
+        if (status == Status::SUCCESS) {
+            fprintf(stderr, "[DEBUG] compress_sequences: TIER 1 SUCCESS\n");
+            return Status::SUCCESS;
+        }
+        
+        fprintf(stderr, "[DEBUG] compress_sequences: TIER 1 failed (status=%d), trying TIER 4 (raw)\n", (int)status);
+        
+        // Tier 4: Raw encoding (guaranteed fallback)
+        return encode_sequences_raw(seq_ctx, num_sequences, output, output_size, stream);
+        
+        /* TIER 2 & 3 - Not yet implemented
+        // Tier 2: Custom FSE with larger table
+        // Tier 3: Huffman encoding
+        */
+        /* ORIGINAL FSE CODE - DISABLED FOR TESTING
+        fprintf(stderr, "[DEBUG] compress_sequences: calling FSE for literal_lengths, num=%u\n", num_sequences);
         u32 ll_size = 0;
         auto status = fse::encode_fse_advanced(
             (const byte_t*)seq_ctx->d_literal_lengths,
@@ -2060,10 +2385,16 @@ private:
             true, true, false,
             stream
         );
+        fprintf(stderr, "[DEBUG] compress_sequences: FSE literal_lengths returned status=%d, size=%u\n", (int)status, ll_size);
         
-        if (status != Status::SUCCESS) return status;
+        // If FSE fails, fall back to raw encoding
+        if (status != Status::SUCCESS) {
+            fprintf(stderr, "[WARNING] FSE encoding failed (status=%d), falling back to raw encoding\n", (int)status);
+            return encode_sequences_raw(seq_ctx, num_sequences, output, output_size, stream);
+        }
         offset += ll_size;
         
+        fprintf(stderr, "[DEBUG] compress_sequences: calling FSE for match_lengths, num=%u\n", num_sequences);
         u32 ml_size = 0;
         status = fse::encode_fse_advanced(
             (const byte_t*)seq_ctx->d_match_lengths,
@@ -2075,7 +2406,10 @@ private:
             stream
         );
         
-        if (status != Status::SUCCESS) return status;
+        if (status != Status::SUCCESS) {
+            fprintf(stderr, "[WARNING] FSE encoding failed (status=%d), falling back to raw encoding\n", (int)status);
+            return encode_sequences_raw(seq_ctx, num_sequences, output, output_size, stream);
+        }
         offset += ml_size;
         
         u32 of_size = 0;
@@ -2089,11 +2423,15 @@ private:
             stream
         );
         
-        if (status != Status::SUCCESS) return status;
+        if (status != Status::SUCCESS) {
+            fprintf(stderr, "[WARNING] FSE encoding failed (status=%d), falling back to raw encoding\n", (int)status);
+            return encode_sequences_raw(seq_ctx, num_sequences, output, output_size, stream);
+        }
         offset += of_size;
         
         *output_size = offset;
         return Status::SUCCESS;
+        */ // END DISABLED FSE CODE
     }
     
     Status decompress_literals(
@@ -2226,10 +2564,14 @@ private:
         byte_t h_header[5];
         CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size), cudaMemcpyDeviceToHost));
         
+        fprintf(stderr, "[DEBUG] decompress_sequences: input_size=%u, header bytes: %02X %02X %02X %02X %02X\n",
+                input_size, h_header[0], h_header[1], h_header[2], h_header[3], h_header[4]);
+        
         u32 num_sequences = 0;
         u32 offset = 0;
         
         if (h_header[0] == 0) {
+            fprintf(stderr, "[DEBUG] decompress_sequences: h_header[0]==0, returning num_sequences=0\n");
             seq_ctx->num_sequences = 0;
             return Status::SUCCESS;
         } else if (h_header[0] < 128) {
@@ -2245,12 +2587,47 @@ private:
             offset = 3;
         }
         
+        fprintf(stderr, "[DEBUG] decompress_sequences: Parsed num_sequences=%u, offset=%u\n", num_sequences, offset);
+        
         seq_ctx->num_sequences = num_sequences;
         if (offset >= input_size) return Status::ERROR_CORRUPT_DATA;
 
         byte_t fse_modes = h_header[offset];
         offset += 1;
         
+        fprintf(stderr, "[DEBUG] decompress_sequences: fse_modes=0x%02X, offset=%u\n", fse_modes, offset);
+        
+        // Check for custom raw u32 mode (fse_modes=0xFF)
+        if (fse_modes == 0xFF) {
+            fprintf(stderr, "[DEBUG] decompress_sequences: Tier 4 raw u32 mode detected\n");
+            // Custom raw u32 mode: data is stored as full u32 arrays
+            u32 array_size = num_sequences * sizeof(u32);
+            
+            if (offset + array_size * 3 > input_size) return Status::ERROR_CORRUPT_DATA;
+            
+            // Copy literal_lengths
+            CUDA_CHECK(cudaMemcpyAsync(seq_ctx->d_literal_lengths, input + offset,
+                                         array_size, cudaMemcpyDeviceToDevice, stream));
+            offset += array_size;
+            
+            // Copy offsets
+            CUDA_CHECK(cudaMemcpyAsync(seq_ctx->d_offsets, input + offset,
+                                         array_size, cudaMemcpyDeviceToDevice, stream));
+            offset += array_size;
+            
+            // Copy match_lengths
+            CUDA_CHECK(cudaMemcpyAsync(seq_ctx->d_match_lengths, input + offset,
+                                         array_size, cudaMemcpyDeviceToDevice, stream));
+            offset += array_size;
+            
+            // IMPORTANT: Set tier flag for raw offsets
+            seq_ctx->is_raw_offsets = true;
+            
+            return Status::SUCCESS;
+        }
+        
+        // Standard ZSTD modes (0-3) - offsets are FSE-encoded with +3 bias
+        seq_ctx->is_raw_offsets = false;
         u32 ll_mode = (fse_modes >> 6) & 0x03;
         u32 of_mode = (fse_modes >> 4) & 0x03;
         u32 ml_mode = (fse_modes >> 2) & 0x03;

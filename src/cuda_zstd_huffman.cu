@@ -594,6 +594,7 @@ Status encode_huffman(
     cudaStream_t stream
 ) {
     // --- START REPLACEMENT ---
+    fprintf(stderr, "[DEBUG] encode_huffman ENTERED: input_size=%u\n", input_size);
     if (!d_input || !d_output || !output_size || input_size == 0) {
         return Status::ERROR_INVALID_PARAMETER;
     }
@@ -616,13 +617,19 @@ Status encode_huffman(
         d_input, input_size, d_frequencies
     );
     
+    fprintf(stderr, "[DEBUG] encode_huffman: After analyze_frequencies_kernel\n");
+    
     // Use pinned memory for async transfer
     u32* h_frequencies = nullptr;
     CUDA_CHECK(cudaMallocHost(&h_frequencies, MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
+    fprintf(stderr, "[DEBUG] encode_huffman: cudaMallocHost succeeded, ptr=%p\n", h_frequencies);
+    
     CUDA_CHECK(cudaMemcpyAsync(h_frequencies, d_frequencies,
                                 MAX_HUFFMAN_SYMBOLS * sizeof(u32),
                                 cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream)); // Required: need frequencies for tree building
+    
+    fprintf(stderr, "[DEBUG] encode_huffman: Frequency copy complete\n");
     
     // Only free if we allocated it ourselves
     if (allocated_temp) {
@@ -630,11 +637,14 @@ Status encode_huffman(
     }
 
     // --- 2. Build Tables on Host ---
+    fprintf(stderr, "[DEBUG] encode_huffman: Starting tree build\n");
     HuffmanNode* h_nodes = new HuffmanNode[MAX_HUFFMAN_SYMBOLS * 2];
     u32 num_nodes = 0;
     i32 root_idx = -1;
     HuffmanTreeBuilder::build_tree(h_frequencies, MAX_HUFFMAN_SYMBOLS,
                                    h_nodes, num_nodes, root_idx);
+    
+    fprintf(stderr, "[DEBUG] encode_huffman: Tree built, num_nodes=%u\n", num_nodes);
     
     u8* h_code_lengths = new u8[MAX_HUFFMAN_SYMBOLS];
     // (FIX) Need to actually generate the code lengths from the tree
@@ -665,7 +675,8 @@ Status encode_huffman(
         h_codes // Generate into host buffer
     );
     if (status != Status::SUCCESS) {
-        delete[] h_frequencies;
+        fprintf(stderr, "[ERROR] encode_huffman: generate_canonical_codes failed with status %d\n", (int)status);
+        cudaFreeHost(h_frequencies); // FIX: Use cudaFreeHost for pinned memory
         delete[] h_nodes;
         delete[] h_code_lengths;
         delete[] h_codes;
@@ -729,7 +740,7 @@ Status encode_huffman(
             cudaFree(d_code_lengths);
             cudaFree(d_bit_offsets);
         }
-        delete[] h_frequencies;
+        cudaFreeHost(h_frequencies); // FIX: Use cudaFreeHost for pinned memory
         delete[] h_nodes;
         delete[] h_code_lengths;
         delete[] h_header;

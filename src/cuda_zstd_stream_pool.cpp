@@ -144,30 +144,39 @@ StreamPool::Guard::~Guard() {
 
 // Global singleton
 namespace {
-    std::unique_ptr<cuda_zstd::StreamPool> g_stream_pool;
-    std::once_flag g_stream_pool_once_flag;
+    // CRITICAL FIX: Use raw pointer to intentionally leak at program exit
+    // This avoids StreamPool destructor running AFTER CUDA context is torn down
+    cuda_zstd::StreamPool* g_stream_pool = nullptr;
+    // CRITICAL FIX: std::once_flag can have non-trivial constructor causing heap corruption
+    // Use raw pointer initialization instead
+    std::mutex* g_stream_pool_init_mutex = nullptr;
+    
+    std::mutex& get_stream_pool_init_mutex() {
+        if (!g_stream_pool_init_mutex) {
+            g_stream_pool_init_mutex = new std::mutex();
+        }
+        return *g_stream_pool_init_mutex;
+    }
 }
 
 cuda_zstd::StreamPool* cuda_zstd::get_global_stream_pool(size_t default_size) {
-    // std::cerr << "get_global_stream_pool called. default_size=" << default_size << std::endl;
-    std::call_once(g_stream_pool_once_flag, [&](){
-        // std::cerr << "get_global_stream_pool: initializing pool..." << std::endl;
-        if (!g_stream_pool) {
-            const char* env_pool = getenv("CUDA_ZSTD_STREAM_POOL_SIZE");
-            size_t size = default_size;
-            if (env_pool) {
-                try { size = std::max((size_t)1, (size_t)std::stoi(env_pool)); } catch (...) { }
-            }
-            try {
-                g_stream_pool = std::make_unique<cuda_zstd::StreamPool>(size);
-            } catch (...) {
-                // If allocation fails, keep g_stream_pool null.
-                g_stream_pool.reset();
-            }
-            // std::cerr << "get_global_stream_pool: init complete" << std::endl;
+    std::lock_guard<std::mutex> lock(get_stream_pool_init_mutex());
+    
+    if (!g_stream_pool) {
+        const char* env_pool = getenv("CUDA_ZSTD_STREAM_POOL_SIZE");
+        size_t size = default_size;
+        if (env_pool) {
+            try { size = std::max((size_t)1, (size_t)std::stoi(env_pool)); } catch (...) { }
         }
-    });
-    return g_stream_pool.get();
+        try {
+            g_stream_pool = new cuda_zstd::StreamPool(size);  // Use new instead of make_unique
+        } catch (...) {
+            // If allocation fails, keep g_stream_pool null.
+            g_stream_pool = nullptr;
+        }
+    }
+    
+    return g_stream_pool;
 }
 
 size_t cuda_zstd::get_global_stream_pool_size() {

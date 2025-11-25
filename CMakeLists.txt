@@ -44,7 +44,7 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_c_api.cpp
     src/cuda_zstd_types.cpp
     src/cuda_zstd_manager.cu
-    src/cuda_zstd_lz77.cu
+    # src/cuda_zstd_lz77.cu  <-- Included in manager.cu
     src/cuda_zstd_fse.cu
     src/cuda_zstd_huffman.cu
     src/cuda_zstd_dictionary.cu
@@ -53,6 +53,7 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_xxhash.cu
     src/cuda_zstd_nvcomp.cpp
     src/cuda_zstd_utils.cu
+    src/cuda_zstd_utils.cpp
     src/cuda_zstd_memory_pool_complex.cu
     src/cuda_zstd_stacktrace.cpp
     src/cuda_zstd_debug.cu

@@ -1,4 +1,3 @@
-// ============================================================================
 // cuda_zstd_lz77.cu - LZ77 Match Finding Implementation
 //
 // (OPTIMIZED) NOTE: This file is now a three-pass parallel implementation.
@@ -90,7 +89,7 @@ __global__ void build_hash_chains_kernel(
     u32 hash_log
 ) {
     // Shared memory for tiled processing
-    __shared__ byte_t s_input_tile[2048];  // 2KB tile of input data
+    __shared__ byte_t s_input_tile[2048 + 64];  // 2KB tile + margin for lookahead
     __shared__ HashUpdate s_updates[512];   // Hash updates for this block
     __shared__ u32 s_update_count;
     __shared__ u32 s_radix_counts[256];    // For 8-bit radix sort
@@ -430,10 +429,46 @@ __device__ inline Match find_best_match_parallel(
             while (len < max_possible_len && match_ptr[len] == input[current_pos + len]) ++len;
         }
 
-        if (len >= config.min_match) {
-            return Match{current_pos, len, match_candidate_pos >= dict_size ? (match_candidate_pos - dict_size) : match_candidate_pos, 0};
+        // DEBUG: Catch invalid match
+        if (len > 0) {
+             // Check if it really matches
+             if (input[current_pos] != match_ptr[0]) {
+                 printf("[GPU ERROR] Match reported at %u but bytes differ! Len=%u, Cand=%u, Inp=%02X, Match=%02X\n",
+                        current_pos, len, match_candidate_pos, input[current_pos], match_ptr[0]);
+                 printf("[GPU ERROR] Ptrs: Input=%p, Match=%p, Diff=%ld\n", 
+                        input + current_pos, match_ptr, (long)(input + current_pos) - (long)match_ptr);
+             }
         }
-        return Match{current_pos, 0, 0, 0};
+
+        if (len >= config.min_match) {
+            u32 distance = 0;
+            if (match_candidate_pos >= dict_size) {
+                // Match is in the current window/input
+                u32 match_pos_in_input = match_candidate_pos - dict_size;
+                distance = current_pos - match_pos_in_input;
+            } else {
+                // Match is in the dictionary
+                // Distance = current_pos (in input) + distance into dictionary
+                // Dict end is at dict_size. Match is at match_candidate_pos.
+                // Distance back = (current_pos from start) + (dict_size - match_candidate_pos)
+                distance = current_pos + (dict_size - match_candidate_pos);
+            }
+            
+            // Use designated initializers to ensure correct member assignment regardless of struct order
+            Match m;
+            m.position = current_pos;
+            m.length = len;
+            m.offset = distance;
+            m.literal_length = 0;
+            return m;
+        }
+        
+        Match m;
+        m.position = current_pos;
+        m.length = 0;
+        m.offset = 0;
+        m.literal_length = 0;
+        return m;
     }
 
     // Protect against runaway chain traversal for debug. MAX_CHAIN_TRAVERSAL
@@ -442,7 +477,7 @@ __device__ inline Match find_best_match_parallel(
 #define MAX_CHAIN_TRAVERSAL 1024
 #endif
     u32 chain_iterations = 0;
-    while (search_depth-- > 0 && match_candidate_pos >= window_min && chain_iterations++ < MAX_CHAIN_TRAVERSAL) {
+    while (search_depth-- > 0 && match_candidate_pos >= window_min && match_candidate_pos < current_global_pos && chain_iterations++ < MAX_CHAIN_TRAVERSAL) {
         const byte_t* match_ptr;
         const byte_t* current_ptr = input + current_pos;
 
@@ -887,88 +922,60 @@ __global__ void backtrack_build_sequences_kernel(
 __global__ void reverse_and_build_sequences_kernel(
     const byte_t* input,
     u32 input_size,
-    
-    // Input: reversed sequences
     const u32* d_literal_lengths_reverse,
     const u32* d_match_lengths_reverse,
     const u32* d_offsets_reverse,
     u32 num_sequences,
-    
-    // Output: forward-order sequences
     u32* d_literal_lengths,
     u32* d_match_lengths,
     u32* d_offsets,
-    
-    // Literal buffer output
     byte_t* d_literals_buffer,
-    u32* d_total_literals_count
+    u32* d_total_literals_count,
+    bool output_raw_values
 ) {
     u32 tid = blockIdx.x * blockDim.x + threadIdx.x;
-    u32 stride = blockDim.x * gridDim.x;
     
-    // ===== PHASE 1: Reverse sequence order (parallel) =====
-    for (u32 i = tid; i < num_sequences; i += stride) {
+    // Phase 1: Reverse sequences (Parallel)
+    for (u32 i = tid; i < num_sequences; i += blockDim.x * gridDim.x) {
         u32 reverse_idx = num_sequences - 1 - i;
+        u32 ll = d_literal_lengths_reverse[reverse_idx];
+        u32 ml = d_match_lengths_reverse[reverse_idx];
+        u32 of = d_offsets_reverse[reverse_idx];
         
-        // Map raw lengths/offsets to FSE symbol codes before storing
-        // This prevents the FSE encoder from indexing out of range
-        // and ensures we compress the categorical symbols, not raw values.
-        // NOTE: mapping helpers are defined inside the `cuda_zstd::sequence`
-        // namespace as static methods of `ZstdSequence`.
-        d_literal_lengths[i] = cuda_zstd::sequence::ZstdSequence::get_lit_len_code(d_literal_lengths_reverse[reverse_idx]);
-        d_match_lengths[i] = cuda_zstd::sequence::ZstdSequence::get_match_len_code(d_match_lengths_reverse[reverse_idx]);
-        d_offsets[i] = cuda_zstd::sequence::ZstdSequence::get_offset_code(d_offsets_reverse[reverse_idx]);
-    }
-    
-    __syncthreads();  // Ensure phase 1 complete
-    
-    // ===== PHASE 2: Calculate literal offsets (parallel prefix sum) =====
-    // For each sequence, calculate where its literals start in the output buffer
-    
-    // Initialize: thread 0 starts at offset 0
-    extern __shared__ u32 s_lit_offsets[];  // [max threads]
-    
-    if (tid == 0) {
-        s_lit_offsets[0] = 0;
-    }
-    __syncthreads();
-    
-    // Each thread computes cumulative literal count
-    u32 lit_offset = 0;
-    for (u32 i = 0; i < num_sequences; i++) {
-        if (tid == 0) {
-            s_lit_offsets[i] = lit_offset;
-            lit_offset += d_literal_lengths[i];
+        if (output_raw_values) {
+            d_literal_lengths[i] = ll;
+            d_match_lengths[i] = ml;
+            d_offsets[i] = of;
+        } else {
+            d_literal_lengths[i] = cuda_zstd::sequence::ZstdSequence::get_lit_len_code(ll);
+            d_match_lengths[i] = cuda_zstd::sequence::ZstdSequence::get_match_len_code(ml);
+            d_offsets[i] = cuda_zstd::sequence::ZstdSequence::get_offset_code(of);
         }
     }
     
-    if (tid == 0) {
-        *d_total_literals_count = lit_offset;
-    }
-    
     __syncthreads();
     
-    // ===== PHASE 3: Copy literals to output buffer (parallel) =====
-    // Thread i copies 8 bytes at a time from input to literal buffer
-    
-    u32 current_input_pos = 0;
-    
-    // Re-scan input to collect literals
-    for (u32 seq_idx = 0; seq_idx < num_sequences; seq_idx++) {
-        u32 lit_len = d_literal_lengths[seq_idx];
-        u32 match_len = d_match_lengths[seq_idx];
+    // Phase 2 & 3: Compute offsets and copy literals (Sequential by Thread 0)
+    if (tid == 0 && blockIdx.x == 0) {
+        u32 current_lit_offset = 0;
+        u32 current_input_offset = 0;
         
-        // Parallel copy of literals for this sequence
-        for (u32 j = tid; j < lit_len; j += stride) {
-            u32 src_pos = current_input_pos + j;
-            u32 dst_pos = s_lit_offsets[seq_idx] + j;
+        for (u32 i = 0; i < num_sequences; ++i) {
+            u32 reverse_idx = num_sequences - 1 - i;
+            u32 ll = d_literal_lengths_reverse[reverse_idx];
+            u32 ml = d_match_lengths_reverse[reverse_idx];
             
-            if (src_pos < input_size && dst_pos < (*d_total_literals_count)) {
-                d_literals_buffer[dst_pos] = input[src_pos];
+            // Copy literals
+            for (u32 j = 0; j < ll; ++j) {
+                if (current_input_offset + j < input_size) {
+                    d_literals_buffer[current_lit_offset + j] = input[current_input_offset + j];
+                }
             }
+            
+            current_lit_offset += ll;
+            current_input_offset += ll + ml;
         }
-        
-        current_input_pos += lit_len + match_len;
+        *d_total_literals_count = current_lit_offset;
     }
 }
 
@@ -1024,11 +1031,43 @@ Status free_lz77_context(LZ77Context& ctx) {
     return Status::SUCCESS;
 }
 
-/**
- * @brief (MODIFIED) Host function for Pass 1: Parallel Match Finding
- * Now accepts workspace parameter to eliminate allocations
- */
-
+Status find_matches(
+    LZ77Context& ctx,
+    const byte_t* d_input,
+    size_t input_size,
+    const DictionaryContent* dict,
+    CompressionWorkspace* workspace,
+    const byte_t* d_window,
+    size_t window_size,
+    cudaStream_t stream
+) {
+    if (!d_input || input_size == 0 || !workspace) {
+        return Status::ERROR_INVALID_PARAMETER;
+    }
+    
+    // Set workspace pointers in context
+    ctx.hash_table.table = workspace->d_hash_table;
+    ctx.chain_table.prev = workspace->d_chain_table;
+    ctx.d_matches = static_cast<Match*>(workspace->d_matches);
+    
+    // Build hash and chain tables
+    u32 num_blocks = (input_size + 2047) / 2048;
+    build_hash_chains_kernel<<<num_blocks, 256, 0, stream>>>(
+        d_input, input_size, dict, ctx.hash_table, ctx.chain_table,
+        ctx.config.min_match, ctx.config.hash_log
+    );
+    CUDA_CHECK(cudaGetLastError());
+    
+    // Find all matches in parallel
+    u32 match_blocks = (input_size + 255) / 256;
+    parallel_find_all_matches_kernel<<<match_blocks, 256, 0, stream>>>(
+        d_input, input_size, dict, ctx.hash_table,
+        ctx.chain_table, ctx.config, ctx.d_matches
+    );
+    CUDA_CHECK(cudaGetLastError());
+    
+    return Status::SUCCESS;
+}
 
 Status get_matches(
     const LZ77Context& ctx,
@@ -1056,47 +1095,24 @@ Status get_matches(
     return Status::SUCCESS;
 }
 
-// ============================================================================
-// HOST: New Unified Backtrack Interface (SAFE - No GPU Stack Issues)
-// ============================================================================
-
-/**
- * @brief Host wrapper for complete backtrack pipeline
- * 
- * Three-phase approach:
- * 1. Count sequences (determine allocation size)
- * 2. Allocate buffers dynamically
- * 3. Backtrack and build sequences
- * 
- * SAFETY:
- * - All buffers allocated in host code via cudaMalloc
- * - GPU kernels use pre-allocated memory
- * - No GPU stack allocations
- */
 Status find_optimal_parse(
     LZ77Context& lz77_ctx,
-    const byte_t* d_input,
+    const cuda_zstd::byte_t* d_input,
     size_t input_size,
     const DictionaryContent* dict,
     CompressionWorkspace* workspace,
-    const byte_t* d_window,
+    const cuda_zstd::byte_t* d_window,
     size_t window_size,
-    byte_t* d_literals_buffer,
-    u32* d_literal_lengths,
-    u32* d_match_lengths,
-    u32* d_offsets,
-    u32* h_num_sequences,
-    u32* h_total_literals_count,
-    cudaStream_t stream
+    cudaStream_t stream,
+    cuda_zstd::sequence::SequenceContext* seq_ctx,
+    u32* num_sequences_out,
+    u32* total_literals_out,
+    bool output_raw_values
 ) {
-    if (!d_input || input_size == 0 || !workspace) {
+    if (!d_input || input_size == 0 || !workspace || !seq_ctx) {
         return Status::ERROR_INVALID_PARAMETER;
     }
-    
-    if (!d_literal_lengths || !d_match_lengths || !d_offsets) {
-        return Status::ERROR_INVALID_PARAMETER;
-    }
-    
+
     // (NEW) Set workspace pointers into context
     lz77_ctx.d_matches = static_cast<Match*>(workspace->d_matches);
     lz77_ctx.d_costs = static_cast<ParseCost*>(workspace->d_costs);
@@ -1105,10 +1121,8 @@ Status find_optimal_parse(
     lz77_ctx.d_offsets_reverse = workspace->d_offsets_reverse;
     lz77_ctx.max_sequences_capacity = workspace->max_sequences;
     
-    // ===== PHASE 1: Run DP to generate costs (PARALLELIZED) - NO ALLOCATION =====
-    
-    // Calculate grid configuration for parallel DP
-    const u32 CHUNK_SIZE = 2048;  // Must match kernel constant
+    // Phase 1: DP
+    const u32 CHUNK_SIZE = 2048;
     const u32 threads_per_block = 256;
     const u32 num_chunks = (input_size + CHUNK_SIZE - 1) / CHUNK_SIZE;
     const u32 num_blocks = max(1u, num_chunks);
@@ -1119,200 +1133,102 @@ Status find_optimal_parse(
         lz77_ctx.d_costs
     );
     CUDA_CHECK(cudaGetLastError());
-    // Optionally synchronize and print kernel error string for CI toggles
-    cuda_zstd::utils::debug_kernel_verify("find_optimal_parse: after optimal_parse_kernel");
     
-    // ===== PHASE 2: Count sequences needed - USE WORKSPACE BUFFER =====
-    
-    u32* d_num_sequences = workspace->d_block_sums;  // Reuse workspace buffer
-    
+    // Phase 2: Count sequences
+    u32* d_num_sequences = workspace->d_block_sums;
     count_sequences_kernel<<<1, 1, 0, stream>>>(
         input_size,
         lz77_ctx.d_costs,
         d_num_sequences
     );
     CUDA_CHECK(cudaGetLastError());
-    cuda_zstd::utils::debug_kernel_verify("find_optimal_parse: after count_sequences_kernel");
     
-    // Use pinned memory for async transfer
     u32* h_num_sequences_pinned = nullptr;
     CUDA_CHECK(cudaMallocHost(&h_num_sequences_pinned, sizeof(u32)));
     CUDA_CHECK(cudaMemcpyAsync(h_num_sequences_pinned, d_num_sequences, sizeof(u32),
                                cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaStreamSynchronize(stream)); // Required: need count for allocation
+    CUDA_CHECK(cudaStreamSynchronize(stream));
     
     u32 num_sequences = *h_num_sequences_pinned;
     cudaFreeHost(h_num_sequences_pinned);
     
-    *h_num_sequences = num_sequences;
-    
+    fprintf(stderr, "[DEBUG] find_optimal_parse: Counted sequences=%u\n", num_sequences);
+
     if (num_sequences == 0) {
+        if (num_sequences_out) *num_sequences_out = 0;
+        if (total_literals_out) *total_literals_out = input_size; // All literals
+        // If 0 sequences, it means no matches. So all input is literals.
         return Status::SUCCESS;
     }
     
-    // ===== PHASE 3: Use workspace buffers for reversed sequences - NO ALLOCATION =====
-    
-    u32* d_literal_lengths_reverse = lz77_ctx.d_literal_lengths_reverse;
-    u32* d_match_lengths_reverse = lz77_ctx.d_match_lengths_reverse;
-    u32* d_offsets_reverse = lz77_ctx.d_offsets_reverse;
-    
-    // ===== PHASE 4: Backtrack and build reversed sequences - NO ALLOCATION =====
-    
-    u32* d_num_sequences_out = &workspace->d_block_sums[1];  // Reuse another slot
-    
+    // Phase 4: Backtrack
+    u32* d_num_sequences_out = &workspace->d_block_sums[1];
     backtrack_build_sequences_kernel<<<1, 1, 0, stream>>>(
         d_input,
         input_size,
         lz77_ctx.d_costs,
-        d_literal_lengths_reverse,
-        d_match_lengths_reverse,
-        d_offsets_reverse,
+        lz77_ctx.d_literal_lengths_reverse,
+        lz77_ctx.d_match_lengths_reverse,
+        lz77_ctx.d_offsets_reverse,
         num_sequences,
         d_num_sequences_out
     );
-    
     CUDA_CHECK(cudaGetLastError());
-    cuda_zstd::utils::debug_kernel_verify("find_optimal_parse: after backtrack_build_sequences_kernel");
-
-    // Read actual number of sequences written by the backtrack step. The
-    // backtrack kernel may truncate to `max_sequences` capacity; the DP count
-    // recorded earlier (num_sequences) may therefore be an overestimate and
-    // must not be used for subsequent kernels which would read OOB.
+    
     u32 actual_num_sequences = 0;
     CUDA_CHECK(cudaMemcpyAsync(&actual_num_sequences, d_num_sequences_out, sizeof(u32), cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream));
-
-    // Update host-visible count and local variable
-    *h_num_sequences = actual_num_sequences;
     num_sequences = actual_num_sequences;
     
-    // ===== PHASE 5: Reverse sequences and build literal buffer - NO ALLOCATION =====
+    fprintf(stderr, "[DEBUG] find_optimal_parse: Actual sequences after backtrack=%u\n", num_sequences);
+
+    if (num_sequences_out) *num_sequences_out = num_sequences;
     
-    u32* d_total_literals = &workspace->d_block_sums[2];  // Reuse another slot
-    
+    // Phase 5: Reverse & Build
+    u32* d_total_literals = &workspace->d_block_sums[2];
     u32 block_size = 256;
     u32 grid_size = (num_sequences + block_size - 1) / block_size;
     size_t shared_mem = block_size * sizeof(u32);
     
+    fprintf(stderr, "[DEBUG] build_sequences: Launching reverse_and_build_sequences_kernel with num_sequences=%u, grid=%u, block=%u\n", 
+           num_sequences, grid_size, block_size);
+    
     reverse_and_build_sequences_kernel<<<grid_size, block_size, shared_mem, stream>>>(
         d_input,
         input_size,
-        d_literal_lengths_reverse,
-        d_match_lengths_reverse,
-        d_offsets_reverse,
+        lz77_ctx.d_literal_lengths_reverse,
+        lz77_ctx.d_match_lengths_reverse,
+        lz77_ctx.d_offsets_reverse,
         num_sequences,
-        d_literal_lengths,
-        d_match_lengths,
-        d_offsets,
-        d_literals_buffer,
-        d_total_literals
+        seq_ctx->d_literal_lengths,
+        seq_ctx->d_match_lengths,
+        seq_ctx->d_offsets,
+        seq_ctx->d_literals_buffer,
+        d_total_literals,
+        output_raw_values
     );
-    
     CUDA_CHECK(cudaGetLastError());
-    cuda_zstd::utils::debug_kernel_verify("find_optimal_parse: after reverse_and_build_sequences_kernel");
+    CUDA_CHECK(cudaStreamSynchronize(stream)); // Force flush of printf
     
-    // ===== PHASE 6: Copy results back to host =====
-    
-    // total_literals not needed here; result is read via h_total_literals_count
-    CUDA_CHECK(cudaMemcpyAsync(h_total_literals_count, d_total_literals, sizeof(u32),
-                               cudaMemcpyDeviceToHost, stream));
-    
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-    
-    // ===== NO CLEANUP NEEDED - All buffers are in workspace =====
+    // Phase 6: Copy total literals
+    if (total_literals_out) {
+        CUDA_CHECK(cudaMemcpyAsync(total_literals_out, d_total_literals, sizeof(u32),
+                                   cudaMemcpyDeviceToHost, stream));
+        CUDA_CHECK(cudaStreamSynchronize(stream));
+    }
     
     return Status::SUCCESS;
 }
 
-// NEW kernel with window validation
-__global__ void parallel_find_all_matches_with_window_kernel(
-    const byte_t* input,
-    u32 input_size,
-    const byte_t* d_window,        // May be nullptr
-    u32 window_size,
-    Match* d_matches,
-    u32* d_match_count,
-    u32 max_matches
-) {
-    u32 pos = blockIdx.x * blockDim.x + threadIdx.x;
-    if (pos >= input_size) return;
-    
-    // === Validate window in kernel ===
-    if (d_window == nullptr || window_size == 0) {
-        // Fallback to standard matching (no context)
-        // ... match finding logic without window ...
-    } else {
-        // Use window for context matching
-        // ... match finding with window context ...
-    }
+void test_linkage() {
+    printf("test_linkage called\n");
 }
 
-// ============================================================================
-// PUBLIC API: find_matches - Main Entry Point
-// ============================================================================
-
-/**
- * @brief Main API function for LZ77 match finding
- * 
- * This is the primary entry point called by the compression manager.
- * It orchestrates the three-pass parallel LZ77 algorithm:
- *   Pass 1: Build hash chains
- *   Pass 2: Find all matches in parallel
- *   Pass 3: Compute optimal parse via dynamic programming
- */
-Status find_matches(
-    LZ77Context& ctx,
-    const byte_t* d_input,
-    size_t input_size,
-    const DictionaryContent* dict,
-    CompressionWorkspace* workspace,
-    const byte_t* d_window,
-    size_t window_size,
-    cudaStream_t stream
-) {
-    if (!d_input || input_size == 0 || !workspace) {
-        return Status::ERROR_INVALID_PARAMETER;
-    }
-
-    // Set workspace pointers into context
-    ctx.hash_table.table = workspace->d_hash_table;
-    ctx.hash_table.size = workspace->hash_table_size;
-    ctx.chain_table.prev = workspace->d_chain_table;
-    ctx.chain_table.size = workspace->chain_table_size;
-    ctx.d_matches = static_cast<Match*>(workspace->d_matches);
-    ctx.d_costs = static_cast<ParseCost*>(workspace->d_costs);
-
-    // Pass 1: Build hash chains
-    const u32 threads_per_block = 256;
-    const u32 num_blocks = (input_size + threads_per_block - 1) / threads_per_block;
-
-    build_hash_chains_kernel<<<num_blocks, threads_per_block, 0, stream>>>(
-        d_input,
-        input_size,
-        dict,
-        ctx.hash_table,
-        ctx.chain_table,
-        ctx.config.min_match,
-        ctx.config.hash_log
-    );
-
-    CUDA_CHECK(cudaGetLastError());
-
-    // Pass 2: Find all matches in parallel
-    parallel_find_all_matches_kernel<<<num_blocks, threads_per_block, 0, stream>>>(
-        d_input,
-        input_size,
-        dict,
-        ctx.hash_table,
-        ctx.chain_table,
-        ctx.config,
-        ctx.d_matches
-    );
-
-    CUDA_CHECK(cudaGetLastError());
-
-    return Status::SUCCESS;
+void find_optimal_parse_v3(int x) {
+    printf("find_optimal_parse_v3 called with %d\n", x);
 }
+
+
 
 } // namespace lz77
 } // namespace cuda_zstd

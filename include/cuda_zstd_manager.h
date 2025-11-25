@@ -394,10 +394,11 @@ public:
 private:
     static bool profiling_enabled_;
     static DetailedPerformanceMetrics metrics_;
-    static std::unordered_map<std::string, double> timers_;
-    static std::unordered_map<std::string, std::chrono::high_resolution_clock::time_point> timer_start_;
-    static std::unordered_map<std::string, cudaEvent_t> cuda_timers_;
-    static std::mutex profiler_mutex_;
+    // Changed to pointers to avoid static initialization order issues / heap corruption
+    static std::unordered_map<std::string, double>* timers_;
+    static std::unordered_map<std::string, std::chrono::high_resolution_clock::time_point>* timer_start_;
+    static std::unordered_map<std::string, cudaEvent_t>* cuda_timers_;
+    static std::mutex* profiler_mutex_;
 };
 
 } // namespace cuda_zstd

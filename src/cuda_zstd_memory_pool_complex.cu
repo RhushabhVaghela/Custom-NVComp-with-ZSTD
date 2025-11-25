@@ -1716,10 +1716,18 @@ void MemoryPoolManager::update_allocation_latency(uint64_t latency_ns) {
 // ============================================================================
 
 static MemoryPoolManager* g_pool_instance = nullptr;
-static std::mutex g_pool_mutex;
+// CRITICAL FIX: Use pointer to avoid static initialization heap corruption
+static std::mutex* g_pool_mutex = nullptr;
+
+static std::mutex& get_pool_mutex() {
+    if (!g_pool_mutex) {
+        g_pool_mutex = new std::mutex();
+    }
+    return *g_pool_mutex;
+}
 
 MemoryPoolManager& get_global_pool() {
-    std::lock_guard<std::mutex> lock(g_pool_mutex);
+    std::lock_guard<std::mutex> lock(get_pool_mutex());
     if (!g_pool_instance) {
         g_pool_instance = new MemoryPoolManager(true);
     }
@@ -1727,7 +1735,7 @@ MemoryPoolManager& get_global_pool() {
 }
 
 void destroy_global_pool() {
-    std::lock_guard<std::mutex> lock(g_pool_mutex);
+    std::lock_guard<std::mutex> lock(get_pool_mutex());
     if (g_pool_instance) {
         delete g_pool_instance;
         g_pool_instance = nullptr;

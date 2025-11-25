@@ -68,7 +68,7 @@ Status build_sequences(
 
   // Launch kernel
   build_sequences_kernel<<<num_blocks, num_threads, 0, stream>>>(
-      (const u32*)ctx.d_literals_buffer,
+      ctx.d_literal_lengths, // (FIXED) Was incorrectly d_literals_buffer
       ctx.d_match_lengths,
       ctx.d_offsets,
       num_sequences_to_build, // (MODIFIED) Pass correct count
@@ -188,7 +188,8 @@ __global__ void compute_sequence_details_kernel(
     u32* d_literals_lengths, // Output: Literal length for each sequence
     u32* d_match_lengths,   // Output: Match length for each sequence
     u32* d_total_output_size, // Output: Total bytes
-    const u32* d_rep_codes_in // Input: Initial rep-codes (3 u32s)
+    const u32* d_rep_codes_in, // Input: Initial rep-codes (3 u32s)
+    bool is_raw_offsets  // NEW: Flag indicating if offsets are raw (Tier 4) or FSE-encoded (Tier 1)
 ) {
     if (threadIdx.x != 0 || blockIdx.x != 0) return;
 
@@ -213,7 +214,13 @@ __global__ void compute_sequence_details_kernel(
         total_literals += lit_len;
         
         if (match_length > 0) {
-            d_actual_offsets[i] = get_actual_offset(lit_len, seq.match_offset, state);
+            if (is_raw_offsets) {
+                // Tier 4: Offsets are already raw distances, use directly
+                d_actual_offsets[i] = seq.match_offset;
+            } else {
+                // Tier 1: Offsets are FSE-encoded with +3 bias, apply ZSTD decoding
+                d_actual_offsets[i] = get_actual_offset(lit_len, seq.match_offset, state);
+            }
         } else {
             d_actual_offsets[i] = 0; // No match
         }
@@ -259,61 +266,61 @@ __global__ void compute_output_offsets_kernel(
 
 /**
  * @brief (REPLACEMENT) Pass 3: Parallel sequence execution.
- * Each block handles one sequence.
+ * @brief Executes sequences sequentially within a block to respect dependencies.
+ * Uses block-level parallelism to copy data for each sequence.
+ * Launch with <<<1, 256>>> or similar (1 block per ZSTD block).
  */
-__global__ void parallel_execute_sequences_kernel(
-    const byte_t* literals,
-    const u32* d_actual_offsets,  // From Pass 1
-    const u32* d_literals_lengths, // From Pass 1
-    const u32* d_match_lengths,   // From Pass 1
+__global__ void sequential_block_execute_sequences_kernel(
+    const Sequence* d_sequences,
+    u32 num_sequences,
+    const byte_t* d_literals,
     const u32* d_literal_offsets, // From Pass 2
     const u32* d_output_offsets,  // From Pass 2
-    byte_t* output,
-    u32 num_sequences
+    const u32* d_actual_offsets,  // From Pass 1
+    byte_t* output
 ) {
-    u32 seq_idx = blockIdx.x;
-    if (seq_idx >= num_sequences) return;
-    
     u32 tid = threadIdx.x;
-    
-    u32 literals_length = d_literals_lengths[seq_idx];
-    u32 match_length = d_match_lengths[seq_idx];
-    u32 actual_offset = d_actual_offsets[seq_idx];
-    
-    // Get offsets from prefix sum
-    u32 literal_pos = d_literal_offsets[seq_idx];
-    u32 output_pos = d_output_offsets[seq_idx];
+    u32 block_dim = blockDim.x;
 
-    // --- 1. Parallel Literal Copy ---
-    for (u32 i = tid; i < literals_length; i += blockDim.x) {
-        output[output_pos + i] = literals[literal_pos + i];
-    }
-    
-    // Advance output position *past* the literals
-    output_pos += literals_length;
-
-    // --- 2. Parallel Match Copy ---
-    if (match_length > 0) {
-        // Source position in the *output* buffer
-        const byte_t* match_src = output + output_pos - actual_offset;
+    for (u32 i = 0; i < num_sequences; ++i) {
+        Sequence seq = d_sequences[i];
+        u32 literals_length = seq.literal_length;
+        u32 match_length = seq.match_length;
+        u32 actual_offset = d_actual_offsets[i];
         
-        // Handle overlaps
-        if (actual_offset < blockDim.x) {
-            // Sequential copy for small, overlapping offsets
-            if (tid == 0) {
-                for (u32 i = 0; i < match_length; ++i) {
-                    output[output_pos + i] = match_src[i];
+        u32 literal_pos = d_literal_offsets[i];
+        u32 output_pos = d_output_offsets[i];
+
+        // --- 1. Parallel Literal Copy ---
+        for (u32 j = tid; j < literals_length; j += block_dim) {
+            output[output_pos + j] = d_literals[literal_pos + j];
+        }
+        
+        output_pos += literals_length;
+        __syncthreads(); // Ensure literals are written
+
+        // --- 2. Match Copy ---
+        if (match_length > 0) {
+            u32 match_src_pos = output_pos - actual_offset;
+            
+            // Check for overlap
+            if (actual_offset < match_length) {
+                // Overlap: Must copy sequentially (or carefully) to preserve repeating pattern
+                if (tid == 0) {
+                    for (u32 j = 0; j < match_length; ++j) {
+                        output[output_pos + j] = output[match_src_pos + j];
+                    }
+                }
+            } else {
+                // No overlap: Parallel copy is safe
+                for (u32 j = tid; j < match_length; j += block_dim) {
+                    output[output_pos + j] = output[match_src_pos + j];
                 }
             }
-        } else {
-            // Parallel copy for non-overlapping or large offsets
-            for (u32 i = tid; i < match_length; i += blockDim.x) {
-                output[output_pos + i] = match_src[i];
-            }
         }
+        __syncthreads(); // Ensure match is written before next sequence
     }
 }
-
 
 // ============================================================================
 // Host Functions
@@ -333,10 +340,9 @@ Status execute_sequences(
     u32 num_sequences,
     byte_t* d_output,
     u32* d_output_size,  // Device pointer
+    bool is_raw_offsets,
     cudaStream_t stream
 ) {
-    // DEBUG: Stubbing execute_sequences to isolate crash
-    return Status::SUCCESS;
 
     if (!d_output || !d_output_size) {
         return Status::ERROR_INVALID_PARAMETER;
@@ -388,7 +394,8 @@ Status execute_sequences(
         d_sequences, num_sequences, literal_count,
         d_actual_offsets, d_literals_lengths, d_match_lengths,
         d_output_size, // Kernel writes total size here
-        d_rep_codes
+        d_rep_codes,
+        is_raw_offsets  // NEW: Pass the tier flag
     );
     
     // --- Pass 2: Parallel Prefix Sum (Scan) ---
@@ -405,16 +412,17 @@ Status execute_sequences(
         d_literal_offsets, d_match_offsets, d_output_offsets, num_sequences
     );
 
-    // --- Pass 3: Parallel Execute ---
-    parallel_execute_sequences_kernel<<<num_sequences, 256, 0, stream>>>(
+    // --- Pass 3: Execute Sequences (Sequential per block for dependencies) ---
+    // We use a single block to process all sequences in order, ensuring that
+    // match references to previously written data are valid.
+    sequential_block_execute_sequences_kernel<<<1, 256, 0, stream>>>(
+        d_sequences,
+        num_sequences,
         d_literals,
-        d_actual_offsets,
-        d_literals_lengths,
-        d_match_lengths,
         d_literal_offsets,
         d_output_offsets,
-        d_output,
-        num_sequences
+        d_actual_offsets,
+        d_output
     );
     
     // --- Cleanup ---
