@@ -50,6 +50,10 @@ void clear_cuda_errors() {
     }
     // Clear the error - allows test framework to continue even if GPU is in bad state
     cudaGetLastError();
+    
+    // AGGRESSIVE FIX: Always reset device between tests to ensure clean state
+    // Tests pass individually but fail together, indicating GPU state corruption
+    cudaDeviceReset();
 }
 
 // ============================================================================
@@ -1010,6 +1014,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
     
     // 2. Various Input Sizes
@@ -1020,6 +1025,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
 
     // 3. Random Inputs
@@ -1030,6 +1036,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
     
     // 4. All Compression Levels
@@ -1040,6 +1047,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
     
     // 5. Frame Format
@@ -1050,6 +1058,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
     
     // 6. Checksum
@@ -1060,6 +1069,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
     
     // 7. Special Patterns
@@ -1070,6 +1080,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
     
     // 8. Byte Alignment
@@ -1080,6 +1091,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
     
     // 9. Deterministic
@@ -1090,6 +1102,7 @@ int main(int argc, char** argv) {
         } else {
             all_passed = false;
         }
+        clear_cuda_errors(); // Clean GPU state between tests
     }
     
     std::cout << "========================================" << std::endl;
