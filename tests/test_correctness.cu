@@ -930,8 +930,9 @@ bool test_deterministic_compression() {
         return false;
     }
     
-    // Compress twice
-    size_t compressed_size1, compressed_size2;
+    // Compress twice - BUGFIX: Initialize sizes to buffer capacity
+    size_t compressed_size1 = data_size * 2;
+    size_t compressed_size2 = data_size * 2;
     manager->compress(d_input, data_size, d_compressed1, &compressed_size1, d_temp, temp_size, nullptr, 0, 0);
     manager->compress(d_input, data_size, d_compressed2, &compressed_size2, d_temp, temp_size, nullptr, 0, 0);
     
