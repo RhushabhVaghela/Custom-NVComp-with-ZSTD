@@ -13,7 +13,12 @@ option(CUDA_ZSTD_BUILD_TESTS "Build test programs" ON)
 option(CUDA_ZSTD_BUILD_EXAMPLES "Build example programs" ON)
 option(CUDA_ZSTD_BUILD_BENCHMARKS "Build benchmarks" ON)
 option(CUDA_ZSTD_DEBUG_BOUNDS "Enable debug bounds checks in CUDA kernels" OFF)
+option(CUDA_ZSTD_DEBUG "Enable debug logging" OFF)
 option(BUILD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+
+if(CUDA_ZSTD_DEBUG)
+    add_compile_definitions(CUDA_ZSTD_DEBUG)
+endif()
 
 # Find packages
 find_package(CUDAToolkit REQUIRED)

@@ -1,0 +1,961 @@
+========================================
+CUDA ZSTD Correctness Tests
+========================================
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+
+[TEST] Various Input Sizes Round-trip
+  [INFO] Testing 39 different sizes
+[DEBUG] compress ENTERED: uncompressed_size=1
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=1, d_offsets_reverse=0x90c3c0280
+[DUMP AFTER_BACKTRACK] First 1 sequences in REVERSE buffers:
+  [0] LL=1 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=1 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540900
+  seq_ctx->d_match_lengths=0x90c5c0900
+  seq_ctx->d_offsets=0x90c640900
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=1 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=2, HeaderLen=1
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=10
+[DEBUG] parse_frame_header: About to copy 10 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 1
+[DEBUG] compress ENTERED: uncompressed_size=2
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=2, d_offsets_reverse=0x90c3c0280
+[DUMP AFTER_BACKTRACK] First 2 sequences in REVERSE buffers:
+  [0] LL=2 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=2 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540900
+  seq_ctx->d_match_lengths=0x90c5c0900
+  seq_ctx->d_offsets=0x90c640900
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=2 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=3, HeaderLen=1
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=11
+[DEBUG] parse_frame_header: About to copy 11 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 2
+[DEBUG] compress ENTERED: uncompressed_size=3
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+
+[DEBUG] Backtrack complete. num_sequences=3, d_offsets_reverse=0x90c3c0280
+[DUMP AFTER_BACKTRACK] First 3 sequences in REVERSE buffers:
+  [0] LL=3 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=3 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540900
+  seq_ctx->d_match_lengths=0x90c5c0900
+  seq_ctx->d_offsets=0x90c640900
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=3 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=4, HeaderLen=1
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=12
+[DEBUG] parse_frame_header: About to copy 12 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 3
+[DEBUG] compress ENTERED: uncompressed_size=7
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=7, d_offsets_reverse=0x90c3c0280
+[DUMP AFTER_BACKTRACK] First 7 sequences in REVERSE buffers:
+  [0] LL=7 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=7 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540900
+  seq_ctx->d_match_lengths=0x90c5c0900
+  seq_ctx->d_offsets=0x90c640900
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=7 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=8, HeaderLen=1
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=16
+[DEBUG] parse_frame_header: About to copy 16 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 7
+[DEBUG] compress ENTERED: uncompressed_size=15
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=15, d_offsets_reverse=0x90c3c0380
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=15 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=15 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540a00
+  seq_ctx->d_match_lengths=0x90c5c0a00
+  seq_ctx->d_offsets=0x90c640a00
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=15 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=16, HeaderLen=1
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=24
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 15
+[DEBUG] compress ENTERED: uncompressed_size=16
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=16, d_offsets_reverse=0x90c3c0400
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=16 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=16 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540a80
+  seq_ctx->d_match_lengths=0x90c5c0a80
+  seq_ctx->d_offsets=0x90c640a80
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=16 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=17, HeaderLen=1
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=25
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 16
+[DEBUG] compress ENTERED: uncompressed_size=17
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=17, d_offsets_reverse=0x90c3c0480
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=17 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=17 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540b00
+  seq_ctx->d_match_lengths=0x90c5c0b00
+  seq_ctx->d_offsets=0x90c640b00
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=17 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=18, HeaderLen=1
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=26
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 17
+[DEBUG] compress ENTERED: uncompressed_size=31
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=31, d_offsets_reverse=0x90c3c0580
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=31 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=31 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540c00
+  seq_ctx->d_match_lengths=0x90c5c0c00
+  seq_ctx->d_offsets=0x90c640c00
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=31 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=32, HeaderLen=1
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=40
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 31
+[DEBUG] compress ENTERED: uncompressed_size=32
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=32, d_offsets_reverse=0x90c3c0600
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=32 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=32 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540c80
+  seq_ctx->d_match_lengths=0x90c5c0c80
+  seq_ctx->d_offsets=0x90c640c80
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=32 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=34, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=41
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 32
+[DEBUG] compress ENTERED: uncompressed_size=33
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=33, d_offsets_reverse=0x90c3c0780
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=33 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=33 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c540f80
+  seq_ctx->d_match_lengths=0x90c5c0f80
+  seq_ctx->d_offsets=0x90c640f80
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=33 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=35, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=42
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 33
+[DEBUG] compress ENTERED: uncompressed_size=63
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=63, d_offsets_reverse=0x90c3c0a80
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=63 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=63 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c541280
+  seq_ctx->d_match_lengths=0x90c5c1280
+  seq_ctx->d_offsets=0x90c641280
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=63 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=65, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=72
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 63
+[DEBUG] compress ENTERED: uncompressed_size=64
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=64, d_offsets_reverse=0x90c3c0b00
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=64 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=64 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c541300
+  seq_ctx->d_match_lengths=0x90c5c1300
+  seq_ctx->d_offsets=0x90c641300
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=64 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=66, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=73
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 64
+[DEBUG] compress ENTERED: uncompressed_size=65
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=65, d_offsets_reverse=0x90c3c0c80
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=65 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=65 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c541600
+  seq_ctx->d_match_lengths=0x90c5c1600
+  seq_ctx->d_offsets=0x90c641600
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=65 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=67, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220100 workspace_ptr=0x90c220100
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220100 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=74
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 65
+[DEBUG] compress ENTERED: uncompressed_size=127
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=127, d_offsets_reverse=0x90c3c1480
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=127 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=127 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c541f80
+  seq_ctx->d_match_lengths=0x90c5c1f80
+  seq_ctx->d_offsets=0x90c641f80
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=127 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=129, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220180 workspace_ptr=0x90c220180
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220180 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=136
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 127
+[DEBUG] compress ENTERED: uncompressed_size=128
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=128, d_offsets_reverse=0x90c3c1500
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=128 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=128 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c542000
+  seq_ctx->d_match_lengths=0x90c5c2000
+  seq_ctx->d_offsets=0x90c642000
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=128 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=130, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220180 workspace_ptr=0x90c220180
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220180 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=137
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 128
+[DEBUG] compress ENTERED: uncompressed_size=129
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=129, d_offsets_reverse=0x90c3c1680
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=129 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=129 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c542300
+  seq_ctx->d_match_lengths=0x90c5c2300
+  seq_ctx->d_offsets=0x90c642300
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=129 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=131, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220180 workspace_ptr=0x90c220180
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220180 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=138
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 129
+[DEBUG] compress ENTERED: uncompressed_size=255
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 6 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=255, d_offsets_reverse=0x90c3c2880
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=255 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=255 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c543980
+  seq_ctx->d_match_lengths=0x90c5c3980
+  seq_ctx->d_offsets=0x90c643980
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=255 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=257, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220200 workspace_ptr=0x90c220200
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220200 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=264
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 20
+[DEBUG] parse_frame_header: FHD=0x20, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=0, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=0 branch
+  [PASS] Size 255
+[DEBUG] compress ENTERED: uncompressed_size=256
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 7 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=256, d_offsets_reverse=0x90c3c2900
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=256 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=256 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c543a00
+  seq_ctx->d_match_lengths=0x90c5c3a00
+  seq_ctx->d_offsets=0x90c643a00
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=256 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=258, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220200 workspace_ptr=0x90c220200
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220200 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=266
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 60
+[DEBUG] parse_frame_header: FHD=0x60, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=1, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=1 branch (2-byte content size)
+[DEBUG] parse_frame_header: Parsed 2-byte content size: size_val=0, h_content_size=256
+  [PASS] Size 256
+[DEBUG] compress ENTERED: uncompressed_size=257
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 7 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=257, d_offsets_reverse=0x90c3c2a80
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=257 ML=0 OF=0
+  [1] LL=0 ML=0 OF=0
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=257 ML=0 OF=0
+
+[DEBUG] Reverse_and_build complete. num_sequences=1
+  seq_ctx->d_literal_lengths=0x90c543d00
+  seq_ctx->d_match_lengths=0x90c5c3d00
+  seq_ctx->d_offsets=0x90c643d00
+[DUMP AFTER_REVERSE_BUILD] First 1 sequences:
+  [0] LL=257 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=259, HeaderLen=2
+[DEBUG] compress_sequences ENTERED: num_sequences=0
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220200 workspace_ptr=0x90c220200
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220200 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=267
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 60
+[DEBUG] parse_frame_header: FHD=0x60, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=1, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=1 branch (2-byte content size)
+[DEBUG] parse_frame_header: Parsed 2-byte content size: size_val=1, h_content_size=257
+  [PASS] Size 257
+[DEBUG] compress ENTERED: uncompressed_size=511
+[DEBUG] write_frame_header: max_size=1008, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 7 bytes to device ptr 0x90bbe3010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=264, d_offsets_reverse=0x90c3c5080
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=0 ML=0 OF=0
+  [1] LL=263 ML=248 OF=256
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=263 ML=248 OF=256
+
+[DEBUG] Reverse_and_build complete. num_sequences=2
+  seq_ctx->d_literal_lengths=0x90c546d80
+  seq_ctx->d_match_lengths=0x90c5c6d80
+  seq_ctx->d_offsets=0x90c646d80
+[DUMP AFTER_REVERSE_BUILD] First 2 sequences:
+  [0] LL=263 ML=248 OF=256
+  [1] LL=0 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=265, HeaderLen=2
+[BUILD_SEQ] idx=0, seq_idx=0, LL=263, ML=248, OF=256
+[DEBUG] compress_sequences ENTERED: num_sequences=1
+[DEBUG] compress_sequences: TIER 1 - Trying predefined FSE
+[DEBUG] compress_sequences: About to free tables. LL=0x90bbe1a00 ML=0x90bbe1c00 OF=0x90bbe1e00
+[DEBUG] compress_sequences: Tables freed. Calling init_predefined_tables...
+[DEBUG] init_predefined_tables ENTERED
+[DEBUG] init_table: type=0
+[DEBUG] init_table: Calling FSE_buildCTable_Host
+[DEBUG] init_table: FSE_buildCTable_Host returned status=0
+[DEBUG] init_table: Allocating d_sym_table size=144. Host ptr=0x586375224c10
+[DEBUG] init_table: cudaMalloc success. d_sym_table=0x90bbe1a00
+[DEBUG] init_table: cudaMemcpyAsync success
+[DEBUG] init_table: Allocated d_enc_table=0x90bbe1c00
+[DEBUG] init_table: Allocating d_state_to_symbol size=512. Host ptr=0x586376088af0
+[DEBUG] init_table: d_state_to_symbol copy success
+[DEBUG] init_table: Allocating d_symbol_first_state size=72. Host ptr=0x58637648f140
+[DEBUG] init_table: d_symbol_first_state copy success
+[DEBUG] init_table: Struct copy success
+[DEBUG] init_table: Output pointer set
+
+[DEBUG] FSE Table (type=0) after build (max_symbol=35, table_log=9):
+[DEBUG] init_table: Deleting h_symbol_table=0x586375224c10
+[DEBUG] init_table: h_symbol_table deleted
+[DEBUG] init_table: Deleting h_state_to_symbol=0x586376088af0
+[DEBUG] init_table: h_state_to_symbol deleted
+[DEBUG] init_table: Deleting h_symbol_first_state=0x58637648f140
+[DEBUG] init_table: Host resources freed
+[DEBUG] init_table: type=1
+[DEBUG] init_table: Calling FSE_buildCTable_Host
+[DEBUG] init_table: FSE_buildCTable_Host returned status=0
+[DEBUG] init_table: Allocating d_sym_table size=212. Host ptr=0x586376132d90
+[DEBUG] init_table: cudaMalloc success. d_sym_table=0x90bbe3a00
+[DEBUG] init_table: cudaMemcpyAsync success
+[DEBUG] init_table: Allocated d_enc_table=0x90bbe3c00
+[DEBUG] init_table: Allocating d_state_to_symbol size=512. Host ptr=0x5863760b7610
+[DEBUG] init_table: d_state_to_symbol copy success
+[DEBUG] init_table: Allocating d_symbol_first_state size=106. Host ptr=0x58637648e530
+[DEBUG] init_table: d_symbol_first_state copy success
+[DEBUG] init_table: Struct copy success
+[DEBUG] init_table: Output pointer set
+
+[DEBUG] FSE Table (type=1) after build (max_symbol=52, table_log=9):
+[DEBUG] init_table: Deleting h_symbol_table=0x586376132d90
+[DEBUG] init_table: h_symbol_table deleted
+[DEBUG] init_table: Deleting h_state_to_symbol=0x5863760b7610
+[DEBUG] init_table: h_state_to_symbol deleted
+[DEBUG] init_table: Deleting h_symbol_first_state=0x58637648e530
+[DEBUG] init_table: Host resources freed
+[DEBUG] init_table: type=2
+[DEBUG] init_table: Calling FSE_buildCTable_Host
+[DEBUG] init_table: FSE_buildCTable_Host returned status=0
+[DEBUG] init_table: Allocating d_sym_table size=116. Host ptr=0x58637648e530
+[DEBUG] init_table: cudaMalloc success. d_sym_table=0x90bbe4400
+[DEBUG] init_table: cudaMemcpyAsync success
+[DEBUG] init_table: Allocated d_enc_table=0x90bbe4600
+[DEBUG] init_table: Allocating d_state_to_symbol size=256. Host ptr=0x5863760a7430
+[DEBUG] init_table: d_state_to_symbol copy success
+[DEBUG] init_table: Allocating d_symbol_first_state size=58. Host ptr=0x58637648f140
+[DEBUG] init_table: d_symbol_first_state copy success
+[DEBUG] init_table: Struct copy success
+[DEBUG] init_table: Output pointer set
+
+[DEBUG] FSE Table (type=2) after build (max_symbol=28, table_log=8):
+Checking symbol 8 (for offset=256): newStateBase=0, nbBits=7
+Checking symbol 8 first_state: 1
+  Symbol 0: newStateBase=0, nbBits=8, first_state=0
+  Symbol 1: newStateBase=0, nbBits=8, first_state=163
+  Symbol 2: newStateBase=0, nbBits=8, first_state=70
+  Symbol 3: newStateBase=0, nbBits=8, first_state=233
+  Symbol 4: newStateBase=0, nbBits=8, first_state=140
+  Symbol 5: newStateBase=0, nbBits=8, first_state=47
+  Symbol 6: newStateBase=0, nbBits=7, first_state=117
+  Symbol 7: newStateBase=0, nbBits=7, first_state=24
+  Symbol 8: newStateBase=0, nbBits=7, first_state=1
+  Symbol 9: newStateBase=0, nbBits=8, first_state=164
+[DEBUG] init_table: Deleting h_symbol_table=0x58637648e530
+[DEBUG] init_table: h_symbol_table deleted
+[DEBUG] init_table: Deleting h_state_to_symbol=0x5863760a7430
+[DEBUG] init_table: h_state_to_symbol deleted
+[DEBUG] init_table: Deleting h_symbol_first_state=0x58637648f140
+[DEBUG] init_table: Host resources freed
+[DEBUG] Tier 1 Header: 01 00 
+[PREPARE_SEQ] idx=0: OF=256 → of_code=8, of_extra=3, of_num_bits=7
+[PREPARE_SEQ] idx=0: LL=263 → ll_code=29, ll_extra=55, ll_num_bits=6
+[PREPARE_SEQ] idx=0: ML=248 → ml_code=46, ml_extra=4294967253, ml_num_bits=7
+
+[DUMP BEFORE_FSE_ENCODE] First 1 raw offsets:
+  [0] OF=256
+[FSE_ENCODE] Last seq (idx=0): ll_code=29 ml_code=46 of_code=8
+[FSE_ENCODE] Initial states (from first_state): LL=491 ML=491 OF=1
+[WRITER] add_bits: val=491 (0x1eb), bits=9, container_bits=0
+[WRITER] add_bits: val=491 (0x1eb), bits=9, container_bits=1
+[FSE_ENCODE] Last Seq Extra: LL=55 (6 bits), ML=4294967253 (7 bits), OF=3 (7 bits)
+[DEBUG] compress_sequences: TIER 1 SUCCESS
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220200 workspace_ptr=0x90c220200
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220200 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=283
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 60
+[DEBUG] parse_frame_header: FHD=0x60, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=1, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=1 branch (2-byte content size)
+[DEBUG] parse_frame_header: Parsed 2-byte content size: size_val=255, h_content_size=511
+[DEBUG] decompress_literals: type=0, format=1, header_size=2, decompressed_size=263
+[DEBUG] decompress_block: Literals decompressed. header_size=2, compressed_size=263, decompressed_size=263
+[DEBUG] decompress_block: Calling decompress_sequences, offset=265, size=8
+[DEBUG] decompress_sequences: input_size=8, header bytes: 01 00 FF D5 DC
+[DEBUG] decompress_sequences: Parsed num_sequences=1, offset=1
+[DEBUG] decompress_sequences: fse_modes=0x00, offset=2
+[DEBUG] decompress_sequences: Tier 1 predefined FSE mode detected
+[DEBUG] init_predefined_tables ENTERED
+[FSE_STATE_DECODE] START: num_sequences=1, input_size=6
+[READER] read_bits(9): res=491 (0x1eb), avail_after=39
+[READER] read_bits(9): res=491 (0x1eb), avail_after=30
+[FSE_DECODE] Seq 0: stateOF=1 → of_code=8
+[FSE_DECODE] Seq 0 codes: LL=29 ML=46 OF=8
+[DEBUG] fse_decode_states_serial_kernel status: 0x6
+[FSE_DECODE_KERNEL] idx=0: LL=263, ML=376 (base=291, code=46, extra=85), OF=383
+[DEBUG] Tier 1 FSE decoder: decoded 1 sequences successfully
+[DEBUG] decompress_sequences: Tier 1 FSE decode SUCCESS
+[DEBUG] decompress_block: decompress_sequences completed, num_sequences=1
+[DEBUG] decompress_block: Building 1 sequences from component arrays
+[BUILD_SEQ] idx=0, seq_idx=0, LL=263, ML=376, OF=383
+[DEBUG] decompress_block: build_sequences completed successfully
+[DEBUG] decompress_block: Executing 1 sequences, literal_count=263
+[ERROR] ERROR_CUDA_ERROR at src/cuda_zstd_sequence.cu:487 in execute_sequences() (CUDA: an illegal memory access was encountered)
+[ERROR] decompress: decompress_block failed with status 4
+[ERROR] execute_sequences failed: an illegal memory access was encountered
+  [FAIL] Size 511 (Decompress Status: 4, Size: 511)
+WARNING: CUDA FREE failed at tests/cuda_error_checking.h:129
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+WARNING: CUDA FREE failed at tests/cuda_error_checking.h:129
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+WARNING: CUDA FREE failed at tests/cuda_error_checking.h:129
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+WARNING: CUDA FREE failed at tests/cuda_error_checking.h:129
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+CUDA ERROR at tests/cuda_error_checking.h:116
+  Function: cudaMalloc(ptr, size)
+  Error: cudaErrorIllegalAddress
+  Description: an illegal memory access was encountered
+  [FAIL] test_various_sizes_roundtrip: CUDA malloc for d_input failed
+  [INFO] Passed: 19/39
+  [FAIL] test_various_sizes_roundtrip: Some size tests failed
+[cleanup_context] cudaDeviceSynchronize failed: an illegal memory access was encountered
+========================================
+TEST RESULTS
+========================================
+Passed: 0/1
+Failed: 1/1
+
+✗ SOME TESTS FAILED
+========================================

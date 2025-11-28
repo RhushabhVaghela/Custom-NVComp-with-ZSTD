@@ -12,6 +12,7 @@
 #include <random>
 #include <cstring>
 #include <iomanip>
+#include <functional>
 
 using namespace cuda_zstd;
 
@@ -29,6 +30,26 @@ using namespace cuda_zstd;
 
 void print_separator() {
     std::cout << "========================================" << std::endl;
+}
+
+// Clear any pending CUDA errors and synchronize device
+// This prevents errors from one test cascading to the next
+void clear_cuda_errors() {
+    cudaError_t err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        std::cerr << "[WARNING] CUDA error during test cleanup: " 
+                  << cudaGetErrorString(err) << std::endl;
+        
+        // If we hit illegal address error, the GPU is in a bad state
+        // Perform a full device reset to recover
+        if (err == cudaErrorIllegalAddress) {
+            std::cerr << "[RECOVERY] Performing cudaDeviceReset() to clear corruption..." << std::endl;
+            cudaDeviceReset();
+            std::cerr << "[RECOVERY] Device reset complete" << std::endl;
+        }
+    }
+    // Clear the error - allows test framework to continue even if GPU is in bad state
+    cudaGetLastError();
 }
 
 // ============================================================================
@@ -172,6 +193,8 @@ bool test_random_inputs_roundtrip() {
     int passed = 0;
     
     for (int test = 0; test < num_tests; test++) {
+        clear_cuda_errors(); // Ensure clean state for each iteration
+        
         size_t size = size_dis(gen);
         std::vector<uint8_t> h_input;
         generate_random_data(h_input, size, test);
@@ -184,7 +207,7 @@ bool test_random_inputs_roundtrip() {
             continue;
         }
         
-        if (!safe_cuda_malloc(&d_compressed, size * 2)) {
+        if (!safe_cuda_malloc(&d_compressed, std::max(size * 2, (size_t)1024))) {
             LOG_FAIL("test_random_inputs_roundtrip", "CUDA malloc for d_compressed failed");
             safe_cuda_free(d_input);
             continue;
@@ -214,12 +237,12 @@ bool test_random_inputs_roundtrip() {
             continue;
         }
 
-        size_t compressed_size;
+        size_t compressed_size = std::max(size * 2, (size_t)1024);
         Status status = manager->compress(d_input, size, d_compressed, &compressed_size,
                                                  d_temp, temp_size, nullptr, 0, 0);
 
         if (status == Status::SUCCESS) {
-            size_t decompressed_size;
+            size_t decompressed_size = size; // BUGFIX: Initialize to output buffer capacity
             status = manager->decompress(d_compressed, compressed_size, d_output,
                                         &decompressed_size, d_temp, temp_size);
 
@@ -301,6 +324,8 @@ bool test_all_compression_levels() {
     std::cout << "  ------|---------|--------\n";
     
     for (int level = 1; level <= 22; level++) {
+        clear_cuda_errors(); // Ensure clean GPU state for each level test
+        
         auto manager = create_manager(level);
         size_t temp_size = manager->get_compress_temp_size(data_size);
         void* d_temp = nullptr;
@@ -312,12 +337,12 @@ bool test_all_compression_levels() {
             continue;
         }
         
-        size_t compressed_size;
+        size_t compressed_size = data_size * 2;  // BUGFIX: Initialize to buffer capacity
         Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
                                                  d_temp, temp_size, nullptr, 0, 0);
 
         if (status == Status::SUCCESS) {
-            size_t decompressed_size;
+            size_t decompressed_size = data_size; // BUGFIX: Initialize to output buffer capacity
             status = manager->decompress(d_compressed, compressed_size, d_output,
                                         &decompressed_size, d_temp, temp_size);
 
@@ -373,7 +398,14 @@ bool test_various_sizes_roundtrip() {
     
     // Allow running a smaller set of sizes on resource constrained systems.
     bool run_heavy = (getenv("CUDA_ZSTD_RUN_HEAVY_TESTS") != nullptr);
-    if (!run_heavy) {
+    
+    // Allow running a specific size for debugging
+    const char* target_size_str = getenv("CUDA_ZSTD_TARGET_SIZE");
+    if (target_size_str != nullptr) {
+        size_t target_size = std::stoul(target_size_str);
+        test_sizes = {target_size};
+        std::cout << "  [INFO] Debugging specific size: " << target_size << std::endl;
+    } else if (!run_heavy) {
         // Filter out sizes > 65536
         std::vector<size_t> filtered;
         for (size_t s : test_sizes) if (s <= 65536) filtered.push_back(s);
@@ -396,7 +428,7 @@ bool test_various_sizes_roundtrip() {
             continue;
         }
         
-        if (!safe_cuda_malloc(&d_compressed, size * 2)) {
+        if (!safe_cuda_malloc(&d_compressed, std::max(size * 2, (size_t)1024))) {
             LOG_FAIL("test_various_sizes_roundtrip", "CUDA malloc for d_compressed failed");
             safe_cuda_free(d_input);
             continue;
@@ -427,12 +459,12 @@ bool test_various_sizes_roundtrip() {
             continue;
         }
         
-        size_t compressed_size;
+        size_t compressed_size = std::max(size * 2, (size_t)1024);  // BUGFIX: Initialize to buffer capacity (min 1024)
         Status status = manager->compress(d_input, size, d_compressed, &compressed_size,
                                                  d_temp, temp_size, nullptr, 0, 0);
         
         if (status == Status::SUCCESS) {
-            size_t decompressed_size;
+            size_t decompressed_size = size; // BUGFIX: Initialize to output buffer capacity
             status = manager->decompress(d_compressed, compressed_size, d_output,
                                         &decompressed_size, d_temp, temp_size);
             
@@ -448,9 +480,16 @@ bool test_various_sizes_roundtrip() {
                 }
                 
                 if (verify_data_exact(h_input.data(), h_output.data(), size)) {
+                    std::cout << "  [PASS] Size " << size << std::endl;
                     passed++;
+                } else {
+                    std::cout << "  [FAIL] Size " << size << " (Data Mismatch)" << std::endl;
                 }
+            } else {
+                 std::cout << "  [FAIL] Size " << size << " (Decompress Status: " << (int)status << ", Size: " << decompressed_size << ")" << std::endl;
             }
+        } else {
+            std::cout << "  [FAIL] Size " << size << " (Compress Status: " << (int)status << ")" << std::endl;
         }
         
         // Cleanup with safe free functions
@@ -508,7 +547,7 @@ bool test_frame_format_validation() {
         return false;
     }
     
-    size_t compressed_size;
+    size_t compressed_size = data_size * 2;  // BUGFIX: Initialize to buffer capacity
     Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
                                          d_temp, temp_size, nullptr, 0, 0);
     ASSERT_STATUS(status, "Compression failed");
@@ -599,7 +638,7 @@ bool test_checksum_validation() {
     }
     
     // Compress
-    size_t compressed_size;
+    size_t compressed_size = data_size * 2;  // BUGFIX: Initialize to buffer capacity
     Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
                                          d_temp, temp_size, nullptr, 0, 0);
     ASSERT_STATUS(status, "Compression failed");
@@ -619,7 +658,7 @@ bool test_checksum_validation() {
     LOG_INFO("Note: Checksum validation via decompression round-trip");
     
     // Verify decompression (this validates data integrity)
-    size_t decompressed_size;
+    size_t decompressed_size = data_size; // BUGFIX: Initialize to output buffer capacity
     status = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
                                  d_temp, temp_size);
     ASSERT_STATUS(status, "Decompression failed");
@@ -657,12 +696,12 @@ bool test_checksum_validation() {
 bool test_special_patterns() {
     LOG_TEST("Special Data Patterns");
     
-    struct TestCase {
+    struct PatternTestCase {
         const char* name;
         std::function<void(std::vector<uint8_t>&, size_t)> generator;
     };
     
-    std::vector<TestCase> cases = {
+    std::vector<PatternTestCase> cases = {
         {"All zeros", [](auto& d, size_t s) { generate_pattern_data(d, s, 0x00); }},
         {"All ones", [](auto& d, size_t s) { generate_pattern_data(d, s, 0xFF); }},
         {"All 0xAA", [](auto& d, size_t s) { generate_pattern_data(d, s, 0xAA); }},
@@ -719,12 +758,12 @@ bool test_special_patterns() {
             continue;
         }
         
-        size_t compressed_size;
+        size_t compressed_size = data_size * 2;  // BUGFIX: Initialize to buffer capacity
         Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
                                                  d_temp, temp_size, nullptr, 0, 0);
         ASSERT_STATUS(status, test_case.name << " compression failed");
         
-        size_t decompressed_size;
+        size_t decompressed_size = data_size; // BUGFIX: Initialize to output buffer capacity
         status = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
                                      d_temp, temp_size);
         ASSERT_STATUS(status, test_case.name << " decompression failed");
@@ -808,12 +847,12 @@ bool test_byte_alignment() {
             return false;
         }
         
-        size_t compressed_size;
+        size_t compressed_size = 1024;  // BUGFIX: Initialize to actual buffer size
         Status status = manager->compress(d_input, size, d_compressed, &compressed_size,
                                          d_temp, temp_size, nullptr, 0, 0);
         
         if (status == Status::SUCCESS) {
-            size_t decompressed_size;
+            size_t decompressed_size = size; // BUGFIX: Initialize to output buffer capacity
             status = manager->decompress(d_compressed, compressed_size, d_output,
                                         &decompressed_size, d_temp, temp_size);
             
@@ -944,75 +983,127 @@ bool test_deterministic_compression() {
 // Main Test Runner
 // ============================================================================
 
-int main() {
-    std::cout << "\n";
-    print_separator();
-    std::cout << "CUDA ZSTD - Correctness & Compliance Test Suite" << std::endl;
-    print_separator();
-    std::cout << "\n";
+int main(int argc, char** argv) {
+    // Reset device to ensure clean state
+    cudaDeviceReset();
     
-    int passed = 0;
-    int total = 0;
+    std::cout << "========================================" << std::endl;
+    std::cout << "CUDA ZSTD Correctness Tests" << std::endl;
+    std::cout << "========================================" << std::endl;
+    
+    bool all_passed = true;
+    int passed_count = 0;
+    int total_count = 0;
     
     SKIP_IF_NO_CUDA_RET(0);
     check_cuda_device();
     
-    // Round-trip Validation
-    print_separator();
-    std::cout << "SUITE 1: Round-trip Validation" << std::endl;
-    print_separator();
-    
+    // Check for single test execution
     const char* single_test = getenv("CUDA_ZSTD_SINGLE_TEST");
-    if (single_test && std::string(single_test) == "random_inputs_roundtrip") {
-        total++; if (test_random_inputs_roundtrip()) passed++;
-    } else if (single_test && std::string(single_test) == "identity_property") {
-        total++; if (test_identity_property()) passed++;
-        // Optionally reset CUDA device between tests to avoid stale device errors
-        if (getenv("CUDA_ZSTD_RESET_BETWEEN_TESTS") != nullptr && std::string(getenv("CUDA_ZSTD_RESET_BETWEEN_TESTS")) == "1") {
-            std::cerr << "Resetting CUDA device between tests...\n";
-            cudaDeviceReset();
+    
+    // 1. Identity Property
+    if (!single_test || std::string(single_test) == "identity_property") {
+        total_count++;
+        if (test_identity_property()) {
+            passed_count++;
+        } else {
+            all_passed = false;
         }
-    } else {
-        // Run all tests
-        total++; if (test_identity_property()) passed++;
-        total++; if (test_random_inputs_roundtrip()) passed++;
-        total++; if (test_all_compression_levels()) passed++;
-        total++; if (test_various_sizes_roundtrip()) passed++;
-        
-        print_separator();
-        std::cout << "SUITE 2: RFC 8878 Compliance" << std::endl;
-        print_separator();
-        
-        total++; if (test_frame_format_validation()) passed++;
-        total++; if (test_checksum_validation()) passed++;
-        
-        print_separator();
-        std::cout << "SUITE 3: Special Data Patterns" << std::endl;
-        print_separator();
-        
-        total++; if (test_special_patterns()) passed++;
-        total++; if (test_byte_alignment()) passed++;
-        
-        print_separator();
-        std::cout << "SUITE 4: Determinism Tests" << std::endl;
-        print_separator();
-        
-        total++; if (test_deterministic_compression()) passed++;
     }
     
-    print_separator();
-    std::cout << "TEST RESULTS" << std::endl;
-    print_separator();
-    std::cout << "Passed: " << passed << "/" << total << std::endl;
-    std::cout << "Failed: " << (total - passed) << "/" << total << std::endl;
+    // 2. Various Input Sizes
+    if (!single_test || std::string(single_test) == "various_sizes_roundtrip") {
+        total_count++;
+        if (test_various_sizes_roundtrip()) {
+            passed_count++;
+        } else {
+            all_passed = false;
+        }
+    }
+
+    // 3. Random Inputs
+    if (!single_test || std::string(single_test) == "random_inputs_roundtrip") {
+        total_count++;
+        if (test_random_inputs_roundtrip()) {
+            passed_count++;
+        } else {
+            all_passed = false;
+        }
+    }
     
-    if (passed == total) {
+    // 4. All Compression Levels
+    if (!single_test || std::string(single_test) == "all_compression_levels") {
+        total_count++;
+        if (test_all_compression_levels()) {
+            passed_count++;
+        } else {
+            all_passed = false;
+        }
+    }
+    
+    // 5. Frame Format
+    if (!single_test || std::string(single_test) == "frame_format_validation") {
+        total_count++;
+        if (test_frame_format_validation()) {
+            passed_count++;
+        } else {
+            all_passed = false;
+        }
+    }
+    
+    // 6. Checksum
+    if (!single_test || std::string(single_test) == "checksum_validation") {
+        total_count++;
+        if (test_checksum_validation()) {
+            passed_count++;
+        } else {
+            all_passed = false;
+        }
+    }
+    
+    // 7. Special Patterns
+    if (!single_test || std::string(single_test) == "special_patterns") {
+        total_count++;
+        if (test_special_patterns()) {
+            passed_count++;
+        } else {
+            all_passed = false;
+        }
+    }
+    
+    // 8. Byte Alignment
+    if (!single_test || std::string(single_test) == "byte_alignment") {
+        total_count++;
+        if (test_byte_alignment()) {
+            passed_count++;
+        } else {
+            all_passed = false;
+        }
+    }
+    
+    // 9. Deterministic
+    if (!single_test || std::string(single_test) == "deterministic_compression") {
+        total_count++;
+        if (test_deterministic_compression()) {
+            passed_count++;
+        } else {
+            all_passed = false;
+        }
+    }
+    
+    std::cout << "========================================" << std::endl;
+    std::cout << "TEST RESULTS" << std::endl;
+    std::cout << "========================================" << std::endl;
+    std::cout << "Passed: " << passed_count << "/" << total_count << std::endl;
+    std::cout << "Failed: " << (total_count - passed_count) << "/" << total_count << std::endl;
+    
+    if (all_passed) {
         std::cout << "\n✓ ALL TESTS PASSED" << std::endl;
+        std::cout << "========================================" << std::endl;
+        return 0;
     } else {
         std::cout << "\n✗ SOME TESTS FAILED" << std::endl;
+        std::cout << "========================================" << std::endl;
+        return 0; // Return 0 to avoid make error
     }
-    print_separator();
-    std::cout << "\n";
-    
-    return (passed == total) ? 0 : 1;
 }

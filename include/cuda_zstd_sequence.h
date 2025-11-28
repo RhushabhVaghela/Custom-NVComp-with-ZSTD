@@ -69,6 +69,31 @@ struct SequenceContext {
     // true = Tier 4 raw u32 offsets (no +3 bias)
     // false = Tier 1 FSE offsets (have +3 bias, need get_actual_offset decoding)
     bool is_raw_offsets = false;
+
+    // Tier 1: Predefined FSE Tables (Device Pointers)
+    // These are populated during context initialization if Tier 1 is enabled.
+    void* d_ll_table = nullptr; // Cast to fse::FSEEncodeTable*
+    void* d_ml_table = nullptr; // Cast to fse::FSEEncodeTable*
+    void* d_of_table = nullptr; // Cast to fse::FSEEncodeTable*
+    
+    // Tier 1: Decode Tables (Simple state→symbol lookup)
+    u8* d_ll_decode = nullptr;  // State→symbol table for LL
+    u8* d_ml_decode = nullptr;  // State→symbol table for ML
+    u8* d_of_decode = nullptr;  // State→symbol table for OF
+
+    // Tier 1 Optimization: Intermediate Buffers (Codes & Extra Bits)
+    // These allow splitting FSE into Parallel (Prepare/Reconstruct) and Serial (State Update) phases.
+    u8* d_ll_codes = nullptr;
+    u8* d_ml_codes = nullptr;
+    u8* d_of_codes = nullptr;
+    
+    u32* d_ll_extras = nullptr;
+    u32* d_ml_extras = nullptr;
+    u32* d_of_extras = nullptr;
+    
+    u8* d_ll_num_bits = nullptr;
+    u8* d_ml_num_bits = nullptr;
+    u8* d_of_num_bits = nullptr;
 };
 
 // ============================================================================

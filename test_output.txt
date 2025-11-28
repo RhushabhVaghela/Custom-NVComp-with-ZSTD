@@ -1,0 +1,176 @@
+========================================
+CUDA ZSTD Correctness Tests
+========================================
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+
+[TEST] Various Input Sizes Round-trip
+  [INFO] Debugging specific size: 65536
+  [INFO] Testing 1 different sizes
+[DEBUG] compress ENTERED: uncompressed_size=65536
+[DEBUG] write_frame_header: max_size=131056, FRAME_HEADER_SIZE_MIN=2
+[DEBUG] write_frame_header: Writing 7 bytes to device ptr 0x90c1c0010
+[DEBUG] parallel_find_all_matches_kernel: idx=0 current_global_pos=0 dict_size=0 window_min=0 hash_size=262144 chain_size=131072
+
+[DEBUG] Backtrack complete. num_sequences=415, d_offsets_reverse=0x90c640100
+[DUMP AFTER_BACKTRACK] First 10 sequences in REVERSE buffers:
+  [0] LL=0 ML=0 OF=0
+  [1] LL=414 ML=65122 OF=256
+  [2] LL=0 ML=0 OF=0
+  [3] LL=0 ML=0 OF=0
+  [4] LL=0 ML=0 OF=0
+  [5] LL=0 ML=0 OF=0
+  [6] LL=0 ML=0 OF=0
+  [7] LL=0 ML=0 OF=0
+  [8] LL=0 ML=0 OF=0
+  [9] LL=0 ML=0 OF=0
+[REV_BUILD] idx=0 writing LL=414 ML=65122 OF=256
+
+[DEBUG] Reverse_and_build complete. num_sequences=2
+  seq_ctx->d_literal_lengths=0x90c880700
+  seq_ctx->d_match_lengths=0x90c900700
+  seq_ctx->d_offsets=0x90c980700
+[DUMP AFTER_REVERSE_BUILD] First 2 sequences:
+  [0] LL=414 ML=65122 OF=256
+  [1] LL=0 ML=0 OF=0
+[DEBUG] compress_literals: FORCED RAW. Size=416, HeaderLen=2
+[BUILD_SEQ] idx=0, seq_idx=0, LL=414, ML=65122, OF=256
+[DEBUG] compress_sequences ENTERED: num_sequences=1
+[DEBUG] compress_sequences: TIER 1 - Trying predefined FSE
+[DEBUG] compress_sequences: About to free tables. LL=0x90bbe1a00 ML=0x90bbe1c00 OF=0x90bbe1e00
+[DEBUG] compress_sequences: Tables freed. Calling init_predefined_tables...
+[DEBUG] init_predefined_tables ENTERED
+[DEBUG] init_table: type=0
+[DEBUG] init_table: Calling FSE_buildCTable_Host
+[DEBUG] init_table: FSE_buildCTable_Host returned status=0
+[DEBUG] init_table: Allocating d_sym_table size=144. Host ptr=0x620e9b51ac10
+[DEBUG] init_table: cudaMalloc success. d_sym_table=0x90bbe1a00
+[DEBUG] init_table: cudaMemcpyAsync success
+[DEBUG] init_table: Allocated d_enc_table=0x90bbe1c00
+[DEBUG] init_table: Allocating d_state_to_symbol size=512. Host ptr=0x620e9c950fe0
+[DEBUG] init_table: d_state_to_symbol copy success
+[DEBUG] init_table: Allocating d_symbol_first_state size=72. Host ptr=0x620e9c50dd50
+[DEBUG] init_table: d_symbol_first_state copy success
+[DEBUG] init_table: Struct copy success
+[DEBUG] init_table: Output pointer set
+
+[DEBUG] FSE Table (type=0) after build (max_symbol=35, table_log=9):
+[DEBUG] init_table: Deleting h_symbol_table=0x620e9b51ac10
+[DEBUG] init_table: h_symbol_table deleted
+[DEBUG] init_table: Deleting h_state_to_symbol=0x620e9c950fe0
+[DEBUG] init_table: h_state_to_symbol deleted
+[DEBUG] init_table: Deleting h_symbol_first_state=0x620e9c50dd50
+[DEBUG] init_table: Host resources freed
+[DEBUG] init_table: type=1
+[DEBUG] init_table: Calling FSE_buildCTable_Host
+[DEBUG] init_table: FSE_buildCTable_Host returned status=0
+[DEBUG] init_table: Allocating d_sym_table size=212. Host ptr=0x620e9c6245a0
+[DEBUG] init_table: cudaMalloc success. d_sym_table=0x90bbf3200
+[DEBUG] init_table: cudaMemcpyAsync success
+[DEBUG] init_table: Allocated d_enc_table=0x90bbf3400
+[DEBUG] init_table: Allocating d_state_to_symbol size=512. Host ptr=0x620e9c815630
+[DEBUG] init_table: d_state_to_symbol copy success
+[DEBUG] init_table: Allocating d_symbol_first_state size=106. Host ptr=0x620e9c850480
+[DEBUG] init_table: d_symbol_first_state copy success
+[DEBUG] init_table: Struct copy success
+[DEBUG] init_table: Output pointer set
+
+[DEBUG] FSE Table (type=1) after build (max_symbol=52, table_log=9):
+[DEBUG] init_table: Deleting h_symbol_table=0x620e9c6245a0
+[DEBUG] init_table: h_symbol_table deleted
+[DEBUG] init_table: Deleting h_state_to_symbol=0x620e9c815630
+[DEBUG] init_table: h_state_to_symbol deleted
+[DEBUG] init_table: Deleting h_symbol_first_state=0x620e9c850480
+[DEBUG] init_table: Host resources freed
+[DEBUG] init_table: type=2
+[DEBUG] init_table: Calling FSE_buildCTable_Host
+[DEBUG] init_table: FSE_buildCTable_Host returned status=0
+[DEBUG] init_table: Allocating d_sym_table size=116. Host ptr=0x620e9c850480
+[DEBUG] init_table: cudaMalloc success. d_sym_table=0x90bbf3c00
+[DEBUG] init_table: cudaMemcpyAsync success
+[DEBUG] init_table: Allocated d_enc_table=0x90bbf3e00
+[DEBUG] init_table: Allocating d_state_to_symbol size=256. Host ptr=0x620e9c5f02c0
+[DEBUG] init_table: d_state_to_symbol copy success
+[DEBUG] init_table: Allocating d_symbol_first_state size=58. Host ptr=0x620e9c50dd50
+[DEBUG] init_table: d_symbol_first_state copy success
+[DEBUG] init_table: Struct copy success
+[DEBUG] init_table: Output pointer set
+
+[DEBUG] FSE Table (type=2) after build (max_symbol=28, table_log=8):
+Checking symbol 8 (for offset=256): newStateBase=0, nbBits=7
+Checking symbol 8 first_state: 1
+  Symbol 0: newStateBase=0, nbBits=8, first_state=0
+  Symbol 1: newStateBase=0, nbBits=8, first_state=163
+  Symbol 2: newStateBase=0, nbBits=8, first_state=70
+  Symbol 3: newStateBase=0, nbBits=8, first_state=233
+  Symbol 4: newStateBase=0, nbBits=8, first_state=140
+  Symbol 5: newStateBase=0, nbBits=8, first_state=47
+  Symbol 6: newStateBase=0, nbBits=7, first_state=117
+  Symbol 7: newStateBase=0, nbBits=7, first_state=24
+  Symbol 8: newStateBase=0, nbBits=7, first_state=1
+  Symbol 9: newStateBase=0, nbBits=8, first_state=164
+[DEBUG] init_table: Deleting h_symbol_table=0x620e9c850480
+[DEBUG] init_table: h_symbol_table deleted
+[DEBUG] init_table: Deleting h_state_to_symbol=0x620e9c5f02c0
+[DEBUG] init_table: h_state_to_symbol deleted
+[DEBUG] init_table: Deleting h_symbol_first_state=0x620e9c50dd50
+[DEBUG] init_table: Host resources freed
+[DEBUG] Tier 1 Header: 01 00 
+[PREPARE_SEQ] idx=0: OF=256 → of_code=8, of_extra=3, of_num_bits=7
+[PREPARE_SEQ] idx=0: LL=414 → ll_code=31, ll_extra=14, ll_num_bits=7
+[PREPARE_SEQ] idx=0: ML=65122 → ml_code=52, ml_extra=63039, ml_num_bits=16
+
+[DUMP BEFORE_FSE_ENCODE] First 1 raw offsets:
+  [0] OF=256
+[FSE_ENCODE] Last seq (idx=0): ll_code=31 ml_code=52 of_code=8
+[FSE_ENCODE] Initial states (from first_state): LL=113 ML=381 OF=1
+[WRITER] add_bits: val=113 (0x71), bits=9, container_bits=0
+[WRITER] add_bits: val=381 (0x17d), bits=9, container_bits=1
+[FSE_ENCODE] Last Seq Extra: LL=14 (7 bits), ML=63039 (16 bits), OF=3 (7 bits)
+[WRITER] add_bits: val=63039 (0xf63f), bits=16, container_bits=1
+[DEBUG] compress_sequences: TIER 1 SUCCESS
+initialize_context: assigned ctx.seq_ctx->d_sequences=0x90c220280 workspace_ptr=0x90c220280
+partition workspace after assignments: ctx.seq_ctx->d_sequences=0x90c220280 ctx.workspace.d_hash_table=0 ctx.workspace.d_chain_table=0
+[DEBUG] parse_frame_header ENTERED: input_size=436
+[DEBUG] parse_frame_header: About to copy 18 bytes from device
+[DEBUG] parse_frame_header: Header copied, first bytes: 28 B5 2F FD 60
+[DEBUG] parse_frame_header: FHD=0x60, offset now=5
+[DEBUG] parse_frame_header: single_segment=1, has_dict_id=0
+[DEBUG] parse_frame_header: Parsing content size, fcs_field_size=1, offset=5
+[DEBUG] parse_frame_header: fcs_field_size=1 branch (2-byte content size)
+[DEBUG] parse_frame_header: Parsed 2-byte content size: size_val=65280, h_content_size=65536
+[DEBUG] decompress_literals: type=0, format=1, header_size=2, decompressed_size=414
+[DEBUG] decompress_block: Literals decompressed. header_size=2, compressed_size=414, decompressed_size=414
+[DEBUG] decompress_block: Calling decompress_sequences, offset=416, size=10
+[DEBUG] decompress_sequences: input_size=10, header bytes: 01 00 01 07 EC
+[DEBUG] decompress_sequences: Parsed num_sequences=1, offset=1
+[DEBUG] decompress_sequences: fse_modes=0x00, offset=2
+[DEBUG] decompress_sequences: Tier 1 predefined FSE mode detected
+[DEBUG] init_predefined_tables ENTERED
+[FSE_STATE_DECODE] START: num_sequences=1, input_size=8
+[READER] read_bits(9): res=113 (0x71), avail_after=55
+[READER] read_bits(9): res=381 (0x17d), avail_after=46
+[FSE_DECODE] Seq 0: stateOF=1 → of_code=8
+[FSE_DECODE] Seq 0 codes: LL=31 ML=52 OF=8
+[READER] read_bits(16): res=63039 (0xf63f), avail_after=15
+[DEBUG] fse_decode_states_serial_kernel status: 0x8
+[FSE_DECODE_KERNEL] idx=0: LL=414, ML=65122 (base=2083, code=52, extra=63039), OF=259
+[DEBUG] Tier 1 FSE decoder: decoded 1 sequences successfully
+[DEBUG] decompress_sequences: Tier 1 FSE decode SUCCESS
+[DEBUG] decompress_block: decompress_sequences completed, num_sequences=1
+[DEBUG] decompress_block: Building 1 sequences from component arrays
+[BUILD_SEQ] idx=0, seq_idx=0, LL=414, ML=65122, OF=259
+[DEBUG] decompress_block: build_sequences completed successfully
+[DEBUG] decompress_block: Executing 1 sequences, literal_count=414
+  [PASS] Size 65536
+  [INFO] Passed: 1/1
+  [PASS] Various Sizes Round-trip
+========================================
+TEST RESULTS
+========================================
+Passed: 1/1
+Failed: 0/1
+
+✓ ALL TESTS PASSED
+========================================

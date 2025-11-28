@@ -1,19 +1,26 @@
-#pragma once
-#include <cstdint>
-#include <cuda_runtime_api.h>
+#ifndef CUDA_ZSTD_DEBUG_H
+#define CUDA_ZSTD_DEBUG_H
 
-using u32 = uint32_t;
+#include <stdint.h>
 
-// Device-side counters for throttling kernel-level debug prints
+// Uncomment the following line to enable debug output
+// #define CUDA_ZSTD_DEBUG
+
+#ifdef __CUDACC__
+#ifndef CUDA_ZSTD_DEBUG_CU
+extern __device__ uint32_t g_debug_print_counter;
+extern __device__ uint32_t g_debug_print_limit;
+#endif
+#endif
+
+#ifdef __cplusplus
 extern "C" {
-    extern __device__ u32 g_debug_print_counter;
-    extern __device__ u32 g_debug_print_limit;
-}
+#endif
 
-// Host helper: reset (zero) the debug counter and set limit
-// Host wrapper declaration. This is implemented in src/cuda_zstd_debug.cu
-extern void set_device_debug_print_limit(u32 limit);
+void set_device_debug_print_limit(uint32_t limit);
 
-static inline void reset_debug_print_counter(u32 limit) {
-    set_device_debug_print_limit(limit);
+#ifdef __cplusplus
 }
+#endif
+
+#endif // CUDA_ZSTD_DEBUG_H

@@ -10,6 +10,8 @@
 #include "cuda_zstd_huffman.h"       // Adds HuffmanCode, CanonicalHuffmanCode, MAX_HUFFMAN_SYMBOLS
 #include "cuda_zstd_sequence.h"      // Adds Sequence
 #include "cuda_zstd_types.h"         // Added for u32 and DictSegment
+#include "cuda_zstd_debug.h"         // Debug configuration
+
 
 namespace cuda_zstd {
 
@@ -62,17 +64,39 @@ struct FSEBitStreamReader {
     u64 bit_container;
     i32 bits_remaining;
 
+    __device__ __host__ static __forceinline__ u32 bswap32(u32 x) {
+        #ifdef __CUDA_ARCH__
+            return __byte_perm(x, 0, 0x0123);
+        #elif defined(__GNUC__) || defined(__clang__)
+            return __builtin_bswap32(x);
+        #elif defined(_MSC_VER)
+            return _byteswap_ulong(x);
+        #else
+            return ((x & 0xFF) << 24) | ((x & 0xFF00) << 8) | ((x >> 8) & 0xFF00) | ((x >> 24) & 0xFF);
+        #endif
+    }
+
     __device__ void init(const byte_t* stream_end, size_t stream_size) {
         stream_ptr = stream_end - 4;
         stream_start = stream_end - stream_size;
-        bit_container = *reinterpret_cast<const u32*>(stream_ptr);
-        bits_remaining = 32;
+        // Read and swap bytes to match reverse writer order
+        bit_container = bswap32(*reinterpret_cast<const u32*>(stream_ptr));
+        
+        // Find the highest set bit (terminator bit)
+        #ifdef __CUDA_ARCH__
+            int clz = __clz(bit_container);
+        #else
+            int clz = __builtin_clz(bit_container);
+        #endif
+        
+        bits_remaining = 31 - clz;
     }
 
     __device__ u32 read(u8 num_bits) {
         if (bits_remaining < num_bits) {
             stream_ptr -= 4;
-            u64 next_bits = *reinterpret_cast<const u32*>(stream_ptr);
+            // Read and swap bytes
+            u64 next_bits = bswap32(*reinterpret_cast<const u32*>(stream_ptr));
             bit_container |= (next_bits << bits_remaining);
             bits_remaining += 32;
         }
@@ -117,62 +141,159 @@ struct ZstdSequence {
     }
     
     // Note: These functions work in both device and host code
+    // --- (NEW) Code helpers with CORRECT ZSTD logic (RFC 8878) ---
+    
     __device__ __host__ static __forceinline__ u32 get_lit_len_code(u32 length) {
-        if (length < 65536) {
-            u32 const fl = 31 - clz_impl(static_cast<u32>(length));
-            return (length > 15) ? fl + 12 : length;
-        }
-        return 35;
+        if (length < 16) return length;
+        if (length < 18) return 16;
+        if (length < 20) return 17;
+        if (length < 22) return 18;
+        if (length < 24) return 19;
+        if (length < 28) return 20;
+        if (length < 32) return 21;
+        if (length < 40) return 22;
+        if (length < 48) return 23;
+        if (length < 64) return 24;
+        if (length < 80) return 25;
+        if (length < 112) return 26;
+        if (length < 144) return 27;
+        if (length < 208) return 28;
+        if (length < 272) return 29;
+        if (length < 400) return 30;
+        if (length < 528) return 31;
+        if (length < 784) return 32;
+        if (length < 1040) return 33;
+        if (length < 1552) return 34;
+        return 35; // Max for Predefined
     }
+
     __device__ __host__ static __forceinline__ u32 get_match_len_code(u32 length) {
-        if (length < (3 + 131072)) {
-            u32 const fl = 31 - clz_impl(static_cast<u32>(length));
-            return (length > 15) ? fl + 28 : length - 3;
-        }
+        // CRITICAL FIX: Literal-only sequences (ML=0) should never call this
+        // But if they do, return 0 instead of wrapping around
+        if (length < 3) return 0;  // Minimum valid match length is 3
+        if (length < 32) return (length - 3);
+        if (length < 35) return 32;
+        if (length < 37) return 33;
+        if (length < 39) return 34;
+        if (length < 41) return 35;
+        if (length < 43) return 36;
+        if (length < 47) return 37;
+        if (length < 51) return 38;
+        if (length < 59) return 39;
+        if (length < 67) return 40;
+        if (length < 83) return 41;
+        if (length < 99) return 42;
+        if (length < 131) return 43;
+        if (length < 163) return 44;
+        if (length < 227) return 45;
+        if (length < 291) return 46;
+        if (length < 419) return 47;
+        if (length < 547) return 48;
+        if (length < 803) return 49;
+        if (length < 1059) return 50;
+        if (length < 1571) return 51;
         return 52;
     }
-    __device__ __host__ static __forceinline__ u32 get_offset_code(u32 offset) {
-        if (offset == 0) {
-            return 0;
-        }
-        u32 const fl = 31 - clz_impl(static_cast<u32>(offset));
-        return fl + 1;
-    }
-    // --- (END NEW) ---
-    
-    // --- (NEW) Literal Length __device__ Helpers ---
 
-    __device__ static __forceinline__ u32 get_lit_len(u32 symbol) {
-        // (Implementation of Zstd LL_defaultBase)
-        if (symbol < 16) return symbol;
-        if (symbol < 20) return (1 << (symbol - 14)) + 16;
-        if (symbol < 24) return (1 << (symbol - 17)) + 80;
-        if (symbol < 28) return (1 << (symbol - 20)) + 336;
-        if (symbol < 32) return (1 << (symbol - 23)) + 2384;
-        return (1 << (symbol - 26)) + 18656;
+    __device__ __host__ static __forceinline__ u32 get_offset_code(u32 offset) {
+        // ZSTD RFC: offsetCode = position of highest bit set
+        // For offset=1024 (0x400 = bit 10), code should be 10
+        if (offset == 0) return 0;
+        if (offset <= 1) return offset;  // Special case: offset=1 → code=1
+        u32 fl = 31 - clz_impl(offset);  // Position of highest bit
+        return fl;  // Return bit position directly, NOT fl+1
+    }
+
+    // --- Extra Bits ---
+
+    __device__ __host__ static __forceinline__ u32 get_lit_len_extra_bits(u32 code) {
+        if (code < 16) return 0;
+        if (code < 20) return 1;
+        if (code == 35) return 16; // Special case for max code
+        return (code - 20) / 2 + 2;
+    }
+
+    __device__ __host__ static __forceinline__ u32 get_match_len_extra_bits(u32 code) {
+        if (code < 32) return 0;
+        if (code < 36) return 1;
+        if (code == 52) return 16; // Special case for max code
+        return (code - 36) / 2 + 2;
+    }
+
+    __device__ __host__ static __forceinline__ u32 get_offset_code_extra_bits(u32 code) {
+        return (code <= 1) ? 0 : (code - 1);
+    }
+
+    __device__ __host__ static __forceinline__ u32 get_offset_extra_bits(u32 offset, u32 code) {
+        // ZSTD RFC: extra bits are the remainder after subtracting base
+        // Base = (1 << code), so extra = offset - base
+        if (code <= 1) return 0;
+        u32 base = (1u << code);
+        return offset - base;
+    }
+
+    // --- Base Values (Decoder) ---
+
+    __device__ static __forceinline__ u32 get_lit_len(u32 code) {
+        if (code < 16) return code;
+        switch(code) {
+            case 16: return 16;
+            case 17: return 18;
+            case 18: return 20;
+            case 19: return 22;
+            case 20: return 24;
+            case 21: return 28;
+            case 22: return 32;
+            case 23: return 40;
+            case 24: return 48;
+            case 25: return 64;
+            case 26: return 80;
+            case 27: return 112;
+            case 28: return 144;
+            case 29: return 208;
+            case 30: return 272;
+            case 31: return 400;
+            case 32: return 528;
+            case 33: return 784;
+            case 34: return 1040;
+            case 35: return 1552;
+            default: return 1552;
+        }
     }
     
     __device__ static __forceinline__ u32 get_lit_len_bits(u32 symbol, FSEBitStreamReader& reader) {
-        // (Implementation of Zstd LL_defaultExtra)
-        u32 num_bits = 0;
-        if (symbol >= 16) num_bits = 1 + (symbol - 16);
-        if (symbol >= 20) num_bits = 3 + (symbol - 20);
-        if (symbol >= 24) num_bits = 5 + (symbol - 24);
-        if (symbol >= 28) num_bits = 7 + (symbol - 28);
-        if (symbol >= 32) num_bits = 9 + (symbol - 32);
-        return reader.read(num_bits);
+        u32 num_bits = get_lit_len_extra_bits(symbol);
+        return (num_bits > 0) ? reader.read(num_bits) : 0;
     }
 
     // --- (NEW) Match Length __device__ Helpers ---
 
     __device__ static __forceinline__ u32 get_match_len(u32 symbol) {
-        // (Implementation of Zstd ML_defaultBase)
         if (symbol < 32) return symbol + 3;
-        if (symbol < 36) return (1 << (symbol - 30)) + 35;
-        if (symbol < 40) return (1 << (symbol - 33)) + 163;
-        if (symbol < 44) return (1 << (symbol - 36)) + 707;
-        if (symbol < 48) return (1 << (symbol - 39)) + 3395;
-        return (1 << (symbol - 42)) + 13379;
+        switch(symbol) {
+            case 32: return 35;
+            case 33: return 37;
+            case 34: return 39;
+            case 35: return 41;
+            case 36: return 43;
+            case 37: return 47;
+            case 38: return 51;
+            case 39: return 59;
+            case 40: return 67;
+            case 41: return 83;
+            case 42: return 99;
+            case 43: return 131;
+            case 44: return 163;
+            case 45: return 227;
+            case 46: return 291;
+            case 47: return 419;
+            case 48: return 547;
+            case 49: return 803;
+            case 50: return 1059;
+            case 51: return 1571;
+            case 52: return 2083;
+            default: return 2083;
+        }
     }
 
     __device__ static __forceinline__ u32 get_match_len_bits(u32 symbol, FSEBitStreamReader& reader) {
@@ -188,11 +309,11 @@ struct ZstdSequence {
     
     // --- (NEW) Offset __device__ Helpers ---
 
-    __device__ static __forceinline__ u32 get_offset(u32 symbol) {
-        // (Implementation of Zstd OF_defaultBase)
-        if (symbol == 0) return 0;
-        if (symbol == 1) return 1;
-        return (1 << (symbol - 1)) + 1;
+    __device__ static __forceinline__ u32 get_offset(u32 code) {
+        // ZSTD RFC 8878: Offset_Value = (1 << offsetCode) + extraBits
+        if (code == 0) return 0;
+        if (code == 1) return 1;
+        return (1 << code);  // Correct base value per RFC
     }
 
     __device__ static __forceinline__ u32 get_offset_bits(u32 symbol, FSEBitStreamReader& reader) {

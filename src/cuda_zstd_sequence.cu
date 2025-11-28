@@ -53,6 +53,11 @@ __global__ void build_sequences_kernel(
   d_sequences[seq_idx].literal_length = lit_len;
   d_sequences[seq_idx].match_length = match_length;
   d_sequences[seq_idx].match_offset = offset;
+  
+  if (seq_idx < 5) {
+      printf("[BUILD_SEQ] idx=%u, seq_idx=%u, LL=%u, ML=%u, OF=%u\n", 
+             idx, seq_idx, lit_len, match_length, offset);
+  }
 }
 
 // Host-side function implementation
@@ -189,7 +194,8 @@ __global__ void compute_sequence_details_kernel(
     u32* d_match_lengths,   // Output: Match length for each sequence
     u32* d_total_output_size, // Output: Total bytes
     const u32* d_rep_codes_in, // Input: Initial rep-codes (3 u32s)
-    bool is_raw_offsets  // NEW: Flag indicating if offsets are raw (Tier 4) or FSE-encoded (Tier 1)
+    bool is_raw_offsets,  // NEW: Flag indicating if offsets are raw (Tier 4) or FSE-encoded (Tier 1)
+    u32* d_error_flag     // NEW: Error flag for validation
 ) {
     if (threadIdx.x != 0 || blockIdx.x != 0) return;
 
@@ -207,6 +213,25 @@ __global__ void compute_sequence_details_kernel(
         const Sequence& seq = sequences[i];
         u32 lit_len = seq.literal_length;
         u32 match_length = seq.match_length;
+        
+        // VALIDATION: Check for corrupted values to prevent GPU crashes
+        if (match_length > 0 && match_length < 3) {
+            // ZSTD spec requires ML >= 3
+            if (d_error_flag) *d_error_flag = 1; // Error: Invalid ML < 3
+            return;
+        }
+        if (match_length > 1000000) {
+             if (d_error_flag) *d_error_flag = 2; // Error: ML too large
+             return;
+        }
+        if (lit_len > 1000000) {
+             if (d_error_flag) *d_error_flag = 3; // Error: LL too large
+             return;
+        }
+        if (match_length > 0 && seq.match_offset == 0) {
+             if (d_error_flag) *d_error_flag = 4; // Error: Offset 0 with match
+             return;
+        }
         
         d_literals_lengths[i] = lit_len;
         d_match_lengths[i] = match_length;
@@ -259,8 +284,9 @@ __global__ void compute_output_offsets_kernel(
     // Simpler: output_offset[i] = literal_offset[i] + match_offset_scan[i]
     // We need to scan d_match_lengths first.
     
-    // This kernel assumes d_match_lengths has been scanned into d_output_offsets
-    d_output_offsets[idx] += d_literal_offsets[idx];
+    // output_offset[i] = literal_offset[i] + match_offset_scan[i]
+    // d_match_lengths here actually holds the scanned match offsets (d_match_offsets)
+    d_output_offsets[idx] = d_literal_offsets[idx] + d_match_lengths[idx];
 }
 
 
@@ -290,6 +316,7 @@ __global__ void sequential_block_execute_sequences_kernel(
         
         u32 literal_pos = d_literal_offsets[i];
         u32 output_pos = d_output_offsets[i];
+
 
         // --- 1. Parallel Literal Copy ---
         for (u32 j = tid; j < literals_length; j += block_dim) {
@@ -376,6 +403,7 @@ Status execute_sequences(
     u32* d_match_offsets; // Scanned match lengths
     u32* d_output_offsets;
     u32* d_rep_codes;
+    u32* d_error_flag; // NEW: Error flag for validation
 
     CUDA_CHECK(cudaMalloc(&d_actual_offsets, num_sequences * sizeof(u32)));
     CUDA_CHECK(cudaMalloc(&d_literals_lengths, num_sequences * sizeof(u32)));
@@ -384,6 +412,8 @@ Status execute_sequences(
     CUDA_CHECK(cudaMalloc(&d_match_offsets, num_sequences * sizeof(u32)));
     CUDA_CHECK(cudaMalloc(&d_output_offsets, num_sequences * sizeof(u32)));
     CUDA_CHECK(cudaMalloc(&d_rep_codes, 3 * sizeof(u32)));
+    CUDA_CHECK(cudaMalloc(&d_error_flag, sizeof(u32)));
+    CUDA_CHECK(cudaMemsetAsync(d_error_flag, 0, sizeof(u32), stream));
     
     // Init rep-codes
     u32 h_rep_codes[3] = { 1, 4, 8 };
@@ -395,8 +425,27 @@ Status execute_sequences(
         d_actual_offsets, d_literals_lengths, d_match_lengths,
         d_output_size, // Kernel writes total size here
         d_rep_codes,
-        is_raw_offsets  // NEW: Pass the tier flag
+        is_raw_offsets,  // NEW: Pass the tier flag
+        d_error_flag     // NEW: Pass error flag
     );
+    
+    // Check for validation errors
+    u32 h_error_flag = 0;
+    CUDA_CHECK(cudaMemcpyAsync(&h_error_flag, d_error_flag, sizeof(u32), cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+    
+    if (h_error_flag != 0) {
+        fprintf(stderr, "[ERROR] execute_sequences: Invalid sequence data detected (error code %u)\n", h_error_flag);
+        cudaFree(d_actual_offsets);
+        cudaFree(d_literals_lengths);
+        cudaFree(d_match_lengths);
+        cudaFree(d_literal_offsets);
+        cudaFree(d_match_offsets);
+        cudaFree(d_output_offsets);
+        cudaFree(d_rep_codes);
+        cudaFree(d_error_flag);
+        return Status::ERROR_CORRUPT_DATA;
+    }
     
     // --- Pass 2: Parallel Prefix Sum (Scan) ---
     
@@ -433,6 +482,7 @@ Status execute_sequences(
     cudaFree(d_match_offsets);
     cudaFree(d_output_offsets);
     cudaFree(d_rep_codes);
+    cudaFree(d_error_flag);
     
     CUDA_CHECK(cudaGetLastError());
     return Status::SUCCESS;

@@ -1,0 +1,77 @@
+include/cuda_zstd_xxhash.h(105): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash32_kernel(
+                        ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+include/cuda_zstd_xxhash.h(155): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash64_kernel(
+                        ^
+
+include/cuda_zstd_xxhash.h(105): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash32_kernel(
+                        ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+include/cuda_zstd_xxhash.h(155): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash64_kernel(
+                        ^
+
+src/cuda_zstd_dictionary.cu(106): warning #550-D: variable "local_max_idx" was set but never used
+      u32 local_max_idx = 0;
+          ^
+
+src/cuda_zstd_dictionary.cu(21): warning #177-D: variable "cuda_zstd::dictionary::MAX_SAMPLES_FOR_TRAINING" was declared but never referenced
+  constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
+                ^
+
+include/cuda_zstd_debug.h(11): warning #20044-D: extern declaration of the entity g_debug_print_counter is treated as a static definition
+
+include/cuda_zstd_debug.h(12): warning #20044-D: extern declaration of the entity g_debug_print_limit is treated as a static definition
+
+include/cuda_zstd_xxhash.h(105): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash32_kernel(
+                        ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+include/cuda_zstd_xxhash.h(155): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash64_kernel(
+                        ^
+
+include/cuda_zstd_xxhash.h(105): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash32_kernel(
+                        ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+include/cuda_zstd_xxhash.h(155): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash64_kernel(
+                        ^
+
+include/cuda_zstd_debug.h(11): warning #20044-D: extern declaration of the entity g_debug_print_counter is treated as a static definition
+
+include/cuda_zstd_debug.h(12): warning #20044-D: extern declaration of the entity g_debug_print_limit is treated as a static definition
+
+include/cuda_zstd_debug.h(11): warning #20044-D: extern declaration of the entity g_debug_print_counter is treated as a static definition
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+include/cuda_zstd_debug.h(12): warning #20044-D: extern declaration of the entity g_debug_print_limit is treated as a static definition
+
+include/cuda_zstd_xxhash.h(105): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash32_kernel(
+                        ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+include/cuda_zstd_xxhash.h(155): warning #20050-D: inline qualifier ignored for "__global__" function
+  inline __attribute__((global)) void xxhash64_kernel(
+                        ^
+
+src/cuda_zstd_manager.cu(2963): error: invalid redeclaration of member function "cuda_zstd::DefaultZstdManager::init_predefined_tables(cuda_zstd::sequence::SequenceContext *, cudaStream_t)" (declared at line 2723)
+      Status init_predefined_tables(
+             ^
+
+1 error detected in the compilation of "src/cuda_zstd_manager.cu".

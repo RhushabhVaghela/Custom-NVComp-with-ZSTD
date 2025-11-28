@@ -58,6 +58,10 @@ struct alignas(16) FSEEncodeTable {
     u32  table_log;
     u32  table_size;
     u32  max_symbol; // (NEW) Need to store this
+    
+    // RFC 8878 State Table: For correct initial state calculation
+    u8*  d_state_to_symbol;     // [table_size] state→symbol mapping
+    u16* d_symbol_first_state;  // [max_symbol+1] first state for each symbol
 };
 
 struct alignas(16) FSEDecodeTable {
@@ -150,6 +154,26 @@ Status build_fse_decoder_table(
 );
 
 /**
+ * @brief Builds the FSE Encoding Table (CTable) on the host.
+ */
+Status FSE_buildCTable_Host(
+    const u16* h_normalized,
+    u32 max_symbol,
+    u32 table_log,
+    FSEEncodeTable* h_table
+);
+
+/**
+ * @brief Builds the FSE Decoding Table (DTable) on the host.
+ */
+Status FSE_buildDTable_Host(
+    const u16* h_normalized,
+    u32 max_symbol,
+    u32 table_size,
+    FSEDecodeTable& h_table
+);
+
+/**
  * @brief Frees the memory associated with an FSEDecoderTable.
  */
 Status free_fse_decoder_table(
@@ -232,6 +256,16 @@ __host__ Status encode_with_table_type(
 );
 
 // ==============================================================================
+// HELPER FUNCTIONS
+// ==============================================================================
+
+__host__ const u16* get_predefined_norm(
+    TableType table_type,
+    u32* max_symbol,
+    u32* table_log
+);
+
+// ==============================================================================
 // ENHANCED CORE API
 // ==============================================================================
 __host__ Status FSE_buildCTable_Host(
@@ -239,6 +273,13 @@ __host__ Status FSE_buildCTable_Host(
     u32 max_symbol,
     u32 table_log,
     FSEEncodeTable* table
+);
+
+__host__ Status FSE_buildDTable_Simple_Host(
+    const u16* h_normalized,
+    u32 max_symbol,
+    u32 table_log,
+    u8** h_state_to_symbol_out
 );
 
 
@@ -283,6 +324,94 @@ __host__ Status decode_fse_predefined(
     u32* h_decoded_count,   // <-- Host pointer for the count of decoded symbols
     TableType table_type,   // <-- Which predefined table to use
     cudaStream_t stream = 0
+);
+
+/**
+ * @brief (NEW) Encodes sequences using FSE tables (Tier 1).
+ * Encodes in reverse order and interleaves LL, ML, OF streams.
+ */
+/**
+ * @brief (NEW) Parallel Preparation Kernel: Pre-calculate codes and extra bits
+ */
+__global__ void fse_prepare_sequences_kernel(
+    const u32* d_literal_lengths,
+    const u32* d_match_lengths,
+    const u32* d_offsets,
+    u32 num_sequences,
+    u8* d_ll_codes,
+    u8* d_ml_codes,
+    u8* d_of_codes,
+    u32* d_ll_extras,
+    u32* d_ml_extras,
+    u32* d_of_extras,
+    u8* d_ll_num_bits,
+    u8* d_ml_num_bits,
+    u8* d_of_num_bits
+);
+
+/**
+ * @brief (NEW) Serial Encoding Kernel: Consumes pre-calculated codes
+ */
+__global__ void fse_encode_sequences_serial_kernel(
+    const u8* d_ll_codes,
+    const u8* d_ml_codes,
+    const u8* d_of_codes,
+    const u32* d_ll_extras,
+    const u32* d_ml_extras,
+    const u32* d_of_extras,
+    const u8* d_ll_num_bits,
+    const u8* d_ml_num_bits,
+    const u8* d_of_num_bits,
+    u32 num_sequences,
+    const FSEEncodeTable* d_ll_table,
+    const FSEEncodeTable* d_ml_table,
+    const FSEEncodeTable* d_of_table,
+    byte_t* d_output,
+    u32* d_output_size_bytes,
+    u32 max_output_size,
+    u16* d_state_table
+);
+
+/**
+ * @brief (NEW) Decodes sequences using FSE tables (Tier 1).
+ * Reverse of fse_encode_sequences_kernel.
+ */
+/**
+ * @brief (NEW) Serial State Update Kernel: Decodes codes and extra bits
+ */
+__global__ void fse_decode_states_serial_kernel(
+    const byte_t* d_input,
+    u32 input_size,
+    u32 num_sequences,
+    const FSEEncodeTable* d_ll_table,
+    const FSEEncodeTable* d_ml_table,
+    const FSEEncodeTable* d_of_table,
+    const u8* d_ll_decode,
+    const u8* d_ml_decode,
+    const u8* d_of_decode,
+    u8* d_ll_codes,
+    u8* d_ml_codes,
+    u8* d_of_codes,
+    u32* d_ll_extras,
+    u32* d_ml_extras,
+    u32* d_of_extras,
+    u32* d_bytes_read
+);
+
+/**
+ * @brief (NEW) Parallel Reconstruction Kernel: Reconstructs values from codes
+ */
+__global__ void fse_reconstruct_sequences_kernel(
+    const u8* d_ll_codes,
+    const u8* d_ml_codes,
+    const u8* d_of_codes,
+    const u32* d_ll_extras,
+    const u32* d_ml_extras,
+    const u32* d_of_extras,
+    u32 num_sequences,
+    u32* d_literal_lengths,
+    u32* d_match_lengths,
+    u32* d_offsets
 );
 
 // ==============================================================================
