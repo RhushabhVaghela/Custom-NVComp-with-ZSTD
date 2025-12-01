@@ -466,6 +466,7 @@ Status backtrack_sequences_parallel(
     err = cudaMemcpyAsync(d_segments, h_segments, num_segments * sizeof(SegmentInfo),
                          cudaMemcpyHostToDevice, stream);
     if (err != cudaSuccess) {
+        printf("[ERROR] Failed to copy segments to device: %s\n", cudaGetErrorString(err));
         cudaFree(d_segments);
         cudaFree(d_sequence_counts);
         cudaFree(d_literal_lengths_temp);
@@ -476,8 +477,39 @@ Status backtrack_sequences_parallel(
         return Status::ERROR_CUDA_ERROR;
     }
     
+    // Debug: Print configuration
+    printf("[DEBUG] Parallel backtracking config:\n");
+    printf("  Input size: %u bytes (%.2f MB)\n", input_size, input_size / (1024.0f * 1024.0f));
+    printf("  Num segments: %u\n", num_segments);
+    printf("  Segment size: %u bytes (%.2f KB)\n", segment_size, segment_size / 1024.0f);
+    printf("  Max seq/segment: %u\n", max_seq_per_segment);
+    printf("  Total temp memory: %.2f MB\n", (total_max_sequences * 12) / (1024.0f * 1024.0f));
+    
+    // Debug: Validate pointers
+    printf("[DEBUG] Validating pointers:\n");
+    printf("  d_costs: %p\n", (void*)d_costs);
+    printf("  d_segments: %p\n", (void*)d_segments);
+    printf("  d_literal_lengths_temp: %p\n", (void*)d_literal_lengths_temp);
+    printf("  d_match_lengths_temp: %p\n", (void*)d_match_lengths_temp);
+    printf("  d_offsets_temp: %p\n", (void*)d_offsets_temp);
+    printf("  d_sequence_counts: %p\n", (void*)d_sequence_counts);
+    
+    if (d_costs == nullptr) {
+        printf("[ERROR] d_costs is NULL!\n");
+        cudaFree(d_segments);
+        cudaFree(d_sequence_counts);
+        cudaFree(d_literal_lengths_temp);
+        cudaFree(d_match_lengths_temp);
+        cudaFree(d_offsets_temp);
+        delete[] h_segments;
+        delete[] h_sequence_counts;
+        return Status::ERROR_INVALID_PARAMETER;
+    }
+    
     // Launch parallel backtracking kernel (one block per segment)
-    backtrack_segments_parallel_kernel<<<num_segments, 1, 0, stream>>>(
+    // Use 32 threads per block (warp size) even though only first thread does work
+    printf("[DEBUG] Launching kernel with %u blocks, 32 threads/block...\n", num_segments);
+    backtrack_segments_parallel_kernel<<<num_segments, 32>>>(
         d_costs,
         d_segments,
         d_literal_lengths_temp,
@@ -490,6 +522,7 @@ Status backtrack_sequences_parallel(
     
     err = cudaGetLastError();
     if (err != cudaSuccess) {
+        printf("[ERROR] Kernel launch failed: %s\n", cudaGetErrorString(err));
         cudaFree(d_segments);
         cudaFree(d_sequence_counts);
         cudaFree(d_literal_lengths_temp);
@@ -499,6 +532,22 @@ Status backtrack_sequences_parallel(
         delete[] h_sequence_counts;
         return Status::ERROR_CUDA_ERROR;
     }
+    
+    // Wait for kernel to complete
+    err = cudaStreamSynchronize(stream);
+    if (err != cudaSuccess) {
+        printf("[ERROR] Kernel execution failed: %s\n", cudaGetErrorString(err));
+        cudaFree(d_segments);
+        cudaFree(d_sequence_counts);
+        cudaFree(d_literal_lengths_temp);
+        cudaFree(d_match_lengths_temp);
+        cudaFree(d_offsets_temp);
+        delete[] h_segments;
+        delete[] h_sequence_counts;
+        return Status::ERROR_CUDA_ERROR;
+    }
+    
+    printf("[DEBUG] Kernel completed successfully\n");
     
     // Copy sequence counts back to host for merging
     err = cudaMemcpyAsync(h_sequence_counts, d_sequence_counts, 
