@@ -1573,7 +1573,11 @@ __host__ Status encode_fse_batch(
     // 3. Metadata for kernels
     std::vector<u32> h_table_logs(num_blocks);
     std::vector<FSEStats> h_stats(num_blocks);
+    std::vector<u32> h_table_logs(num_blocks);
+    std::vector<FSEStats> h_stats(num_blocks);
     std::vector<std::vector<u16>> h_normalized_freqs(num_blocks);
+    std::vector<u8> h_block_types(num_blocks); // 0=FSE, 1=RLE, 2=Raw
+    std::vector<u8> h_rle_symbols(num_blocks);
 
     // === Stage 1: Batch Analysis (GPU) ===
     for (u32 i = 0; i < num_blocks; i++) {
@@ -1607,8 +1611,16 @@ __host__ Status encode_fse_batch(
             }
         }
         
-        // Handle RLE/Raw cases (TODO: Implement fallback logic properly)
-        // For now, we proceed with FSE even if suboptimal, relying on FSE to handle it.
+        // Handle RLE/Raw cases
+        if (stats.unique_symbols == 1) {
+            h_block_types[i] = 1; // RLE
+            h_rle_symbols[i] = (u8)stats.max_symbol;
+            // Skip table building for RLE
+            continue;
+        } else {
+            h_block_types[i] = 0; // FSE
+        }
+        
         // Ideally, we should flag this block as RLE and skip FSE kernel.
         
         stats.recommended_log = select_optimal_table_log(
@@ -1670,6 +1682,36 @@ __host__ Status encode_fse_batch(
 
     for (u32 i = 0; i < num_blocks; i++) {
         u32 input_size = input_sizes[i];
+        
+        if (h_block_types[i] == 1) {
+            // === RLE Block ===
+            u32 table_log = 0; // Marker for RLE/Raw
+            u32 max_symbol = 0; // Marker for RLE (vs Raw which would be 255 or similar)
+            u8 rle_symbol = h_rle_symbols[i];
+            
+            // Header: TableLog(4) + InputSize(4) + MaxSymbol(4) + Symbol(2 bytes padding/value)
+            u32 header_size = 14; // 12 + 2 bytes for symbol (as u16)
+            
+            std::vector<byte_t> h_header(header_size);
+            memcpy(h_header.data(), &table_log, 4);
+            memcpy(h_header.data() + 4, &input_size, 4);
+            memcpy(h_header.data() + 8, &max_symbol, 4);
+            // Store symbol in the first byte of the "table" area
+            h_header[12] = rle_symbol;
+            h_header[13] = 0;
+            
+            CUDA_CHECK(cudaMemcpyAsync(d_outputs[i], h_header.data(), header_size, 
+                                      cudaMemcpyHostToDevice, stream));
+            
+            // Set output size
+            // We need to update d_output_sizes[i] on device.
+            // Since this is just a u32, we can copy it.
+            CUDA_CHECK(cudaMemcpyAsync(&d_output_sizes[i], &header_size, sizeof(u32),
+                                      cudaMemcpyHostToDevice, stream));
+                                      
+            continue; // Skip FSE kernels
+        }
+
         u32 table_log = h_table_logs[i];
         u32 max_symbol = h_stats[i].max_symbol;
         
@@ -2084,6 +2126,19 @@ __host__ Status decode_fse(
     u32 max_symbol = *reinterpret_cast<u32*>(h_header.data() + 8);
     
     *d_output_size = output_size_expected; // Set host output size
+
+    // === RLE/Raw Check ===
+    if (table_log == 0) {
+        if (max_symbol == 0) {
+            // RLE Block
+            u8 symbol = h_header[12];
+            CUDA_CHECK(cudaMemsetAsync(d_output, symbol, output_size_expected, stream));
+        } else {
+            // Raw Block (Not implemented yet, but structure is here)
+            // CUDA_CHECK(cudaMemcpyAsync(d_output, d_input + 12, output_size_expected, cudaMemcpyDeviceToDevice, stream));
+        }
+        return Status::SUCCESS;
+    }
 
     // Smart Router: Select CPU or GPU
     // Allow runtime configuration for benchmarking
