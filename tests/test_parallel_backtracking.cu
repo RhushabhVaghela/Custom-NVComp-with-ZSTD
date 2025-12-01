@@ -74,7 +74,9 @@ BacktrackResult run_cpu_backtracking(
     CompressionWorkspace& workspace,
     cudaStream_t stream
 ) {
-    BacktrackResult result = {0};
+    BacktrackResult result;
+    result.num_sequences = 0;
+    result.time_ms = 0.0;
     result.success = false;
     
     // Copy costs from device to host
@@ -91,11 +93,19 @@ BacktrackResult run_cpu_backtracking(
     auto start = std::chrono::high_resolution_clock::now();
     
     // Run CPU backtracking
-    backtrack_sequences_cpu(h_costs, input_size, h_literal_lengths,
+    Status status = backtrack_sequences_cpu(h_costs, input_size, h_literal_lengths,
                            h_match_lengths, h_offsets, &num_sequences);
     
     auto end = std::chrono::high_resolution_clock::now();
     result.time_ms = std::chrono::duration<double, std::milli>(end - start).count();
+    
+    if (status != Status::SUCCESS) {
+        delete[] h_costs;
+        delete[] h_literal_lengths;
+        delete[] h_match_lengths;
+        delete[] h_offsets;
+        return result;
+    }
     
     // Copy results
     result.num_sequences = num_sequences;
@@ -118,7 +128,9 @@ BacktrackResult run_parallel_backtracking(
     CompressionWorkspace& workspace,
     cudaStream_t stream
 ) {
-    BacktrackResult result = {0};
+    BacktrackResult result;
+    result.num_sequences = 0;
+    result.time_ms = 0.0;
     result.success = false;
     
     u32 num_sequences = 0;

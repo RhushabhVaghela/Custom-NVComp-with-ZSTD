@@ -1573,8 +1573,6 @@ __host__ Status encode_fse_batch(
     // 3. Metadata for kernels
     std::vector<u32> h_table_logs(num_blocks);
     std::vector<FSEStats> h_stats(num_blocks);
-    std::vector<u32> h_table_logs(num_blocks);
-    std::vector<FSEStats> h_stats(num_blocks);
     std::vector<std::vector<u16>> h_normalized_freqs(num_blocks);
     std::vector<u8> h_block_types(num_blocks); // 0=FSE, 1=RLE, 2=Raw
     std::vector<u8> h_rle_symbols(num_blocks);

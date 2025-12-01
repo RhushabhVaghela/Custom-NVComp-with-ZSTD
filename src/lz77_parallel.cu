@@ -333,7 +333,7 @@ BacktrackConfig create_backtrack_config(u32 input_size) {
 
 // CPU-based backtracking (Option B: CPU Offloading)
 // This runs on the host CPU instead of GPU to avoid sequential kernel bottleneck
-void backtrack_sequences_cpu(
+Status backtrack_sequences_cpu(
     const ParseCost* h_costs,
     u32 input_size,
     u32* h_literal_lengths,
@@ -369,6 +369,7 @@ void backtrack_sequences_cpu(
     }
 
     *h_num_sequences = seq_idx;
+    return Status::SUCCESS;
 }
 
 // Parallel GPU backtracking implementation
@@ -390,8 +391,10 @@ Status backtrack_sequences_parallel(
     u32 num_segments = config.num_segments;
     u32 segment_size = config.segment_size;
     
-    // Estimate max sequences per segment (conservative: 1 seq per 3 bytes)
-    u32 max_seq_per_segment = (segment_size / 3) + 100;
+    // Estimate max sequences per segment
+    // Typical: 1 sequence per 100 bytes is more realistic
+    // Add buffer for worst case (many small matches)
+    u32 max_seq_per_segment = (segment_size / 50) + 1000;  // Much more conservative
     u32 total_max_sequences = num_segments * max_seq_per_segment;
     
     // Allocate host memory for segments and results

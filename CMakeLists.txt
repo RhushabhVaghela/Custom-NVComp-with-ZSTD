@@ -97,6 +97,7 @@ set(CUDA_ZSTD_SOURCES
     # Workspace pattern implementations
     src/workspace_manager.cu
     src/error_context.cpp
+    src/lz77_parallel.cu
 )
 
 # Static library
