@@ -196,8 +196,12 @@ struct CompressionConfig {
     u32 ldm_hash_log = 20;                  // LDM hash table size
     ChecksumPolicy checksum = ChecksumPolicy::NO_COMPUTE_NO_VERIFY;
     
+    // Smart Router Configuration
+    u32 cpu_threshold = 1024 * 1024;        // 1MB default (based on benchmarks)
+    
     // Helper functions
     static CompressionConfig from_level(int level);
+    static CompressionConfig optimal(size_t input_size); // NEW: Get optimal config based on benchmarks
     static int strategy_to_default_level(Strategy s);
     static Strategy level_to_strategy(int level);
     Status validate() const;
@@ -311,12 +315,20 @@ struct CompressionWorkspace {
     u32 num_blocks;
     
     // Workspace metadata
+    void* d_workspace;           // Base pointer to the entire workspace
+    size_t total_size;           // Total workspace size (alias for total_size_bytes)
     size_t total_size_bytes;     // Total workspace size
     bool is_allocated;           // Allocation status
     
     // (NEW) Stream management for pipelining
     cudaStream_t stream;         // Associated CUDA stream
     cudaEvent_t event_complete;  // Completion event for dependencies
+    
+    // (NEW) Missing fields required by DefaultZstdManager
+    u32* d_lz77_temp;
+    void* d_sequences;           // Cast to sequence::Sequence*
+    void* d_fse_tables;          // Cast to fse::FSEEncodeTable*
+    void* d_huffman_table;       // Cast to huffman::HuffmanTable*
 };
 
 // ============================================================================

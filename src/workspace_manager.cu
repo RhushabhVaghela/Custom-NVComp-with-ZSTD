@@ -74,8 +74,6 @@ CompressionWorkspace::~CompressionWorkspace() {
     do { \
         cudaError_t err = call; \
         if (err != cudaSuccess) { \
-            std::cerr << "[WorkspaceManager] CUDA error: " << cudaGetErrorString(err) \
-                      << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
             return Status::ERROR_CUDA_ERROR; \
         } \
     } while(0)
@@ -125,8 +123,8 @@ Status allocate_compression_workspace(
     size_t max_block_size,
     const CompressionConfig& config
 ) {
-    std::cout << "[WorkspaceManager] Allocating workspace for max block size: " 
-              << max_block_size << " bytes" << std::endl;
+//     std::cout << "[WorkspaceManager] Allocating workspace for max block size: " 
+//               << max_block_size << " bytes" << std::endl;
 
     // Initialize sizes
     workspace.hash_table_size = (1 << config.hash_log);
@@ -139,22 +137,22 @@ Status allocate_compression_workspace(
     // Allocate hash table
     CUDA_CHECK_WORKSPACE(cudaMalloc(&workspace.d_hash_table, 
                                     workspace.hash_table_size * sizeof(u32)));
-    std::cout << "  ✓ Hash table: " << (workspace.hash_table_size * sizeof(u32)) / 1024 << " KB" << std::endl;
+//     std::cout << "  ✓ Hash table: " << (workspace.hash_table_size * sizeof(u32)) / 1024 << " KB" << std::endl;
 
     // Allocate chain table
     CUDA_CHECK_WORKSPACE(cudaMalloc(&workspace.d_chain_table,
                                     workspace.chain_table_size * sizeof(u32)));
-    std::cout << "  ✓ Chain table: " << (workspace.chain_table_size * sizeof(u32)) / 1024 << " KB" << std::endl;
+//     std::cout << "  ✓ Chain table: " << (workspace.chain_table_size * sizeof(u32)) / 1024 << " KB" << std::endl;
 
     // Allocate matches (assume Match is 16 bytes)
     CUDA_CHECK_WORKSPACE(cudaMalloc(&workspace.d_matches,
                                     max_block_size * 16));
-    std::cout << "  ✓ Matches: " << (max_block_size * 16) / 1024 << " KB" << std::endl;
+//     std::cout << "  ✓ Matches: " << (max_block_size * 16) / 1024 << " KB" << std::endl;
 
     // Allocate costs (assume ParseCost is 16 bytes)
     CUDA_CHECK_WORKSPACE(cudaMalloc(&workspace.d_costs,
                                     max_block_size * 16));
-    std::cout << "  ✓ Costs: " << (max_block_size * 16) / 1024 << " KB" << std::endl;
+//     std::cout << "  ✓ Costs: " << (max_block_size * 16) / 1024 << " KB" << std::endl;
 
     // Allocate sequence arrays
     CUDA_CHECK_WORKSPACE(cudaMalloc(&workspace.d_literal_lengths_reverse,
@@ -163,7 +161,7 @@ Status allocate_compression_workspace(
                                     max_block_size * sizeof(u32)));
     CUDA_CHECK_WORKSPACE(cudaMalloc(&workspace.d_offsets_reverse,
                                     max_block_size * sizeof(u32)));
-    std::cout << "  ✓ Sequences: " << (max_block_size * sizeof(u32) * 3) / 1024 << " KB" << std::endl;
+//     std::cout << "  ✓ Sequences: " << (max_block_size * sizeof(u32) * 3) / 1024 << " KB" << std::endl;
 
     // Allocate frequency and code length arrays
     CUDA_CHECK_WORKSPACE(cudaMalloc(&workspace.d_frequencies, 256 * sizeof(u32)));
@@ -179,8 +177,8 @@ Status allocate_compression_workspace(
     workspace.is_allocated = true;
 
     size_t total_allocated = calculate_workspace_size(max_block_size, config);
-    std::cout << "[WorkspaceManager] Total workspace allocated: " 
-              << total_allocated / (1024 * 1024) << " MB" << std::endl;
+//     std::cout << "[WorkspaceManager] Total workspace allocated: " 
+//               << total_allocated / (1024 * 1024) << " MB" << std::endl;
 
     return Status::SUCCESS;
 }
@@ -191,7 +189,7 @@ Status free_compression_workspace(CompressionWorkspace& workspace) {
         return Status::SUCCESS;
     }
 
-    std::cout << "[WorkspaceManager] Freeing workspace..." << std::endl;
+//     std::cout << "[WorkspaceManager] Freeing workspace..." << std::endl;
 
     // Free all allocated buffers
     if (workspace.d_hash_table) cudaFree(workspace.d_hash_table);
@@ -223,7 +221,7 @@ Status free_compression_workspace(CompressionWorkspace& workspace) {
 
     workspace.is_allocated = false;
 
-    std::cout << "[WorkspaceManager] Workspace freed successfully" << std::endl;
+//     std::cout << "[WorkspaceManager] Workspace freed successfully" << std::endl;
 
     return Status::SUCCESS;
 }

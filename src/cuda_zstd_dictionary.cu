@@ -18,7 +18,6 @@ namespace dictionary {
 // ==============================================================================
 
 constexpr u32 MIN_SAMPLES_FOR_TRAINING = 1;
-constexpr u32 MAX_SAMPLES_FOR_TRAINING = 10000;
 constexpr u32 DEFAULT_SAMPLE_SIZE = 8 * 1024;  // 8 KB per sample
 
 // ==============================================================================
@@ -102,15 +101,7 @@ __global__ void select_top_patterns_kernel(
     __syncthreads();
 
     // Each thread finds its local maximum
-    u32 local_max_count = 0;
-    u32 local_max_idx = 0;
 
-    for (u32 i = tid; i < num_ngrams; i += blockDim.x) {
-        if (d_ngram_counts[i] > local_max_count) {
-            local_max_count = d_ngram_counts[i];
-            local_max_idx = i;
-        }
-    }
 
     // Reduction to find global top-k (simplified)
     __syncthreads();
@@ -151,7 +142,7 @@ Status build_frequency_dict_cpu(
     byte_t* dict_buffer,
     size_t dict_size
 ) {
-    std::cout << "[DictTraining] Using CPU frequency-based training" << std::endl;
+//     std::cout << "[DictTraining] Using CPU frequency-based training" << std::endl;
 
     // Count byte frequencies
     std::vector<u32> frequencies(256, 0);
@@ -191,7 +182,7 @@ Status build_frequency_dict_cpu(
         dict_buffer[dict_pos++] = freq_pairs[0].second;
     }
 
-    std::cout << "[DictTraining] Built frequency dict: " << dict_size << " bytes" << std::endl;
+//     std::cout << "[DictTraining] Built frequency dict: " << dict_size << " bytes" << std::endl;
 
     return Status::SUCCESS;
 }
@@ -206,7 +197,7 @@ Status train_dictionary_gpu(
     size_t dict_size,
     cudaStream_t stream
 ) {
-    std::cout << "[DictTraining] Using GPU training" << std::endl;
+//     std::cout << "[DictTraining] Using GPU training" << std::endl;
 
     // Concatenate all samples into a single device buffer
     size_t total_size = 0;
@@ -344,8 +335,8 @@ Status train_dictionary_gpu(
     cudaFree(d_ngram_hashes);
     cudaFree(d_ngram_counts);
 
-    std::cout << "[DictTraining] Dictionary created: " << dict_size << " bytes, "
-              << ngram_freq_idx.size() << " unique n-grams" << std::endl;
+//     std::cout << "[DictTraining] Dictionary created: " << dict_size << " bytes, "
+//               << ngram_freq_idx.size() << " unique n-grams" << std::endl;
 
     return Status::SUCCESS;
 }
@@ -379,8 +370,8 @@ Status train_dictionary(
         return Status::ERROR_INVALID_PARAMETER;
     }
 
-    std::cout << "[DictTraining] Training dictionary with " << samples.size() 
-              << " samples, target size: " << dict_size << " bytes" << std::endl;
+//     std::cout << "[DictTraining] Training dictionary with " << samples.size() 
+//               << " samples, target size: " << dict_size << " bytes" << std::endl;
 
     // Convert to byte pointers
     std::vector<const byte_t*> byte_samples;

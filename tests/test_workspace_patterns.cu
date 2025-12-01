@@ -22,17 +22,17 @@ void test_workspace_allocation() {
     config.hash_log = 17;
     config.chain_log = 17;
 
-    CompressionWorkspace workspace;
+    compression::CompressionWorkspace workspace;
     size_t max_block_size = 128 * 1024;
 
-    Status status = allocate_compression_workspace(workspace, max_block_size, config);
-    assert(status == Status::SUCCESS);
+    compression::Status status = allocate_compression_workspace(workspace, max_block_size, config);
+    assert(status == compression::Status::SUCCESS);
     assert(workspace.is_allocated);
     assert(workspace.d_hash_table != nullptr);
     assert(workspace.d_chain_table != nullptr);
 
     status = free_compression_workspace(workspace);
-    assert(status == Status::SUCCESS);
+    assert(status == compression::Status::SUCCESS);
     assert(!workspace.is_allocated);
 
     std::cout << "[PASS] Workspace Allocation\n";
@@ -42,12 +42,12 @@ void test_workspace_reuse() {
     std::cout << "[TEST] Workspace Reuse (No Re-allocation)\n";
 
     CompressionConfig config;
-    CompressionWorkspace workspace;
+    compression::CompressionWorkspace workspace;
     size_t max_block_size = 64 * 1024;
 
     // Allocate once
-    Status status = allocate_compression_workspace(workspace, max_block_size, config);
-    assert(status == Status::SUCCESS);
+    compression::Status status = allocate_compression_workspace(workspace, max_block_size, config);
+    assert(status == compression::Status::SUCCESS);
 
     void* original_hash_ptr = workspace.d_hash_table;
 
@@ -82,11 +82,11 @@ void test_workspace_size_calculation() {
 void test_workspace_error_handling() {
     std::cout << "[TEST] Workspace Error Handling\n";
 
-    CompressionWorkspace workspace;
+    compression::CompressionWorkspace workspace;
 
     // Double free should be safe
-    Status status = free_compression_workspace(workspace);
-    assert(status == Status::SUCCESS);
+    compression::Status status = free_compression_workspace(workspace);
+    assert(status == compression::Status::SUCCESS);
 
     std::cout << "[PASS] Workspace Error Handling\n";
 }

@@ -42,17 +42,17 @@ std::string capture_stacktrace(int max_frames) {
 
 void debug_free(void* ptr) {
     if (!ptr) return;
-    std::cerr << "debug_free: freeing host ptr=" << ptr << "\n";
+//     std::cerr << "debug_free: freeing host ptr=" << ptr << "\n";
     std::string st = cuda_zstd::util::capture_stacktrace(32);
-    std::cerr << "debug_free: stacktrace:\n" << st << "\n";
+//     std::cerr << "debug_free: stacktrace:\n" << st << "\n";
     free(ptr);
 }
 
 void* debug_alloc(size_t size) {
     void* p = malloc(size);
-    std::cerr << "debug_alloc: allocated host ptr=" << p << " size=" << size << "\n";
+//     std::cerr << "debug_alloc: allocated host ptr=" << p << " size=" << size << "\n";
     std::string st = cuda_zstd::util::capture_stacktrace(32);
-    std::cerr << "debug_alloc: stacktrace:\n" << st << "\n";
+//     std::cerr << "debug_alloc: stacktrace:\n" << st << "\n";
     return p;
 }
 

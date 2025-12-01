@@ -31,8 +31,8 @@ namespace huffman {
 // ============================================================================
 
 constexpr u32 HUFFMAN_ENCODE_THREADS = 256;
-constexpr u32 HUFFMAN_DECODE_THREADS_PER_CHUNK = 1; // Decode is sequential per chunk
-constexpr u32 HUFFMAN_DECODE_SYMBOLS_PER_CHUNK = 4096; // Symbols per chunk
+// constexpr u32 HUFFMAN_DECODE_THREADS_PER_CHUNK = 1; // Decode is sequential per chunk
+// constexpr u32 HUFFMAN_DECODE_SYMBOLS_PER_CHUNK = 4096; // Symbols per chunk
 
 // ============================================================================
 // Huffman Structures (from .h file, repeated for context)
@@ -55,7 +55,29 @@ struct HuffmanDecodeTable {
 // Parallel Scan Kernels (for Encode)
 // (REMOVED) - This entire section is now gone and moved to cuda_zstd_utils.cu
 // ============================================================================
+// Device Helper Functions
+// ============================================================================
 
+__device__ inline u32 reverse_bits_device(u32 val, u32 bits) {
+    return __brev(val) >> (32 - bits);
+}
+
+__device__ void atomicOrByte(byte_t* address, byte_t val) {
+    unsigned int* base_addr = (unsigned int*)((size_t)address & ~3);
+    unsigned int offset = (size_t)address & 3;
+    unsigned int shift = offset * 8;
+    
+    unsigned int old = *base_addr;
+    unsigned int assumed;
+    do {
+        assumed = old;
+        unsigned int new_val = assumed | ((unsigned int)val << shift);
+        old = atomicCAS(base_addr, assumed, new_val);
+    } while (assumed != old);
+}
+
+// ============================================================================
+// Kernels
 // ============================================================================
 // Frequency Analysis Kernel
 // ============================================================================
@@ -89,6 +111,22 @@ __global__ void analyze_frequencies_kernel(
     }
 }
 
+__global__ void collect_chunk_offsets_kernel(
+    const u32* d_bit_offsets,
+    u32 input_size,
+    u32* d_chunk_offsets,
+    u32 chunk_size_symbols,
+    u32 num_chunks
+) {
+    u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (chunk_idx >= num_chunks) return;
+    
+    u32 symbol_idx = chunk_idx * chunk_size_symbols;
+    if (symbol_idx < input_size) {
+        d_chunk_offsets[chunk_idx] = d_bit_offsets[symbol_idx];
+    }
+}
+
 // ============================================================================
 // Host Huffman Tree/Table Builder
 // ============================================================================
@@ -114,7 +152,7 @@ public:
         num_nodes = 0;
         for (u32 i = 0; i < num_symbols; ++i) {
             if (frequencies[i] > 0) {
-                nodes[num_nodes] = { static_cast<u16>(i), static_cast<u16>(frequencies[i]),
+                nodes[num_nodes] = { static_cast<u16>(i), frequencies[i],
                                      HUFFMAN_NULL_IDX, HUFFMAN_NULL_IDX, HUFFMAN_NULL_IDX };
                 pq.push(num_nodes);
                 num_nodes++;
@@ -134,7 +172,7 @@ public:
             int left = pq.top(); pq.pop();
             int right = pq.top(); pq.pop();
             int parent = num_nodes;
-            nodes[parent] = { 0, static_cast<u16>(nodes[left].frequency + nodes[right].frequency),
+            nodes[parent] = { 0, nodes[left].frequency + nodes[right].frequency,
                               static_cast<u16>(left), static_cast<u16>(right), HUFFMAN_NULL_IDX };
             nodes[left].parent = static_cast<u16>(parent);
             nodes[right].parent = static_cast<u16>(parent);
@@ -261,6 +299,9 @@ __global__ void huffman_encode_phase2_kernel(
     u32 block_last_bit = (block_end_idx == 0) ? 0 :
                          (d_positions[block_end_idx - 1] + d_lengths[block_end_idx - 1]);
     
+    u32 global_start_bit = header_size_bits + block_first_bit;
+    u32 global_bit_offset = global_start_bit & 7;
+    
     // Each thread encodes its symbol into shared buffer
     u32 idx = block_start_idx + threadIdx.x;
     if (idx < block_end_idx) {
@@ -269,8 +310,8 @@ __global__ void huffman_encode_phase2_kernel(
         u32 bit_pos = d_positions[idx];
         
         if (length > 0) {
-            // Position relative to block start
-            u32 local_bit_pos = bit_pos - block_first_bit;
+            // Position relative to block start, PLUS global offset
+            u32 local_bit_pos = (bit_pos - block_first_bit) + global_bit_offset;
             u32 local_byte_pos = local_bit_pos >> 3;
             u32 local_bit_offset = local_bit_pos & 7;
             
@@ -297,13 +338,18 @@ __global__ void huffman_encode_phase2_kernel(
     __syncthreads();
     
     // Cooperatively write shared buffer to global memory (coalesced)
-    u32 global_byte_start = (header_size_bits + block_first_bit) >> 3;
-    u32 bytes_to_write = ((block_last_bit - block_first_bit) + 7) / 8;
+    u32 global_byte_start = global_start_bit >> 3;
+    u32 total_bits = (block_last_bit - block_first_bit) + global_bit_offset;
+    u32 bytes_to_write = (total_bits + 7) / 8;
     
     // Write from the word-aligned shared array back to bytes for global output
     const byte_t* shared_bytes = reinterpret_cast<const byte_t*>(shared_words);
     for (u32 i = threadIdx.x; i < bytes_to_write && i < BUFFER_SIZE; i += blockDim.x) {
-        output[global_byte_start + i] |= shared_bytes[i];
+        if (i == 0 || i == bytes_to_write - 1) {
+            atomicOrByte(output + global_byte_start + i, shared_bytes[i]);
+        } else {
+            output[global_byte_start + i] = shared_bytes[i];
+        }
     }
 }
 
@@ -387,6 +433,7 @@ __global__ void parallel_huffman_encode_kernel(
 // Huffman Decoding (REPLACED with Parallel)
 // ============================================================================
 
+
 /**
  * @brief Sequential kernel to build the decode table.
  * This is fast and small, no need to parallelize.
@@ -394,7 +441,7 @@ __global__ void parallel_huffman_encode_kernel(
 __global__ void build_decode_table_kernel(
     const u8* code_lengths,
     u32 num_symbols,
-    u16* d_first_code, // [MAX_HUFFMAN_BITS + 2]
+    u32* d_first_code, // [MAX_HUFFMAN_BITS + 2]
     u16* d_symbol_index, // [MAX_HUFFMAN_BITS + 1]
     u8* d_symbols // [num_symbols]
 ) {
@@ -416,10 +463,10 @@ __global__ void build_decode_table_kernel(
     d_first_code[0] = 0;
     for (u32 len = 1; len <= max_len; ++len) {
         code = (code + length_count[len - 1]) << 1;
-        d_first_code[len] = static_cast<u16>(code);
+        d_first_code[len] = code;
     }
-    d_first_code[max_len + 1] = 0xFFFF;
-    
+    d_first_code[max_len + 1] = 0xFFFFFFFF; // Sentinel
+
     // Build symbol index table
     u32 idx = 0;
     for (u32 len = 1; len <= max_len; ++len) {
@@ -451,7 +498,7 @@ __global__ void find_chunk_start_bits_kernel(
     const byte_t* input,
     u32 header_size_bytes,
     u32 input_size_bytes,
-    const u16* d_first_code,
+    const u32* d_first_code,
     const u16* d_symbol_index,
     const u8* d_symbols,
     u32 decompressed_size,
@@ -488,7 +535,8 @@ __global__ void find_chunk_start_bits_kernel(
             u32 len = 1;
             for (; len <= max_len; ++len) {
                 code = value & ((1U << len) - 1);
-                if (code < d_first_code[len + 1]) {
+                u32 normal_code = reverse_bits_device(code, len);
+                if (normal_code < (d_first_code[len + 1] >> 1)) {
                     break;
                 }
             }
@@ -515,24 +563,24 @@ __global__ void find_chunk_start_bits_kernel(
 __global__ void parallel_huffman_decode_kernel(
     const byte_t* input,
     u32 input_size_bytes,
-    const u16* d_first_code,
+    const u32* d_first_code,
     const u16* d_symbol_index,
     const u8* d_symbols,
     byte_t* output,
     u32 decompressed_size,
     const u32* d_chunk_start_bits // Input from Pass 1
 ) {
-    // This kernel is launched with one block per chunk
-    // and one thread per block (sequential within block)
-    if (threadIdx.x != 0) return;
-
-    u32 chunk_id = blockIdx.x;
-    u32 num_chunks = gridDim.x;
+    // This kernel is launched with multiple threads per block
+    // Each thread handles one chunk
+    u32 chunk_id = blockIdx.x * blockDim.x + threadIdx.x;
     
+    // We use hardcoded symbols per chunk (4096)
+    u32 total_chunks = (decompressed_size + 4096 - 1) / 4096;
+    if (chunk_id >= total_chunks) return;
     u32 max_len = d_symbol_index[0]; // Read max_length
     
     // --- 1. Find the start and end symbol index for this chunk ---
-    u32 symbols_per_chunk = (decompressed_size + num_chunks - 1) / num_chunks;
+    u32 symbols_per_chunk = 4096; // Hardcoded to match host
     u32 out_idx = chunk_id * symbols_per_chunk;
     u32 out_idx_end = min((chunk_id + 1) * symbols_per_chunk, decompressed_size);
 
@@ -540,7 +588,7 @@ __global__ void parallel_huffman_decode_kernel(
 
     // --- 2. Find the start bit position for this chunk ---
     u32 bit_pos = d_chunk_start_bits[chunk_id];
-    const u32 end_bit_pos = (chunk_id == num_chunks - 1) ?
+    const u32 end_bit_pos = (chunk_id == total_chunks - 1) ?
                              (input_size_bytes * 8) : d_chunk_start_bits[chunk_id + 1];
 
     // --- 3. Decode this chunk sequentially ---
@@ -558,9 +606,11 @@ __global__ void parallel_huffman_decode_kernel(
         
         u32 code = 0;
         u32 len = 1;
+        u32 normal_code = 0;
         for (; len <= max_len; ++len) {
             code = value & ((1U << len) - 1);
-            if (code < d_first_code[len + 1]) {
+            normal_code = reverse_bits_device(code, len);
+            if (normal_code < (d_first_code[len + 1] >> 1)) {
                 break;
             }
         }
@@ -570,7 +620,7 @@ __global__ void parallel_huffman_decode_kernel(
             return;
         }
 
-        u32 idx = d_symbol_index[len] + (code - d_first_code[len]);
+        u32 idx = d_symbol_index[len] + (normal_code - d_first_code[len]);
         u8 symbol = d_symbols[idx];
         
         output[out_idx] = symbol;
@@ -579,6 +629,16 @@ __global__ void parallel_huffman_decode_kernel(
     }
 }
 
+
+__global__ void debug_print_kernel(const u32* len, const u32* off, const byte_t* inp, const HuffmanCode* codes, u32 n) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        printf("[DEBUG] First 10 symbols:\n");
+        for(int i=0; i<min(n, 10u); ++i) {
+            u8 sym = inp[i];
+            printf("  [%d] Sym=%u Len=%u Off=%u Code=0x%x (%u)\n", i, sym, len[i], off[i], codes[sym].code, codes[sym].length);
+        }
+    }
+}
 
 // ============================================================================
 // Host API Functions 
@@ -594,7 +654,7 @@ Status encode_huffman(
     cudaStream_t stream
 ) {
     // --- START REPLACEMENT ---
-    fprintf(stderr, "[DEBUG] encode_huffman ENTERED: input_size=%u\n", input_size);
+    std::cerr << "[DEBUG] encode_huffman ENTERED: input_size=" << input_size << std::endl;
     if (!d_input || !d_output || !output_size || input_size == 0) {
         return Status::ERROR_INVALID_PARAMETER;
     }
@@ -605,6 +665,7 @@ Status encode_huffman(
     
     if (!d_frequencies) {
         // Fallback: allocate if no workspace provided (backward compatibility)
+        std::cerr << "[DEBUG] Allocating d_frequencies..." << std::endl;
         CUDA_CHECK(cudaMalloc(&d_frequencies, MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
         allocated_temp = true;
     }
@@ -617,19 +678,17 @@ Status encode_huffman(
         d_input, input_size, d_frequencies
     );
     
-    fprintf(stderr, "[DEBUG] encode_huffman: After analyze_frequencies_kernel\n");
+//     fprintf(stderr, "[DEBUG] encode_huffman: After analyze_frequencies_kernel\n");
     
     // Use pinned memory for async transfer
     u32* h_frequencies = nullptr;
     CUDA_CHECK(cudaMallocHost(&h_frequencies, MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
-    fprintf(stderr, "[DEBUG] encode_huffman: cudaMallocHost succeeded, ptr=%p\n", h_frequencies);
+//     fprintf(stderr, "[DEBUG] encode_huffman: cudaMallocHost succeeded, ptr=%p\n", h_frequencies);
     
     CUDA_CHECK(cudaMemcpyAsync(h_frequencies, d_frequencies,
                                 MAX_HUFFMAN_SYMBOLS * sizeof(u32),
                                 cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream)); // Required: need frequencies for tree building
-    
-    fprintf(stderr, "[DEBUG] encode_huffman: Frequency copy complete\n");
     
     // Only free if we allocated it ourselves
     if (allocated_temp) {
@@ -637,14 +696,14 @@ Status encode_huffman(
     }
 
     // --- 2. Build Tables on Host ---
-    fprintf(stderr, "[DEBUG] encode_huffman: Starting tree build\n");
+//     fprintf(stderr, "[DEBUG] encode_huffman: Starting tree build\n");
     HuffmanNode* h_nodes = new HuffmanNode[MAX_HUFFMAN_SYMBOLS * 2];
     u32 num_nodes = 0;
     i32 root_idx = -1;
     HuffmanTreeBuilder::build_tree(h_frequencies, MAX_HUFFMAN_SYMBOLS,
                                    h_nodes, num_nodes, root_idx);
     
-    fprintf(stderr, "[DEBUG] encode_huffman: Tree built, num_nodes=%u\n", num_nodes);
+//     fprintf(stderr, "[DEBUG] encode_huffman: Tree built, num_nodes=%u\n", num_nodes);
     
     u8* h_code_lengths = new u8[MAX_HUFFMAN_SYMBOLS];
     // (FIX) Need to actually generate the code lengths from the tree
@@ -675,7 +734,7 @@ Status encode_huffman(
         h_codes // Generate into host buffer
     );
     if (status != Status::SUCCESS) {
-        fprintf(stderr, "[ERROR] encode_huffman: generate_canonical_codes failed with status %d\n", (int)status);
+//         fprintf(stderr, "[ERROR] encode_huffman: generate_canonical_codes failed with status %d\n", (int)status);
         cudaFreeHost(h_frequencies); // FIX: Use cudaFreeHost for pinned memory
         delete[] h_nodes;
         delete[] h_code_lengths;
@@ -684,12 +743,23 @@ Status encode_huffman(
     }
     
     // --- 3. Serialize table header ---
+    // Format: [MaxBits(1)][CodeLengths(256)][ChunkOffsets(NumChunks*4)][Bitstream...]
+    // We need to calculate NumChunks first
+    u32 chunk_size_symbols = 4096; // HUFFMAN_DECODE_SYMBOLS_PER_CHUNK
+    u32 num_chunks = (input_size + chunk_size_symbols - 1) / chunk_size_symbols;
+    
     byte_t* h_header = new byte_t[1 + MAX_HUFFMAN_SYMBOLS];
     u32 header_size = 0;
     serialize_huffman_table(h_code_lengths, h_header, &header_size);
-    u32 header_size_bits = header_size * 8;
     
+    // Write basic header
     CUDA_CHECK(cudaMemcpyAsync(d_output, h_header, header_size, cudaMemcpyHostToDevice, stream));
+    
+    // We will write offsets later, after calculating them.
+    // But we need to reserve space.
+    u32 offsets_size = num_chunks * sizeof(u32);
+    u32 total_header_size = header_size + offsets_size;
+    u32 header_size_bits = total_header_size * 8;
 
     // --- 4. Parallel Encode ---
     
@@ -709,7 +779,10 @@ Status encode_huffman(
         CUDA_CHECK(cudaMalloc(&d_bit_offsets, input_size * sizeof(u32)));
         allocated_scan_buffers = true;
     }
-    CUDA_CHECK(cudaMemsetAsync(d_output + header_size, 0, (input_size * 2), stream)); // Clear output area
+    // Clear output area (bitstream only, not header/offsets)
+    // We clear less conservatively to avoid going out of bounds
+    size_t bitstream_max_size = input_size * 2;
+    CUDA_CHECK(cudaMemsetAsync(d_output + total_header_size, 0, bitstream_max_size, stream));
 
     // Allocate buffers for two-phase atomic-free encoding
     u32* d_codes_temp = nullptr;
@@ -748,6 +821,32 @@ Status encode_huffman(
         return status;
     }
 
+    // DEBUG: Print first 10 offsets and lengths
+    // debug_print_kernel<<<1, 1, 0, stream>>>(d_code_lengths, d_bit_offsets, d_input, table.codes, input_size);
+    // cudaStreamSynchronize(stream);
+    
+    // --- Collect Chunk Offsets ---
+    u32* d_chunk_offsets = nullptr;
+    CUDA_CHECK(cudaMalloc(&d_chunk_offsets, offsets_size));
+    
+    u32 collect_threads = 256;
+    u32 collect_blocks = (num_chunks + collect_threads - 1) / collect_threads;
+    collect_chunk_offsets_kernel<<<collect_blocks, collect_threads, 0, stream>>>(
+        d_bit_offsets, input_size, d_chunk_offsets, chunk_size_symbols, num_chunks
+    );
+    
+    // Write offsets to output (after table)
+    CUDA_CHECK(cudaMemcpyAsync(d_output + header_size, d_chunk_offsets, offsets_size, cudaMemcpyDeviceToDevice, stream));
+    cudaFree(d_chunk_offsets);
+
+    /*
+    // Switch to atomic-based kernel to avoid race conditions at block boundaries
+    parallel_huffman_encode_kernel<<<blocks, threads, 0, stream>>>(
+        d_input, input_size, table.codes, d_bit_offsets,
+        d_output, header_size_bits
+    );
+    */
+
     // Pass 2a: Store codes and positions (Phase 1 of atomic-free encoding)
     huffman_encode_phase1_kernel<<<blocks, threads, 0, stream>>>(
         d_input, input_size, table.codes, d_bit_offsets,
@@ -758,7 +857,7 @@ Status encode_huffman(
     // Each block builds its segment in shared memory, then writes coalesced to global
     huffman_encode_phase2_kernel<<<blocks, threads, 0, stream>>>(
         d_codes_temp, d_code_lengths, d_positions_temp, input_size,
-        d_output, header_size_bits
+        d_output, header_size_bits // Global bit offset (includes offsets array)
     );
     
     // Cleanup phase buffers
@@ -772,12 +871,9 @@ Status encode_huffman(
     if (input_size > 0) {
         CUDA_CHECK(cudaMemcpy(&h_last_offset, d_bit_offsets + (input_size - 1), sizeof(u32), cudaMemcpyDeviceToHost));
         CUDA_CHECK(cudaMemcpy(&h_last_length, d_code_lengths + (input_size - 1), sizeof(u32), cudaMemcpyDeviceToHost));
-    } else {
-        CUDA_CHECK(cudaStreamSynchronize(stream));
     }
-    
-    u32 total_bits = header_size_bits + h_last_offset + h_last_length;
-    *output_size = (total_bits + 7) / 8;
+    u32 total_bits = h_last_offset + h_last_length;
+    *output_size = total_header_size + ((total_bits + 7) / 8);
     
     // Cleanup - only free if we allocated
     if (allocated_scan_buffers) {
@@ -830,14 +926,20 @@ Status decode_huffman(
         return status;
     }
     
+    // Calculate number of chunks and offsets size
+    u32 chunk_size_symbols = 4096; // HUFFMAN_DECODE_SYMBOLS_PER_CHUNK
+    u32 num_chunks = (decompressed_size + chunk_size_symbols - 1) / chunk_size_symbols;
+    u32 offsets_size = num_chunks * sizeof(u32);
+    u32 total_header_size = header_size + offsets_size;
+    
     // --- 2. Build decode table on GPU ---
     u8* d_code_lengths;
-    u16* d_first_code;
+    u32* d_first_code;
     u16* d_symbol_index;
     u8* d_symbols;
 
     CUDA_CHECK(cudaMalloc(&d_code_lengths, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
-    CUDA_CHECK(cudaMalloc(&d_first_code, (MAX_HUFFMAN_BITS + 2) * sizeof(u16)));
+    CUDA_CHECK(cudaMalloc(&d_first_code, (MAX_HUFFMAN_BITS + 2) * sizeof(u32)));
     CUDA_CHECK(cudaMalloc(&d_symbol_index, (MAX_HUFFMAN_BITS + 1) * sizeof(u16)));
     CUDA_CHECK(cudaMalloc(&d_symbols, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
     
@@ -851,31 +953,29 @@ Status decode_huffman(
         d_first_code, d_symbol_index, d_symbols
     );
 
-    // --- 3. Parallel Decode ---
-    u32 num_chunks = (decompressed_size + HUFFMAN_DECODE_SYMBOLS_PER_CHUNK - 1) 
-                   / HUFFMAN_DECODE_SYMBOLS_PER_CHUNK;
+    // --- 3. Parallel Decode (Indexed Huffman) ---
+    // We already calculated num_chunks above
     
     u32* d_chunk_start_bits;
-    CUDA_CHECK(cudaMalloc(&d_chunk_start_bits, (num_chunks + 1) * sizeof(u32)));
+    CUDA_CHECK(cudaMalloc(&d_chunk_start_bits, offsets_size));
+    
+    // Copy chunk offsets directly from input stream (after basic header)
+    // These offsets are relative to the start of the bitstream (after total_header_size)
+    CUDA_CHECK(cudaMemcpyAsync(d_chunk_start_bits, d_input + header_size, offsets_size, cudaMemcpyDeviceToDevice, stream));
+    
+    // Adjust d_input pointer to point to the bitstream start (after total_header_size)
+    const byte_t* d_bitstream_start = d_input + total_header_size;
+    
+    // Calculate bitstream size (excluding header and offsets)
+    u32 bitstream_size = input_size - total_header_size;
 
-    // Pass 1: Find chunk start bits
-    find_chunk_start_bits_kernel<<<1, 1, 0, stream>>>(
-        d_input,
-        header_size,
-        input_size,
-        d_first_code,
-        d_symbol_index,
-        d_symbols,
-        decompressed_size,
-        num_chunks,
-        HUFFMAN_DECODE_SYMBOLS_PER_CHUNK,
-        d_chunk_start_bits
-    );
-
-    // Pass 2: Parallel decode
-    parallel_huffman_decode_kernel<<<num_chunks, HUFFMAN_DECODE_THREADS_PER_CHUNK, 0, stream>>>(
-        d_input,
-        input_size,
+    // Pass 2: Parallel decode (no Pass 1 needed!)
+    u32 threads_per_block = 128;
+    u32 blocks = (num_chunks + threads_per_block - 1) / threads_per_block;
+    
+    parallel_huffman_decode_kernel<<<blocks, threads_per_block, 0, stream>>>(
+        d_bitstream_start,
+        bitstream_size,
         d_first_code,
         d_symbol_index,
         d_symbols,

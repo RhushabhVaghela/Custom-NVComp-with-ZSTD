@@ -42,7 +42,7 @@ int main(){
     }
 
     // Reset kernel print counter and set a limit to avoid huge console floods
-    reset_debug_print_counter(200);
+    // reset_debug_print_counter(200);
 
     size_t compressed_size = data_size*2;
     auto t0 = std::chrono::high_resolution_clock::now();

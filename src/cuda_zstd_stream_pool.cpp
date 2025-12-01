@@ -11,7 +11,7 @@
 namespace cuda_zstd {
 
 StreamPool::StreamPool(size_t pool_size) {
-    // std::cerr << "StreamPool ctor() pool_size=" << pool_size << std::endl;
+//     // std::cerr << "StreamPool ctor() pool_size=" << pool_size << std::endl;
     if (pool_size == 0) pool_size = 1;
 
     resources_.resize(pool_size);
@@ -21,13 +21,13 @@ StreamPool::StreamPool(size_t pool_size) {
     for (size_t i = 0; i < pool_size; ++i) {
         PerStreamResources& r = resources_[i];
         
-        // if (debug) std::cerr << "StreamPool: creating stream " << i << " of " << pool_size << std::endl;
+//         // if (debug) std::cerr << "StreamPool: creating stream " << i << " of " << pool_size << std::endl;
         cudaError_t err = cudaStreamCreate(&r.stream);
-        // std::cerr << "StreamPool: created stream index=" << i << ", err=" << (int)err << std::endl;
+//         // std::cerr << "StreamPool: created stream index=" << i << ", err=" << (int)err << std::endl;
         
         if (err != cudaSuccess) {
             // Cleanup any resources created so far
-            // std::cerr << "StreamPool: cudaStreamCreate failed at " << i << " -> " << err << std::endl;
+//             // std::cerr << "StreamPool: cudaStreamCreate failed at " << i << " -> " << err << std::endl;
             for (size_t j = 0; j < i; ++j) {
                 cudaStreamDestroy(resources_[j].stream);
             }
@@ -35,12 +35,12 @@ StreamPool::StreamPool(size_t pool_size) {
         }
 
         free_idx_.push((int)i);
-        // if (debug) std::cerr << "StreamPool: pushed free index " << i << std::endl;
+//         // if (debug) std::cerr << "StreamPool: pushed free index " << i << std::endl;
     }
 }
 
 StreamPool::~StreamPool() {
-    // std::cerr << "StreamPool dtor" << std::endl;
+//     // std::cerr << "StreamPool dtor" << std::endl;
     std::unique_lock<std::mutex> lock(mtx_);
     while (!free_idx_.empty()) free_idx_.pop();
     
@@ -52,7 +52,7 @@ StreamPool::~StreamPool() {
     
     if (!cuda_initialized) {
         // CUDA context is already torn down, skip cleanup to avoid errors
-        // std::cerr << "StreamPool dtor: CUDA already deinitialized, skipping cleanup" << std::endl;
+//         // std::cerr << "StreamPool dtor: CUDA already deinitialized, skipping cleanup" << std::endl;
         return;
     }
     
@@ -62,11 +62,11 @@ StreamPool::~StreamPool() {
             // Ensure stream has completed any work before destroying.
             cudaError_t sync_err = cudaStreamSynchronize(r.stream);
             if (sync_err != cudaSuccess && sync_err != cudaErrorCudartUnloading) {
-                // std::cerr << "StreamPool::~StreamPool: cudaStreamSynchronize failed -> " << sync_err << std::endl;
+//                 // std::cerr << "StreamPool::~StreamPool: cudaStreamSynchronize failed -> " << sync_err << std::endl;
             }
             cudaError_t destroy_err = cudaStreamDestroy(r.stream);
             if (destroy_err != cudaSuccess && destroy_err != cudaErrorCudartUnloading) {
-                // std::cerr << "StreamPool::~StreamPool: cudaStreamDestroy failed -> " << destroy_err << std::endl;
+//                 // std::cerr << "StreamPool::~StreamPool: cudaStreamDestroy failed -> " << destroy_err << std::endl;
             }
             r.stream = 0;
         }
@@ -78,7 +78,7 @@ int StreamPool::acquire_index() {
     while (free_idx_.empty()) {
            const char* dbg = getenv("CUDA_ZSTD_DEBUG_POOL");
            bool debug = (dbg && std::atoi(dbg) != 0);
-           if (debug) std::cerr << "StreamPool: waiting for free index..." << std::endl;
+//            if (debug) std::cerr << "StreamPool: waiting for free index..." << std::endl;
            cv_.wait(lock);
     }
     int idx = free_idx_.front();
@@ -110,7 +110,7 @@ void StreamPool::release_index(int idx) {
         free_idx_.push(idx);
             const char* dbg = getenv("CUDA_ZSTD_DEBUG_POOL");
             bool debug = (dbg && std::atoi(dbg) != 0);
-            if (debug) std::cerr << "StreamPool: released index " << idx << std::endl;
+//             if (debug) std::cerr << "StreamPool: released index " << idx << std::endl;
     }
     cv_.notify_one();
 }

@@ -1,6 +1,35 @@
 cmake_minimum_required(VERSION 3.18)
 project(cuda_zstd LANGUAGES CXX CUDA C)
 
+# ==============================================================================
+# DEPENDENCIES: ZSTD (for CPU Smart Router)
+# ==============================================================================
+# Suppress ZSTD compiler flag checks that fail on GCC/NVCC
+set(C_FLAG_QUNUSED_ARGUMENTS 0 CACHE INTERNAL "Suppress check")
+set(CXX_FLAG_QUNUSED_ARGUMENTS 0 CACHE INTERNAL "Suppress check")
+
+# Suppress deprecation warnings (e.g. from ZSTD legacy CMake)
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+include(FetchContent)
+FetchContent_Declare(
+    zstd
+    GIT_REPOSITORY https://github.com/facebook/zstd.git
+    GIT_TAG        v1.5.5
+    SOURCE_SUBDIR  build/cmake
+)
+FetchContent_MakeAvailable(zstd)
+FetchContent_GetProperties(zstd)
+include_directories(${zstd_SOURCE_DIR}/lib)
+
+# Suppress warnings from ZSTD legacy code
+if(TARGET libzstd_static)
+    target_compile_options(libzstd_static PRIVATE -Wno-maybe-uninitialized)
+endif()
+if(TARGET libzstd_shared)
+    target_compile_options(libzstd_shared PRIVATE -Wno-maybe-uninitialized)
+endif()
+
 # CUDA Configuration
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
@@ -77,7 +106,7 @@ set_target_properties(cuda_zstd_static PROPERTIES
     CUDA_RESOLVE_DEVICE_SYMBOLS ON
     OUTPUT_NAME "cuda_zstd"
 )
-target_link_libraries(cuda_zstd_static PUBLIC CUDA::cudart Threads::Threads)
+target_link_libraries(cuda_zstd_static PUBLIC CUDA::cudart Threads::Threads libzstd_static)
 if(DEFINED CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
     target_include_directories(cuda_zstd_static PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
@@ -89,7 +118,7 @@ set_target_properties(cuda_zstd_shared PROPERTIES
     OUTPUT_NAME "cuda_zstd"
     VERSION 1.0.0
 )
-target_link_libraries(cuda_zstd_shared PUBLIC CUDA::cudart Threads::Threads)
+target_link_libraries(cuda_zstd_shared PUBLIC CUDA::cudart Threads::Threads libzstd_static)
 if(DEFINED CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
     target_include_directories(cuda_zstd_shared PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
@@ -102,7 +131,7 @@ endif()
 # Examples
 if(CUDA_ZSTD_BUILD_EXAMPLES)
     add_executable(simple_test tests/simple_test.cu)
-    target_link_libraries(simple_test cuda_zstd_static)
+    target_link_libraries(simple_test cuda_zstd_static libzstd_static)
 endif()
 
 # Tests
@@ -142,6 +171,38 @@ if(CUDA_ZSTD_BUILD_TESTS)
     target_link_libraries(level_nvcomp_demo cuda_zstd_static)
     add_test(NAME level_nvcomp_demo COMMAND level_nvcomp_demo)
     set_tests_properties(level_nvcomp_demo PROPERTIES TIMEOUT 100)
+endif()
+
+# Benchmarks
+if(CUDA_ZSTD_BUILD_BENCHMARKS)
+    
+    add_executable(fixed_benchmark tests/fixed_benchmark.cu)
+    set_target_properties(fixed_benchmark PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(fixed_benchmark cuda_zstd_static)
+    
+    add_executable(debug_single_test tests/debug_single_test.cu)
+    set_target_properties(debug_single_test PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(debug_single_test cuda_zstd_static)
+    
+    add_executable(limited_benchmark tests/limited_benchmark.cu)
+    set_target_properties(limited_benchmark PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(limited_benchmark cuda_zstd_static)
+    
+    add_executable(comprehensive_benchmark tests/comprehensive_benchmark.cu)
+    set_target_properties(comprehensive_benchmark PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(comprehensive_benchmark cuda_zstd_static)
 endif()
 
 # Installation

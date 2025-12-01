@@ -14,13 +14,13 @@ StreamPool::StreamPool(size_t num_streams)
       streams_(num_streams),
       available_(num_streams, true)
 {
-    std::cout << "[StreamPool] Creating pool with " << num_streams << " streams" << std::endl;
+//     std::cout << "[StreamPool] Creating pool with " << num_streams << " streams" << std::endl;
 
     for (size_t i = 0; i < num_streams_; ++i) {
         cudaError_t err = cudaStreamCreate(&streams_[i]);
         if (err != cudaSuccess) {
-            std::cerr << "[StreamPool] Failed to create stream " << i 
-                      << ": " << cudaGetErrorString(err) << std::endl;
+//             std::cerr << "[StreamPool] Failed to create stream " << i 
+//                       << ": " << cudaGetErrorString(err) << std::endl;
             for (size_t j = 0; j < i; ++j) {
                 cudaStreamDestroy(streams_[j]);
             }
@@ -28,11 +28,11 @@ StreamPool::StreamPool(size_t num_streams)
         }
     }
 
-    std::cout << "[StreamPool] Successfully created " << num_streams << " streams" << std::endl;
+//     std::cout << "[StreamPool] Successfully created " << num_streams << " streams" << std::endl;
 }
 
 StreamPool::~StreamPool() {
-    std::cout << "[StreamPool] Destroying pool" << std::endl;
+//     std::cout << "[StreamPool] Destroying pool" << std::endl;
     synchronize_all();
 
     for (size_t i = 0; i < num_streams_; ++i) {
@@ -67,7 +67,7 @@ cudaStream_t StreamPool::acquire_with_timeout(size_t timeout_ms) {
     });
 
     if (!success) {
-        std::cerr << "[StreamPool] Timeout acquiring stream after " << timeout_ms << "ms" << std::endl;
+//         std::cerr << "[StreamPool] Timeout acquiring stream after " << timeout_ms << "ms" << std::endl;
         return nullptr;
     }
 
@@ -92,7 +92,7 @@ void StreamPool::release(cudaStream_t stream) {
         }
     }
 
-    std::cerr << "[StreamPool] Warning: Attempted to release unknown stream" << std::endl;
+//     std::cerr << "[StreamPool] Warning: Attempted to release unknown stream" << std::endl;
 }
 
 StreamPool::Guard StreamPool::acquire_guard() {

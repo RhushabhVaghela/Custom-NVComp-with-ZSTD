@@ -294,6 +294,7 @@ public:
     Status prewarm_by_sizes(const std::vector<size_t>& allocation_sizes);
     Status defragment();
     void clear();
+    void reset_for_reuse();  // Reset pool state between compressions without destroying pool
     
     // Fallback and degradation management
     void set_fallback_config(const FallbackConfig& config);

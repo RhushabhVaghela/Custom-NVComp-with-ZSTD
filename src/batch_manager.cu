@@ -19,7 +19,7 @@ ZstdBatchManager::ZstdBatchManager(size_t num_streams)
     : num_streams_(num_streams),
       events_(num_streams)
 {
-    std::cout << "[BatchManager] Initializing with " << num_streams << " streams" << std::endl;
+//     std::cout << "[BatchManager] Initializing with " << num_streams << " streams" << std::endl;
 
     stream_pool_ = std::make_unique<StreamPool>(num_streams);
 
@@ -56,14 +56,14 @@ Status ZstdBatchManager::compress_single(
     size_t workspace_size,
     cudaStream_t stream
 ) {
-    std::cout << "[BatchManager] Compressing " << input_size 
-              << " bytes on stream " << stream << std::endl;
+//     std::cout << "[BatchManager] Compressing " << input_size 
+//               << " bytes on stream " << stream << std::endl;
 
     cudaError_t err = cudaMemcpyAsync(output, input, input_size / 2, 
                                        cudaMemcpyDeviceToDevice, stream);
     if (err != cudaSuccess) {
-        std::cerr << "[BatchManager] cudaMemcpyAsync failed: " 
-                  << cudaGetErrorString(err) << std::endl;
+//         std::cerr << "[BatchManager] cudaMemcpyAsync failed: " 
+//                   << cudaGetErrorString(err) << std::endl;
         return Status::ERROR_CUDA_ERROR;
     }
 
@@ -80,14 +80,14 @@ Status ZstdBatchManager::decompress_single(
     size_t workspace_size,
     cudaStream_t stream
 ) {
-    std::cout << "[BatchManager] Decompressing " << input_size 
-              << " bytes on stream " << stream << std::endl;
+//     std::cout << "[BatchManager] Decompressing " << input_size 
+//               << " bytes on stream " << stream << std::endl;
 
     cudaError_t err = cudaMemcpyAsync(output, input, input_size * 2, 
                                        cudaMemcpyDeviceToDevice, stream);
     if (err != cudaSuccess) {
-        std::cerr << "[BatchManager] cudaMemcpyAsync failed: " 
-                  << cudaGetErrorString(err) << std::endl;
+//         std::cerr << "[BatchManager] cudaMemcpyAsync failed: " 
+//                   << cudaGetErrorString(err) << std::endl;
         return Status::ERROR_CUDA_ERROR;
     }
 
@@ -104,7 +104,7 @@ Status ZstdBatchManager::compress_batch(
         return Status::SUCCESS;
     }
 
-    std::cout << "[BatchManager] Compressing batch of " << items.size() << " items" << std::endl;
+//     std::cout << "[BatchManager] Compressing batch of " << items.size() << " items" << std::endl;
 
     std::vector<size_t> workspace_sizes(items.size());
     size_t total_workspace = 0;
@@ -116,8 +116,8 @@ Status ZstdBatchManager::compress_batch(
     }
 
     if (total_workspace > temp_size) {
-        std::cerr << "[BatchManager] Insufficient workspace: need " << total_workspace 
-                  << ", have " << temp_size << std::endl;
+//         std::cerr << "[BatchManager] Insufficient workspace: need " << total_workspace 
+//                   << ", have " << temp_size << std::endl;
         return Status::ERROR_INVALID_PARAMETER;
     }
 
@@ -138,7 +138,7 @@ Status ZstdBatchManager::compress_batch(
         auto guard = stream_pool_->acquire_guard();
         cudaStream_t stream = guard.get_stream();
 
-        std::cout << "[BatchManager] Item " << i << " -> Stream " << stream << std::endl;
+//         std::cout << "[BatchManager] Item " << i << " -> Stream " << stream << std::endl;
 
         item.status = compress_single(
             item.input_ptr,
@@ -161,10 +161,10 @@ Status ZstdBatchManager::compress_batch(
         guards.push_back(std::move(guard));
     }
 
-    std::cout << "[BatchManager] Waiting for all streams to complete..." << std::endl;
+//     std::cout << "[BatchManager] Waiting for all streams to complete..." << std::endl;
     stream_pool_->synchronize_all();
 
-    std::cout << "[BatchManager] Batch compression complete" << std::endl;
+//     std::cout << "[BatchManager] Batch compression complete" << std::endl;
     return all_success ? Status::SUCCESS : Status::ERROR_GENERIC;
 }
 
@@ -177,7 +177,7 @@ Status ZstdBatchManager::decompress_batch(
         return Status::SUCCESS;
     }
 
-    std::cout << "[BatchManager] Decompressing batch of " << items.size() << " items" << std::endl;
+//     std::cout << "[BatchManager] Decompressing batch of " << items.size() << " items" << std::endl;
 
     std::vector<size_t> workspace_sizes(items.size());
     size_t total_workspace = 0;

@@ -54,10 +54,10 @@ __global__ void fse_prepare_sequences_kernel(
     
     // Debug first sequence
     if (idx == 0) {
-        printf("[PREPARE_CODES] Seq 0: LL=%u→code=%u(extra=%u,%ubits) ML=%u→code=%u(extra=%u,%ubits) OF=%u→code=%u(extra=%u,%ubits)\n",
-               ll, ll_code, ll_extra, ll_num_bits,
-               ml, ml_code, ml_extra, ml_num_bits,
-               of, of_code, of_extra, of_num_bits);
+//         printf("[PREPARE_CODES] Seq 0: LL=%u→code=%u(extra=%u,%ubits) ML=%u→code=%u(extra=%u,%ubits) OF=%u→code=%u(extra=%u,%ubits)\n",
+//                ll, ll_code, ll_extra, ll_num_bits,
+//                ml, ml_code, ml_extra, ml_num_bits,
+//                of, of_code, of_extra, of_num_bits);
     }
 }
 

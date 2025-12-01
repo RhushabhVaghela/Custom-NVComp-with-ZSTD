@@ -7,29 +7,14 @@
 // ============================================================================
 
 #include "cuda_zstd_types.h"
-#include <cstdio>  // ✅ ADDED for printf
+#include <cstdio>
 #include "cuda_zstd_xxhash.h"
 
 namespace cuda_zstd {
 namespace xxhash {
 
 // ============================================================================
-// XXHash Constants (magic primes)
-// ============================================================================
-
-// XXHash Constants (magic primes) - Defined in header
-
-
-// ============================================================================
-// ✅ FIXED: Changed __device__ to __device__ __host__ for all helper functions
-// ============================================================================
-
-
-
-
-
-// ============================================================================
-// Single Block Kernels (Moved from header to avoid multiple definitions)
+// Single Block Kernels
 // ============================================================================
 
 __global__ void xxhash32_kernel(
@@ -222,10 +207,6 @@ __global__ void xxhash64_blocks_kernel(
 }
 
 // ============================================================================
-// Streaming XXHash State
-// ============================================================================
-
-// ============================================================================
 // Streaming Kernels Implementation
 // ============================================================================
 
@@ -340,7 +321,8 @@ Status xxhash64_blocks(
     return Status::SUCCESS;
 }
 
-// ✅ FIXED: CPU reference implementation - now all helpers are __device__ __host__
+// CPU reference implementations
+
 __host__ u32 xxhash_32_cpu(
     const byte_t* input,
     size_t input_size,
@@ -388,7 +370,7 @@ __host__ u32 xxhash_32_cpu(
 
 __host__ u64 xxhash_64_cpu(
     const byte_t* input,
-    size_t input_size,  // ✅ FIXED: Changed from u32 to size_t
+    size_t input_size,
     u64 seed
 ) {
     const byte_t* p = input;
@@ -448,7 +430,7 @@ __host__ u64 xxhash_64_cpu(
 // ============================================================================
 
 [[maybe_unused]] static void print_xxhash64(u64 hash) {
-    printf("XXH64: 0x%016lX\n", hash);
+//     printf("XXH64: 0x%016lX\n", hash);
 }
 
 bool verify_xxhash64(

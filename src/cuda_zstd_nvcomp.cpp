@@ -34,8 +34,6 @@ constexpr u32 ZSTD_MAGIC_SKIPPABLE_START = 0x184D2A50;
 #define CUDA_CHECK_SIZE_T(call) do { \
     cudaError_t __err = (call); \
     if (__err != cudaSuccess) { \
-        fprintf(stderr, "CUDA Error at %s:%d - %s\n", \
-                __FILE__, __LINE__, cudaGetErrorString(__err)); \
         return 0; \
     } \
 } while(0)
@@ -286,6 +284,10 @@ Status NvcompV5BatchManager::compress_async(
 ) {
     if (num_chunks == 0) return Status::SUCCESS;
     
+    if (!d_uncompressed_ptrs || !d_uncompressed_sizes || !d_compressed_ptrs || !d_compressed_sizes) {
+        return Status::ERROR_INVALID_PARAMETER;
+    }
+    
     std::vector<BatchItem> items(num_chunks);
     std::vector<size_t> h_uncompressed_sizes(num_chunks);
     
@@ -293,28 +295,95 @@ Status NvcompV5BatchManager::compress_async(
     std::vector<void*> h_compressed_ptrs(num_chunks);
     
     // === FIX: Use async memcpy with explicit synchronization ===
-    CUDA_CHECK(cudaMemcpy(h_uncompressed_sizes.data(), d_uncompressed_sizes, 
-                              num_chunks * sizeof(size_t), 
-                              cudaMemcpyDeviceToHost));
+    // Check if d_uncompressed_sizes is device or host
+    cudaPointerAttributes patts;
+    cudaError_t attr_err = cudaPointerGetAttributes(&patts, d_uncompressed_sizes);
+    bool is_device_ptr = false;
+    if (attr_err == cudaSuccess) {
+#if CUDART_VERSION >= 10000
+        is_device_ptr = (patts.type == cudaMemoryTypeDevice);
+#else
+        is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
+#endif
+    }
+
+    if (is_device_ptr) {
+        CUDA_CHECK(cudaMemcpy(h_uncompressed_sizes.data(), d_uncompressed_sizes, 
+                                  num_chunks * sizeof(size_t), 
+                                  cudaMemcpyDeviceToHost));
+    } else {
+        memcpy(h_uncompressed_sizes.data(), d_uncompressed_sizes, num_chunks * sizeof(size_t));
+    }
     
-    CUDA_CHECK(cudaMemcpy(h_uncompressed_ptrs.data(), d_uncompressed_ptrs, 
-                              num_chunks * sizeof(void*), 
-                              cudaMemcpyDeviceToHost));
+    // Pointers array is usually on host for batch API, but let's check
+    attr_err = cudaPointerGetAttributes(&patts, d_uncompressed_ptrs);
+    is_device_ptr = false;
+    if (attr_err == cudaSuccess) {
+#if CUDART_VERSION >= 10000
+        is_device_ptr = (patts.type == cudaMemoryTypeDevice);
+#else
+        is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
+#endif
+    }
+
+    if (is_device_ptr) {
+        CUDA_CHECK(cudaMemcpy(h_uncompressed_ptrs.data(), d_uncompressed_ptrs, 
+                                  num_chunks * sizeof(void*), 
+                                  cudaMemcpyDeviceToHost));
+    } else {
+        memcpy(h_uncompressed_ptrs.data(), d_uncompressed_ptrs, num_chunks * sizeof(void*));
+    }
     
-    CUDA_CHECK(cudaMemcpy(h_compressed_ptrs.data(), d_compressed_ptrs, 
-                              num_chunks * sizeof(void*), 
-                              cudaMemcpyDeviceToHost));
+    // Output pointers
+    attr_err = cudaPointerGetAttributes(&patts, d_compressed_ptrs);
+    is_device_ptr = false;
+    if (attr_err == cudaSuccess) {
+#if CUDART_VERSION >= 10000
+        is_device_ptr = (patts.type == cudaMemoryTypeDevice);
+#else
+        is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
+#endif
+    }
+
+    if (is_device_ptr) {
+        CUDA_CHECK(cudaMemcpy(h_compressed_ptrs.data(), d_compressed_ptrs, 
+                                  num_chunks * sizeof(void*), 
+                                  cudaMemcpyDeviceToHost));
+    } else {
+        memcpy(h_compressed_ptrs.data(), d_compressed_ptrs, num_chunks * sizeof(void*));
+    }
     
     // === FIX: CRITICAL - Synchronize stream before using host copies ===
     CUDA_CHECK(cudaStreamSynchronize(stream));
     
+    // Output sizes (used as input capacity)
+    std::vector<size_t> h_compressed_sizes(num_chunks);
+    attr_err = cudaPointerGetAttributes(&patts, d_compressed_sizes);
+    is_device_ptr = false;
+    if (attr_err == cudaSuccess) {
+#if CUDART_VERSION >= 10000
+        is_device_ptr = (patts.type == cudaMemoryTypeDevice);
+#else
+        is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
+#endif
+    }
+
+    if (is_device_ptr) {
+        CUDA_CHECK(cudaMemcpy(h_compressed_sizes.data(), d_compressed_sizes, 
+                                  num_chunks * sizeof(size_t), 
+                                  cudaMemcpyDeviceToHost));
+    } else {
+        memcpy(h_compressed_sizes.data(), d_compressed_sizes, num_chunks * sizeof(size_t));
+    }
+
     // Now safe to access h_* arrays
     for (size_t i = 0; i < num_chunks; ++i) {
         items[i].input_ptr = const_cast<void*>(h_uncompressed_ptrs[i]);
         items[i].input_size = h_uncompressed_sizes[i];
         items[i].output_ptr = h_compressed_ptrs[i];
+        items[i].output_size = h_compressed_sizes[i]; // Set capacity
     }
-    
+
     // Call the batch manager
     Status status = pimpl_->manager->compress_batch(
         items,
@@ -324,7 +393,7 @@ Status NvcompV5BatchManager::compress_async(
     );
     
     // === FIX: Update output sizes with proper synchronization ===
-    std::vector<size_t> h_compressed_sizes(num_chunks);
+    // std::vector<size_t> h_compressed_sizes(num_chunks); // Already declared
     for (size_t i = 0; i < num_chunks; ++i) {
         h_compressed_sizes[i] = items[i].output_size;
     }
@@ -333,9 +402,27 @@ Status NvcompV5BatchManager::compress_async(
     CUDA_CHECK(cudaStreamSynchronize(stream));
     
     // Copy result sizes to device
-    CUDA_CHECK(cudaMemcpy(d_compressed_sizes, h_compressed_sizes.data(), 
-                              num_chunks * sizeof(size_t), 
-                              cudaMemcpyHostToDevice));
+    // Copy result sizes to device
+    attr_err = cudaPointerGetAttributes(&patts, d_compressed_sizes);
+    // Clear sticky error if pointer is invalid/host
+    if (attr_err != cudaSuccess) cudaGetLastError();
+
+    is_device_ptr = false;
+    if (attr_err == cudaSuccess) {
+#if CUDART_VERSION >= 10000
+        is_device_ptr = (patts.type == cudaMemoryTypeDevice);
+#else
+        is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
+#endif
+    }
+
+    if (is_device_ptr) {
+        CUDA_CHECK(cudaMemcpy(d_compressed_sizes, h_compressed_sizes.data(), 
+                                  num_chunks * sizeof(size_t), 
+                                  cudaMemcpyHostToDevice));
+    } else {
+        memcpy(d_compressed_sizes, h_compressed_sizes.data(), num_chunks * sizeof(size_t));
+    }
     
     return status;
 }
@@ -731,17 +818,17 @@ std::vector<NvcompV5BenchmarkResult> benchmark_all_levels(
 void print_benchmark_results(
     const std::vector<NvcompV5BenchmarkResult>& results
 ) {
-    printf("| Level | Comp (ms) | Decomp (ms) | Comp (MB/s) | Decomp (MB/s) | Ratio |\n");
-    printf("|-------|-----------|-------------|-------------|---------------|-------|\n");
+//     printf("| Level | Comp (ms) | Decomp (ms) | Comp (MB/s) | Decomp (MB/s) | Ratio |\n");
+//     printf("|-------|-----------|-------------|-------------|---------------|-------|\n");
     for(const auto& r : results) {
-        printf("| %-5d | %-9.3f | %-11.3f | %-11.1f | %-13.1f | %-5.2f |\n",
-            r.level,
-            r.compress_time_ms,
-            r.decompress_time_ms,
-            r.compress_throughput_mbps,
-            r.decompress_throughput_mbps,
-            r.compression_ratio
-        );
+//         printf("| %-5d | %-9.3f | %-11.3f | %-11.1f | %-13.1f | %-5.2f |\n",
+//             r.level,
+//             r.compress_time_ms,
+//             r.decompress_time_ms,
+//             r.compress_throughput_mbps,
+//             r.decompress_throughput_mbps,
+//             r.compression_ratio
+//         );
     }
 }
 

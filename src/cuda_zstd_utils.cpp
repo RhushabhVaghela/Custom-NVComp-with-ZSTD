@@ -82,14 +82,14 @@ void PerformanceProfiler::export_metrics_json(const std::string& filename) {}
 // ============================================================================
 
 void DetailedPerformanceMetrics::print() const {
-    std::cout << "=== Performance Metrics ===" << std::endl;
-    std::cout << "LZ77 Time: " << lz77_time_ms << " ms" << std::endl;
-    std::cout << "FSE Encode Time: " << fse_encode_time_ms << " ms" << std::endl;
-    std::cout << "Huffman Encode Time: " << huffman_encode_time_ms << " ms" << std::endl;
-    std::cout << "Sequence Generation Time: " << sequence_generation_time_ms << " ms" << std::endl;
-    std::cout << "Total Time: " << total_time_ms << " ms" << std::endl;
-    std::cout << "Peak Memory: " << peak_memory_bytes << " bytes" << std::endl;
-    std::cout << "Kernel Launches: " << kernel_launches << std::endl;
+//     std::cout << "=== Performance Metrics ===" << std::endl;
+//     std::cout << "LZ77 Time: " << lz77_time_ms << " ms" << std::endl;
+//     std::cout << "FSE Encode Time: " << fse_encode_time_ms << " ms" << std::endl;
+//     std::cout << "Huffman Encode Time: " << huffman_encode_time_ms << " ms" << std::endl;
+//     std::cout << "Sequence Generation Time: " << sequence_generation_time_ms << " ms" << std::endl;
+//     std::cout << "Total Time: " << total_time_ms << " ms" << std::endl;
+//     std::cout << "Peak Memory: " << peak_memory_bytes << " bytes" << std::endl;
+//     std::cout << "Kernel Launches: " << kernel_launches << std::endl;
 }
 
 void DetailedPerformanceMetrics::export_csv(const char* filename) const {

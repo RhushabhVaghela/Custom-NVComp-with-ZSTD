@@ -21,7 +21,7 @@ namespace huffman {
 // ============================================================================
 
 constexpr u32 MAX_HUFFMAN_SYMBOLS = 256;
-constexpr u32 MAX_HUFFMAN_BITS = 11; // Zstandard uses max 11 bits
+constexpr u32 MAX_HUFFMAN_BITS = 24; // Increased to 24 to handle skewed distributions without length limiting
 
 // ============================================================================
 // Huffman Structures
@@ -60,6 +60,16 @@ struct CanonicalHuffmanCode {
     }
 };
 
+inline u32 reverse_bits(u32 val, u8 bits) {
+    u32 r = 0;
+    for (u8 i = 0; i < bits; ++i) {
+        if ((val >> i) & 1) {
+            r |= (1 << (bits - 1 - i));
+        }
+    }
+    return r;
+}
+
 inline Status generate_canonical_codes(
     const u8* code_lengths,
     u32 num_symbols,
@@ -83,7 +93,9 @@ inline Status generate_canonical_codes(
             code <<= (cc.length - prev_length);
             prev_length = cc.length;
         }
-        out_codes[cc.symbol] = HuffmanCode{code, cc.length};
+        // Reverse bits for Zstd/Deflate compatibility (MSB is first bit of stream)
+        u32 reversed_code = reverse_bits(code, cc.length);
+        out_codes[cc.symbol] = HuffmanCode{reversed_code, cc.length};
         code++;
     }
     return Status::SUCCESS;

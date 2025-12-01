@@ -9,6 +9,8 @@
 #ifndef CUDA_ZSTD_LZ77_H_
 #define CUDA_ZSTD_LZ77_H_
 
+#define CUDA_ZSTD_DEBUG_BOUNDS 1
+
 #ifdef _MSC_VER
 #include <intrin.h>  // For _BitScanReverse
 #endif
@@ -163,6 +165,9 @@ Status find_optimal_parse(
     cudaStream_t stream = 0,
     cuda_zstd::sequence::SequenceContext* seq_ctx = nullptr,
     u32* num_sequences_out = nullptr,
+    size_t* literals_size_out = nullptr,
+    bool is_last_block = false,
+    u32 chunk_size = 131072, // Default 128KB
     u32* total_literals_out = nullptr,
     bool output_raw_values = false
 );

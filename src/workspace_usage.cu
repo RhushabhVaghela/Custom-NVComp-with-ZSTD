@@ -13,7 +13,7 @@ Status compress_with_workspace(
     size_t* output_size,
     CompressionWorkspace& workspace
 ) {
-    std::cout << "[Compress] Using pre-allocated workspace" << std::endl;
+//     std::cout << "[Compress] Using pre-allocated workspace" << std::endl;
     
     // ✅ NO ALLOCATIONS - just use pre-partitioned buffers
     u32* hash_table = workspace.d_hash_table;
@@ -21,12 +21,12 @@ Status compress_with_workspace(
     lz77::Match* matches = (lz77::Match*)workspace.d_matches;
     lz77::ParseCost* costs = (lz77::ParseCost*)workspace.d_costs;
     
-    std::cout << "[Compress] Hash table at: " << hash_table << std::endl;
-    std::cout << "[Compress] Matches at: " << matches << std::endl;
-    std::cout << "[Compress] Costs at: " << costs << std::endl;
+//     std::cout << "[Compress] Hash table at: " << hash_table << std::endl;
+//     std::cout << "[Compress] Matches at: " << matches << std::endl;
+//     std::cout << "[Compress] Costs at: " << costs << std::endl;
     
     if (!hash_table || !chain_table || !matches || !costs) {
-        std::cerr << "[Compress] Error: Workspace not properly allocated" << std::endl;
+//         std::cerr << "[Compress] Error: Workspace not properly allocated" << std::endl;
         return Status::ERROR_WORKSPACE_INVALID;
     }
     
@@ -108,14 +108,14 @@ Status compress_with_workspace(
     delete[] h_input;
     delete[] h_output;
     
-    std::cout << "[Compress] Compression complete: " << input_size 
-              << " -> " << final_compressed_size << " bytes" << std::endl;
+//     std::cout << "[Compress] Compression complete: " << input_size 
+//               << " -> " << final_compressed_size << " bytes" << std::endl;
     
     return Status::SUCCESS;
 }
 
 int main() {
-    std::cout << "=== Workspace Pre-Allocation Pattern Demo ===" << std::endl;
+//     std::cout << "=== Workspace Pre-Allocation Pattern Demo ===" << std::endl;
     
     // Configuration
     CompressionConfig config;
@@ -129,7 +129,7 @@ int main() {
     CompressionWorkspace workspace;
     Status status = allocate_compression_workspace(workspace, max_block_size, config);
     if (status != Status::SUCCESS) {
-        std::cerr << "Failed to allocate workspace!" << std::endl;
+//         std::cerr << "Failed to allocate workspace!" << std::endl;
         return 1;
     }
     
@@ -155,13 +155,13 @@ int main() {
     delete[] h_test_data;
     
     // ✅ STEP 2: Compress multiple times WITHOUT re-allocating
-    std::cout << "\n=== Running 10 compression operations ===" << std::endl;
+//     std::cout << "\n=== Running 10 compression operations ===" << std::endl;
     for (int i = 0; i < 10; i++) {
         size_t output_size = 0;
         status = compress_with_workspace(d_input, input_size, d_output, &output_size, workspace);
-        std::cout << "  Compression " << (i+1) << ": " << output_size << " bytes" << std::endl;
+//         std::cout << "  Compression " << (i+1) << ": " << output_size << " bytes" << std::endl;
         if (status != Status::SUCCESS) {
-            std::cerr << "Compression failed!" << std::endl;
+//             std::cerr << "Compression failed!" << std::endl;
             break;
         }
     }
@@ -172,6 +172,6 @@ int main() {
     cudaFree(d_input);
     cudaFree(d_output);
     
-    std::cout << "\n=== Demo Complete ===" << std::endl;
+//     std::cout << "\n=== Demo Complete ===" << std::endl;
     return 0;
 }

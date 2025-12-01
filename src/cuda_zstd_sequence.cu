@@ -55,8 +55,8 @@ __global__ void build_sequences_kernel(
   d_sequences[seq_idx].match_offset = offset;
   
   if (seq_idx < 5) {
-      printf("[BUILD_SEQ] idx=%u, seq_idx=%u, LL=%u, ML=%u, OF=%u\n", 
-             idx, seq_idx, lit_len, match_length, offset);
+//       printf("[BUILD_SEQ] idx=%u, seq_idx=%u, LL=%u, ML=%u, OF=%u\n", 
+//              idx, seq_idx, lit_len, match_length, offset);
   }
 }
 
@@ -251,12 +251,9 @@ __global__ void compute_sequence_details_kernel(
         }
     }
     
-    // Add trailing literals
-    u32 trailing_literals = total_literal_count - total_literals;
-    if (trailing_literals > 0) {
-        // Add to the last "sequence"
-        d_literals_lengths[num_sequences - 1] += trailing_literals;
-        total_output += trailing_literals;
+    // Add trailing literals to total output size
+    if (total_literal_count > total_literals) {
+        total_output += (total_literal_count - total_literals);
     }
     
     *d_total_output_size = total_output;
@@ -303,7 +300,8 @@ __global__ void sequential_block_execute_sequences_kernel(
     const u32* d_literal_offsets, // From Pass 2
     const u32* d_output_offsets,  // From Pass 2
     const u32* d_actual_offsets,  // From Pass 1
-    byte_t* output
+    byte_t* output,
+    u32 total_literal_count
 ) {
     u32 tid = threadIdx.x;
     u32 block_dim = blockDim.x;
@@ -346,6 +344,27 @@ __global__ void sequential_block_execute_sequences_kernel(
             }
         }
         __syncthreads(); // Ensure match is written before next sequence
+    }
+
+    
+    // --- 3. Copy Trailing Literals ---
+    // Calculate total literals used by sequences
+    if (num_sequences > 0) {
+        u32 last_lit_offset = d_literal_offsets[num_sequences - 1];
+        u32 last_lit_len = d_sequences[num_sequences - 1].literal_length;
+        u32 used_literals = last_lit_offset + last_lit_len;
+        
+        u32 last_out_offset = d_output_offsets[num_sequences - 1];
+        u32 last_match_len = d_sequences[num_sequences - 1].match_length;
+        u32 used_output = last_out_offset + last_lit_len + last_match_len;
+        
+        if (total_literal_count > used_literals) {
+            u32 trailing_count = total_literal_count - used_literals;
+            
+            for (u32 j = tid; j < trailing_count; j += block_dim) {
+                output[used_output + j] = d_literals[used_literals + j];
+            }
+        }
     }
 }
 
@@ -435,7 +454,7 @@ Status execute_sequences(
     CUDA_CHECK(cudaStreamSynchronize(stream));
     
     if (h_error_flag != 0) {
-        fprintf(stderr, "[ERROR] execute_sequences: Invalid sequence data detected (error code %u)\n", h_error_flag);
+//         fprintf(stderr, "[ERROR] execute_sequences: Invalid sequence data detected (error code %u)\n", h_error_flag);
         cudaFree(d_actual_offsets);
         cudaFree(d_literals_lengths);
         cudaFree(d_match_lengths);
@@ -471,7 +490,8 @@ Status execute_sequences(
         d_literal_offsets,
         d_output_offsets,
         d_actual_offsets,
-        d_output
+        d_output,
+        literal_count
     );
     
     // --- Cleanup ---

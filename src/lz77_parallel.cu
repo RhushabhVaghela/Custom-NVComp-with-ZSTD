@@ -150,7 +150,7 @@ Status find_matches_parallel(
     const LZ77Config& config,
     cudaStream_t stream
 ) {
-    std::cout << "[LZ77] Pass 1: Finding matches (parallel)" << std::endl;
+//     std::cout << "[LZ77] Pass 1: Finding matches (parallel)" << std::endl;
 
     u32 hash_size = workspace.hash_table_size;
     u32 chain_size = workspace.chain_table_size;
@@ -167,8 +167,8 @@ Status find_matches_parallel(
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        std::cerr << "[LZ77] init_hash_table_kernel launch failed: " 
-                  << cudaGetErrorString(err) << std::endl;
+//         std::cerr << "[LZ77] init_hash_table_kernel launch failed: " 
+//                   << cudaGetErrorString(err) << std::endl;
         return Status::ERROR_CUDA_ERROR;
     }
 
@@ -187,8 +187,8 @@ Status find_matches_parallel(
 
     err = cudaGetLastError();
     if (err != cudaSuccess) {
-        std::cerr << "[LZ77] find_matches_kernel launch failed: " 
-                  << cudaGetErrorString(err) << std::endl;
+//         std::cerr << "[LZ77] find_matches_kernel launch failed: " 
+//                   << cudaGetErrorString(err) << std::endl;
         return Status::ERROR_CUDA_ERROR;
     }
 
@@ -202,7 +202,7 @@ Status compute_optimal_parse(
     const LZ77Config& config,
     cudaStream_t stream
 ) {
-    std::cout << "[LZ77] Pass 2: Computing optimal parse (parallel)" << std::endl;
+//     std::cout << "[LZ77] Pass 2: Computing optimal parse (parallel)" << std::endl;
 
     ParseCost initial_cost;
     initial_cost.cost = 0;
@@ -225,12 +225,53 @@ Status compute_optimal_parse(
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        std::cerr << "[LZ77] compute_costs_kernel launch failed: " 
-                  << cudaGetErrorString(err) << std::endl;
+//         std::cerr << "[LZ77] compute_costs_kernel launch failed: " 
+//                   << cudaGetErrorString(err) << std::endl;
         return Status::ERROR_CUDA_ERROR;
     }
 
     return Status::SUCCESS;
+}
+
+
+// CPU-based backtracking (Option B: CPU Offloading)
+// This runs on the host CPU instead of GPU to avoid sequential kernel bottleneck
+void backtrack_sequences_cpu(
+    const ParseCost* h_costs,
+    u32 input_size,
+    u32* h_literal_lengths,
+    u32* h_match_lengths,
+    u32* h_offsets,
+    u32* h_num_sequences
+) {
+    u32 pos = input_size - 1;
+    u32 seq_idx = 0;
+    u32 literal_count = 0;
+
+    while (pos > 0) {
+        ParseCost c = h_costs[pos];
+
+        if (c.is_match) {
+            h_literal_lengths[seq_idx] = literal_count;
+            h_match_lengths[seq_idx] = c.len;
+            h_offsets[seq_idx] = c.offset;
+            seq_idx++;
+            literal_count = 0;
+            pos -= c.len;
+        } else {
+            literal_count++;
+            pos--;
+        }
+    }
+
+    if (literal_count > 0) {
+        h_literal_lengths[seq_idx] = literal_count;
+        h_match_lengths[seq_idx] = 0;
+        h_offsets[seq_idx] = 0;
+        seq_idx++;
+    }
+
+    *h_num_sequences = seq_idx;
 }
 
 Status backtrack_sequences(
@@ -239,36 +280,88 @@ Status backtrack_sequences(
     u32* h_num_sequences,
     cudaStream_t stream
 ) {
-    std::cout << "[LZ77] Pass 3: Backtracking sequences (serial)" << std::endl;
+//     std::cout << "[LZ77] Pass 3: Backtracking sequences (CPU offload)" << std::endl;
 
-    u32* d_num_sequences = nullptr;
-    cudaMalloc(&d_num_sequences, sizeof(u32));
+    // Allocate host memory for costs array and sequence outputs
+    ParseCost* h_costs = new ParseCost[input_size + 1];
+    u32* h_literal_lengths = new u32[workspace.max_sequences];
+    u32* h_match_lengths = new u32[workspace.max_sequences];
+    u32* h_offsets = new u32[workspace.max_sequences];
 
-    backtrack_kernel<<<1, 1, 0, stream>>>(
-        workspace.d_costs,
-        input_size,
-        workspace.d_literal_lengths_reverse,
-        workspace.d_match_lengths_reverse,
-        workspace.d_offsets_reverse,
-        d_num_sequences
-    );
-
-    cudaError_t err = cudaGetLastError();
+    // Copy costs from device to host (async for potential overlap)
+    cudaError_t err = cudaMemcpyAsync(h_costs, workspace.d_costs, 
+                                      (input_size + 1) * sizeof(ParseCost),
+                                      cudaMemcpyDeviceToHost, stream);
     if (err != cudaSuccess) {
-        cudaFree(d_num_sequences);
-        std::cerr << "[LZ77] backtrack_kernel launch failed: " 
-                  << cudaGetErrorString(err) << std::endl;
+        delete[] h_costs;
+        delete[] h_literal_lengths;
+        delete[] h_match_lengths;
+        delete[] h_offsets;
         return Status::ERROR_CUDA_ERROR;
     }
 
-    cudaMemcpyAsync(h_num_sequences, d_num_sequences, sizeof(u32),
-                    cudaMemcpyDeviceToHost, stream);
+    // Wait for D2H copy to complete
+    err = cudaStreamSynchronize(stream);
+    if (err != cudaSuccess) {
+        delete[] h_costs;
+        delete[] h_literal_lengths;
+        delete[] h_match_lengths;
+        delete[] h_offsets;
+        return Status::ERROR_CUDA_ERROR;
+    }
 
-    cudaStreamSynchronize(stream);
+    // Perform backtracking on CPU
+    backtrack_sequences_cpu(h_costs, input_size, h_literal_lengths, 
+                           h_match_lengths, h_offsets, h_num_sequences);
 
-    std::cout << "[LZ77] Found " << *h_num_sequences << " sequences" << std::endl;
+    // Copy results back to device (async)
+    err = cudaMemcpyAsync(workspace.d_literal_lengths_reverse, h_literal_lengths,
+                         *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+    if (err != cudaSuccess) {
+        delete[] h_costs;
+        delete[] h_literal_lengths;
+        delete[] h_match_lengths;
+        delete[] h_offsets;
+        return Status::ERROR_CUDA_ERROR;
+    }
 
-    cudaFree(d_num_sequences);
+    err = cudaMemcpyAsync(workspace.d_match_lengths_reverse, h_match_lengths,
+                         *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+    if (err != cudaSuccess) {
+        delete[] h_costs;
+        delete[] h_literal_lengths;
+        delete[] h_match_lengths;
+        delete[] h_offsets;
+        return Status::ERROR_CUDA_ERROR;
+    }
+
+    err = cudaMemcpyAsync(workspace.d_offsets_reverse, h_offsets,
+                         *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+    if (err != cudaSuccess) {
+        delete[] h_costs;
+        delete[] h_literal_lengths;
+        delete[] h_match_lengths;
+        delete[] h_offsets;
+        return Status::ERROR_CUDA_ERROR;
+    }
+
+    // Wait for H2D copies to complete
+    err = cudaStreamSynchronize(stream);
+    if (err != cudaSuccess) {
+        delete[] h_costs;
+        delete[] h_literal_lengths;
+        delete[] h_match_lengths;
+        delete[] h_offsets;
+        return Status::ERROR_CUDA_ERROR;
+    }
+
+//     std::cout << "[LZ77] Found " << *h_num_sequences << " sequences (CPU)" << std::endl;
+
+    // Cleanup
+    delete[] h_costs;
+    delete[] h_literal_lengths;
+    delete[] h_match_lengths;
+    delete[] h_offsets;
 
     return Status::SUCCESS;
 }

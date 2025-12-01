@@ -123,13 +123,8 @@ __host__ Status parallel_scan(
     );
     
     if (blocks > 1) {
-        // Pass 1b: Compute prefix sum *of the block sums*
-        u32 scan_threads = std::min(blocks, (u32)SCAN_THREADS);
-        u32 scan_blocks = (blocks + scan_threads - 1) / scan_threads;
-
-        block_scan_prefix_sum_kernel<u32><<<scan_blocks, scan_threads, 0, stream>>>(
-            d_block_sums, d_scanned_block_sums, nullptr, blocks
-        );
+        // Pass 1b: Compute prefix sum *of the block sums* recursively
+        parallel_scan(d_block_sums, d_scanned_block_sums, blocks, stream);
         
         // Pass 1c: Add the scanned block sums back to the main array
         add_block_offsets_kernel<<<blocks, threads, 0, stream>>>(
@@ -157,9 +152,9 @@ __host__ cudaError_t debug_kernel_verify(const char* where) {
     // Force synchronous behavior and print an informative message
     cudaError_t err = cudaDeviceSynchronize();
     if (where) {
-        std::cerr << "[DEBUG] debug_kernel_verify: " << where << " cudaDeviceSynchronize()=" << err << " (" << cudaGetErrorString(err) << ")\n";
+//         std::cerr << "[DEBUG] debug_kernel_verify: " << where << " cudaDeviceSynchronize()=" << err << " (" << cudaGetErrorString(err) << ")\n";
     } else {
-        std::cerr << "[DEBUG] debug_kernel_verify: cudaDeviceSynchronize()=" << err << " (" << cudaGetErrorString(err) << ")\n";
+//         std::cerr << "[DEBUG] debug_kernel_verify: cudaDeviceSynchronize()=" << err << " (" << cudaGetErrorString(err) << ")\n";
     }
 
     return err;

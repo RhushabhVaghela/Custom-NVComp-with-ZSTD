@@ -17,7 +17,7 @@
 #include "cuda_zstd_stacktrace.h"
 
 // Logging macro for fallback events
-#define LOG_INFO(msg) std::cout << "[MEMORY_POOL] " << msg << std::endl
+// #define LOG_INFO(msg) std::cout << "[MEMORY_POOL] " << msg << std::endl
 
 namespace cuda_zstd {
 namespace memory {
@@ -93,9 +93,9 @@ void MemoryPoolManager::update_peak_usage(size_t current_usage) {
 
 void* MemoryPoolManager::allocate_from_cuda(size_t size) {
     void* ptr = nullptr;
-    std::cerr << "MemoryPoolManager::allocate_from_cuda: trying cudaMalloc size=" << size << std::endl;
+//     std::cerr << "MemoryPoolManager::allocate_from_cuda: trying cudaMalloc size=" << size << std::endl;
     cudaError_t err = cudaMalloc(&ptr, size);
-    std::cerr << "MemoryPoolManager::allocate_from_cuda: cudaMalloc returned err=" << err << " ptr=" << ptr << std::endl;
+//     std::cerr << "MemoryPoolManager::allocate_from_cuda: cudaMalloc returned err=" << err << " ptr=" << ptr << std::endl;
     if (err != cudaSuccess) {
         // Log CUDA allocation failure for monitoring
         allocation_failures_.fetch_add(1, std::memory_order_relaxed);
@@ -122,7 +122,7 @@ void* MemoryPoolManager::allocate_from_host(size_t size) {
         host_memory_usage_.fetch_add(size, std::memory_order_relaxed);
         host_memory_allocations_.fetch_add(1, std::memory_order_relaxed);
     }
-    std::cerr << "MemoryPoolManager::allocate_from_host: host allocation ptr=" << ptr << " size=" << size << std::endl;
+//     std::cerr << "MemoryPoolManager::allocate_from_host: host allocation ptr=" << ptr << " size=" << size << std::endl;
     return ptr;
 }
 
@@ -238,16 +238,16 @@ void* MemoryPoolManager::migrate_host_to_device(void* host_ptr, size_t size, cud
     void* d_ptr = nullptr;
     cudaError_t err = cudaMalloc(&d_ptr, size);
     if (err != cudaSuccess) {
-        std::cerr << "MemoryPoolManager: migrate_host_to_device cudaMalloc failed: " << cudaGetErrorName(err)
-                  << "\n";
+//         std::cerr << "MemoryPoolManager: migrate_host_to_device cudaMalloc failed: " << cudaGetErrorName(err)
+//                   << "\n";
         return nullptr;
     }
 
     // Copy host->device (async when possible)
     err = cudaMemcpyAsync(d_ptr, host_ptr, size, cudaMemcpyHostToDevice, stream);
     if (err != cudaSuccess) {
-        std::cerr << "MemoryPoolManager: migrate_host_to_device cudaMemcpyAsync failed: " << cudaGetErrorName(err)
-                  << "\n";
+//         std::cerr << "MemoryPoolManager: migrate_host_to_device cudaMemcpyAsync failed: " << cudaGetErrorName(err)
+//                   << "\n";
         cudaFree(d_ptr);
         return nullptr;
     }
@@ -256,11 +256,11 @@ void* MemoryPoolManager::migrate_host_to_device(void* host_ptr, size_t size, cud
     if (stream == 0) cudaDeviceSynchronize();
 
     // Free host pointer
-    std::cerr << "MemoryPoolManager::migrate_host_to_device: freeing host_ptr=" << host_ptr << " size=" << size << "\n";
+//     std::cerr << "MemoryPoolManager::migrate_host_to_device: freeing host_ptr=" << host_ptr << " size=" << size << "\n";
     free(host_ptr);
 
     // Log
-    std::cerr << "MemoryPoolManager: migrated host ptr to device ptr=" << d_ptr << " size=" << size << "\n";
+//     std::cerr << "MemoryPoolManager: migrated host ptr to device ptr=" << d_ptr << " size=" << size << "\n";
     return d_ptr;
 }
 
@@ -324,8 +324,8 @@ FallbackAllocation MemoryPoolManager::allocate_with_cuda_fallback(size_t size, c
         
         if (already_exists) {
             // Pointer already exists, free it and return error
-            std::cerr << "allocate_with_cuda_fallback: CUDA returned duplicate ptr=" << result.ptr 
-                      << ", freeing and returning error\n";
+//             std::cerr << "allocate_with_cuda_fallback: CUDA returned duplicate ptr=" << result.ptr 
+//                       << ", freeing and returning error\n";
             cudaFree(result.ptr);
             current_memory_usage_.fetch_sub(size, std::memory_order_relaxed);
             result.ptr = nullptr;
@@ -356,7 +356,7 @@ FallbackAllocation MemoryPoolManager::allocate_with_cuda_fallback(size_t size, c
         result.is_host_memory = true;
         result.status = Status::SUCCESS;
         fallback_allocations_.fetch_add(1, std::memory_order_relaxed);
-        std::cerr << "MemoryPoolManager::allocate_with_cuda_fallback: host fallback allocated ptr=" << result.ptr << " size=" << size << "\n";
+//         std::cerr << "MemoryPoolManager::allocate_with_cuda_fallback: host fallback allocated ptr=" << result.ptr << " size=" << size << "\n";
 
         // Register pointer for tracking (host memory)
         {
@@ -366,7 +366,7 @@ FallbackAllocation MemoryPoolManager::allocate_with_cuda_fallback(size_t size, c
 
         // Respect environment toggle to disable host fallback
         if (MemoryPoolManager::disable_host_fallback_env()) {
-            std::cerr << "MemoryPoolManager: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback\n";
+//             std::cerr << "MemoryPoolManager: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback\n";
             // Need to unregister before freeing
             {
                 std::lock_guard<std::mutex> m(pointer_map_mutex_);
@@ -393,9 +393,9 @@ FallbackAllocation MemoryPoolManager::allocate_with_cuda_fallback(size_t size, c
                 result.is_host_memory = false;
                 result.is_dual_memory = true;
                 result.allocation_path = "auto_migrated_from_host";
-                std::cerr << "MemoryPoolManager: successfully auto-migrated host->device for size=" << size << "\n";
+//                 std::cerr << "MemoryPoolManager: successfully auto-migrated host->device for size=" << size << "\n";
             } else {
-                std::cerr << "MemoryPoolManager: auto migrate failed for host fallback size=" << size << "\n";
+//                 std::cerr << "MemoryPoolManager: auto migrate failed for host fallback size=" << size << "\n";
             }
         }
         return result;
@@ -440,10 +440,10 @@ FallbackAllocation MemoryPoolManager::allocate_degraded(size_t size, cudaStream_
             result.status = Status::SUCCESS;
             degraded_allocations_.fetch_add(1, std::memory_order_relaxed);
             fallback_allocations_.fetch_add(1, std::memory_order_relaxed);
-            std::cerr << "MemoryPoolManager::allocate_degraded: host fallback allocated ptr=" << result.ptr << " size=" << degraded_size << "\n";
+//             std::cerr << "MemoryPoolManager::allocate_degraded: host fallback allocated ptr=" << result.ptr << " size=" << degraded_size << "\n";
 
             if (MemoryPoolManager::disable_host_fallback_env()) {
-                std::cerr << "MemoryPoolManager::allocate_degraded: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback\n";
+//                 std::cerr << "MemoryPoolManager::allocate_degraded: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback\n";
                 free(result.ptr);
                 result.ptr = nullptr;
                 result.status = Status::ERROR_OUT_OF_MEMORY;
@@ -464,7 +464,7 @@ FallbackAllocation MemoryPoolManager::allocate_degraded(size_t size, cudaStream_
                     result.is_host_memory = false;
                     result.is_dual_memory = true;
                     result.allocation_path = "auto_migrated_from_host_degraded";
-                    std::cerr << "MemoryPoolManager: auto-migrated host->device for degraded size=" << degraded_size << "\n";
+//                     std::cerr << "MemoryPoolManager: auto-migrated host->device for degraded size=" << degraded_size << "\n";
                 }
             }
             
@@ -551,7 +551,7 @@ Status MemoryPoolManager::grow_pool(int pool_idx, size_t min_entries) {
                  // If we can't lock, we skip checking this pool.
                  // This is a trade-off: we might miss a duplicate, but we avoid deadlock.
                  // Given duplicates are rare (only if CUDA recycles), this is acceptable.
-                 std::cerr << "grow_pool: timeout locking pool " << check_idx << " for duplicate check\n";
+//                  std::cerr << "grow_pool: timeout locking pool " << check_idx << " for duplicate check\n";
             }
         }
         
@@ -574,8 +574,8 @@ Status MemoryPoolManager::grow_pool(int pool_idx, size_t min_entries) {
             // If we get too many consecutive duplicates, CUDA is stuck recycling the same addresses
             // Break early to avoid infinite loop
             if (consecutive_duplicates > 10 && successful_allocations > 0) {
-                std::cerr << "grow_pool: too many consecutive duplicate pointers, stopping early with " 
-                          << successful_allocations << " new entries\n";
+//                 std::cerr << "grow_pool: too many consecutive duplicate pointers, stopping early with " 
+//                           << successful_allocations << " new entries\n";
                 break;
             }
             continue;
@@ -592,7 +592,7 @@ Status MemoryPoolManager::grow_pool(int pool_idx, size_t min_entries) {
         return Status::ERROR_OUT_OF_MEMORY;
     }
     
-    std::cerr << "grow_pool: Allocation succeeded for new_entries=" << new_entries << "; about to insert into pool" << std::endl;
+//     std::cerr << "grow_pool: Allocation succeeded for new_entries=" << new_entries << "; about to insert into pool" << std::endl;
     // All allocations succeeded, add to pool
     // Lock the requested pool using a timed mutex so we can recover from
     // pathological blocking conditions. The default behaviour (when the
@@ -608,14 +608,14 @@ Status MemoryPoolManager::grow_pool(int pool_idx, size_t min_entries) {
         lock.lock();
     } else {
         if (!lock.try_lock_for(std::chrono::milliseconds(timeout_ms))) {
-            std::cerr << "MemoryPoolManager::grow_pool: failed to acquire lock for pool_idx=" << pool_idx << "\n";
+//             std::cerr << "MemoryPoolManager::grow_pool: failed to acquire lock for pool_idx=" << pool_idx << "\n";
             return Status::ERROR_TIMEOUT;
         }
     }
     pools_[pool_idx].insert(pools_[pool_idx].end(),
                            std::make_move_iterator(new_pool_entries.begin()),
                            std::make_move_iterator(new_pool_entries.end()));
-    std::cerr << "grow_pool: Inserted new entries into pool (pool_idx=" << pool_idx << ")" << std::endl;
+//     std::cerr << "grow_pool: Inserted new entries into pool (pool_idx=" << pool_idx << ")" << std::endl;
     
     pool_grows_.fetch_add(1, std::memory_order_relaxed);
     return Status::SUCCESS;
@@ -650,9 +650,9 @@ Status MemoryPoolManager::grow_pool_with_fallback(int pool_idx, size_t min_entri
             fallback_config_.enable_host_memory_fallback) {
             ptr = allocate_from_host(degraded_entry_size);
             if (ptr) {
-                std::cerr << "grow_pool_with_fallback: created host fallback entry ptr=" << ptr << " size=" << degraded_entry_size << "\n";
+//                 std::cerr << "grow_pool_with_fallback: created host fallback entry ptr=" << ptr << " size=" << degraded_entry_size << "\n";
                 if (MemoryPoolManager::disable_host_fallback_env()) {
-                    std::cerr << "grow_pool_with_fallback: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback entry\n";
+//                     std::cerr << "grow_pool_with_fallback: CUDA_ZSTD_DISABLE_HOST_FALLBACK set - refusing host fallback entry\n";
                     free(ptr);
                     continue;
                 }
@@ -695,7 +695,7 @@ PoolEntry* MemoryPoolManager::find_free_entry(int pool_idx, cudaStream_t stream)
                     if (MemoryPoolManager::auto_migrate_host_env()) {
                         void* migrated = migrate_host_to_device(entry.host_ptr, entry.host_size, stream);
                         if (migrated) {
-                            std::cerr << "MemoryPoolManager::find_free_entry: migrated host fallback entry to device ptr=" << migrated << "\n";
+//                             std::cerr << "MemoryPoolManager::find_free_entry: migrated host fallback entry to device ptr=" << migrated << "\n";
                             entry.ptr = migrated;
                             entry.host_ptr = nullptr;
                             entry.size = entry.host_size;
@@ -758,7 +758,7 @@ PoolEntry* MemoryPoolManager::find_free_entry(int pool_idx, cudaStream_t stream)
             
             entry.in_use = true;
             entry.stream = stream;
-            std::cerr << "find_free_entry: returning ptr=" << entry.ptr << " pool_idx=" << pool_idx << "\n";
+//             std::cerr << "find_free_entry: returning ptr=" << entry.ptr << " pool_idx=" << pool_idx << "\n";
             return &entry;
         }
     }
@@ -776,13 +776,13 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
     }
     
     total_allocations_.fetch_add(1, std::memory_order_relaxed);
-    // std::cerr << "MemoryPoolManager::allocate: requested size=" << size << " stream=" << stream << std::endl;
+//     // std::cerr << "MemoryPoolManager::allocate: requested size=" << size << " stream=" << stream << std::endl;
     
     // Update degradation mode based on memory pressure
     update_degradation_mode();
     
     int pool_idx = get_pool_index(size);
-    // std::cerr << "MemoryPoolManager::allocate: pool_idx=" << pool_idx << std::endl;
+//     // std::cerr << "MemoryPoolManager::allocate: pool_idx=" << pool_idx << std::endl;
     
     // For very large allocations, bypass the pool and use fallback strategy
     if (pool_idx < 0) {
@@ -803,16 +803,16 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
         lock.lock();
     } else {
         if (!lock.try_lock_for(std::chrono::milliseconds(pool_lock_timeout))) {
-            std::cerr << "MemoryPoolManager::allocate: timeout acquiring lock for pool_idx=" << pool_idx << " after " << pool_lock_timeout << "ms" << std::endl;
+//             std::cerr << "MemoryPoolManager::allocate: timeout acquiring lock for pool_idx=" << pool_idx << " after " << pool_lock_timeout << "ms" << std::endl;
             allocation_failures_.fetch_add(1, std::memory_order_relaxed);
             return nullptr;
         }
     }
-    // std::cerr << "MemoryPoolManager::allocate: got lock for pool_idx=" << pool_idx << std::endl;
+//     // std::cerr << "MemoryPoolManager::allocate: got lock for pool_idx=" << pool_idx << std::endl;
     
     // Try to find a free entry in the pool
     PoolEntry* entry = find_free_entry(pool_idx, stream);
-    // std::cerr << "MemoryPoolManager::allocate: after find_free_entry entry=" << entry << std::endl;
+//     // std::cerr << "MemoryPoolManager::allocate: after find_free_entry entry=" << entry << std::endl;
     
     if (entry) {
         cache_hits_.fetch_add(1, std::memory_order_relaxed);
@@ -824,7 +824,7 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
             std::lock_guard<std::mutex> m(pointer_map_mutex_);
             pointer_index_map_[entry->ptr] = PointerMeta{pool_idx, entry->alloc_seq, entry->uid, nullptr, 0, false};
         }
-        std::cerr << "allocate: returning pool ptr=" << entry->ptr << "\n";
+//         std::cerr << "allocate: returning pool ptr=" << entry->ptr << "\n";
         return entry->ptr;
     }
     
@@ -835,7 +835,7 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
     Status status = grow_pool(pool_idx, 1);
     // Reacquire lock after growth attempt
     lock.lock();
-    // std::cerr << "MemoryPoolManager::allocate: grow_pool returned status=" << (int)status << std::endl;
+//     // std::cerr << "MemoryPoolManager::allocate: grow_pool returned status=" << (int)status << std::endl;
     if (status == Status::SUCCESS) {
         // Try again after growing
         entry = find_free_entry(pool_idx, stream);
@@ -845,7 +845,7 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
                     std::lock_guard<std::mutex> m(pointer_map_mutex_);
                     pointer_index_map_[entry->ptr] = PointerMeta{pool_idx, entry->alloc_seq, entry->uid, nullptr, 0, false};
                 }
-            std::cerr << "allocate: returning grown pool ptr=" << entry->ptr << "\n";
+//             std::cerr << "allocate: returning grown pool ptr=" << entry->ptr << "\n";
             return entry->ptr;
         }
     }
@@ -853,7 +853,7 @@ void* MemoryPoolManager::allocate(size_t size, cudaStream_t stream) {
     // Pool growth failed, try fallback allocation
     FallbackAllocation result = allocate_with_cuda_fallback(size, stream);
     if (result.is_valid()) {
-        std::cerr << "allocate: returning fallback ptr=" << result.ptr << "\n";
+//         std::cerr << "allocate: returning fallback ptr=" << result.ptr << "\n";
         return result.ptr;
     }
     
@@ -951,7 +951,7 @@ Status MemoryPoolManager::deallocate(void* ptr) {
             // For deallocation, if we can't find the pointer because of a lock,
             // we can't guarantee it's not in this pool.
             // But returning TIMEOUT might be better than hanging.
-            std::cerr << "MemoryPoolManager::deallocate: timeout acquiring lock for pool_idx=" << i << "\n";
+//             std::cerr << "MemoryPoolManager::deallocate: timeout acquiring lock for pool_idx=" << i << "\n";
             continue; // Try next pool? Or return error?
             // If we skip, we might miss the pointer and return INVALID_PARAMETER (double free)
             // which is actually correct for the race test!
@@ -960,8 +960,8 @@ Status MemoryPoolManager::deallocate(void* ptr) {
         for (auto& entry : pools_[i]) {
             if (entry.ptr == ptr) {
                 if (!entry.in_use) {
-                    std::cerr << "MemoryPoolManager::deallocate: DOUBLE FREE detected in pool_idx=" << i 
-                              << " ptr=" << ptr << " entry.in_use=" << entry.in_use << "\n";
+//                     std::cerr << "MemoryPoolManager::deallocate: DOUBLE FREE detected in pool_idx=" << i 
+//                               << " ptr=" << ptr << " entry.in_use=" << entry.in_use << "\n";
                     return Status::ERROR_INVALID_PARAMETER;  // Double free
                 }
                 
@@ -986,8 +986,8 @@ Status MemoryPoolManager::deallocate(void* ptr) {
                     return Status::ERROR_INVALID_PARAMETER;  // Double free
                 }
                 
-                std::cerr << "MemoryPoolManager::deallocate: freeing host fallback ptr=" << entry.host_ptr
-                          << " size=" << entry.host_size << " pool_idx=" << i << "\n";
+//                 std::cerr << "MemoryPoolManager::deallocate: freeing host fallback ptr=" << entry.host_ptr
+//                           << " size=" << entry.host_size << " pool_idx=" << i << "\n";
                 // Use debug_free wrapper to capture a stacktrace and free safely
                 cuda_zstd::util::debug_free(entry.host_ptr);
                 entry.host_ptr = nullptr;
@@ -1027,8 +1027,8 @@ Status MemoryPoolManager::deallocate(void* ptr) {
                     // GPU memory - use cudaFree()
                     cudaError_t err = cudaFree(ptr);
                     if (err != cudaSuccess) {
-                        std::cerr << "MemoryPoolManager::deallocate: cudaFree failed for tracked ptr=" << ptr 
-                                  << " err=" << err << std::endl;
+//                         std::cerr << "MemoryPoolManager::deallocate: cudaFree failed for tracked ptr=" << ptr 
+//                                   << " err=" << err << std::endl;
                         return Status::ERROR_CUDA_ERROR;
                     }
                 }
@@ -1037,7 +1037,7 @@ Status MemoryPoolManager::deallocate(void* ptr) {
         }
     }
 
-    std::cerr << "MemoryPoolManager::deallocate: pointer not found in pools or tracking map. ptr=" << ptr << std::endl;
+//     std::cerr << "MemoryPoolManager::deallocate: pointer not found in pools or tracking map. ptr=" << ptr << std::endl;
     return Status::ERROR_INVALID_PARAMETER;
     
     // Not in pool, must be a direct allocation. For portability and safety
@@ -1049,7 +1049,7 @@ Status MemoryPoolManager::deallocate(void* ptr) {
     // Nothing matched; do not call cudaFree for unknown pointer. This
     // prevents invalid argument errors when kernels corrupted pointers
     // or when the pointer belongs to a caller-managed buffer.
-    std::cerr << "MemoryPoolManager::deallocate: pointer not found in pools: ptr=" << ptr << " - skipping free" << std::endl;
+//     std::cerr << "MemoryPoolManager::deallocate: pointer not found in pools: ptr=" << ptr << " - skipping free" << std::endl;
     return Status::ERROR_INVALID_PARAMETER;
 }
 
@@ -1171,6 +1171,51 @@ void MemoryPoolManager::clear() {
     host_memory_usage_.store(0, std::memory_order_relaxed);
 }
 
+void MemoryPoolManager::reset_for_reuse() {
+    // Reset pool state between compressions WITHOUT destroying pool memory
+    // This keeps pool performance while ensuring clean state
+    
+    // Lock all pools to ensure thread safety
+    std::vector<int> all_indices;
+    all_indices.reserve(NUM_POOL_SIZES);
+    for (int i = 0; i < NUM_POOL_SIZES; ++i) all_indices.push_back(i);
+    
+    std::vector<std::unique_lock<std::timed_mutex>> locks;
+    lock_pools_ordered(all_indices, 500, locks); // 500ms timeout
+    
+    // 1. Destroy any pending events
+    for (int i = 0; i < NUM_POOL_SIZES; ++i) {
+        for (auto& entry : pools_[i]) {
+            if (entry.ready_event != nullptr) {
+                cudaEventSynchronize(entry.ready_event);
+                cudaEventDestroy(entry.ready_event);
+                entry.ready_event = nullptr;
+            }
+            // Clear stream association
+            entry.stream = nullptr;
+            // Force clear in_use flag to handle leaks/stale state
+            entry.in_use = false;
+        }
+    }
+    
+    // 2. Reset error counters (but keep cache statistics)
+    allocation_failures_.store(0, std::memory_order_relaxed);
+    rollback_operations_.store(0, std::memory_order_relaxed);
+    
+    // 3. Reset degradation mode to NORMAL
+    {
+        std::lock_guard<std::timed_mutex> mode_lock(mode_mutex_);
+        current_mode_ = DegradationMode::NORMAL;
+    }
+    
+    // 4. Clear any stale error states
+    last_pressure_update_ = std::chrono::steady_clock::now();
+    
+    // Note: We do NOT clear the pools themselves or free memory
+    // The pool stays alive for performance
+}
+
+
 Status MemoryPoolManager::emergency_clear() {
     std::lock_guard<std::timed_mutex> mode_lock(mode_mutex_);
     
@@ -1249,49 +1294,49 @@ void MemoryPoolManager::reset_statistics() {
 void MemoryPoolManager::print_statistics() const {
     PoolStats stats = get_statistics();
     
-    std::cout << "\n========================================\n";
-    std::cout << "Memory Pool Statistics\n";
-    std::cout << "========================================\n";
-    std::cout << "Total Allocations:    " << stats.total_allocations << "\n";
-    std::cout << "Total Deallocations:  " << stats.total_deallocations << "\n";
-    std::cout << "Cache Hits:           " << stats.cache_hits << "\n";
-    std::cout << "Cache Misses:         " << stats.cache_misses << "\n";
-    std::cout << "Hit Rate:             " << std::fixed << std::setprecision(2)
-              << (stats.get_hit_rate() * 100.0) << "%\n";
-    std::cout << "Pool Grows:           " << stats.pool_grows << "\n";
-    std::cout << "Fallback Allocations: " << stats.fallback_allocations << "\n";
-    std::cout << "Host Memory Allocs:   " << stats.host_memory_allocations << "\n";
-    std::cout << "Degraded Allocations: " << stats.degraded_allocations << "\n";
-    std::cout << "Allocation Failures:  " << stats.allocation_failures << "\n";
-    std::cout << "Rollback Operations:  " << stats.rollback_operations << "\n";
-    std::cout << "Fallback Rate:        " << std::fixed << std::setprecision(2)
-              << (stats.get_fallback_rate() * 100.0) << "%\n";
-    std::cout << "Degradation Rate:     " << std::fixed << std::setprecision(2)
-              << (stats.get_degradation_rate() * 100.0) << "%\n";
-    std::cout << "Current Usage:        " << (stats.current_memory_usage / 1024.0 / 1024.0)
-              << " MB (GPU)\n";
-    std::cout << "Host Memory Usage:    " << (stats.host_memory_usage / 1024.0 / 1024.0)
-              << " MB (Host)\n";
-    std::cout << "Peak Usage:           " << (stats.peak_memory_usage / 1024.0 / 1024.0)
-              << " MB\n";
-    std::cout << "Total Pool Capacity:  " << (stats.total_pool_capacity / 1024.0 / 1024.0)
-              << " MB\n";
-    std::cout << "Degradation Mode:     ";
+//     std::cout << "\n========================================\n";
+//     std::cout << "Memory Pool Statistics\n";
+//     std::cout << "========================================\n";
+//     std::cout << "Total Allocations:    " << stats.total_allocations << "\n";
+//     std::cout << "Total Deallocations:  " << stats.total_deallocations << "\n";
+//     std::cout << "Cache Hits:           " << stats.cache_hits << "\n";
+//     std::cout << "Cache Misses:         " << stats.cache_misses << "\n";
+//     std::cout << "Hit Rate:             " << std::fixed << std::setprecision(2)
+//               << (stats.get_hit_rate() * 100.0) << "%\n";
+//     std::cout << "Pool Grows:           " << stats.pool_grows << "\n";
+//     std::cout << "Fallback Allocations: " << stats.fallback_allocations << "\n";
+//     std::cout << "Host Memory Allocs:   " << stats.host_memory_allocations << "\n";
+//     std::cout << "Degraded Allocations: " << stats.degraded_allocations << "\n";
+//     std::cout << "Allocation Failures:  " << stats.allocation_failures << "\n";
+//     std::cout << "Rollback Operations:  " << stats.rollback_operations << "\n";
+//     std::cout << "Fallback Rate:        " << std::fixed << std::setprecision(2)
+//               << (stats.get_fallback_rate() * 100.0) << "%\n";
+//     std::cout << "Degradation Rate:     " << std::fixed << std::setprecision(2)
+//               << (stats.get_degradation_rate() * 100.0) << "%\n";
+//     std::cout << "Current Usage:        " << (stats.current_memory_usage / 1024.0 / 1024.0)
+//               << " MB (GPU)\n";
+//     std::cout << "Host Memory Usage:    " << (stats.host_memory_usage / 1024.0 / 1024.0)
+//               << " MB (Host)\n";
+//     std::cout << "Peak Usage:           " << (stats.peak_memory_usage / 1024.0 / 1024.0)
+//               << " MB\n";
+//     std::cout << "Total Pool Capacity:  " << (stats.total_pool_capacity / 1024.0 / 1024.0)
+//               << " MB\n";
+//     std::cout << "Degradation Mode:     ";
     
     switch (stats.current_mode) {
-        case DegradationMode::NORMAL: std::cout << "NORMAL"; break;
-        case DegradationMode::CONSERVATIVE: std::cout << "CONSERVATIVE"; break;
-        case DegradationMode::AGGRESSIVE: std::cout << "AGGRESSIVE"; break;
-        case DegradationMode::EMERGENCY: std::cout << "EMERGENCY"; break;
+//         case DegradationMode::NORMAL: std::cout << "NORMAL"; break;
+//         case DegradationMode::CONSERVATIVE: std::cout << "CONSERVATIVE"; break;
+//         case DegradationMode::AGGRESSIVE: std::cout << "AGGRESSIVE"; break;
+//         case DegradationMode::EMERGENCY: std::cout << "EMERGENCY"; break;
     }
-    std::cout << "\n";
+//     std::cout << "\n";
     
     // Memory pressure information
     size_t available_memory = get_available_gpu_memory();
-    std::cout << "Available GPU Memory: " << (available_memory / 1024.0 / 1024.0) << " MB\n";
-    std::cout << "Memory Pressure:      " << get_memory_pressure_percentage() << "%\n";
+//     std::cout << "Available GPU Memory: " << (available_memory / 1024.0 / 1024.0) << " MB\n";
+//     std::cout << "Memory Pressure:      " << get_memory_pressure_percentage() << "%\n";
     
-    std::cout << "\nPool Details:\n";
+//     std::cout << "\nPool Details:\n";
     for (int i = 0; i < NUM_POOL_SIZES; ++i) {
         std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i]);
         size_t total = pools_[i].size();
@@ -1302,15 +1347,15 @@ void MemoryPoolManager::print_statistics() const {
             if (entry.is_host_fallback) host_fallbacks++;
         }
         
-        std::cout << "  " << std::setw(8) << (POOL_SIZES[i] / 1024) << " KB: "
-                  << std::setw(4) << in_use << " / " << std::setw(4) << total
-                  << " in use";
+//         std::cout << "  " << std::setw(8) << (POOL_SIZES[i] / 1024) << " KB: "
+//                   << std::setw(4) << in_use << " / " << std::setw(4) << total
+//                   << " in use";
         if (host_fallbacks > 0) {
-            std::cout << " (" << host_fallbacks << " host fallbacks)";
+//             std::cout << " (" << host_fallbacks << " host fallbacks)";
         }
-        std::cout << "\n";
+//         std::cout << "\n";
     }
-    std::cout << "========================================\n\n";
+//     std::cout << "========================================\n\n";
 }
 
 // ============================================================================
@@ -1495,7 +1540,7 @@ Status MemoryPoolManager::copy_between_memory_types(void* src, void* dst, size_t
 
 FallbackAllocation MemoryPoolManager::allocate_smart(const AllocationContext& context) {
     // Log the request
-    // std::cout << "Smart allocation request: " << context.requested_size << " bytes, strategy=" << (int)context.strategy << "\n";
+//     // std::cout << "Smart allocation request: " << context.requested_size << " bytes, strategy=" << (int)context.strategy << "\n";
     
     // Update resource state if needed
     if (std::chrono::steady_clock::now() - last_resource_update_ > std::chrono::milliseconds(100)) {

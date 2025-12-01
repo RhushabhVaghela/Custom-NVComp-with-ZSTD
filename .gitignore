@@ -16,4 +16,4 @@ dist/
 *.exe
 *.dll
 *.code*
-test_claude.py
+previous_conversation_resources/

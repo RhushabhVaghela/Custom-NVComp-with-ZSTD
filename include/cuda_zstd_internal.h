@@ -47,7 +47,7 @@ constexpr u16 HUFFMAN_NULL_IDX = 0xFFFF;
 
 struct HuffmanNode {
     u16 symbol;
-    u16 frequency;
+    u32 frequency;
     u16 left_child;
     u16 right_child;
     u16 parent;

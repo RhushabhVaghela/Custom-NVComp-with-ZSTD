@@ -51,9 +51,8 @@ void clear_cuda_errors() {
     // Clear the error - allows test framework to continue even if GPU is in bad state
     cudaGetLastError();
     
-    // AGGRESSIVE FIX: Always reset device between tests to ensure clean state
-    // Tests pass individually but fail together, indicating GPU state corruption
-    cudaDeviceReset();
+    // NOTE: Removed cudaDeviceReset() because it invalidates the global stream pool singleton
+    // which causes subsequent tests to fail with "invalid device context".
 }
 
 // ============================================================================
