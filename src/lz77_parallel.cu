@@ -234,6 +234,41 @@ Status compute_optimal_parse(
 }
 
 
+// ==============================================================================
+// Parallel Backtracking Implementation (Phase 2)
+// ==============================================================================
+
+// Create backtracking configuration based on input size
+BacktrackConfig create_backtrack_config(u32 input_size) {
+    BacktrackConfig config;
+    
+    // Threshold: use parallel for inputs >= 1MB
+    config.parallel_threshold = 1024 * 1024;  // 1MB
+    
+    if (input_size < config.parallel_threshold) {
+        // Small input: use CPU (parallel overhead not worth it)
+        config.use_parallel = false;
+        config.segment_size = input_size;
+        config.num_segments = 1;
+    } else {
+        // Large input: use parallel GPU backtracking
+        config.use_parallel = true;
+        
+        // Adaptive segment sizing based on input size
+        if (input_size < 10 * 1024 * 1024) {
+            // 1-10MB: use 256KB segments
+            config.segment_size = 256 * 1024;
+        } else {
+            // >10MB: use 1MB segments
+            config.segment_size = 1024 * 1024;
+        }
+        
+        config.num_segments = (input_size + config.segment_size - 1) / config.segment_size;
+    }
+    
+    return config;
+}
+
 // CPU-based backtracking (Option B: CPU Offloading)
 // This runs on the host CPU instead of GPU to avoid sequential kernel bottleneck
 void backtrack_sequences_cpu(
@@ -274,22 +309,26 @@ void backtrack_sequences_cpu(
     *h_num_sequences = seq_idx;
 }
 
-Status backtrack_sequences(
+// Parallel GPU backtracking (stub - to be implemented)
+Status backtrack_sequences_parallel(
+    const ParseCost* d_costs,
     u32 input_size,
     CompressionWorkspace& workspace,
     u32* h_num_sequences,
     cudaStream_t stream
 ) {
-//     std::cout << "[LZ77] Pass 3: Backtracking sequences (CPU offload)" << std::endl;
-
-    // Allocate host memory for costs array and sequence outputs
+    // TODO: Implement parallel backtracking kernel
+    // For now, fallback to CPU
+    std::cerr << "[LZ77] Parallel backtracking not yet implemented, falling back to CPU" << std::endl;
+    
+    // Allocate host memory
     ParseCost* h_costs = new ParseCost[input_size + 1];
     u32* h_literal_lengths = new u32[workspace.max_sequences];
     u32* h_match_lengths = new u32[workspace.max_sequences];
     u32* h_offsets = new u32[workspace.max_sequences];
-
-    // Copy costs from device to host (async for potential overlap)
-    cudaError_t err = cudaMemcpyAsync(h_costs, workspace.d_costs, 
+    
+    // Copy costs from device to host
+    cudaError_t err = cudaMemcpyAsync(h_costs, d_costs, 
                                       (input_size + 1) * sizeof(ParseCost),
                                       cudaMemcpyDeviceToHost, stream);
     if (err != cudaSuccess) {
@@ -299,22 +338,14 @@ Status backtrack_sequences(
         delete[] h_offsets;
         return Status::ERROR_CUDA_ERROR;
     }
-
-    // Wait for D2H copy to complete
-    err = cudaStreamSynchronize(stream);
-    if (err != cudaSuccess) {
-        delete[] h_costs;
-        delete[] h_literal_lengths;
-        delete[] h_match_lengths;
-        delete[] h_offsets;
-        return Status::ERROR_CUDA_ERROR;
-    }
-
-    // Perform backtracking on CPU
-    backtrack_sequences_cpu(h_costs, input_size, h_literal_lengths, 
+    
+    cudaStreamSynchronize(stream);
+    
+    // Call CPU backtracking
+    backtrack_sequences_cpu(h_costs, input_size, h_literal_lengths,
                            h_match_lengths, h_offsets, h_num_sequences);
-
-    // Copy results back to device (async)
+    
+    // Copy results back to device
     err = cudaMemcpyAsync(workspace.d_literal_lengths_reverse, h_literal_lengths,
                          *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
     if (err != cudaSuccess) {
@@ -324,7 +355,7 @@ Status backtrack_sequences(
         delete[] h_offsets;
         return Status::ERROR_CUDA_ERROR;
     }
-
+    
     err = cudaMemcpyAsync(workspace.d_match_lengths_reverse, h_match_lengths,
                          *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
     if (err != cudaSuccess) {
@@ -334,7 +365,7 @@ Status backtrack_sequences(
         delete[] h_offsets;
         return Status::ERROR_CUDA_ERROR;
     }
-
+    
     err = cudaMemcpyAsync(workspace.d_offsets_reverse, h_offsets,
                          *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
     if (err != cudaSuccess) {
@@ -344,26 +375,121 @@ Status backtrack_sequences(
         delete[] h_offsets;
         return Status::ERROR_CUDA_ERROR;
     }
-
-    // Wait for H2D copies to complete
-    err = cudaStreamSynchronize(stream);
-    if (err != cudaSuccess) {
-        delete[] h_costs;
-        delete[] h_literal_lengths;
-        delete[] h_match_lengths;
-        delete[] h_offsets;
-        return Status::ERROR_CUDA_ERROR;
-    }
-
-//     std::cout << "[LZ77] Found " << *h_num_sequences << " sequences (CPU)" << std::endl;
-
+    
+    cudaStreamSynchronize(stream);
+    
     // Cleanup
     delete[] h_costs;
     delete[] h_literal_lengths;
     delete[] h_match_lengths;
     delete[] h_offsets;
-
+    
     return Status::SUCCESS;
+}
+
+// Adaptive backtracking: chooses parallel or CPU based on input size
+Status backtrack_sequences(
+    u32 input_size,
+    CompressionWorkspace& workspace,
+    u32* h_num_sequences,
+    cudaStream_t stream
+) {
+    // Get adaptive configuration
+    BacktrackConfig config = create_backtrack_config(input_size);
+    
+    if (config.use_parallel) {
+        // Use parallel GPU backtracking for large inputs
+//        std::cout << "[LZ77] Pass 3: Backtracking sequences (parallel GPU, " 
+//                  << config.num_segments << " segments)" << std::endl;
+        return backtrack_sequences_parallel(workspace.d_costs, input_size, 
+                                           workspace, h_num_sequences, stream);
+    } else {
+        // Use CPU backtracking for small inputs
+//        std::cout << "[LZ77] Pass 3: Backtracking sequences (CPU offload)" << std::endl;
+        
+        // Allocate host memory for costs array and sequence outputs
+        ParseCost* h_costs = new ParseCost[input_size + 1];
+        u32* h_literal_lengths = new u32[workspace.max_sequences];
+        u32* h_match_lengths = new u32[workspace.max_sequences];
+        u32* h_offsets = new u32[workspace.max_sequences];
+        
+        // Copy costs from device to host (async for potential overlap)
+        cudaError_t err = cudaMemcpyAsync(h_costs, workspace.d_costs, 
+                                          (input_size + 1) * sizeof(ParseCost),
+                                          cudaMemcpyDeviceToHost, stream);
+        if (err != cudaSuccess) {
+            delete[] h_costs;
+            delete[] h_literal_lengths;
+            delete[] h_match_lengths;
+            delete[] h_offsets;
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+        // Wait for D2H copy to complete
+        err = cudaStreamSynchronize(stream);
+        if (err != cudaSuccess) {
+            delete[] h_costs;
+            delete[] h_literal_lengths;
+            delete[] h_match_lengths;
+            delete[] h_offsets;
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+        // Perform backtracking on CPU
+        backtrack_sequences_cpu(h_costs, input_size, h_literal_lengths, 
+                               h_match_lengths, h_offsets, h_num_sequences);
+        
+        // Copy results back to device (async)
+        err = cudaMemcpyAsync(workspace.d_literal_lengths_reverse, h_literal_lengths,
+                             *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+        if (err != cudaSuccess) {
+            delete[] h_costs;
+            delete[] h_literal_lengths;
+            delete[] h_match_lengths;
+            delete[] h_offsets;
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+        err = cudaMemcpyAsync(workspace.d_match_lengths_reverse, h_match_lengths,
+                             *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+        if (err != cudaSuccess) {
+            delete[] h_costs;
+            delete[] h_literal_lengths;
+            delete[] h_match_lengths;
+            delete[] h_offsets;
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+        err = cudaMemcpyAsync(workspace.d_offsets_reverse, h_offsets,
+                             *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+        if (err != cudaSuccess) {
+            delete[] h_costs;
+            delete[] h_literal_lengths;
+            delete[] h_match_lengths;
+            delete[] h_offsets;
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+        // Wait for H2D copies to complete
+        err = cudaStreamSynchronize(stream);
+        if (err != cudaSuccess) {
+            delete[] h_costs;
+            delete[] h_literal_lengths;
+            delete[] h_match_lengths;
+            delete[] h_offsets;
+            return Status::ERROR_CUDA_ERROR;
+        }
+        
+//        std::cout << "[LZ77] Found " << *h_num_sequences << " sequences (CPU)" << std::endl;
+        
+        // Cleanup
+        delete[] h_costs;
+        delete[] h_literal_lengths;
+        delete[] h_match_lengths;
+        delete[] h_offsets;
+        
+        return Status::SUCCESS;
+    }
 }
 
 } // namespace lz77

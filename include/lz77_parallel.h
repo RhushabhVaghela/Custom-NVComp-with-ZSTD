@@ -62,6 +62,49 @@ Status compute_optimal_parse(
     cudaStream_t stream
 );
 
+// ==============================================================================
+// Parallel Backtracking Infrastructure (Phase 2)
+// ==============================================================================
+
+// Segment information for parallel backtracking
+struct SegmentInfo {
+    u32 start_pos;           // Starting position of this segment
+    u32 end_pos;             // Ending position of this segment
+    u32 num_sequences;       // Number of sequences found in this segment
+    u32 sequence_offset;     // Offset into the global sequence buffer
+};
+
+// Configuration for backtracking mode selection
+struct BacktrackConfig {
+    u32 segment_size;        // Size of each segment (e.g., 1MB)
+    u32 num_segments;        // Number of segments
+    bool use_parallel;       // True = GPU parallel, False = CPU sequential
+    u32 parallel_threshold;  // Input size threshold for using parallel (default: 1MB)
+};
+
+// Create default backtracking configuration based on input size
+BacktrackConfig create_backtrack_config(u32 input_size);
+
+// Parallel GPU backtracking (for large inputs)
+Status backtrack_sequences_parallel(
+    const ParseCost* d_costs,
+    u32 input_size,
+    CompressionWorkspace& workspace,
+    u32* h_num_sequences,
+    cudaStream_t stream
+);
+
+// Sequential CPU backtracking (for small inputs or fallback)
+Status backtrack_sequences_cpu(
+    const ParseCost* h_costs,
+    u32 input_size,
+    u32* h_literal_lengths,
+    u32* h_match_lengths,
+    u32* h_offsets,
+    u32* h_num_sequences
+);
+
+// Adaptive backtracking (chooses parallel or sequential based on input size)
 Status backtrack_sequences(
     u32 input_size,
     CompressionWorkspace& workspace,
