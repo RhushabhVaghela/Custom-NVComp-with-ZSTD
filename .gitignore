@@ -17,3 +17,4 @@ dist/
 *.dll
 *.code*
 previous_conversation_resources/
+latest_conversation_resources/
