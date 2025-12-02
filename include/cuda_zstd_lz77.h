@@ -69,13 +69,34 @@ struct LZ77Stats {
 
 /**
  * @brief Stores the "cheapest" cost to get to this position (for DP).
+ * Uses u64 to allow atomic updates of (cost, parent_pos).
+ * High 32 bits: cost
+ * Low 32 bits: parent_pos
  */
 struct ParseCost {
-    u32 cost; // Cost in bits (or other metric)
-    u32 len;  // Length of the last sequence (literal or match)
-    u32 offset; // Offset if it was a match
-    bool is_match; // Flag if this was a match
+    unsigned long long data;
+
+    __host__ __device__ ParseCost() : data(0xFFFFFFFFFFFFFFFFULL) {}
+    
+    __host__ __device__ void set(u32 cost, u32 parent_pos) {
+        data = ((unsigned long long)cost << 32) | parent_pos;
+    }
+    
+    __host__ __device__ u32 cost() const {
+        return (u32)(data >> 32);
+    }
+    
+    __host__ __device__ u32 parent() const {
+        return (u32)(data & 0xFFFFFFFF);
+    }
 };
+
+// V2: Simplified multi-pass kernel  
+__global__ void optimal_parse_kernel_v2(
+    u32 input_size,
+    const Match* d_matches,
+    ParseCost* d_costs
+);
 
 // ============================================================================
 // LZ77 Context (Host-Side)

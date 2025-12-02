@@ -250,7 +250,7 @@ bool test_small_input_threshold() {
     
     // Run passes 1 and 2
     find_matches_parallel(d_input, input_size, workspace, lz77_config, 0);
-    compute_optimal_parse(d_input, input_size, workspace, lz77_config, 0);
+    compute_optimal_parse_v2(d_input, input_size, workspace, lz77_config, 0);
     cudaDeviceSynchronize();
     
     // Test adaptive routing (should use CPU for < 1MB)
@@ -298,7 +298,7 @@ bool test_correctness_1mb() {
     
     // Run passes 1 and 2
     find_matches_parallel(d_input, input_size, workspace, lz77_config, 0);
-    compute_optimal_parse(d_input, input_size, workspace, lz77_config, 0);
+    compute_optimal_parse_v2(d_input, input_size, workspace, lz77_config, 0);
     cudaDeviceSynchronize();
     
     // Run both CPU and GPU
@@ -344,7 +344,7 @@ bool test_correctness_10mb() {
     
     // Run passes 1 and 2
     find_matches_parallel(d_input, input_size, workspace, lz77_config, 0);
-    compute_optimal_parse(d_input, input_size, workspace, lz77_config, 0);
+    compute_optimal_parse_v2(d_input, input_size, workspace, lz77_config, 0);
     cudaDeviceSynchronize();
     
     // Run both CPU and GPU
@@ -391,7 +391,7 @@ bool test_performance_100mb() {
     // Run passes 1 and 2
     printf("Running Pass 1 and 2...\n");
     find_matches_parallel(d_input, input_size, workspace, lz77_config, 0);
-    compute_optimal_parse(d_input, input_size, workspace, lz77_config, 0);
+    compute_optimal_parse_v2(d_input, input_size, workspace, lz77_config, 0);
     cudaDeviceSynchronize();
     
     // Run both CPU and GPU
