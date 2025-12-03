@@ -680,52 +680,16 @@ __global__ void optimal_parse_kernel(
  * SAFETY: No array allocations, no stack pressure
  * OUTPUT: d_num_sequences = exact sequence count
  */
+/* LEGACY count_sequences_kernel - Commented out (uses old ParseCost format)
 __global__ void count_sequences_kernel(
     u32 input_size,
-    const ParseCost* d_costs,  // Input: DP table [input_size + 1]
-    u32* d_num_sequences       // Output: sequence count
+    const ParseCost* d_costs,
+    u32* d_num_sequences
 ) {
-// LEGACY_SEQUENCE_COUNTER:     if (threadIdx.x != 0 || blockIdx.x != 0) return;
-// LEGACY_SEQUENCE_COUNTER:     
-// LEGACY_SEQUENCE_COUNTER:     if (input_size == 0) {
-// LEGACY_SEQUENCE_COUNTER:         *d_num_sequences = 0;
-// LEGACY_SEQUENCE_COUNTER:         return;
-// LEGACY_SEQUENCE_COUNTER:     }
-// LEGACY_SEQUENCE_COUNTER:     
-// LEGACY_SEQUENCE_COUNTER:     u32 seq_count = 0;
-// LEGACY_SEQUENCE_COUNTER:     u32 pos = input_size;
-// LEGACY_SEQUENCE_COUNTER:     
-// LEGACY_SEQUENCE_COUNTER:     // Walk backwards through costs table
-// LEGACY_SEQUENCE_COUNTER:     while (pos > 0) {
-// LEGACY_SEQUENCE_COUNTER:         const ParseCost& entry = d_costs[pos];
-// LEGACY_SEQUENCE_COUNTER:         
-// LEGACY_SEQUENCE_COUNTER:         // Safety check: prevent infinite loops
-// LEGACY_SEQUENCE_COUNTER:         if (seq_count >= (1 << 20)) {  // Max 1M sequences per input
-// LEGACY_SEQUENCE_COUNTER:             break;
-// LEGACY_SEQUENCE_COUNTER:         }
-// LEGACY_SEQUENCE_COUNTER:         
-// LEGACY_SEQUENCE_COUNTER:         if (entry.is_match) {
-// LEGACY_SEQUENCE_COUNTER:             // This is a match sequence
-// LEGACY_SEQUENCE_COUNTER:             if (entry.len == 0 || entry.len > pos) break; // Safety check
-// LEGACY_SEQUENCE_COUNTER:             seq_count++;
-// LEGACY_SEQUENCE_COUNTER:             pos -= entry.len;
-// LEGACY_SEQUENCE_COUNTER:         } else {
-// LEGACY_SEQUENCE_COUNTER:             // This is a literal sequence - count consecutive literals as one sequence
-// LEGACY_SEQUENCE_COUNTER:             if (entry.len == 0) {
-// LEGACY_SEQUENCE_COUNTER:                  // Fallback for safety: treat as 1 literal
-// LEGACY_SEQUENCE_COUNTER:                  seq_count++;
-// LEGACY_SEQUENCE_COUNTER:                  pos -= 1;
-// LEGACY_SEQUENCE_COUNTER:             } else {
-// LEGACY_SEQUENCE_COUNTER:                  if (entry.len > pos) break; // Safety check
-// LEGACY_SEQUENCE_COUNTER:                  seq_count++;
-// LEGACY_SEQUENCE_COUNTER:                  pos -= entry.len;
-// LEGACY_SEQUENCE_COUNTER:             }
-// LEGACY_SEQUENCE_COUNTER:         }
-// LEGACY_SEQUENCE_COUNTER:     }
-// LEGACY_SEQUENCE_COUNTER:     
-// LEGACY_SEQUENCE_COUNTER:     *d_num_sequences = seq_count;
-// LEGACY_SEQUENCE_COUNTER: }
-// LEGACY_SEQUENCE_COUNTER: 
+    // Implementation commented out - uses old ParseCost format
+}
+*/
+
 // ============================================================================
 // NEW: Parallel Backtrack Pass with Atomic Counters
 // ============================================================================
