@@ -25,17 +25,23 @@ struct Match {
 };
 
 // Parse cost for optimal parsing (Dynamic Programming)
+// V2: Packed u64 format for atomic operations
 struct ParseCost {
-    u32 cost;      // Cost in bits
-    u32 len;       // Length of sequence
-    u32 offset;    // Offset if match
-    bool is_match; // Match vs literal flag
+    unsigned long long data;
 
-    __host__ __device__ ParseCost() 
-        : cost(0xFFFFFFFF), len(0), offset(0), is_match(false) {}
-
-    __host__ __device__ ParseCost(u32 c, u32 l, u32 off, bool match)
-        : cost(c), len(l), offset(off), is_match(match) {}
+    __host__ __device__ ParseCost() : data(0xFFFFFFFFFFFFFFFFULL) {}
+    
+    __host__ __device__ void set(u32 cost, u32 parent_pos) {
+        data = ((unsigned long long)cost << 32) | parent_pos;
+    }
+    
+    __host__ __device__ u32 cost() const {
+        return (u32)(data >> 32);
+    }
+    
+    __host__ __device__ u32 parent() const {
+        return (u32)(data & 0xFFFFFFFF);
+    }
 };
 
 // LZ77 configuration
