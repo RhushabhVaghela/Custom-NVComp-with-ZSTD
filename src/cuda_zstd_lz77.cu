@@ -685,47 +685,47 @@ __global__ void count_sequences_kernel(
     const ParseCost* d_costs,  // Input: DP table [input_size + 1]
     u32* d_num_sequences       // Output: sequence count
 ) {
-    if (threadIdx.x != 0 || blockIdx.x != 0) return;
-    
-    if (input_size == 0) {
-        *d_num_sequences = 0;
-        return;
-    }
-    
-    u32 seq_count = 0;
-    u32 pos = input_size;
-    
-    // Walk backwards through costs table
-    while (pos > 0) {
-        const ParseCost& entry = d_costs[pos];
-        
-        // Safety check: prevent infinite loops
-        if (seq_count >= (1 << 20)) {  // Max 1M sequences per input
-            break;
-        }
-        
-        if (entry.is_match) {
-            // This is a match sequence
-            if (entry.len == 0 || entry.len > pos) break; // Safety check
-            seq_count++;
-            pos -= entry.len;
-        } else {
-            // This is a literal sequence - count consecutive literals as one sequence
-            if (entry.len == 0) {
-                 // Fallback for safety: treat as 1 literal
-                 seq_count++;
-                 pos -= 1;
-            } else {
-                 if (entry.len > pos) break; // Safety check
-                 seq_count++;
-                 pos -= entry.len;
-            }
-        }
-    }
-    
-    *d_num_sequences = seq_count;
-}
-
+// LEGACY_SEQUENCE_COUNTER:     if (threadIdx.x != 0 || blockIdx.x != 0) return;
+// LEGACY_SEQUENCE_COUNTER:     
+// LEGACY_SEQUENCE_COUNTER:     if (input_size == 0) {
+// LEGACY_SEQUENCE_COUNTER:         *d_num_sequences = 0;
+// LEGACY_SEQUENCE_COUNTER:         return;
+// LEGACY_SEQUENCE_COUNTER:     }
+// LEGACY_SEQUENCE_COUNTER:     
+// LEGACY_SEQUENCE_COUNTER:     u32 seq_count = 0;
+// LEGACY_SEQUENCE_COUNTER:     u32 pos = input_size;
+// LEGACY_SEQUENCE_COUNTER:     
+// LEGACY_SEQUENCE_COUNTER:     // Walk backwards through costs table
+// LEGACY_SEQUENCE_COUNTER:     while (pos > 0) {
+// LEGACY_SEQUENCE_COUNTER:         const ParseCost& entry = d_costs[pos];
+// LEGACY_SEQUENCE_COUNTER:         
+// LEGACY_SEQUENCE_COUNTER:         // Safety check: prevent infinite loops
+// LEGACY_SEQUENCE_COUNTER:         if (seq_count >= (1 << 20)) {  // Max 1M sequences per input
+// LEGACY_SEQUENCE_COUNTER:             break;
+// LEGACY_SEQUENCE_COUNTER:         }
+// LEGACY_SEQUENCE_COUNTER:         
+// LEGACY_SEQUENCE_COUNTER:         if (entry.is_match) {
+// LEGACY_SEQUENCE_COUNTER:             // This is a match sequence
+// LEGACY_SEQUENCE_COUNTER:             if (entry.len == 0 || entry.len > pos) break; // Safety check
+// LEGACY_SEQUENCE_COUNTER:             seq_count++;
+// LEGACY_SEQUENCE_COUNTER:             pos -= entry.len;
+// LEGACY_SEQUENCE_COUNTER:         } else {
+// LEGACY_SEQUENCE_COUNTER:             // This is a literal sequence - count consecutive literals as one sequence
+// LEGACY_SEQUENCE_COUNTER:             if (entry.len == 0) {
+// LEGACY_SEQUENCE_COUNTER:                  // Fallback for safety: treat as 1 literal
+// LEGACY_SEQUENCE_COUNTER:                  seq_count++;
+// LEGACY_SEQUENCE_COUNTER:                  pos -= 1;
+// LEGACY_SEQUENCE_COUNTER:             } else {
+// LEGACY_SEQUENCE_COUNTER:                  if (entry.len > pos) break; // Safety check
+// LEGACY_SEQUENCE_COUNTER:                  seq_count++;
+// LEGACY_SEQUENCE_COUNTER:                  pos -= entry.len;
+// LEGACY_SEQUENCE_COUNTER:             }
+// LEGACY_SEQUENCE_COUNTER:         }
+// LEGACY_SEQUENCE_COUNTER:     }
+// LEGACY_SEQUENCE_COUNTER:     
+// LEGACY_SEQUENCE_COUNTER:     *d_num_sequences = seq_count;
+// LEGACY_SEQUENCE_COUNTER: }
+// LEGACY_SEQUENCE_COUNTER: 
 // ============================================================================
 // NEW: Parallel Backtrack Pass with Atomic Counters
 // ============================================================================
@@ -740,7 +740,9 @@ __global__ void count_sequences_kernel(
  * 
  * SAFETY: Staging buffer is pre-allocated in host code
  * OUTPUT: Sequences in reverse order to staging buffer
-// LEGACY_GPU_BACKTRACK:  */
+ */
+
+/* LEGACY_GPU_BACKTRACK - Commented out (uses old ParseCost format)
 // LEGACY_GPU_BACKTRACK: __global__ void backtrack_build_sequences_kernel(
 // LEGACY_GPU_BACKTRACK:     const byte_t* input,
 // LEGACY_GPU_BACKTRACK:     u32 input_size,
@@ -799,6 +801,7 @@ __global__ void count_sequences_kernel(
 // LEGACY_GPU_BACKTRACK:     // ✅ SAFE: Write to pre-allocated device memory, not stack
 // LEGACY_GPU_BACKTRACK:     *d_num_sequences_out = seq_idx;
 // LEGACY_GPU_BACKTRACK: }
+*/
 
 // ============================================================================
 // PARALLEL: Flip Sequences to Forward Order + Build Literal Buffer
