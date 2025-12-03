@@ -355,10 +355,10 @@ Status compute_optimal_parse_v2(
     else max_passes = 300;
     
     for (int pass = 0; pass < max_passes; ++pass) {
-        ::cuda_zstd::lz77::optimal_parse_kernel_v2<<<num_blocks, threads, 0, stream>>>(
+        cuda_zstd::lz77::optimal_parse_kernel_v2<<<num_blocks, threads, 0, stream>>>(
             input_size,
-            reinterpret_cast<::cuda_zstd::lz77::Match*>(workspace.d_matches),
-            reinterpret_cast<::cuda_zstd::lz77::ParseCost*>(workspace.d_costs)
+            static_cast<cuda_zstd::lz77::Match*>(workspace.d_matches),
+            static_cast<cuda_zstd::lz77::ParseCost*>(workspace.d_costs)
         );
         cudaStreamSynchronize(stream);
         cudaError_t err = cudaGetLastError();
