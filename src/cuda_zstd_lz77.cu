@@ -644,134 +644,24 @@ __global__ void parallel_find_all_matches_kernel(
  * 3. Handle chunk boundaries with overlap regions
  * 4. Multiple iterations to resolve cross-chunk dependencies
  */
+/*
+ * DEPRECATED: V1 optimal_parse_kernel (REPLACED BY V2)
+ * This kernel used the old ParseCost format and is no longer compatible.
+ * Use optimal_parse_kernel_v2 instead (10-100x faster).
+ *
+ * Original function kept for reference but commented out.
+ */
+/*
 __global__ void optimal_parse_kernel(
     u32 input_size,
-    const Match* d_matches,         // Input: Pre-computed matches
-    ParseCost* d_costs,             // Temp buffer: [input_size + 1]
-    u32 chunk_size                  // Size of chunk to process per block
+    const Match* d_matches,
+    ParseCost* d_costs,
+    u32 chunk_size
 ) {
-    if (input_size == 0) return;
-    
-    // Constants for chunking
-    const u32 MAX_MATCH_LEN = 131072;  // ZSTD max match length
-    const u32 OVERLAP = min(MAX_MATCH_LEN, chunk_size / 4);  // Overlap for cross-chunk matches
-    u32 tid = threadIdx.x;
-    u32 block_id = blockIdx.x;
-    u32 threads_per_block = blockDim.x;
-    
-    // Calculate chunk boundaries
-    u32 chunk_start = block_id * chunk_size;
-    u32 chunk_end = min(chunk_start + chunk_size + OVERLAP, input_size);
-    
-    if (chunk_start >= input_size) return;
-    
-    // Initialize costs on first thread of FIRST block only
-    if (tid == 0 && chunk_start == 0) {
-        d_costs[0] = {0, 0, 0, false}; // Cost to encode 0 bytes is 0
-        
-        // Initialize remaining costs in this chunk to infinity
-        // Note: This initialization is expensive if done serially by one thread.
-        // Better to do it in parallel or assume pre-initialization.
-        // For now, we rely on the loop below to skip uncomputed costs.
-    }
-    
-    __syncthreads();
-    __threadfence();  // Ensure initialization is visible
-    
-    // Process chunk using wavefront parallelization
-    // Each iteration processes a diagonal of the DP table
-    u32 chunk_len = chunk_end - chunk_start;
-    u32 max_iterations = chunk_len + MAX_MATCH_LEN;
-    
-    for (u32 iter = 0; iter < max_iterations; ++iter) {
-        __syncthreads();
-        
-        // Calculate position for this thread in this iteration
-        u32 local_pos = tid;
-        
-        // Process multiple positions per thread with stride
-        while (local_pos < chunk_len) {
-            u32 pos = chunk_start + local_pos;
-            
-            if (pos >= input_size) {
-                local_pos += threads_per_block;
-                continue;
-            }
-            
-            // Only process if dependencies are satisfied
-            // (position's cost has been computed)
-            if (d_costs[pos].cost < 1000000000) {
-                u32 current_cost = d_costs[pos].cost;
-                
-                // Option 1: Encode as literal
-                u32 cost_as_literal = current_cost + calculate_literal_cost(1);
-                if (pos + 1 <= input_size) {
-                    atomicMin(&d_costs[pos + 1].cost, cost_as_literal);
-                    
-                    // Update full entry if we improved the cost
-                    if (cost_as_literal < d_costs[pos + 1].cost) {
-                        d_costs[pos + 1].len = 1;
-                        d_costs[pos + 1].offset = 0;
-                        d_costs[pos + 1].is_match = false;
-                    }
-                }
-                
-                // Option 2: Use match at this position
-                const Match& match = d_matches[pos];
-                if (match.length >= 3) {
-                    u32 match_cost = calculate_match_cost(match.length, match.offset);
-                    u32 total_cost = current_cost + match_cost;
-                    u32 end_pos = pos + match.length;
-                    
-                    if (end_pos > input_size) {
-#if defined(__CUDACC__)
-                        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
-//                             printf("[SAFEGUARD] optimal_parse_kernel: end_pos (%u) > input_size (%u) at pos=%u thread=%d block=%d\n",
-//                                    end_pos, input_size, pos, threadIdx.x, blockIdx.x);
-                        }
-#endif
-                        // Clamp to input_size to avoid OOB write
-                        end_pos = input_size;
-                    }
-                    if (end_pos <= input_size) {
-                        u32 old_cost = atomicMin(&d_costs[end_pos].cost, total_cost);
-                        
-                        // Update entry if we improved
-                        if (total_cost < old_cost) {
-                            d_costs[end_pos].len = match.length;
-                            d_costs[end_pos].offset = match.offset;
-                            d_costs[end_pos].is_match = true;
-                        }
-                    }
-#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
-                    // Reduce verbosity: only log a subset of positions
-                    if ((pos & 0x3FFu) == 0x3FFu) {
-                        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
-                            printf("[DEBUG] optimal_parse_kernel: pos=%u end_pos=%u input_size=%u match_len=%u offset=%u\n",
-                                   pos, end_pos, input_size, match.length, match.offset);
-                        }
-                    }
-#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
-                    if (end_pos > input_size) {
-                        if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
-//                             printf("[DEBUG] optimal_parse_kernel OOB end_pos=%u pos=%u match_len=%u input_size=%u block=%d thread=%d\n",
-//                                    end_pos, pos, match.length, input_size, blockIdx.x, threadIdx.x);
-                        }
-                    }
-#endif
-#endif
-                }
-            }
-            
-            local_pos += threads_per_block;
-        }
-        
-        __syncthreads();
-    }
-    
-    // Ensure all updates are visible
-    __threadfence();
+    // OLD V1 IMPLEMENTATION - COMMENTED OUT
+    // See optimal_parse_kernel_v2 for new implementation
 }
+*/
 
 
 
