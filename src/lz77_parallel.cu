@@ -256,8 +256,8 @@ __global__ void backtrack_kernel(
 // LEGACY_BACKTRACK_IMPL:     return Status::SUCCESS;
 // LEGACY_BACKTRACK_IMPL: }
 // LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL: Status compute_optimal_parse(
-// LEGACY_BACKTRACK_IMPL:     const u8* d_input,
+Status compute_optimal_parse(
+    const u8* d_input,
     u32 input_size,
     CompressionWorkspace& workspace,
     const LZ77Config& config,
@@ -411,293 +411,293 @@ Status backtrack_sequences_cpu(
 */
 
 // Parallel GPU backtracking implementation
-Status backtrack_sequences_parallel(
-    const ParseCost* d_costs,
-    u32 input_size,
-    CompressionWorkspace& workspace,
-    u32* h_num_sequences,
-    cudaStream_t stream
-) {
-    // Get configuration for this input size
-    BacktrackConfig config = create_backtrack_config(input_size);
-    
-    if (!config.use_parallel) {
-        // Shouldn't happen, but handle gracefully
-        return Status::ERROR_INVALID_PARAMETER;
-    }
-    
-    u32 num_segments = config.num_segments;
-    u32 segment_size = config.segment_size;
-    
-    // Estimate max sequences per segment
-    // Typical: 1 sequence per 100 bytes is more realistic
-    // Add buffer for worst case (many small matches)
-    u32 max_seq_per_segment = (segment_size / 50) + 1000;  // Much more conservative
-    u32 total_max_sequences = num_segments * max_seq_per_segment;
-    
-    // Allocate host memory for segments and results
-    SegmentInfo* h_segments = new SegmentInfo[num_segments];
-    u32* h_sequence_counts = new u32[num_segments];
-    
-    // Initialize segment boundaries
-    for (u32 i = 0; i < num_segments; ++i) {
-        h_segments[i].start_pos = i * segment_size;
-        h_segments[i].end_pos = std::min((i + 1) * segment_size, input_size) - 1;
-        h_segments[i].sequence_offset = i * max_seq_per_segment;
-        h_segments[i].num_sequences = 0;
-    }
-    
-    // Allocate device memory for segments and temporary sequence buffers
-    SegmentInfo* d_segments = nullptr;
-    u32* d_sequence_counts = nullptr;
-    u32* d_literal_lengths_temp = nullptr;
-    u32* d_match_lengths_temp = nullptr;
-    u32* d_offsets_temp = nullptr;
-    
-    cudaError_t err;
-    err = cudaMalloc(&d_segments, num_segments * sizeof(SegmentInfo));
-    if (err != cudaSuccess) {
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_OUT_OF_MEMORY;
-    }
-    
-    err = cudaMalloc(&d_sequence_counts, num_segments * sizeof(u32));
-    if (err != cudaSuccess) {
-        cudaFree(d_segments);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_OUT_OF_MEMORY;
-    }
-    
-    err = cudaMalloc(&d_literal_lengths_temp, total_max_sequences * sizeof(u32));
-    if (err != cudaSuccess) {
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_OUT_OF_MEMORY;
-    }
-    
-    err = cudaMalloc(&d_match_lengths_temp, total_max_sequences * sizeof(u32));
-    if (err != cudaSuccess) {
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        cudaFree(d_literal_lengths_temp);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_OUT_OF_MEMORY;
-    }
-    
-    err = cudaMalloc(&d_offsets_temp, total_max_sequences * sizeof(u32));
-    if (err != cudaSuccess) {
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        cudaFree(d_literal_lengths_temp);
-        cudaFree(d_match_lengths_temp);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_OUT_OF_MEMORY;
-    }
-    
-    // Copy segment info to device
-    err = cudaMemcpyAsync(d_segments, h_segments, num_segments * sizeof(SegmentInfo),
-                         cudaMemcpyHostToDevice, stream);
-    if (err != cudaSuccess) {
-        printf("[ERROR] Failed to copy segments to device: %s\n", cudaGetErrorString(err));
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        cudaFree(d_literal_lengths_temp);
-        cudaFree(d_match_lengths_temp);
-        cudaFree(d_offsets_temp);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_CUDA_ERROR;
-    }
-    
-    // Debug: Print configuration
-    printf("[DEBUG] Parallel backtracking config:\n");
-    printf("  Input size: %u bytes (%.2f MB)\n", input_size, input_size / (1024.0f * 1024.0f));
-    printf("  Num segments: %u\n", num_segments);
-    printf("  Segment size: %u bytes (%.2f KB)\n", segment_size, segment_size / 1024.0f);
-    printf("  Max seq/segment: %u\n", max_seq_per_segment);
-    printf("  Total temp memory: %.2f MB\n", (total_max_sequences * 12) / (1024.0f * 1024.0f));
-    
-    // Debug: Validate pointers
-    printf("[DEBUG] Validating pointers:\n");
-    printf("  d_costs: %p\n", (void*)d_costs);
-    printf("  d_segments: %p\n", (void*)d_segments);
-    printf("  d_literal_lengths_temp: %p\n", (void*)d_literal_lengths_temp);
-    printf("  d_match_lengths_temp: %p\n", (void*)d_match_lengths_temp);
-    printf("  d_offsets_temp: %p\n", (void*)d_offsets_temp);
-    printf("  d_sequence_counts: %p\n", (void*)d_sequence_counts);
-    
-    if (d_costs == nullptr) {
-        printf("[ERROR] d_costs is NULL!\n");
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        cudaFree(d_literal_lengths_temp);
-        cudaFree(d_match_lengths_temp);
-        cudaFree(d_offsets_temp);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_INVALID_PARAMETER;
-    }
-    
-    // Launch parallel backtracking kernel (one block per segment)
-    // Use 32 threads per block (warp size) even though only first thread does work
-    printf("[DEBUG] Launching kernel with %u blocks, 32 threads/block...\n", num_segments);
-    backtrack_segments_parallel_kernel<<<num_segments, 32>>>(
-        d_costs,
-        d_segments,
-        d_literal_lengths_temp,
-        d_match_lengths_temp,
-        d_offsets_temp,
-        d_sequence_counts,
-        num_segments,
-        max_seq_per_segment
-    );
-    
-    err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        printf("[ERROR] Kernel launch failed: %s\n", cudaGetErrorString(err));
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        cudaFree(d_literal_lengths_temp);
-        cudaFree(d_match_lengths_temp);
-        cudaFree(d_offsets_temp);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_CUDA_ERROR;
-    }
-    
-    // Wait for kernel to complete
-    err = cudaStreamSynchronize(stream);
-    if (err != cudaSuccess) {
-        printf("[ERROR] Kernel execution failed: %s\n", cudaGetErrorString(err));
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        cudaFree(d_literal_lengths_temp);
-        cudaFree(d_match_lengths_temp);
-        cudaFree(d_offsets_temp);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_CUDA_ERROR;
-    }
-    
-    printf("[DEBUG] Kernel completed successfully\n");
-    
-    // Copy sequence counts back to host for merging
-    err = cudaMemcpyAsync(h_sequence_counts, d_sequence_counts, 
-                         num_segments * sizeof(u32),
-                         cudaMemcpyDeviceToHost, stream);
-    if (err != cudaSuccess) {
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        cudaFree(d_literal_lengths_temp);
-        cudaFree(d_match_lengths_temp);
-        cudaFree(d_offsets_temp);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_CUDA_ERROR;
-    }
-    
-    err = cudaStreamSynchronize(stream);
-    if (err != cudaSuccess) {
-        cudaFree(d_segments);
-        cudaFree(d_sequence_counts);
-        cudaFree(d_literal_lengths_temp);
-        cudaFree(d_match_lengths_temp);
-        cudaFree(d_offsets_temp);
-        delete[] h_segments;
-        delete[] h_sequence_counts;
-        return Status::ERROR_CUDA_ERROR;
-    }
-    
-    // Merge segments: simply concatenate (no boundary stitching needed if segments are independent)
-    u32 total_sequences = 0;
-    for (u32 i = 0; i < num_segments; ++i) {
-        total_sequences += h_sequence_counts[i];
-    }
-    
-    // Allocate host memory for merged sequences
-    u32* h_literal_lengths = new u32[total_sequences];
-    u32* h_match_lengths = new u32[total_sequences];
-    u32* h_offsets = new u32[total_sequences];
-    
-    // Copy all sequences from device
-    u32* h_literal_lengths_temp = new u32[total_max_sequences];
-    u32* h_match_lengths_temp = new u32[total_max_sequences];
-    u32* h_offsets_temp = new u32[total_max_sequences];
-    
-    err = cudaMemcpyAsync(h_literal_lengths_temp, d_literal_lengths_temp,
-                         total_max_sequences * sizeof(u32),
-                         cudaMemcpyDeviceToHost, stream);
-    err = cudaMemcpyAsync(h_match_lengths_temp, d_match_lengths_temp,
-                         total_max_sequences * sizeof(u32),
-                         cudaMemcpyDeviceToHost, stream);
-    err = cudaMemcpyAsync(h_offsets_temp, d_offsets_temp,
-                         total_max_sequences * sizeof(u32),
-                         cudaMemcpyDeviceToHost, stream);
-    cudaStreamSynchronize(stream);
-    
-    // Merge: copy sequences from each segment to final buffer
-    u32 out_idx = 0;
-    for (u32 i = 0; i < num_segments; ++i) {
-        u32 seg_offset = h_segments[i].sequence_offset;
-        u32 seg_count = h_sequence_counts[i];
-        
-        for (u32 j = 0; j < seg_count; ++j) {
-            h_literal_lengths[out_idx] = h_literal_lengths_temp[seg_offset + j];
-            h_match_lengths[out_idx] = h_match_lengths_temp[seg_offset + j];
-            h_offsets[out_idx] = h_offsets_temp[seg_offset + j];
-            out_idx++;
-        }
-    }
-    
-    *h_num_sequences = total_sequences;
-    
-    // Copy merged results to device workspace
-    err = cudaMemcpyAsync(workspace.d_literal_lengths_reverse, h_literal_lengths,
-                         total_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
-    err = cudaMemcpyAsync(workspace.d_match_lengths_reverse, h_match_lengths,
-                         total_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
-    err = cudaMemcpyAsync(workspace.d_offsets_reverse, h_offsets,
-                         total_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
-    cudaStreamSynchronize(stream);
-    
-    // Cleanup
-    cudaFree(d_segments);
-    cudaFree(d_sequence_counts);
-    cudaFree(d_literal_lengths_temp);
-    cudaFree(d_match_lengths_temp);
-    cudaFree(d_offsets_temp);
-    delete[] h_segments;
-    delete[] h_sequence_counts;
-    delete[] h_literal_lengths;
-    delete[] h_match_lengths;
-    delete[] h_offsets;
-    delete[] h_literal_lengths_temp;
-    delete[] h_match_lengths_temp;
-    delete[] h_offsets_temp;
-    
-    return Status::SUCCESS;
-}
-
-
-// Adaptive backtracking: chooses parallel or CPU based on input size
-Status backtrack_sequences(
-    u32 input_size,
-    CompressionWorkspace& workspace,
-    u32* h_num_sequences,
-    cudaStream_t stream
-) {
-    // Get adaptive configuration
-    BacktrackConfig config = create_backtrack_config(input_size);
-    
-    if (config.use_parallel) {
-        // Use parallel GPU backtracking for large inputs
-//        std::cout << "[LZ77] Pass 3: Backtracking sequences (parallel GPU, " 
+// LEGACY_PARALLEL_BACKTRACK: Status backtrack_sequences_parallel(
+// LEGACY_PARALLEL_BACKTRACK:     const ParseCost* d_costs,
+// LEGACY_PARALLEL_BACKTRACK:     u32 input_size,
+// LEGACY_PARALLEL_BACKTRACK:     CompressionWorkspace& workspace,
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_num_sequences,
+// LEGACY_PARALLEL_BACKTRACK:     cudaStream_t stream
+// LEGACY_PARALLEL_BACKTRACK: ) {
+// LEGACY_PARALLEL_BACKTRACK:     // Get configuration for this input size
+// LEGACY_PARALLEL_BACKTRACK:     BacktrackConfig config = create_backtrack_config(input_size);
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     if (!config.use_parallel) {
+// LEGACY_PARALLEL_BACKTRACK:         // Shouldn't happen, but handle gracefully
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_INVALID_PARAMETER;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     u32 num_segments = config.num_segments;
+// LEGACY_PARALLEL_BACKTRACK:     u32 segment_size = config.segment_size;
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Estimate max sequences per segment
+// LEGACY_PARALLEL_BACKTRACK:     // Typical: 1 sequence per 100 bytes is more realistic
+// LEGACY_PARALLEL_BACKTRACK:     // Add buffer for worst case (many small matches)
+// LEGACY_PARALLEL_BACKTRACK:     u32 max_seq_per_segment = (segment_size / 50) + 1000;  // Much more conservative
+// LEGACY_PARALLEL_BACKTRACK:     u32 total_max_sequences = num_segments * max_seq_per_segment;
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Allocate host memory for segments and results
+// LEGACY_PARALLEL_BACKTRACK:     SegmentInfo* h_segments = new SegmentInfo[num_segments];
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_sequence_counts = new u32[num_segments];
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Initialize segment boundaries
+// LEGACY_PARALLEL_BACKTRACK:     for (u32 i = 0; i < num_segments; ++i) {
+// LEGACY_PARALLEL_BACKTRACK:         h_segments[i].start_pos = i * segment_size;
+// LEGACY_PARALLEL_BACKTRACK:         h_segments[i].end_pos = std::min((i + 1) * segment_size, input_size) - 1;
+// LEGACY_PARALLEL_BACKTRACK:         h_segments[i].sequence_offset = i * max_seq_per_segment;
+// LEGACY_PARALLEL_BACKTRACK:         h_segments[i].num_sequences = 0;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Allocate device memory for segments and temporary sequence buffers
+// LEGACY_PARALLEL_BACKTRACK:     SegmentInfo* d_segments = nullptr;
+// LEGACY_PARALLEL_BACKTRACK:     u32* d_sequence_counts = nullptr;
+// LEGACY_PARALLEL_BACKTRACK:     u32* d_literal_lengths_temp = nullptr;
+// LEGACY_PARALLEL_BACKTRACK:     u32* d_match_lengths_temp = nullptr;
+// LEGACY_PARALLEL_BACKTRACK:     u32* d_offsets_temp = nullptr;
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     cudaError_t err;
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMalloc(&d_segments, num_segments * sizeof(SegmentInfo));
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_OUT_OF_MEMORY;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMalloc(&d_sequence_counts, num_segments * sizeof(u32));
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_OUT_OF_MEMORY;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMalloc(&d_literal_lengths_temp, total_max_sequences * sizeof(u32));
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_OUT_OF_MEMORY;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMalloc(&d_match_lengths_temp, total_max_sequences * sizeof(u32));
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_OUT_OF_MEMORY;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMalloc(&d_offsets_temp, total_max_sequences * sizeof(u32));
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_OUT_OF_MEMORY;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Copy segment info to device
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMemcpyAsync(d_segments, h_segments, num_segments * sizeof(SegmentInfo),
+// LEGACY_PARALLEL_BACKTRACK:                          cudaMemcpyHostToDevice, stream);
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         printf("[ERROR] Failed to copy segments to device: %s\n", cudaGetErrorString(err));
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_offsets_temp);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_CUDA_ERROR;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Debug: Print configuration
+// LEGACY_PARALLEL_BACKTRACK:     printf("[DEBUG] Parallel backtracking config:\n");
+// LEGACY_PARALLEL_BACKTRACK:     printf("  Input size: %u bytes (%.2f MB)\n", input_size, input_size / (1024.0f * 1024.0f));
+// LEGACY_PARALLEL_BACKTRACK:     printf("  Num segments: %u\n", num_segments);
+// LEGACY_PARALLEL_BACKTRACK:     printf("  Segment size: %u bytes (%.2f KB)\n", segment_size, segment_size / 1024.0f);
+// LEGACY_PARALLEL_BACKTRACK:     printf("  Max seq/segment: %u\n", max_seq_per_segment);
+// LEGACY_PARALLEL_BACKTRACK:     printf("  Total temp memory: %.2f MB\n", (total_max_sequences * 12) / (1024.0f * 1024.0f));
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Debug: Validate pointers
+// LEGACY_PARALLEL_BACKTRACK:     printf("[DEBUG] Validating pointers:\n");
+// LEGACY_PARALLEL_BACKTRACK:     printf("  d_costs: %p\n", (void*)d_costs);
+// LEGACY_PARALLEL_BACKTRACK:     printf("  d_segments: %p\n", (void*)d_segments);
+// LEGACY_PARALLEL_BACKTRACK:     printf("  d_literal_lengths_temp: %p\n", (void*)d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:     printf("  d_match_lengths_temp: %p\n", (void*)d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:     printf("  d_offsets_temp: %p\n", (void*)d_offsets_temp);
+// LEGACY_PARALLEL_BACKTRACK:     printf("  d_sequence_counts: %p\n", (void*)d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     if (d_costs == nullptr) {
+// LEGACY_PARALLEL_BACKTRACK:         printf("[ERROR] d_costs is NULL!\n");
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_offsets_temp);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_INVALID_PARAMETER;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Launch parallel backtracking kernel (one block per segment)
+// LEGACY_PARALLEL_BACKTRACK:     // Use 32 threads per block (warp size) even though only first thread does work
+// LEGACY_PARALLEL_BACKTRACK:     printf("[DEBUG] Launching kernel with %u blocks, 32 threads/block...\n", num_segments);
+// LEGACY_PARALLEL_BACKTRACK:     backtrack_segments_parallel_kernel<<<num_segments, 32>>>(
+// LEGACY_PARALLEL_BACKTRACK:         d_costs,
+// LEGACY_PARALLEL_BACKTRACK:         d_segments,
+// LEGACY_PARALLEL_BACKTRACK:         d_literal_lengths_temp,
+// LEGACY_PARALLEL_BACKTRACK:         d_match_lengths_temp,
+// LEGACY_PARALLEL_BACKTRACK:         d_offsets_temp,
+// LEGACY_PARALLEL_BACKTRACK:         d_sequence_counts,
+// LEGACY_PARALLEL_BACKTRACK:         num_segments,
+// LEGACY_PARALLEL_BACKTRACK:         max_seq_per_segment
+// LEGACY_PARALLEL_BACKTRACK:     );
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaGetLastError();
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         printf("[ERROR] Kernel launch failed: %s\n", cudaGetErrorString(err));
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_offsets_temp);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_CUDA_ERROR;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Wait for kernel to complete
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaStreamSynchronize(stream);
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         printf("[ERROR] Kernel execution failed: %s\n", cudaGetErrorString(err));
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_offsets_temp);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_CUDA_ERROR;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     printf("[DEBUG] Kernel completed successfully\n");
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Copy sequence counts back to host for merging
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMemcpyAsync(h_sequence_counts, d_sequence_counts, 
+// LEGACY_PARALLEL_BACKTRACK:                          num_segments * sizeof(u32),
+// LEGACY_PARALLEL_BACKTRACK:                          cudaMemcpyDeviceToHost, stream);
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_offsets_temp);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_CUDA_ERROR;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaStreamSynchronize(stream);
+// LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:         cudaFree(d_offsets_temp);
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_CUDA_ERROR;
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Merge segments: simply concatenate (no boundary stitching needed if segments are independent)
+// LEGACY_PARALLEL_BACKTRACK:     u32 total_sequences = 0;
+// LEGACY_PARALLEL_BACKTRACK:     for (u32 i = 0; i < num_segments; ++i) {
+// LEGACY_PARALLEL_BACKTRACK:         total_sequences += h_sequence_counts[i];
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Allocate host memory for merged sequences
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_literal_lengths = new u32[total_sequences];
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_match_lengths = new u32[total_sequences];
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_offsets = new u32[total_sequences];
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Copy all sequences from device
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_literal_lengths_temp = new u32[total_max_sequences];
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_match_lengths_temp = new u32[total_max_sequences];
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_offsets_temp = new u32[total_max_sequences];
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMemcpyAsync(h_literal_lengths_temp, d_literal_lengths_temp,
+// LEGACY_PARALLEL_BACKTRACK:                          total_max_sequences * sizeof(u32),
+// LEGACY_PARALLEL_BACKTRACK:                          cudaMemcpyDeviceToHost, stream);
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMemcpyAsync(h_match_lengths_temp, d_match_lengths_temp,
+// LEGACY_PARALLEL_BACKTRACK:                          total_max_sequences * sizeof(u32),
+// LEGACY_PARALLEL_BACKTRACK:                          cudaMemcpyDeviceToHost, stream);
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMemcpyAsync(h_offsets_temp, d_offsets_temp,
+// LEGACY_PARALLEL_BACKTRACK:                          total_max_sequences * sizeof(u32),
+// LEGACY_PARALLEL_BACKTRACK:                          cudaMemcpyDeviceToHost, stream);
+// LEGACY_PARALLEL_BACKTRACK:     cudaStreamSynchronize(stream);
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Merge: copy sequences from each segment to final buffer
+// LEGACY_PARALLEL_BACKTRACK:     u32 out_idx = 0;
+// LEGACY_PARALLEL_BACKTRACK:     for (u32 i = 0; i < num_segments; ++i) {
+// LEGACY_PARALLEL_BACKTRACK:         u32 seg_offset = h_segments[i].sequence_offset;
+// LEGACY_PARALLEL_BACKTRACK:         u32 seg_count = h_sequence_counts[i];
+// LEGACY_PARALLEL_BACKTRACK:         
+// LEGACY_PARALLEL_BACKTRACK:         for (u32 j = 0; j < seg_count; ++j) {
+// LEGACY_PARALLEL_BACKTRACK:             h_literal_lengths[out_idx] = h_literal_lengths_temp[seg_offset + j];
+// LEGACY_PARALLEL_BACKTRACK:             h_match_lengths[out_idx] = h_match_lengths_temp[seg_offset + j];
+// LEGACY_PARALLEL_BACKTRACK:             h_offsets[out_idx] = h_offsets_temp[seg_offset + j];
+// LEGACY_PARALLEL_BACKTRACK:             out_idx++;
+// LEGACY_PARALLEL_BACKTRACK:         }
+// LEGACY_PARALLEL_BACKTRACK:     }
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     *h_num_sequences = total_sequences;
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Copy merged results to device workspace
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMemcpyAsync(workspace.d_literal_lengths_reverse, h_literal_lengths,
+// LEGACY_PARALLEL_BACKTRACK:                          total_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMemcpyAsync(workspace.d_match_lengths_reverse, h_match_lengths,
+// LEGACY_PARALLEL_BACKTRACK:                          total_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+// LEGACY_PARALLEL_BACKTRACK:     err = cudaMemcpyAsync(workspace.d_offsets_reverse, h_offsets,
+// LEGACY_PARALLEL_BACKTRACK:                          total_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
+// LEGACY_PARALLEL_BACKTRACK:     cudaStreamSynchronize(stream);
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     // Cleanup
+// LEGACY_PARALLEL_BACKTRACK:     cudaFree(d_segments);
+// LEGACY_PARALLEL_BACKTRACK:     cudaFree(d_sequence_counts);
+// LEGACY_PARALLEL_BACKTRACK:     cudaFree(d_literal_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:     cudaFree(d_match_lengths_temp);
+// LEGACY_PARALLEL_BACKTRACK:     cudaFree(d_offsets_temp);
+// LEGACY_PARALLEL_BACKTRACK:     delete[] h_segments;
+// LEGACY_PARALLEL_BACKTRACK:     delete[] h_sequence_counts;
+// LEGACY_PARALLEL_BACKTRACK:     delete[] h_literal_lengths;
+// LEGACY_PARALLEL_BACKTRACK:     delete[] h_match_lengths;
+// LEGACY_PARALLEL_BACKTRACK:     delete[] h_offsets;
+// LEGACY_PARALLEL_BACKTRACK:     delete[] h_literal_lengths_temp;
+// LEGACY_PARALLEL_BACKTRACK:     delete[] h_match_lengths_temp;
+// LEGACY_PARALLEL_BACKTRACK:     delete[] h_offsets_temp;
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     return Status::SUCCESS;
+// LEGACY_PARALLEL_BACKTRACK: }
+// LEGACY_PARALLEL_BACKTRACK: 
+// LEGACY_PARALLEL_BACKTRACK: 
+// LEGACY_PARALLEL_BACKTRACK: // Adaptive backtracking: chooses parallel or CPU based on input size
+// LEGACY_PARALLEL_BACKTRACK: Status backtrack_sequences(
+// LEGACY_PARALLEL_BACKTRACK:     u32 input_size,
+// LEGACY_PARALLEL_BACKTRACK:     CompressionWorkspace& workspace,
+// LEGACY_PARALLEL_BACKTRACK:     u32* h_num_sequences,
+// LEGACY_PARALLEL_BACKTRACK:     cudaStream_t stream
+// LEGACY_PARALLEL_BACKTRACK: ) {
+// LEGACY_PARALLEL_BACKTRACK:     // Get adaptive configuration
+// LEGACY_PARALLEL_BACKTRACK:     BacktrackConfig config = create_backtrack_config(input_size);
+// LEGACY_PARALLEL_BACKTRACK:     
+// LEGACY_PARALLEL_BACKTRACK:     if (config.use_parallel) {
+// LEGACY_PARALLEL_BACKTRACK:         // Use parallel GPU backtracking for large inputs
+// LEGACY_PARALLEL_BACKTRACK: //        std::cout << "[LZ77] Pass 3: Backtracking sequences (parallel GPU, " 
 //                  << config.num_segments << " segments)" << std::endl;
         return backtrack_sequences_parallel(workspace.d_costs, input_size, 
                                            workspace, h_num_sequences, stream);
