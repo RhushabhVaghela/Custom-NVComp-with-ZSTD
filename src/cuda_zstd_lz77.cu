@@ -1058,197 +1058,197 @@ void backtrack_sequences_cpu(
     *h_num_sequences = seq_idx;
 }
 
-Status find_optimal_parse(
-    LZ77Context& lz77_ctx,
-    const byte_t* d_input,
-    size_t input_size,
-    const DictionaryContent* dict,
-    CompressionWorkspace* workspace,
-    const byte_t* d_window,
-    size_t window_size,
-    cudaStream_t stream,
-    sequence::SequenceContext* seq_ctx,
-    u32* num_sequences_out,
-    size_t* literals_size_out,
-    bool is_last_block,
-    u32 chunk_size,
-    u32* total_literals_out,
-    bool output_raw_values
-) {
-    if (!d_input || input_size == 0 || !workspace || !seq_ctx) {
-        return Status::ERROR_INVALID_PARAMETER;
-    }
-    
-    // CRITICAL: Clear any pending CUDA errors from previous operations
-    // cudaPointerGetAttributes can leave sticky errors that contaminate subsequent calls
-    cudaError_t entry_err = cudaGetLastError();
-    (void)entry_err; // Suppress unused variable warning in release builds
-
-    // Set workspace pointers into context
-    lz77_ctx.d_matches = static_cast<Match*>(workspace->d_matches);
-    lz77_ctx.d_costs = static_cast<ParseCost*>(workspace->d_costs);
-    lz77_ctx.d_literal_lengths_reverse = workspace->d_literal_lengths_reverse;
-    lz77_ctx.d_match_lengths_reverse = workspace->d_match_lengths_reverse;
-    lz77_ctx.d_offsets_reverse = workspace->d_offsets_reverse;
-    lz77_ctx.max_sequences_capacity = workspace->max_sequences;
-    
-    lz77_ctx.max_sequences_capacity = workspace->max_sequences;
-    // (DEBUG) Skip kernels to isolate hang
-    // return Status::SUCCESS;
-
-    // Phase 1: Compute optimal parse costs
-    // Use 128KB chunks for better parallelism and compression
-    // u32 chunk_size = 131072; // Use parameter instead 
-    // u32 num_blocks = (input_size + chunk_size - 1) / chunk_size;
-
-    
-    // Initialize costs to infinity first (required because we removed per-block init loop)
-    // We can use a simple kernel or memset for this if needed, but for now relying on logic
-    // Actually, optimal_parse_kernel checks d_costs[pos].cost < infinity.
-    // So we MUST initialize d_costs to infinity.
-    // Since ParseCost is struct, memset 0xFF sets cost to huge value (good).
-    // 0xFFFFFFFF is > 1000000000.
-    // Initialize costs to infinity (0xFF creates large values for ParseCost fields)
-    // Phase 1 & 2: CPU Optimal Parse & Backtracking (Replaces GPU kernels)
-    // The GPU kernel was O(N^2) due to wavefront relaxation. CPU is O(N).
-    
-    // 1. Allocate host memory (Pageable for cacheable access)
-    Match* h_matches = new Match[input_size];
-    ParseCost* h_costs = new ParseCost[input_size + 1];
-    u32* h_literal_lengths = new u32[lz77_ctx.max_sequences_capacity];
-    u32* h_match_lengths = new u32[lz77_ctx.max_sequences_capacity];
-    u32* h_offsets = new u32[lz77_ctx.max_sequences_capacity];
-    
-    // Initialize costs[0]
-    h_costs[0] = {0, 0, 0, false};
-    // Initialize rest to infinity
-    for (size_t i = 1; i <= input_size; ++i) {
-        h_costs[i].cost = 1000000000;
-    }
-    
-    // 2. Copy matches to Host
-    CUDA_CHECK(cudaMemcpyAsync(h_matches, lz77_ctx.d_matches, input_size * sizeof(Match), 
-                               cudaMemcpyDeviceToHost, stream));
-    
-    // 3. Sync stream (Wait for matches)
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-    
-    // 4. Run CPU Optimal Parse (Forward DP)
-    // This is strictly O(N)
-    for (u32 pos = 0; pos < input_size; ++pos) {
-        u32 current_cost = h_costs[pos].cost;
-        if (current_cost >= 1000000000) continue; // Should not happen if reachable
-        
-        // Option 1: Literal
-        // Assume literal cost is 1 (simplified, or use calculate_literal_cost(1))
-        // In kernel it was: current_cost + calculate_literal_cost(1)
-        // Let's assume calculate_literal_cost is available or inline it.
-        // For now, let's use a constant or look up the function.
-        // It's likely in a header. Let's assume 1 for now or find it.
-        // Actually, let's use a rough estimate: 8 bits + overhead?
-        // The kernel used `calculate_literal_cost(1)`.
-        // I'll define a helper or just use 9 (approx cost in bits).
-        u32 cost_literal = current_cost + 9; 
-        
-        if (pos + 1 <= input_size) {
-            if (cost_literal < h_costs[pos + 1].cost) {
-                h_costs[pos + 1].cost = cost_literal;
-                h_costs[pos + 1].len = 1;
-                h_costs[pos + 1].offset = 0;
-                h_costs[pos + 1].is_match = false;
-            }
-        }
-        
-        // Option 2: Match
-        Match m = h_matches[pos];
-        if (m.length >= 3) {
-            // Calculate match cost. Kernel used `calculate_match_cost`.
-            // We need to replicate this.
-            // Cost is roughly: token cost + offset cost + length cost.
-            // Let's use a simplified cost model for CPU:
-            // Cost = 20 (base) + (offset_log) + (length_log)
-            // Or just use the match length as heuristic?
-            // No, we need bit cost.
-            // Let's use a simple approximation:
-            // Match cost < Literal cost * length.
-            // Match cost ~ 20 bits. Literal cost * 3 ~ 27 bits.
-            u32 cost_match = current_cost + 25; // Approx match cost
-            
-            u32 end_pos = pos + m.length;
-            if (end_pos <= input_size) {
-                if (cost_match < h_costs[end_pos].cost) {
-                    h_costs[end_pos].cost = cost_match;
-                    h_costs[end_pos].len = m.length;
-                    h_costs[end_pos].offset = m.offset;
-                    h_costs[end_pos].is_match = true;
-                }
-            }
-        }
-    }
-    
-    // 5. Run CPU Backtracking
-    u32 num_sequences = 0;
-    backtrack_sequences_cpu(
-        h_costs,
-        input_size,
-        h_literal_lengths,
-        h_match_lengths,
-        h_offsets,
-        &num_sequences,
-        lz77_ctx.max_sequences_capacity
-    );
-    
-    // 6. Copy results back to Device
-    CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_literal_lengths_reverse, h_literal_lengths, 
-                               num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream));
-    CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_match_lengths_reverse, h_match_lengths, 
-                               num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream));
-    CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_offsets_reverse, h_offsets, 
-                               num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream));
-                               
-    // 7. Cleanup Host Memory
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-    
-    delete[] h_matches;
-    delete[] h_costs;
-    delete[] h_literal_lengths;
-    delete[] h_match_lengths;
-    delete[] h_offsets;
-
-    if (num_sequences_out) *num_sequences_out = num_sequences;
-    
-    // Phase 5: Reverse & Build
-    u32* d_total_literals = &workspace->d_block_sums[2];
-    u32 block_size = 256;
-    u32 grid_size = (num_sequences + block_size - 1) / block_size;
-    if (grid_size == 0) grid_size = 1;
-    size_t shared_mem = block_size * sizeof(u32);
-    
-    reverse_and_build_sequences_kernel<<<grid_size, block_size, shared_mem, stream>>>(
-        d_input,
-        input_size,
-        lz77_ctx.d_literal_lengths_reverse,
-        lz77_ctx.d_match_lengths_reverse,
-        lz77_ctx.d_offsets_reverse,
-        num_sequences,
-        seq_ctx->d_literal_lengths,
-        seq_ctx->d_match_lengths,
-        seq_ctx->d_offsets,
-        seq_ctx->d_literals_buffer,
-        d_total_literals,
-        output_raw_values
-    );
-    CUDA_CHECK(cudaGetLastError());
-    
-    // Phase 6: Copy total literals
-    if (total_literals_out) {
-        CUDA_CHECK(cudaMemcpyAsync(total_literals_out, d_total_literals, sizeof(u32),
-                                   cudaMemcpyDeviceToHost, stream));
-        CUDA_CHECK(cudaStreamSynchronize(stream));
-    }
-    
-    return Status::SUCCESS;
-}
+// LEGACY_CPU_PARSE: Status find_optimal_parse(
+// LEGACY_CPU_PARSE:     LZ77Context& lz77_ctx,
+// LEGACY_CPU_PARSE:     const byte_t* d_input,
+// LEGACY_CPU_PARSE:     size_t input_size,
+// LEGACY_CPU_PARSE:     const DictionaryContent* dict,
+// LEGACY_CPU_PARSE:     CompressionWorkspace* workspace,
+// LEGACY_CPU_PARSE:     const byte_t* d_window,
+// LEGACY_CPU_PARSE:     size_t window_size,
+// LEGACY_CPU_PARSE:     cudaStream_t stream,
+// LEGACY_CPU_PARSE:     sequence::SequenceContext* seq_ctx,
+// LEGACY_CPU_PARSE:     u32* num_sequences_out,
+// LEGACY_CPU_PARSE:     size_t* literals_size_out,
+// LEGACY_CPU_PARSE:     bool is_last_block,
+// LEGACY_CPU_PARSE:     u32 chunk_size,
+// LEGACY_CPU_PARSE:     u32* total_literals_out,
+// LEGACY_CPU_PARSE:     bool output_raw_values
+// LEGACY_CPU_PARSE: ) {
+// LEGACY_CPU_PARSE:     if (!d_input || input_size == 0 || !workspace || !seq_ctx) {
+// LEGACY_CPU_PARSE:         return Status::ERROR_INVALID_PARAMETER;
+// LEGACY_CPU_PARSE:     }
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // CRITICAL: Clear any pending CUDA errors from previous operations
+// LEGACY_CPU_PARSE:     // cudaPointerGetAttributes can leave sticky errors that contaminate subsequent calls
+// LEGACY_CPU_PARSE:     cudaError_t entry_err = cudaGetLastError();
+// LEGACY_CPU_PARSE:     (void)entry_err; // Suppress unused variable warning in release builds
+// LEGACY_CPU_PARSE: 
+// LEGACY_CPU_PARSE:     // Set workspace pointers into context
+// LEGACY_CPU_PARSE:     lz77_ctx.d_matches = static_cast<Match*>(workspace->d_matches);
+// LEGACY_CPU_PARSE:     lz77_ctx.d_costs = static_cast<ParseCost*>(workspace->d_costs);
+// LEGACY_CPU_PARSE:     lz77_ctx.d_literal_lengths_reverse = workspace->d_literal_lengths_reverse;
+// LEGACY_CPU_PARSE:     lz77_ctx.d_match_lengths_reverse = workspace->d_match_lengths_reverse;
+// LEGACY_CPU_PARSE:     lz77_ctx.d_offsets_reverse = workspace->d_offsets_reverse;
+// LEGACY_CPU_PARSE:     lz77_ctx.max_sequences_capacity = workspace->max_sequences;
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     lz77_ctx.max_sequences_capacity = workspace->max_sequences;
+// LEGACY_CPU_PARSE:     // (DEBUG) Skip kernels to isolate hang
+// LEGACY_CPU_PARSE:     // return Status::SUCCESS;
+// LEGACY_CPU_PARSE: 
+// LEGACY_CPU_PARSE:     // Phase 1: Compute optimal parse costs
+// LEGACY_CPU_PARSE:     // Use 128KB chunks for better parallelism and compression
+// LEGACY_CPU_PARSE:     // u32 chunk_size = 131072; // Use parameter instead 
+// LEGACY_CPU_PARSE:     // u32 num_blocks = (input_size + chunk_size - 1) / chunk_size;
+// LEGACY_CPU_PARSE: 
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // Initialize costs to infinity first (required because we removed per-block init loop)
+// LEGACY_CPU_PARSE:     // We can use a simple kernel or memset for this if needed, but for now relying on logic
+// LEGACY_CPU_PARSE:     // Actually, optimal_parse_kernel checks d_costs[pos].cost < infinity.
+// LEGACY_CPU_PARSE:     // So we MUST initialize d_costs to infinity.
+// LEGACY_CPU_PARSE:     // Since ParseCost is struct, memset 0xFF sets cost to huge value (good).
+// LEGACY_CPU_PARSE:     // 0xFFFFFFFF is > 1000000000.
+// LEGACY_CPU_PARSE:     // Initialize costs to infinity (0xFF creates large values for ParseCost fields)
+// LEGACY_CPU_PARSE:     // Phase 1 & 2: CPU Optimal Parse & Backtracking (Replaces GPU kernels)
+// LEGACY_CPU_PARSE:     // The GPU kernel was O(N^2) due to wavefront relaxation. CPU is O(N).
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // 1. Allocate host memory (Pageable for cacheable access)
+// LEGACY_CPU_PARSE:     Match* h_matches = new Match[input_size];
+// LEGACY_CPU_PARSE:     ParseCost* h_costs = new ParseCost[input_size + 1];
+// LEGACY_CPU_PARSE:     u32* h_literal_lengths = new u32[lz77_ctx.max_sequences_capacity];
+// LEGACY_CPU_PARSE:     u32* h_match_lengths = new u32[lz77_ctx.max_sequences_capacity];
+// LEGACY_CPU_PARSE:     u32* h_offsets = new u32[lz77_ctx.max_sequences_capacity];
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // Initialize costs[0]
+// LEGACY_CPU_PARSE:     h_costs[0] = {0, 0, 0, false};
+// LEGACY_CPU_PARSE:     // Initialize rest to infinity
+// LEGACY_CPU_PARSE:     for (size_t i = 1; i <= input_size; ++i) {
+// LEGACY_CPU_PARSE:         h_costs[i].cost = 1000000000;
+// LEGACY_CPU_PARSE:     }
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // 2. Copy matches to Host
+// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaMemcpyAsync(h_matches, lz77_ctx.d_matches, input_size * sizeof(Match), 
+// LEGACY_CPU_PARSE:                                cudaMemcpyDeviceToHost, stream));
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // 3. Sync stream (Wait for matches)
+// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaStreamSynchronize(stream));
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // 4. Run CPU Optimal Parse (Forward DP)
+// LEGACY_CPU_PARSE:     // This is strictly O(N)
+// LEGACY_CPU_PARSE:     for (u32 pos = 0; pos < input_size; ++pos) {
+// LEGACY_CPU_PARSE:         u32 current_cost = h_costs[pos].cost;
+// LEGACY_CPU_PARSE:         if (current_cost >= 1000000000) continue; // Should not happen if reachable
+// LEGACY_CPU_PARSE:         
+// LEGACY_CPU_PARSE:         // Option 1: Literal
+// LEGACY_CPU_PARSE:         // Assume literal cost is 1 (simplified, or use calculate_literal_cost(1))
+// LEGACY_CPU_PARSE:         // In kernel it was: current_cost + calculate_literal_cost(1)
+// LEGACY_CPU_PARSE:         // Let's assume calculate_literal_cost is available or inline it.
+// LEGACY_CPU_PARSE:         // For now, let's use a constant or look up the function.
+// LEGACY_CPU_PARSE:         // It's likely in a header. Let's assume 1 for now or find it.
+// LEGACY_CPU_PARSE:         // Actually, let's use a rough estimate: 8 bits + overhead?
+// LEGACY_CPU_PARSE:         // The kernel used `calculate_literal_cost(1)`.
+// LEGACY_CPU_PARSE:         // I'll define a helper or just use 9 (approx cost in bits).
+// LEGACY_CPU_PARSE:         u32 cost_literal = current_cost + 9; 
+// LEGACY_CPU_PARSE:         
+// LEGACY_CPU_PARSE:         if (pos + 1 <= input_size) {
+// LEGACY_CPU_PARSE:             if (cost_literal < h_costs[pos + 1].cost) {
+// LEGACY_CPU_PARSE:                 h_costs[pos + 1].cost = cost_literal;
+// LEGACY_CPU_PARSE:                 h_costs[pos + 1].len = 1;
+// LEGACY_CPU_PARSE:                 h_costs[pos + 1].offset = 0;
+// LEGACY_CPU_PARSE:                 h_costs[pos + 1].is_match = false;
+// LEGACY_CPU_PARSE:             }
+// LEGACY_CPU_PARSE:         }
+// LEGACY_CPU_PARSE:         
+// LEGACY_CPU_PARSE:         // Option 2: Match
+// LEGACY_CPU_PARSE:         Match m = h_matches[pos];
+// LEGACY_CPU_PARSE:         if (m.length >= 3) {
+// LEGACY_CPU_PARSE:             // Calculate match cost. Kernel used `calculate_match_cost`.
+// LEGACY_CPU_PARSE:             // We need to replicate this.
+// LEGACY_CPU_PARSE:             // Cost is roughly: token cost + offset cost + length cost.
+// LEGACY_CPU_PARSE:             // Let's use a simplified cost model for CPU:
+// LEGACY_CPU_PARSE:             // Cost = 20 (base) + (offset_log) + (length_log)
+// LEGACY_CPU_PARSE:             // Or just use the match length as heuristic?
+// LEGACY_CPU_PARSE:             // No, we need bit cost.
+// LEGACY_CPU_PARSE:             // Let's use a simple approximation:
+// LEGACY_CPU_PARSE:             // Match cost < Literal cost * length.
+// LEGACY_CPU_PARSE:             // Match cost ~ 20 bits. Literal cost * 3 ~ 27 bits.
+// LEGACY_CPU_PARSE:             u32 cost_match = current_cost + 25; // Approx match cost
+// LEGACY_CPU_PARSE:             
+// LEGACY_CPU_PARSE:             u32 end_pos = pos + m.length;
+// LEGACY_CPU_PARSE:             if (end_pos <= input_size) {
+// LEGACY_CPU_PARSE:                 if (cost_match < h_costs[end_pos].cost) {
+// LEGACY_CPU_PARSE:                     h_costs[end_pos].cost = cost_match;
+// LEGACY_CPU_PARSE:                     h_costs[end_pos].len = m.length;
+// LEGACY_CPU_PARSE:                     h_costs[end_pos].offset = m.offset;
+// LEGACY_CPU_PARSE:                     h_costs[end_pos].is_match = true;
+// LEGACY_CPU_PARSE:                 }
+// LEGACY_CPU_PARSE:             }
+// LEGACY_CPU_PARSE:         }
+// LEGACY_CPU_PARSE:     }
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // 5. Run CPU Backtracking
+// LEGACY_CPU_PARSE:     u32 num_sequences = 0;
+// LEGACY_CPU_PARSE:     backtrack_sequences_cpu(
+// LEGACY_CPU_PARSE:         h_costs,
+// LEGACY_CPU_PARSE:         input_size,
+// LEGACY_CPU_PARSE:         h_literal_lengths,
+// LEGACY_CPU_PARSE:         h_match_lengths,
+// LEGACY_CPU_PARSE:         h_offsets,
+// LEGACY_CPU_PARSE:         &num_sequences,
+// LEGACY_CPU_PARSE:         lz77_ctx.max_sequences_capacity
+// LEGACY_CPU_PARSE:     );
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // 6. Copy results back to Device
+// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_literal_lengths_reverse, h_literal_lengths, 
+// LEGACY_CPU_PARSE:                                num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream));
+// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_match_lengths_reverse, h_match_lengths, 
+// LEGACY_CPU_PARSE:                                num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream));
+// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_offsets_reverse, h_offsets, 
+// LEGACY_CPU_PARSE:                                num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream));
+// LEGACY_CPU_PARSE:                                
+// LEGACY_CPU_PARSE:     // 7. Cleanup Host Memory
+// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaStreamSynchronize(stream));
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     delete[] h_matches;
+// LEGACY_CPU_PARSE:     delete[] h_costs;
+// LEGACY_CPU_PARSE:     delete[] h_literal_lengths;
+// LEGACY_CPU_PARSE:     delete[] h_match_lengths;
+// LEGACY_CPU_PARSE:     delete[] h_offsets;
+// LEGACY_CPU_PARSE: 
+// LEGACY_CPU_PARSE:     if (num_sequences_out) *num_sequences_out = num_sequences;
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // Phase 5: Reverse & Build
+// LEGACY_CPU_PARSE:     u32* d_total_literals = &workspace->d_block_sums[2];
+// LEGACY_CPU_PARSE:     u32 block_size = 256;
+// LEGACY_CPU_PARSE:     u32 grid_size = (num_sequences + block_size - 1) / block_size;
+// LEGACY_CPU_PARSE:     if (grid_size == 0) grid_size = 1;
+// LEGACY_CPU_PARSE:     size_t shared_mem = block_size * sizeof(u32);
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     reverse_and_build_sequences_kernel<<<grid_size, block_size, shared_mem, stream>>>(
+// LEGACY_CPU_PARSE:         d_input,
+// LEGACY_CPU_PARSE:         input_size,
+// LEGACY_CPU_PARSE:         lz77_ctx.d_literal_lengths_reverse,
+// LEGACY_CPU_PARSE:         lz77_ctx.d_match_lengths_reverse,
+// LEGACY_CPU_PARSE:         lz77_ctx.d_offsets_reverse,
+// LEGACY_CPU_PARSE:         num_sequences,
+// LEGACY_CPU_PARSE:         seq_ctx->d_literal_lengths,
+// LEGACY_CPU_PARSE:         seq_ctx->d_match_lengths,
+// LEGACY_CPU_PARSE:         seq_ctx->d_offsets,
+// LEGACY_CPU_PARSE:         seq_ctx->d_literals_buffer,
+// LEGACY_CPU_PARSE:         d_total_literals,
+// LEGACY_CPU_PARSE:         output_raw_values
+// LEGACY_CPU_PARSE:     );
+// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaGetLastError());
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     // Phase 6: Copy total literals
+// LEGACY_CPU_PARSE:     if (total_literals_out) {
+// LEGACY_CPU_PARSE:         CUDA_CHECK(cudaMemcpyAsync(total_literals_out, d_total_literals, sizeof(u32),
+// LEGACY_CPU_PARSE:                                    cudaMemcpyDeviceToHost, stream));
+// LEGACY_CPU_PARSE:         CUDA_CHECK(cudaStreamSynchronize(stream));
+// LEGACY_CPU_PARSE:     }
+// LEGACY_CPU_PARSE:     
+// LEGACY_CPU_PARSE:     return Status::SUCCESS;
+// LEGACY_CPU_PARSE: }
 
 void test_linkage() {
 //     printf("test_linkage called\n");
