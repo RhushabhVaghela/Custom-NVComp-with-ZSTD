@@ -258,10 +258,10 @@ __global__ void backtrack_kernel(
 // LEGACY_BACKTRACK_IMPL: 
 Status compute_optimal_parse(
     const u8* d_input,
-    u32 input_size,
-    CompressionWorkspace& workspace,
-    const LZ77Config& config,
-    cudaStream_t stream
+// LEGACY: u32 input_size,
+// LEGACY: CompressionWorkspace& workspace,
+// LEGACY: const LZ77Config& config,
+// LEGACY: cudaStream_t stream
 ) {
 //     std::cout << "[LZ77] Pass 2: Computing optimal parse (parallel)" << std::endl;
 
@@ -683,21 +683,21 @@ Status backtrack_sequences_cpu(
 // LEGACY_PARALLEL_BACKTRACK:     
 // LEGACY_PARALLEL_BACKTRACK:     return Status::SUCCESS;
 // LEGACY_PARALLEL_BACKTRACK: }
-// LEGACY_PARALLEL_BACKTRACK: 
+
 // LEGACY_PARALLEL_BACKTRACK: 
 // LEGACY_PARALLEL_BACKTRACK: // Adaptive backtracking: chooses parallel or CPU based on input size
-// LEGACY_PARALLEL_BACKTRACK: Status backtrack_sequences(
-// LEGACY_PARALLEL_BACKTRACK:     u32 input_size,
-// LEGACY_PARALLEL_BACKTRACK:     CompressionWorkspace& workspace,
-// LEGACY_PARALLEL_BACKTRACK:     u32* h_num_sequences,
-// LEGACY_PARALLEL_BACKTRACK:     cudaStream_t stream
-// LEGACY_PARALLEL_BACKTRACK: ) {
-// LEGACY_PARALLEL_BACKTRACK:     // Get adaptive configuration
-// LEGACY_PARALLEL_BACKTRACK:     BacktrackConfig config = create_backtrack_config(input_size);
-// LEGACY_PARALLEL_BACKTRACK:     
-// LEGACY_PARALLEL_BACKTRACK:     if (config.use_parallel) {
-// LEGACY_PARALLEL_BACKTRACK:         // Use parallel GPU backtracking for large inputs
-// LEGACY_PARALLEL_BACKTRACK: //        std::cout << "[LZ77] Pass 3: Backtracking sequences (parallel GPU, " 
+Status backtrack_sequences(
+    u32 input_size,
+    CompressionWorkspace& workspace,
+    u32* h_num_sequences,
+    cudaStream_t stream
+) {
+    // Get adaptive configuration
+    BacktrackConfig config = create_backtrack_config(input_size);
+    
+    if (config.use_parallel) {
+        // Use parallel GPU backtracking for large inputs
+//        std::cout << "[LZ77] Pass 3: Backtracking sequences (parallel GPU, " 
 //                  << config.num_segments << " segments)" << std::endl;
         return backtrack_sequences_parallel(workspace.d_costs, input_size, 
                                            workspace, h_num_sequences, stream);
