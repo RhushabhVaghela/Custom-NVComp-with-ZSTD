@@ -740,65 +740,65 @@ __global__ void count_sequences_kernel(
  * 
  * SAFETY: Staging buffer is pre-allocated in host code
  * OUTPUT: Sequences in reverse order to staging buffer
- */
-__global__ void backtrack_build_sequences_kernel(
-    const byte_t* input,
-    u32 input_size,
-    const ParseCost* d_costs,
-    
-    // Pre-allocated output buffers (from host)
-    u32* d_literal_lengths_reverse,
-    u32* d_match_lengths_reverse,
-    u32* d_offsets_reverse,
-    u32 max_sequences,         // Capacity of output arrays
-    u32* d_num_sequences_out   // Output: actual count
-) {
-    if (threadIdx.x != 0 || blockIdx.x != 0) return;
-    
-    u32 seq_idx = 0;
-    u32 pos = input_size;
-    
-    // 1. Consume trailing literals (not part of any sequence)
-    while (pos > 0 && !d_costs[pos].is_match) {
-        pos--;
-    }
-    
-    // 2. Backtrack matches
-    while (pos > 0 && seq_idx < max_sequences) {
-        const ParseCost& entry = d_costs[pos];
-        
-        // We expect a match here
-        if (!entry.is_match) {
-            // Should not happen if logic is correct, but safety check
-            pos--;
-            continue;
-        }
-        
-        u32 ml = entry.len;
-        u32 of = entry.offset;
-        
-        // Safety check
-        if (ml == 0 || ml > pos) break;
-        
-        pos -= ml;
-        
-        // Count literals before this match
-        u32 ll = 0;
-        while (pos > 0 && !d_costs[pos].is_match) {
-            ll++;
-            pos--;
-        }
-        
-        // Emit sequence
-        d_literal_lengths_reverse[seq_idx] = ll;
-        d_match_lengths_reverse[seq_idx] = ml;
-        d_offsets_reverse[seq_idx] = of;
-        seq_idx++;
-    }
-    
-    // ✅ SAFE: Write to pre-allocated device memory, not stack
-    *d_num_sequences_out = seq_idx;
-}
+// LEGACY_GPU_BACKTRACK:  */
+// LEGACY_GPU_BACKTRACK: __global__ void backtrack_build_sequences_kernel(
+// LEGACY_GPU_BACKTRACK:     const byte_t* input,
+// LEGACY_GPU_BACKTRACK:     u32 input_size,
+// LEGACY_GPU_BACKTRACK:     const ParseCost* d_costs,
+// LEGACY_GPU_BACKTRACK:     
+// LEGACY_GPU_BACKTRACK:     // Pre-allocated output buffers (from host)
+// LEGACY_GPU_BACKTRACK:     u32* d_literal_lengths_reverse,
+// LEGACY_GPU_BACKTRACK:     u32* d_match_lengths_reverse,
+// LEGACY_GPU_BACKTRACK:     u32* d_offsets_reverse,
+// LEGACY_GPU_BACKTRACK:     u32 max_sequences,         // Capacity of output arrays
+// LEGACY_GPU_BACKTRACK:     u32* d_num_sequences_out   // Output: actual count
+// LEGACY_GPU_BACKTRACK: ) {
+// LEGACY_GPU_BACKTRACK:     if (threadIdx.x != 0 || blockIdx.x != 0) return;
+// LEGACY_GPU_BACKTRACK:     
+// LEGACY_GPU_BACKTRACK:     u32 seq_idx = 0;
+// LEGACY_GPU_BACKTRACK:     u32 pos = input_size;
+// LEGACY_GPU_BACKTRACK:     
+// LEGACY_GPU_BACKTRACK:     // 1. Consume trailing literals (not part of any sequence)
+// LEGACY_GPU_BACKTRACK:     while (pos > 0 && !d_costs[pos].is_match) {
+// LEGACY_GPU_BACKTRACK:         pos--;
+// LEGACY_GPU_BACKTRACK:     }
+// LEGACY_GPU_BACKTRACK:     
+// LEGACY_GPU_BACKTRACK:     // 2. Backtrack matches
+// LEGACY_GPU_BACKTRACK:     while (pos > 0 && seq_idx < max_sequences) {
+// LEGACY_GPU_BACKTRACK:         const ParseCost& entry = d_costs[pos];
+// LEGACY_GPU_BACKTRACK:         
+// LEGACY_GPU_BACKTRACK:         // We expect a match here
+// LEGACY_GPU_BACKTRACK:         if (!entry.is_match) {
+// LEGACY_GPU_BACKTRACK:             // Should not happen if logic is correct, but safety check
+// LEGACY_GPU_BACKTRACK:             pos--;
+// LEGACY_GPU_BACKTRACK:             continue;
+// LEGACY_GPU_BACKTRACK:         }
+// LEGACY_GPU_BACKTRACK:         
+// LEGACY_GPU_BACKTRACK:         u32 ml = entry.len;
+// LEGACY_GPU_BACKTRACK:         u32 of = entry.offset;
+// LEGACY_GPU_BACKTRACK:         
+// LEGACY_GPU_BACKTRACK:         // Safety check
+// LEGACY_GPU_BACKTRACK:         if (ml == 0 || ml > pos) break;
+// LEGACY_GPU_BACKTRACK:         
+// LEGACY_GPU_BACKTRACK:         pos -= ml;
+// LEGACY_GPU_BACKTRACK:         
+// LEGACY_GPU_BACKTRACK:         // Count literals before this match
+// LEGACY_GPU_BACKTRACK:         u32 ll = 0;
+// LEGACY_GPU_BACKTRACK:         while (pos > 0 && !d_costs[pos].is_match) {
+// LEGACY_GPU_BACKTRACK:             ll++;
+// LEGACY_GPU_BACKTRACK:             pos--;
+// LEGACY_GPU_BACKTRACK:         }
+// LEGACY_GPU_BACKTRACK:         
+// LEGACY_GPU_BACKTRACK:         // Emit sequence
+// LEGACY_GPU_BACKTRACK:         d_literal_lengths_reverse[seq_idx] = ll;
+// LEGACY_GPU_BACKTRACK:         d_match_lengths_reverse[seq_idx] = ml;
+// LEGACY_GPU_BACKTRACK:         d_offsets_reverse[seq_idx] = of;
+// LEGACY_GPU_BACKTRACK:         seq_idx++;
+// LEGACY_GPU_BACKTRACK:     }
+// LEGACY_GPU_BACKTRACK:     
+// LEGACY_GPU_BACKTRACK:     // ✅ SAFE: Write to pre-allocated device memory, not stack
+// LEGACY_GPU_BACKTRACK:     *d_num_sequences_out = seq_idx;
+// LEGACY_GPU_BACKTRACK: }
 
 // ============================================================================
 // PARALLEL: Flip Sequences to Forward Order + Build Literal Buffer
@@ -1007,56 +1007,56 @@ Status get_matches(
 
 // CPU-based backtracking helper to avoid single-thread GPU bottleneck
 // This replaces the slow backtrack_build_sequences_kernel
-void backtrack_sequences_cpu(
-    const ParseCost* h_costs,
-    u32 input_size,
-    u32* h_literal_lengths,
-    u32* h_match_lengths,
-    u32* h_offsets,
-    u32* h_num_sequences,
-    u32 max_sequences
-) {
-    u32 pos = input_size;
-    u32 seq_idx = 0;
-    
-    // 1. Consume trailing literals (not part of any sequence)
-    // These are handled by the final literal copy phase, not as a sequence
-    while (pos > 0 && !h_costs[pos].is_match) {
-        pos--;
-    }
-    
-    // 2. Backtrack matches
-    while (pos > 0 && seq_idx < max_sequences) {
-        const ParseCost& entry = h_costs[pos];
-        
-        if (!entry.is_match) {
-            // Should not happen if logic is correct (we skip literals below)
-            pos--;
-            continue;
-        }
-        
-        u32 ml = entry.len;
-        u32 of = entry.offset;
-        
-        if (ml == 0 || ml > pos) break; // Safety check
-        
-        pos -= ml;
-        
-        // Count literals before this match
-        u32 ll = 0;
-        while (pos > 0 && !h_costs[pos].is_match) {
-            ll++;
-            pos--;
-        }
-        
-        h_literal_lengths[seq_idx] = ll;
-        h_match_lengths[seq_idx] = ml;
-        h_offsets[seq_idx] = of;
-        seq_idx++;
-    }
-    
-    *h_num_sequences = seq_idx;
-}
+// LEGACY_CPU_BACKTRACK: void backtrack_sequences_cpu(
+// LEGACY_CPU_BACKTRACK:     const ParseCost* h_costs,
+// LEGACY_CPU_BACKTRACK:     u32 input_size,
+// LEGACY_CPU_BACKTRACK:     u32* h_literal_lengths,
+// LEGACY_CPU_BACKTRACK:     u32* h_match_lengths,
+// LEGACY_CPU_BACKTRACK:     u32* h_offsets,
+// LEGACY_CPU_BACKTRACK:     u32* h_num_sequences,
+// LEGACY_CPU_BACKTRACK:     u32 max_sequences
+// LEGACY_CPU_BACKTRACK: ) {
+// LEGACY_CPU_BACKTRACK:     u32 pos = input_size;
+// LEGACY_CPU_BACKTRACK:     u32 seq_idx = 0;
+// LEGACY_CPU_BACKTRACK:     
+// LEGACY_CPU_BACKTRACK:     // 1. Consume trailing literals (not part of any sequence)
+// LEGACY_CPU_BACKTRACK:     // These are handled by the final literal copy phase, not as a sequence
+// LEGACY_CPU_BACKTRACK:     while (pos > 0 && !h_costs[pos].is_match) {
+// LEGACY_CPU_BACKTRACK:         pos--;
+// LEGACY_CPU_BACKTRACK:     }
+// LEGACY_CPU_BACKTRACK:     
+// LEGACY_CPU_BACKTRACK:     // 2. Backtrack matches
+// LEGACY_CPU_BACKTRACK:     while (pos > 0 && seq_idx < max_sequences) {
+// LEGACY_CPU_BACKTRACK:         const ParseCost& entry = h_costs[pos];
+// LEGACY_CPU_BACKTRACK:         
+// LEGACY_CPU_BACKTRACK:         if (!entry.is_match) {
+// LEGACY_CPU_BACKTRACK:             // Should not happen if logic is correct (we skip literals below)
+// LEGACY_CPU_BACKTRACK:             pos--;
+// LEGACY_CPU_BACKTRACK:             continue;
+// LEGACY_CPU_BACKTRACK:         }
+// LEGACY_CPU_BACKTRACK:         
+// LEGACY_CPU_BACKTRACK:         u32 ml = entry.len;
+// LEGACY_CPU_BACKTRACK:         u32 of = entry.offset;
+// LEGACY_CPU_BACKTRACK:         
+// LEGACY_CPU_BACKTRACK:         if (ml == 0 || ml > pos) break; // Safety check
+// LEGACY_CPU_BACKTRACK:         
+// LEGACY_CPU_BACKTRACK:         pos -= ml;
+// LEGACY_CPU_BACKTRACK:         
+// LEGACY_CPU_BACKTRACK:         // Count literals before this match
+// LEGACY_CPU_BACKTRACK:         u32 ll = 0;
+// LEGACY_CPU_BACKTRACK:         while (pos > 0 && !h_costs[pos].is_match) {
+// LEGACY_CPU_BACKTRACK:             ll++;
+// LEGACY_CPU_BACKTRACK:             pos--;
+// LEGACY_CPU_BACKTRACK:         }
+// LEGACY_CPU_BACKTRACK:         
+// LEGACY_CPU_BACKTRACK:         h_literal_lengths[seq_idx] = ll;
+// LEGACY_CPU_BACKTRACK:         h_match_lengths[seq_idx] = ml;
+// LEGACY_CPU_BACKTRACK:         h_offsets[seq_idx] = of;
+// LEGACY_CPU_BACKTRACK:         seq_idx++;
+// LEGACY_CPU_BACKTRACK:     }
+// LEGACY_CPU_BACKTRACK:     
+// LEGACY_CPU_BACKTRACK:     *h_num_sequences = seq_idx;
+// LEGACY_CPU_BACKTRACK: }
 
 // LEGACY_CPU_PARSE: Status find_optimal_parse(
 // LEGACY_CPU_PARSE:     LZ77Context& lz77_ctx,
