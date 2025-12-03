@@ -338,6 +338,8 @@ Status compute_optimal_parse_v2(
     const LZ77Config& config,
     cudaStream_t stream
 ) {
+    using namespace cuda_zstd::lz77;
+    
     cudaMemsetAsync(workspace.d_costs, 0xFF, (input_size + 1) * sizeof(ParseCost), stream);
 
     ParseCost initial_cost;
@@ -355,10 +357,10 @@ Status compute_optimal_parse_v2(
     else max_passes = 300;
     
     for (int pass = 0; pass < max_passes; ++pass) {
-        cuda_zstd::lz77::optimal_parse_kernel_v2<<<num_blocks, threads, 0, stream>>>(
+        optimal_parse_kernel_v2<<<num_blocks, threads, 0, stream>>>(
             input_size,
-            static_cast<cuda_zstd::lz77::Match*>(workspace.d_matches),
-            static_cast<cuda_zstd::lz77::ParseCost*>(workspace.d_costs)
+            static_cast<Match*>(workspace.d_matches),
+            static_cast<ParseCost*>(workspace.d_costs)
         );
         cudaStreamSynchronize(stream);
         cudaError_t err = cudaGetLastError();
