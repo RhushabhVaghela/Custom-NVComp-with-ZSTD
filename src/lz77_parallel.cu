@@ -267,9 +267,7 @@ Status compute_optimal_parse(
 //     std::cout << "[LZ77] Pass 2: Computing optimal parse (parallel)" << std::endl;
 
     ParseCost initial_cost;
-    initial_cost.cost = 0;
-    initial_cost.len = 0;
-    initial_cost.is_match = false;
+    initial_cost.set(0, 0);  // cost=0, parent=0
 
     cudaMemcpyAsync(workspace.d_costs, &initial_cost, sizeof(ParseCost),
                     cudaMemcpyHostToDevice, stream);
