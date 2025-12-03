@@ -3,6 +3,7 @@
 // ==============================================================================
 
 #include "lz77_parallel.h"
+#include "cuda_zstd_lz77.h"  // For V2 kernel
 #include <iostream>
 
 namespace compression {
@@ -105,158 +106,158 @@ __global__ void backtrack_kernel(
     const ParseCost* costs,
     u32 input_size,
     u32* literal_lengths,
-    u32* match_lengths,
-    u32* offsets,
-    u32* num_sequences
-) {
-    if (threadIdx.x != 0 || blockIdx.x != 0) return;
+// LEGACY_BACKTRACK:     u32* match_lengths,
+// LEGACY_BACKTRACK:     u32* offsets,
+// LEGACY_BACKTRACK:     u32* num_sequences
+// LEGACY_BACKTRACK: ) {
+// LEGACY_BACKTRACK:     if (threadIdx.x != 0 || blockIdx.x != 0) return;
+// LEGACY_BACKTRACK: 
+// LEGACY_BACKTRACK:     u32 pos = input_size - 1;
+// LEGACY_BACKTRACK:     u32 seq_idx = 0;
+// LEGACY_BACKTRACK:     u32 literal_count = 0;
+// LEGACY_BACKTRACK: 
+// LEGACY_BACKTRACK:     while (pos > 0) {
+// LEGACY_BACKTRACK:         ParseCost c = costs[pos];
+// LEGACY_BACKTRACK: 
+// LEGACY_BACKTRACK:         if (c.is_match) {
+// LEGACY_BACKTRACK:             literal_lengths[seq_idx] = literal_count;
+// LEGACY_BACKTRACK:             match_lengths[seq_idx] = c.len;
+// LEGACY_BACKTRACK:             offsets[seq_idx] = c.offset;
+// LEGACY_BACKTRACK:             seq_idx++;
+// LEGACY_BACKTRACK:             literal_count = 0;
+// LEGACY_BACKTRACK:             pos -= c.len;
+// LEGACY_BACKTRACK:         } else {
+// LEGACY_BACKTRACK:             literal_count++;
+// LEGACY_BACKTRACK:             pos--;
+// LEGACY_BACKTRACK:         }
+// LEGACY_BACKTRACK:     }
+// LEGACY_BACKTRACK: 
+// LEGACY_BACKTRACK:     if (literal_count > 0) {
+// LEGACY_BACKTRACK:         literal_lengths[seq_idx] = literal_count;
+// LEGACY_BACKTRACK:         match_lengths[seq_idx] = 0;
+// LEGACY_BACKTRACK:         offsets[seq_idx] = 0;
+// LEGACY_BACKTRACK:         seq_idx++;
+// LEGACY_BACKTRACK:     }
+// LEGACY_BACKTRACK: 
+// LEGACY_BACKTRACK:     *num_sequences = seq_idx;
+// LEGACY_BACKTRACK: }
+// LEGACY_BACKTRACK: 
+// LEGACY_BACKTRACK: // ==============================================================================
+// LEGACY_BACKTRACK: // Parallel Backtracking Kernel (Phase 2)
+// LEGACY_BACKTRACK: // ==============================================================================
+// LEGACY_BACKTRACK: 
+// LEGACY_BACKTRACK: // Parallel segment-based backtracking kernel
+// LEGACY_BACKTRACK: // Each block processes one segment independently
+// LEGACY_BACKTRACK: __global__ void backtrack_segments_parallel_kernel(
+// LEGACY_BACKTRACK:     const ParseCost* costs,
+// LEGACY_BACKTRACK:     const SegmentInfo* segments,
+// LEGACY_BACKTRACK:     u32* d_literal_lengths,     // Global sequence buffer
+// LEGACY_BACKTRACK:     u32* d_match_lengths,
+// LEGACY_BACKTRACK:     u32* d_offsets,
+// LEGACY_BACKTRACK:     u32* d_sequence_counts,     // Per-segment counts
+// LEGACY_BACKTRACK:     u32 num_segments,
+// LEGACY_BACKTRACK:     u32 max_seq_per_segment
+// LEGACY_BACKTRACK: ) {
+// LEGACY_BACKTRACK:     u32 seg_id = blockIdx.x;
+// LEGACY_BACKTRACK:     if (seg_id >= num_segments) return;
+// LEGACY_BACKTRACK:     
+// LEGACY_BACKTRACK:     // Each block processes one segment
+// LEGACY_BACKTRACK:     if (threadIdx.x != 0) return;  // Only first thread in block does work
+// LEGACY_BACKTRACK:     
+// LEGACY_BACKTRACK:     SegmentInfo seg = segments[seg_id];
+// LEGACY_BACKTRACK:     u32 start = seg.start_pos;
+// LEGACY_BACKTRACK:     u32 end = seg.end_pos;
+// LEGACY_BACKTRACK:     u32 offset = seg.sequence_offset;
+// LEGACY_BACKTRACK:     
+// LEGACY_BACKTRACK:     // Backtrack from end to start of this segment
+// LEGACY_BACKTRACK:     u32 pos = end;
+// LEGACY_BACKTRACK:     u32 seq_idx = 0;
+// LEGACY_BACKTRACK:     u32 literal_count = 0;
+// LEGACY_BACKTRACK:     
+// LEGACY_BACKTRACK:     while (pos > start && seq_idx < max_seq_per_segment) {
+// LEGACY_BACKTRACK:         ParseCost c = costs[pos];
+// LEGACY_BACKTRACK:         
+// LEGACY_BACKTRACK:         if (c.is_match) {
+// LEGACY_BACKTRACK:             // Record match sequence
+// LEGACY_BACKTRACK:             d_literal_lengths[offset + seq_idx] = literal_count;
+// LEGACY_BACKTRACK:             d_match_lengths[offset + seq_idx] = c.len;
+// LEGACY_BACKTRACK:             d_offsets[offset + seq_idx] = c.offset;
+// LEGACY_BACKTRACK:             seq_idx++;
+// LEGACY_BACKTRACK:             literal_count = 0;
+// LEGACY_BACKTRACK:             pos -= c.len;
+// LEGACY_BACKTRACK:         } else {
+// LEGACY_BACKTRACK:             // Count literal
+// LEGACY_BACKTRACK:             literal_count++;
+// LEGACY_BACKTRACK:             pos--;
+// LEGACY_BACKTRACK:         }
+// LEGACY_BACKTRACK:     }
+// LEGACY_BACKTRACK:     
+// LEGACY_BACKTRACK:     // Handle trailing literals
+// LEGACY_BACKTRACK:     if (literal_count > 0 && seq_idx < max_seq_per_segment) {
+// LEGACY_BACKTRACK:         d_literal_lengths[offset + seq_idx] = literal_count;
+// LEGACY_BACKTRACK:         d_match_lengths[offset + seq_idx] = 0;
+// LEGACY_BACKTRACK:         d_offsets[offset + seq_idx] = 0;
+// LEGACY_BACKTRACK:         seq_idx++;
+// LEGACY_BACKTRACK:     }
+// LEGACY_BACKTRACK:     
+// LEGACY_BACKTRACK:     // Store sequence count for this segment
+// LEGACY_BACKTRACK:     d_sequence_counts[seg_id] = seq_idx;
+// LEGACY_BACKTRACK: }
 
-    u32 pos = input_size - 1;
-    u32 seq_idx = 0;
-    u32 literal_count = 0;
-
-    while (pos > 0) {
-        ParseCost c = costs[pos];
-
-        if (c.is_match) {
-            literal_lengths[seq_idx] = literal_count;
-            match_lengths[seq_idx] = c.len;
-            offsets[seq_idx] = c.offset;
-            seq_idx++;
-            literal_count = 0;
-            pos -= c.len;
-        } else {
-            literal_count++;
-            pos--;
-        }
-    }
-
-    if (literal_count > 0) {
-        literal_lengths[seq_idx] = literal_count;
-        match_lengths[seq_idx] = 0;
-        offsets[seq_idx] = 0;
-        seq_idx++;
-    }
-
-    *num_sequences = seq_idx;
-}
-
-// ==============================================================================
-// Parallel Backtracking Kernel (Phase 2)
-// ==============================================================================
-
-// Parallel segment-based backtracking kernel
-// Each block processes one segment independently
-__global__ void backtrack_segments_parallel_kernel(
-    const ParseCost* costs,
-    const SegmentInfo* segments,
-    u32* d_literal_lengths,     // Global sequence buffer
-    u32* d_match_lengths,
-    u32* d_offsets,
-    u32* d_sequence_counts,     // Per-segment counts
-    u32 num_segments,
-    u32 max_seq_per_segment
-) {
-    u32 seg_id = blockIdx.x;
-    if (seg_id >= num_segments) return;
-    
-    // Each block processes one segment
-    if (threadIdx.x != 0) return;  // Only first thread in block does work
-    
-    SegmentInfo seg = segments[seg_id];
-    u32 start = seg.start_pos;
-    u32 end = seg.end_pos;
-    u32 offset = seg.sequence_offset;
-    
-    // Backtrack from end to start of this segment
-    u32 pos = end;
-    u32 seq_idx = 0;
-    u32 literal_count = 0;
-    
-    while (pos > start && seq_idx < max_seq_per_segment) {
-        ParseCost c = costs[pos];
-        
-        if (c.is_match) {
-            // Record match sequence
-            d_literal_lengths[offset + seq_idx] = literal_count;
-            d_match_lengths[offset + seq_idx] = c.len;
-            d_offsets[offset + seq_idx] = c.offset;
-            seq_idx++;
-            literal_count = 0;
-            pos -= c.len;
-        } else {
-            // Count literal
-            literal_count++;
-            pos--;
-        }
-    }
-    
-    // Handle trailing literals
-    if (literal_count > 0 && seq_idx < max_seq_per_segment) {
-        d_literal_lengths[offset + seq_idx] = literal_count;
-        d_match_lengths[offset + seq_idx] = 0;
-        d_offsets[offset + seq_idx] = 0;
-        seq_idx++;
-    }
-    
-    // Store sequence count for this segment
-    d_sequence_counts[seg_id] = seq_idx;
-}
-
-Status find_matches_parallel(
-    const u8* d_input,
-    u32 input_size,
-    CompressionWorkspace& workspace,
-    const LZ77Config& config,
-    cudaStream_t stream
-) {
-//     std::cout << "[LZ77] Pass 1: Finding matches (parallel)" << std::endl;
-
-    u32 hash_size = workspace.hash_table_size;
-    u32 chain_size = workspace.chain_table_size;
-
-    const u32 init_threads = 256;
-    const u32 init_blocks = (std::max(hash_size, chain_size) + init_threads - 1) / init_threads;
-
-    init_hash_table_kernel<<<init_blocks, init_threads, 0, stream>>>(
-        workspace.d_hash_table,
-        workspace.d_chain_table,
-        hash_size,
-        chain_size
-    );
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-//         std::cerr << "[LZ77] init_hash_table_kernel launch failed: " 
-//                   << cudaGetErrorString(err) << std::endl;
-        return Status::ERROR_CUDA_ERROR;
-    }
-
-    const u32 threads = 256;
-    const u32 blocks = (input_size + threads - 1) / threads;
-
-    find_matches_kernel<<<blocks, threads, 0, stream>>>(
-        d_input,
-        input_size,
-        workspace.d_hash_table,
-        workspace.d_chain_table,
-        workspace.d_matches,
-        config,
-        config.hash_log
-    );
-
-    err = cudaGetLastError();
-    if (err != cudaSuccess) {
-//         std::cerr << "[LZ77] find_matches_kernel launch failed: " 
-//                   << cudaGetErrorString(err) << std::endl;
-        return Status::ERROR_CUDA_ERROR;
-    }
-
-    return Status::SUCCESS;
-}
-
-Status compute_optimal_parse(
-    const u8* d_input,
+// LEGACY_BACKTRACK_IMPL: Status find_matches_parallel(
+// LEGACY_BACKTRACK_IMPL:     const u8* d_input,
+// LEGACY_BACKTRACK_IMPL:     u32 input_size,
+// LEGACY_BACKTRACK_IMPL:     CompressionWorkspace& workspace,
+// LEGACY_BACKTRACK_IMPL:     const LZ77Config& config,
+// LEGACY_BACKTRACK_IMPL:     cudaStream_t stream
+// LEGACY_BACKTRACK_IMPL: ) {
+// LEGACY_BACKTRACK_IMPL: //     std::cout << "[LZ77] Pass 1: Finding matches (parallel)" << std::endl;
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL:     u32 hash_size = workspace.hash_table_size;
+// LEGACY_BACKTRACK_IMPL:     u32 chain_size = workspace.chain_table_size;
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL:     const u32 init_threads = 256;
+// LEGACY_BACKTRACK_IMPL:     const u32 init_blocks = (std::max(hash_size, chain_size) + init_threads - 1) / init_threads;
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL:     init_hash_table_kernel<<<init_blocks, init_threads, 0, stream>>>(
+// LEGACY_BACKTRACK_IMPL:         workspace.d_hash_table,
+// LEGACY_BACKTRACK_IMPL:         workspace.d_chain_table,
+// LEGACY_BACKTRACK_IMPL:         hash_size,
+// LEGACY_BACKTRACK_IMPL:         chain_size
+// LEGACY_BACKTRACK_IMPL:     );
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL:     cudaError_t err = cudaGetLastError();
+// LEGACY_BACKTRACK_IMPL:     if (err != cudaSuccess) {
+// LEGACY_BACKTRACK_IMPL: //         std::cerr << "[LZ77] init_hash_table_kernel launch failed: " 
+// LEGACY_BACKTRACK_IMPL: //                   << cudaGetErrorString(err) << std::endl;
+// LEGACY_BACKTRACK_IMPL:         return Status::ERROR_CUDA_ERROR;
+// LEGACY_BACKTRACK_IMPL:     }
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL:     const u32 threads = 256;
+// LEGACY_BACKTRACK_IMPL:     const u32 blocks = (input_size + threads - 1) / threads;
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL:     find_matches_kernel<<<blocks, threads, 0, stream>>>(
+// LEGACY_BACKTRACK_IMPL:         d_input,
+// LEGACY_BACKTRACK_IMPL:         input_size,
+// LEGACY_BACKTRACK_IMPL:         workspace.d_hash_table,
+// LEGACY_BACKTRACK_IMPL:         workspace.d_chain_table,
+// LEGACY_BACKTRACK_IMPL:         workspace.d_matches,
+// LEGACY_BACKTRACK_IMPL:         config,
+// LEGACY_BACKTRACK_IMPL:         config.hash_log
+// LEGACY_BACKTRACK_IMPL:     );
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL:     err = cudaGetLastError();
+// LEGACY_BACKTRACK_IMPL:     if (err != cudaSuccess) {
+// LEGACY_BACKTRACK_IMPL: //         std::cerr << "[LZ77] find_matches_kernel launch failed: " 
+// LEGACY_BACKTRACK_IMPL: //                   << cudaGetErrorString(err) << std::endl;
+// LEGACY_BACKTRACK_IMPL:         return Status::ERROR_CUDA_ERROR;
+// LEGACY_BACKTRACK_IMPL:     }
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL:     return Status::SUCCESS;
+// LEGACY_BACKTRACK_IMPL: }
+// LEGACY_BACKTRACK_IMPL: 
+// LEGACY_BACKTRACK_IMPL: Status compute_optimal_parse(
+// LEGACY_BACKTRACK_IMPL:     const u8* d_input,
     u32 input_size,
     CompressionWorkspace& workspace,
     const LZ77Config& config,
