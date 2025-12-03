@@ -81,22 +81,20 @@ __global__ void compute_costs_kernel(
     u32 pos = blockIdx.x * blockDim.x + threadIdx.x + 1;
     if (pos >= input_size) return;
 
+    u32 prev_cost = costs[pos - 1].cost();
+    u32 literal_cost_val = prev_cost + calculate_literal_cost(1);
+    
     ParseCost literal_cost;
-    literal_cost.cost = costs[pos - 1].cost + calculate_literal_cost(1);
-    literal_cost.len = 1;
-    literal_cost.is_match = false;
+    literal_cost.set(literal_cost_val, pos - 1);  // parent = pos-1
 
     ParseCost best_cost = literal_cost;
 
     Match m = matches[pos];
     if (m.length >= config.min_match) {
-        u32 match_cost = costs[pos - 1].cost + calculate_match_cost(m.length, m.offset);
+        u32 match_cost_val = prev_cost + calculate_match_cost(m.length, m.offset);
 
-        if (match_cost < best_cost.cost) {
-            best_cost.cost = match_cost;
-            best_cost.len = m.length;
-            best_cost.offset = m.offset;
-            best_cost.is_match = true;
+        if (match_cost_val < literal_cost_val) {
+            best_cost.set(match_cost_val, pos - 1);  // parent = pos-1
         }
     }
 
