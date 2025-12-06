@@ -1155,7 +1155,7 @@ __global__ void fse_parallel_encode_setup_kernel(
         u32 nextStateIndex = (state >> nbBitsOut) + stateInfo.deltaFindState;
         state = d_next_state[nextStateIndex];
         
-        if (i < 5) {
+        if (i < 12) {
             printf("GPU Setup i=%u: sym=%u, state_in=%u, deltaNbBits=%u, deltaFindState=%u, nbBitsOut=%u, nextStateIndex=%u, state_out=%u\n",
                    i, symbol, old_state, (u32)(stateInfo.deltaNbBits), (u32)(stateInfo.deltaFindState), nbBitsOut, nextStateIndex, state);
         }
@@ -1200,8 +1200,9 @@ __global__ void fse_parallel_encode_kernel(
     u64 bit_buffer = 0;
     u32 bits_in_buffer = 0;
 
-    // FSE encodes FORWARD (0 -> N) to ensure continuity
-    for (u32 i = in_idx_start; i < in_idx_end; i++) {
+    // FSE encodes BACKWARDS (N -> 0) per Zstandard specification
+    // Decoder reads the stream backwards, so we must encode backwards
+    for (int i = (int)in_idx_end - 1; i >= (int)in_idx_start; i--) {
         u8 symbol = d_input[i];
         const FSEEncodeTable::FSEEncodeSymbol& stateInfo = d_symbol_table[symbol];
         
@@ -1228,6 +1229,11 @@ __global__ void fse_parallel_encode_kernel(
         
         // Update state
         state = d_next_state[(state >> nbBitsOut) + stateInfo.deltaFindState];
+        
+        if ((u32)i < in_idx_start + 12 && threadIdx.x == 0 && blockIdx.x == 0) {
+             printf("GPU Encode i=%d: sym=%u, state_in=%u, nbBitsOut=%u, val=%u, state_out=%u, total_bits=%u\n",
+                    i, symbol, old_state, nbBitsOut, val, state, total_bits);
+        }
     }
     
     // Write final state (table_log bits) ONLY for the LAST chunk
@@ -1584,11 +1590,13 @@ __host__ Status encode_fse_advanced_debug(
     CUDA_CHECK(cudaMalloc(&d_chunk_bit_counts, num_chunks * sizeof(u32)));
     CUDA_CHECK(cudaMalloc(&d_chunk_offsets, num_chunks * sizeof(u32)));
     
-    // 7a: Setup Kernel (calc start states)
-    fse_parallel_encode_setup_kernel<<<1, 1, 0, stream>>>(
-        d_input, input_size, d_dev_symbol_table, d_dev_next_state,
-        table_log, num_chunks, d_chunk_start_states
-    );
+    // 7a: Initialize chunk start states
+    //For backwards encoding, each chunk starts with the initial FSE state
+    // For single-chunk case (most common for small inputs), this is simply table_size
+    // TODO: Multi-chunk requires calculating intermediate states by forward simulation
+    std::vector<u32> h_chunk_states(num_chunks, table_size);
+    CUDA_CHECK(cudaMemcpyAsync(d_chunk_start_states, h_chunk_states.data(), 
+                              num_chunks * sizeof(u32), cudaMemcpyHostToDevice, stream));
     
     // 7b: Encode Kernel
     // Use 256 threads per chunk if enough data, or fewer
