@@ -1195,15 +1195,14 @@ __global__ void fse_parallel_encode_kernel(
     byte_t* d_output = d_parallel_bitstreams + (chunk_id * max_chunk_bitstream_size_bytes);
     
     u32 state = d_chunk_start_states[chunk_id];
-    u32 initial_state = state; // Save for writing at end
     u32 bit_pos = 0; // Tracks BYTES written to output
     u32 total_bits = 0; // Tracks EXACT bits written
     u64 bit_buffer = 0;
     u32 bits_in_buffer = 0;
 
-    // FSE encodes BACKWARDS (N -> 0) per Zstandard specification
-    // Decoder reads the stream backwards, so we must encode backwards
-    for (int i = (int)in_idx_end - 1; i >= (int)in_idx_start; i--) {
+    // FSE encodes FORWARD (0 -> N) - decoder reads backwards
+    // This matches standard FSE: encoder forward, decoder backward
+    for (u32 i = in_idx_start; i < in_idx_end; i++) {
         u8 symbol = d_input[i];
         const FSEEncodeTable::FSEEncodeSymbol& stateInfo = d_symbol_table[symbol];
         
@@ -1234,11 +1233,11 @@ __global__ void fse_parallel_encode_kernel(
         // Debug output removed for clean test runs
     }
     
-    // Write INITIAL state (table_log bits) ONLY for the LAST chunk
-    // Decoder expects state at the end of bitstream, no terminator bit
+    // Write FINAL state (table_log bits) ONLY for the LAST chunk
+    // Decoder expects final state at end to begin decoding backwards
     if (chunk_id == num_chunks - 1) {
-        // Debug: Writing initial_state to bitstream
-        bit_buffer |= (u64)initial_state << bits_in_buffer;
+        // Debug: Writing final state to bitstream
+        bit_buffer |= (u64)state << bits_in_buffer;
         bits_in_buffer += table_log;
         total_bits += table_log;
         // Note: NO terminator bit - decoder does not expect it
