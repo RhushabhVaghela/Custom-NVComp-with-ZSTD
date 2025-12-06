@@ -1230,8 +1230,8 @@ __global__ void fse_parallel_encode_kernel(
         // Update state
         state = d_next_state[(state >> nbBitsOut) + stateInfo.deltaFindState];
         
-        // Detailed trace for first symbol
-        if (i == in_idx_start && threadIdx.x == 0 && blockIdx.x == 0) {
+        // Log all symbols for small data (<=20 bytes)
+        if (in_idx_end <= 20 && threadIdx.x == 0 && blockIdx.x == 0) {
             printf("[ENCODE] Symbol[%u]=%u: state_in=%u, nbBitsOut=%u, val=%u, nextIdx=%u, state_out=%u\n",
                    i, symbol, old_state, nbBitsOut, val, 
                    (old_state >> nbBitsOut) + stateInfo.deltaFindState, state);
@@ -1457,17 +1457,13 @@ __host__ Status encode_fse_advanced_debug(
     [[maybe_unused]] bool accurate_norm = true;
 
     printf("\n[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=%u\n", input_size);
-    fflush(stdout);
 
     // Step 1: Analyze input
-    printf("[ENCODE] Step 1: analyze_block_statistics...\n"); fflush(stdout);
     FSEStats stats;
     auto status = analyze_block_statistics(d_input, input_size, &stats, stream);
     if (status != cuda_zstd::Status::SUCCESS) {
-        printf("[ENCODE] ERROR: analyze_block_statistics failed: %d\n", (int)status); fflush(stdout);
         return status;
     }
-    printf("[ENCODE] Step 1 complete: unique=%u, max_symbol=%u\n", stats.unique_symbols, stats.max_symbol); fflush(stdout);
 
     // Step 2: Select table size
     u32 table_log = FSE_DEFAULT_TABLELOG;
@@ -1489,7 +1485,6 @@ __host__ Status encode_fse_advanced_debug(
     
     printf("[DEBUG] Step 2 Adjusted: table_log=%u table_size=%u\n", 
            table_log, 1u << table_log);
-    fflush(stdout);
 
     [[maybe_unused]] u32 table_size = 1u << table_log;
 
@@ -1509,9 +1504,7 @@ __host__ Status encode_fse_advanced_debug(
     }
 
     // Step 4: Write FSE table header to output
-    printf("[ENCODE] Step 4: Write header...\n"); fflush(stdout);
     if (stats.max_symbol > 255) {
-        printf("[ENCODE] ERROR: max_symbol %u > 255\n", stats.max_symbol); fflush(stdout);
         return Status::ERROR_INVALID_PARAMETER;
     }
 
@@ -1520,7 +1513,6 @@ __host__ Status encode_fse_advanced_debug(
     u32 header_size = header_base_size + header_table_size;
 
     printf("[DEBUG] Step 4 Memcpy Prep: dim=%u size=%u\n", stats.max_symbol, header_size);
-    fflush(stdout);
 
     std::vector<byte_t> h_header(header_size);
     memcpy(h_header.data(), &table_log, sizeof(u32));
@@ -1530,7 +1522,6 @@ __host__ Status encode_fse_advanced_debug(
     
     printf("[DEBUG] Step 4 Memcpy: dst=%p src=%p size=%u max_sym=%u\n", 
            d_output, h_header.data(), header_size, stats.max_symbol);
-    fflush(stdout);
 
     CUDA_CHECK(cudaMemcpyAsync(d_output, h_header.data(), header_size, cudaMemcpyHostToDevice, stream));
 
@@ -1553,9 +1544,7 @@ __host__ Status encode_fse_advanced_debug(
         table_log,
         &h_ctable
     );
-    printf("[ENCODE] Step 5: FSE_buildCTable_Host returned status=%d\n", (int)status); fflush(stdout);
     if (status != cuda_zstd::Status::SUCCESS) {
-        printf("[ENCODE] ERROR: FSE_buildCTable_Host failed\n"); fflush(stdout);
         return status;
     }
 
@@ -2651,7 +2640,7 @@ __host__ Status decode_fse(
         
         // Read initial state
         u32 state = read_bits_from_buffer(bitstream, bit_position, table_log);
-        // Debug output removed
+        printf("[DECODE] Initial state read from bitstream: %u (table_log=%u)\n", state, table_log);
         
         for (int i = (int)output_size_expected - 1; i >= 0; i--) {
             u32 old_state = state;  // Save for logging
@@ -2666,8 +2655,8 @@ __host__ Status decode_fse(
             state = next_state_base + new_bits;
             h_output[i] = symbol;
             
-            // Detailed trace for first symbol 
-            if (i == 0) {
+            // Log all symbols for small data (<=20 bytes)
+            if (output_size_expected <= 20) {
                 printf("[DECODE] Symbol[%d]=%u: state_in=%u, nbBits=%u, new_bits=%u, next_base=%u, state_out=%u\n",
                        i, symbol, old_state, num_bits, new_bits, next_state_base, state);
             }
