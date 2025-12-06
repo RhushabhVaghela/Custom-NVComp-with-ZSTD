@@ -28,7 +28,7 @@ void test_bit_exact_fse_roundtrip() {
         assert(0);
     }
     
-    if (!safe_cuda_malloc((void**)&d_output, data_size * 2)) {
+    if (!safe_cuda_malloc((void**)&d_output, data_size * 2 + 1024)) {
         printf("ERROR: CUDA malloc for d_output failed\n");
         safe_cuda_free(d_input);
         assert(0);
@@ -51,14 +51,13 @@ void test_bit_exact_fse_roundtrip() {
     
     // Encode using the FSE API directly
     printf("Encoding with FSE...\n");
-    cuda_zstd::Status status = cuda_zstd::fse::encode_fse_advanced(
+    cuda_zstd::u32 encoded_size = 0;
+    // Run FSE encoding (host pointer for output size)
+    cuda_zstd::Status status = cuda_zstd::fse::encode_fse_advanced_debug(
         d_input, data_size,
-        d_output, d_output_size,
-        cuda_zstd::fse::TableType::LITERALS, 
-        true,  // auto_table_log
-        true,  // accurate_norm  
-        false, // gpu_optimize
-        0      // stream
+        d_output, &encoded_size, // Pass HOST pointer to output size
+        true, // gpu_optimize
+        0 // stream
     );
     
     if (status != cuda_zstd::Status::SUCCESS) {
@@ -69,6 +68,8 @@ void test_bit_exact_fse_roundtrip() {
         assert(0);
     }
     
+    // Size is already in encoded_size
+    /*
     // Copy encoded size back
     cuda_zstd::u32 encoded_size = 0;
     if (!safe_cuda_memcpy(&encoded_size, d_output_size, sizeof(cuda_zstd::u32), cudaMemcpyDeviceToHost)) {
@@ -78,6 +79,7 @@ void test_bit_exact_fse_roundtrip() {
         safe_cuda_free(d_output_size);
         assert(0);
     }
+    */
     
     printf("Encoded to %u bytes\n", encoded_size);
     
@@ -200,7 +202,9 @@ int main() {
             return 1;
         }
         
-        if (!safe_cuda_malloc((void**)&d_output, input_size * 2)) {
+        // Ensure sufficient space for FSE header (approx 512 bytes) + compressed data
+        u32 alloc_size = (input_size * 2) + 1024;
+        if (!safe_cuda_malloc((void**)&d_output, alloc_size)) {
             printf("ERROR: CUDA malloc for d_output failed\n");
             safe_cuda_free(d_input);
             return 1;
@@ -238,17 +242,22 @@ int main() {
     
         // FEATURE 3: GPU-optimized encoding
         printf("--- Feature 3: GPU Optimization ---\n");
-        // auto status = fse_manager.encode_fse(
-        //     d_input, input_size,
-        //     d_output, d_output_size,
-        //     TableType::LITERALS,
-        //     true,  // Auto table log (Feature 1)
-        //     true,  // Accurate normalization (Feature 2)
-        //     true  // GPU optimization (Feature 3)
-        // );
-        // assert(status == cuda_zstd::Status::SUCCESS);
+        // Using encode_fse_advanced with gpu_optimize = true
+        cuda_zstd::u32 h_output_size = 0;
+        cuda_zstd::Status status = cuda_zstd::fse::encode_fse_advanced_debug(
+            d_input, input_size,
+            d_output, &h_output_size, // Pass HOST pointer
+            true,  // gpu_optimize (Feature 3)
+            0      // stream
+        );
         
-        cuda_zstd::u32 h_output_size;
+        if (status != cuda_zstd::Status::SUCCESS) {
+            printf("ERROR: encode_fse_advanced failed with status %d\n", (int)status);
+            // Don't assert, let's see which one fails
+            return 1;
+        }
+        // Size is already in h_output_size
+        /*
         if (!safe_cuda_memcpy(&h_output_size, d_output_size, sizeof(cuda_zstd::u32), cudaMemcpyDeviceToHost)) {
             printf("ERROR: CUDA memcpy from d_output_size failed\n");
             safe_cuda_free(d_input);
@@ -256,6 +265,7 @@ int main() {
             safe_cuda_free(d_output_size);
             return 1;
         }
+        */
         
         // if (status == cuda_zstd::Status::SUCCESS) {
         //     // Note: print_compression_stats function doesn't exist in the API
@@ -298,11 +308,12 @@ int main() {
         return 1;
     }
     
-    // FseManager is undefined; comment out or remove to fix build error
-    // FseManager fse_manager;
+    // FseManager is undefined; use direct API
     cuda_zstd::fse::MultiTableFSE multi_table;
-    // cuda_zstd::Status mt_status = fse_manager.create_multi_table_fse(multi_table, d_mixed, mixed_size);
-    // assert(mt_status == cuda_zstd::Status::SUCCESS);
+    
+    // Create multi-table directly
+    cuda_zstd::Status mt_status = cuda_zstd::fse::create_multi_table_fse(multi_table, d_mixed, mixed_size);
+    assert(mt_status == cuda_zstd::Status::SUCCESS);
     
     printf("Active Tables: 0x%X\n", multi_table.active_tables);
     if (multi_table.active_tables & (1 << (int)cuda_zstd::fse::TableType::LITERALS))
@@ -314,7 +325,7 @@ int main() {
     if (multi_table.active_tables & (1 << (int)cuda_zstd::fse::TableType::CUSTOM))
         printf("  ✓ CUSTOM table\n");
     
-    // fse_manager.free_multi_table(multi_table);
+    cuda_zstd::fse::free_multi_table(multi_table);
     safe_cuda_free(d_mixed);
 
     test_bit_exact_fse_roundtrip();
