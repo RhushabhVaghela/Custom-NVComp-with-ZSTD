@@ -1231,18 +1231,13 @@ __global__ void fse_parallel_encode_kernel(
         // Update state
         state = d_next_state[(state >> nbBitsOut) + stateInfo.deltaFindState];
         
-        if ((u32)i < in_idx_start + 12 && threadIdx.x == 0 && blockIdx.x == 0) {
-             printf("GPU Encode i=%d: sym=%u, state_in=%u, nbBitsOut=%u, val=%u, state_out=%u, total_bits=%u\n",
-                    i, symbol, old_state, nbBitsOut, val, state, total_bits);
-        }
+        // Debug output removed for clean test runs
     }
     
     // Write INITIAL state (table_log bits) ONLY for the LAST chunk
     // Decoder expects state at the end of bitstream, no terminator bit
     if (chunk_id == num_chunks - 1) {
-        if (threadIdx.x == 0 && blockIdx.x == 0) {
-            printf("GPU Encode: Writing initial_state=%u to bitstream (no terminator)\n", initial_state);
-        }
+        // Debug: Writing initial_state to bitstream
         bit_buffer |= (u64)initial_state << bits_in_buffer;
         bits_in_buffer += table_log;
         total_bits += table_log;
@@ -2646,8 +2641,7 @@ __host__ Status decode_fse(
         
         // Read initial state
         u32 state = read_bits_from_buffer(bitstream, bit_position, table_log);
-        printf("DEBUG decode_fse: bitstream_size=%u, table_log=%u, bit_pos=%u, state_read=%u\n",
-               bitstream_size, table_log, bit_position, state);
+        // Debug output removed
         
         for (int i = (int)output_size_expected - 1; i >= 0; i--) {
             u8 symbol = h_table.symbol[state];
