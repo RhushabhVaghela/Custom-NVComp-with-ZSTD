@@ -190,6 +190,7 @@ bool test_rollback_protection() {
     config.enable_rollback_protection = true;
     config.max_retry_attempts = 1;
     config.enable_host_memory_fallback = false; // Disable host fallback to ensure fast failure
+    config.enable_progressive_degradation = false; // Disable progressive degradation to ensure immediate failure
     pool.set_fallback_config(config);
     
     // Trigger rollback protection by causing failures

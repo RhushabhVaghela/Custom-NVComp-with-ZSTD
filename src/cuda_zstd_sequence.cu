@@ -326,20 +326,23 @@ __global__ void sequential_block_execute_sequences_kernel(
 
         // --- 2. Match Copy ---
         if (match_length > 0) {
-            u32 match_src_pos = output_pos - actual_offset;
+            // Use pointer arithmetic to handle matches from previous blocks (history)
+            // output is the start of the CURRENT block.
+            // If actual_offset > output_pos, we are reading from history (before output).
+            byte_t* match_src = output + output_pos - actual_offset;
             
             // Check for overlap
             if (actual_offset < match_length) {
                 // Overlap: Must copy sequentially (or carefully) to preserve repeating pattern
                 if (tid == 0) {
                     for (u32 j = 0; j < match_length; ++j) {
-                        output[output_pos + j] = output[match_src_pos + j];
+                        output[output_pos + j] = match_src[j];
                     }
                 }
             } else {
                 // No overlap: Parallel copy is safe
                 for (u32 j = tid; j < match_length; j += block_dim) {
-                    output[output_pos + j] = output[match_src_pos + j];
+                    output[output_pos + j] = match_src[j];
                 }
             }
         }

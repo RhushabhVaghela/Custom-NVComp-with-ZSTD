@@ -14,7 +14,7 @@
 #include <memory>
 #include <optional>
 
-namespace compression {
+namespace cuda_zstd {
 
 class StreamPool {
 public:
@@ -67,6 +67,6 @@ struct BatchItem {
     Status status = Status::SUCCESS;
 };
 
-} // namespace compression
+} // namespace cuda_zstd
 
 #endif // STREAM_POOL_H

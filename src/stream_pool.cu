@@ -7,7 +7,7 @@
 #include <chrono>
 #include <algorithm>
 
-namespace compression {
+namespace cuda_zstd {
 
 StreamPool::StreamPool(size_t num_streams) 
     : num_streams_(num_streams),
@@ -149,4 +149,4 @@ StreamPool::Guard& StreamPool::Guard::operator=(Guard&& other) noexcept {
     return *this;
 }
 
-} // namespace compression
+} // namespace cuda_zstd

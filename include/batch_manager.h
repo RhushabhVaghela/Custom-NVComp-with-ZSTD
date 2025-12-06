@@ -10,7 +10,7 @@
 #include <vector>
 #include <memory>
 
-namespace compression {
+namespace cuda_zstd {
 
 class ZstdBatchManager {
 public:
@@ -59,6 +59,6 @@ private:
     );
 };
 
-} // namespace compression
+} // namespace cuda_zstd
 
 #endif // BATCH_MANAGER_H

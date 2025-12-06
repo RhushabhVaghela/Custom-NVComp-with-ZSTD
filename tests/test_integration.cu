@@ -82,6 +82,7 @@ bool test_complete_compression_pipeline() {
         LOG_INFO("Testing complete pipeline: input -> compress -> decompress -> verify");
         
         // Allocate GPU memory with error checking
+        LOG_INFO("Allocating memory...");
         void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
         
         if (!safe_cuda_malloc(&d_input, data_size)) {
@@ -103,6 +104,7 @@ bool test_complete_compression_pipeline() {
         }
         
         // Copy input data to device
+        LOG_INFO("Copying input to device...");
         if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
             LOG_FAIL("Complete Compression Pipeline", "CUDA memcpy to d_input failed");
             safe_cuda_free(d_input);
@@ -112,6 +114,7 @@ bool test_complete_compression_pipeline() {
         }
         
         // Create manager safely
+        LOG_INFO("Creating manager...");
         std::unique_ptr<ZstdManager> manager;
         try {
             manager = create_manager(5); // Level 5
@@ -130,7 +133,9 @@ bool test_complete_compression_pipeline() {
             return false;
         }
         
+        LOG_INFO("Getting temp size...");
         size_t temp_size = manager->get_compress_temp_size(data_size);
+        LOG_INFO("Temp size: " << temp_size);
         if (!safe_cuda_malloc(&d_temp, temp_size)) {
             LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for temp failed");
             safe_cuda_free(d_input);
@@ -140,10 +145,14 @@ bool test_complete_compression_pipeline() {
         }
         
         // Compress
+        LOG_INFO("Compressing...");
         size_t compressed_size;
         Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
                                           d_temp, temp_size, nullptr, 0, 0);
-        ASSERT_STATUS(status, "Compression failed");
+        if (status != Status::SUCCESS) {
+             LOG_FAIL("Complete Compression Pipeline", "Compression failed with status " << (int)status);
+             return false;
+        }
         LOG_INFO("✓ Compression: " << data_size << " -> " << compressed_size << " bytes");
         
         // Decompress

@@ -33,6 +33,12 @@ struct Match {
     u32 offset;          // Match offset (distance back)
     u32 length;          // Match length
     u32 literal_length;  // Literals before this match
+
+    __host__ __device__ Match() 
+        : position(0), offset(0), length(0), literal_length(0) {}
+
+    __host__ __device__ Match(u32 pos, u32 off, u32 len, u32 lit_len)
+        : position(pos), offset(off), length(len), literal_length(lit_len) {}
 };
 
 // ============================================================================

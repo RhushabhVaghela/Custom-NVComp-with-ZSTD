@@ -1,0 +1,84 @@
+=== Testing RLE Roundtrip ===
+Encoding RLE data...
+DEBUG: encode_fse_batch RLE: block 0, size 1048576, symbol 170, header_size 14
+Output size: 14 bytes
+✅ Output size indicates RLE compression.
+Decoding RLE data...
+DEBUG: decode_fse RLE: size 1048576, symbol 170
+✅ RLE Roundtrip Passed!
+
+=== Testing Exact 256KB Input ===
+CTable: total_freq=512, table_size=512
+CTable Freqs: [0]=123, [1]=1, [2]=2, [3]=2
+Decoder Input Tail: 52 e1 73 73 aa cc 89 21 9d 04 
+CPU Chunk Finder: Chunk 63 start_seq=258048, count=4096, state=78, bit_pos=2211705
+CPU Chunk Finder: Chunk 62 start_seq=253952, count=4096, state=50, bit_pos=2183098
+CPU Chunk Finder: Chunk 61 start_seq=249856, count=4096, state=365, bit_pos=2154233
+CPU Chunk Finder: Chunk 60 start_seq=245760, count=4096, state=194, bit_pos=2125429
+CPU Chunk Finder: Chunk 59 start_seq=241664, count=4096, state=76, bit_pos=2096929
+CPU Chunk Finder: Chunk 58 start_seq=237568, count=4096, state=91, bit_pos=2068205
+CPU Chunk Finder: Chunk 57 start_seq=233472, count=4096, state=328, bit_pos=2039643
+CPU Chunk Finder: Chunk 56 start_seq=229376, count=4096, state=190, bit_pos=2010678
+CPU Chunk Finder: Chunk 55 start_seq=225280, count=4096, state=415, bit_pos=1981940
+CPU Chunk Finder: Chunk 54 start_seq=221184, count=4096, state=504, bit_pos=1953090
+CPU Chunk Finder: Chunk 53 start_seq=217088, count=4096, state=160, bit_pos=1924433
+CPU Chunk Finder: Chunk 52 start_seq=212992, count=4096, state=417, bit_pos=1895662
+CPU Chunk Finder: Chunk 51 start_seq=208896, count=4096, state=370, bit_pos=1866940
+CPU Chunk Finder: Chunk 50 start_seq=204800, count=4096, state=241, bit_pos=1838455
+CPU Chunk Finder: Chunk 49 start_seq=200704, count=4096, state=337, bit_pos=1810019
+CPU Chunk Finder: Chunk 48 start_seq=196608, count=4096, state=489, bit_pos=1781333
+CPU Chunk Finder: Chunk 47 start_seq=192512, count=4096, state=33, bit_pos=1752855
+CPU Chunk Finder: Chunk 46 start_seq=188416, count=4096, state=286, bit_pos=1724131
+CPU Chunk Finder: Chunk 45 start_seq=184320, count=4096, state=375, bit_pos=1695165
+CPU Chunk Finder: Chunk 44 start_seq=180224, count=4096, state=198, bit_pos=1666506
+CPU Chunk Finder: Chunk 43 start_seq=176128, count=4096, state=239, bit_pos=1637652
+CPU Chunk Finder: Chunk 42 start_seq=172032, count=4096, state=183, bit_pos=1608987
+CPU Chunk Finder: Chunk 41 start_seq=167936, count=4096, state=463, bit_pos=1580319
+CPU Chunk Finder: Chunk 40 start_seq=163840, count=4096, state=448, bit_pos=1551583
+CPU Chunk Finder: Chunk 39 start_seq=159744, count=4096, state=268, bit_pos=1523073
+CPU Chunk Finder: Chunk 38 start_seq=155648, count=4096, state=207, bit_pos=1494256
+CPU Chunk Finder: Chunk 37 start_seq=151552, count=4096, state=93, bit_pos=1465356
+CPU Chunk Finder: Chunk 36 start_seq=147456, count=4096, state=238, bit_pos=1437021
+CPU Chunk Finder: Chunk 35 start_seq=143360, count=4096, state=238, bit_pos=1408595
+CPU Chunk Finder: Chunk 34 start_seq=139264, count=4096, state=219, bit_pos=1379833
+CPU Chunk Finder: Chunk 33 start_seq=135168, count=4096, state=400, bit_pos=1351005
+CPU Chunk Finder: Chunk 32 start_seq=131072, count=4096, state=326, bit_pos=1322228
+CPU Chunk Finder: Chunk 31 start_seq=126976, count=4096, state=191, bit_pos=1293589
+CPU Chunk Finder: Chunk 30 start_seq=122880, count=4096, state=116, bit_pos=1264985
+CPU Chunk Finder: Chunk 29 start_seq=118784, count=4096, state=121, bit_pos=1235917
+CPU Chunk Finder: Chunk 28 start_seq=114688, count=4096, state=172, bit_pos=1207286
+CPU Chunk Finder: Chunk 27 start_seq=110592, count=4096, state=220, bit_pos=1179112
+CPU Chunk Finder: Chunk 26 start_seq=106496, count=4096, state=412, bit_pos=1150415
+CPU Chunk Finder: Chunk 25 start_seq=102400, count=4096, state=148, bit_pos=1121426
+CPU Chunk Finder: Chunk 24 start_seq=98304, count=4096, state=430, bit_pos=1092582
+CPU Chunk Finder: Chunk 23 start_seq=94208, count=4096, state=232, bit_pos=1063850
+CPU Chunk Finder: Chunk 22 start_seq=90112, count=4096, state=483, bit_pos=1035051
+CPU Chunk Finder: Chunk 21 start_seq=86016, count=4096, state=166, bit_pos=1006254
+CPU Chunk Finder: Chunk 20 start_seq=81920, count=4096, state=255, bit_pos=977701
+CPU Chunk Finder: Chunk 19 start_seq=77824, count=4096, state=147, bit_pos=949082
+CPU Chunk Finder: Chunk 18 start_seq=73728, count=4096, state=49, bit_pos=920553
+CPU Chunk Finder: Chunk 17 start_seq=69632, count=4096, state=175, bit_pos=891811
+CPU Chunk Finder: Chunk 16 start_seq=65536, count=4096, state=133, bit_pos=863105
+CPU Chunk Finder: Chunk 15 start_seq=61440, count=4096, state=124, bit_pos=834616
+CPU Chunk Finder: Chunk 14 start_seq=57344, count=4096, state=18, bit_pos=805931
+CPU Chunk Finder: Chunk 13 start_seq=53248, count=4096, state=154, bit_pos=777215
+CPU Chunk Finder: Chunk 12 start_seq=49152, count=4096, state=319, bit_pos=748595
+CPU Chunk Finder: Chunk 11 start_seq=45056, count=4096, state=386, bit_pos=719781
+CPU Chunk Finder: Chunk 10 start_seq=40960, count=4096, state=229, bit_pos=690747
+CPU Chunk Finder: Chunk 9 start_seq=36864, count=4096, state=245, bit_pos=662255
+CPU Chunk Finder: Chunk 8 start_seq=32768, count=4096, state=463, bit_pos=633851
+CPU Chunk Finder: Chunk 7 start_seq=28672, count=4096, state=367, bit_pos=605322
+CPU Chunk Finder: Chunk 6 start_seq=24576, count=4096, state=287, bit_pos=576836
+CPU Chunk Finder: Chunk 5 start_seq=20480, count=4096, state=193, bit_pos=548255
+CPU Chunk Finder: Chunk 4 start_seq=16384, count=4096, state=170, bit_pos=519697
+CPU Chunk Finder: Chunk 3 start_seq=12288, count=4096, state=289, bit_pos=491233
+CPU Chunk Finder: Chunk 2 start_seq=8192, count=4096, state=78, bit_pos=462495
+CPU Chunk Finder: Chunk 1 start_seq=4096, count=4096, state=272, bit_pos=433828
+CPU Chunk Finder: Chunk 0 start_seq=0, count=4096, state=432, bit_pos=405125
+GPU Decoder Chunk 0: start_seq=0, count=4096, state=432, bit_pos=405125
+❌ Content mismatch for 256KB!
+Decoded size: 262144
+Expected size: 262144
+First 20 bytes expected: 5f cb f3 2e bb c7 99 98 27 72 27 19 0e 75 dd 55 99 24 b5 a6 
+First 20 bytes actual:   0f 9e 00 aa b2 8e 50 a4 24 eb 00 dc 00 d4 dd 38 11 6d 97 72 
+First mismatch at index 0: expected 5f, got 0f

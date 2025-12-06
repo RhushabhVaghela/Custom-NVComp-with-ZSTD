@@ -11,7 +11,7 @@
 #include <mutex>
 #include <chrono>
 
-namespace compression {
+namespace cuda_zstd {
 
 struct DetailedPerformanceMetrics {
     double lz77_time_ms = 0.0;
@@ -86,6 +86,6 @@ private:
     static std::mutex profiler_mutex_;
 };
 
-} // namespace compression
+} // namespace cuda_zstd
 
 #endif // PERFORMANCE_PROFILER_H

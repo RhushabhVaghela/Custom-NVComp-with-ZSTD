@@ -1117,6 +1117,6 @@ int main(int argc, char** argv) {
     } else {
         std::cout << "\n✗ SOME TESTS FAILED" << std::endl;
         std::cout << "========================================" << std::endl;
-        return 0; // Return 0 to avoid make error
+        return 1; // Return 1 to indicate failure
     }
 }

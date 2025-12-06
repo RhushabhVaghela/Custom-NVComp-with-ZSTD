@@ -1,0 +1,1559 @@
+=== FSE Reference Comparison Test ===
+Generated 262144 bytes of random data
+Running GPU Encoding...
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Encode Chunk 0: total_bits=34585
+GPU Output Size: 276989 bytes
+Running Scalar Reference Encoding...
+Scalar Setup Chunk 4: start_state=606
+Scalar Setup Chunk 3: start_state=610
+Scalar Setup Chunk 2: start_state=571
+Scalar Setup Chunk 1: start_state=573
+Scalar Setup Chunk 0: start_state=795
+Scalar Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
+Scalar Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
+Scalar Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
+Scalar Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
+Scalar Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
+Scalar Encode Chunk 0: total_bits=34585
+Scalar Encode Chunk 1: total_bits=34540
+Scalar Encode Chunk 2: total_bits=34602
+Scalar Encode Chunk 3: total_bits=34572
+Scalar Encode Chunk 4: total_bits=34493
+Scalar Output Size: 276465 bytes
+Comparing bitstreams (skipping 524 byte header)...
+✅ Bitstreams Match!

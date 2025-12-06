@@ -6,7 +6,7 @@
 #include "lz77_parallel.h"
 #include "workspace_manager.h"
 
-using namespace compression;
+using namespace cuda_zstd;
 
 class Timer {
     std::chrono::high_resolution_clock::time_point start;
@@ -50,8 +50,8 @@ void run_benchmark(size_t size, int iterations) {
     std::cout << "Benchmarking Size: " << size << " bytes" << std::endl;
 
     // Reduce iterations for very large sizes
-    if (size >= 100 * 1024 * 1024) {
-        iterations = 3; // 100MB+: only 3 iterations
+    if (size >= 50 * 1024 * 1024) {
+        iterations = 2; // 50MB+: only 2 iterations
     } else if (size >= 16 * 1024 * 1024) {
         iterations = 5; // 16MB+: only 5 iterations
     }
@@ -75,6 +75,7 @@ void run_benchmark(size_t size, int iterations) {
     config.search_log = 8;
     
     Status status = allocate_compression_workspace(workspace, size, config);
+    cudaDeviceSynchronize();
     if (status != Status::SUCCESS) {
         std::cerr << "Failed to allocate workspace" << std::endl;
         return;
@@ -90,9 +91,16 @@ void run_benchmark(size_t size, int iterations) {
     uint32_t h_num_sequences = 0;
 
     // Warmup
-    lz77::find_matches_parallel(d_input, size, workspace, lz77_config, stream);
-    lz77::compute_optimal_parse(d_input, size, workspace, lz77_config, stream);
-    lz77::backtrack_sequences(size, workspace, &h_num_sequences, stream);
+    Status s;
+    s = lz77::find_matches_parallel(d_input, size, &workspace, lz77_config, stream);
+    if (s != Status::SUCCESS) { std::cerr << "Warmup find_matches failed: " << (int)s << std::endl; exit(1); }
+    
+    s = lz77::compute_optimal_parse_v2(d_input, size, &workspace, lz77_config, stream);
+    if (s != Status::SUCCESS) { std::cerr << "Warmup compute_optimal_parse failed: " << (int)s << std::endl; exit(1); }
+    
+    s = lz77::backtrack_sequences(size, workspace, &h_num_sequences, stream);
+    if (s != Status::SUCCESS) { std::cerr << "Warmup backtrack_sequences failed: " << (int)s << std::endl; exit(1); }
+    
     CUDA_CHECK(cudaStreamSynchronize(stream));
 
     // Benchmark each phase separately
@@ -101,13 +109,13 @@ void run_benchmark(size_t size, int iterations) {
     for (int i = 0; i < iterations; ++i) {
         // Pass 1: Find matches
         Timer t1;
-        lz77::find_matches_parallel(d_input, size, workspace, lz77_config, stream);
+        lz77::find_matches_parallel(d_input, size, &workspace, lz77_config, stream);
         CUDA_CHECK(cudaStreamSynchronize(stream));
         find_matches_ms += t1.elapsed_ms();
 
         // Pass 2: Compute optimal parse
         Timer t2;
-        lz77::compute_optimal_parse(d_input, size, workspace, lz77_config, stream);
+        lz77::compute_optimal_parse_v2(d_input, size, &workspace, lz77_config, stream);
         CUDA_CHECK(cudaStreamSynchronize(stream));
         compute_costs_ms += t2.elapsed_ms();
 
@@ -133,12 +141,12 @@ void run_benchmark(size_t size, int iterations) {
     std::cout << "  Throughput:             " << throughput << " MB/s" << std::endl;
     std::cout << "  Sequences Found:        " << h_num_sequences << std::endl;
     
-    if (backtrack_pct > 15.0) {
-        std::cout << "  ⚠️  Backtrack >15%: Consider parallel optimization (Option A)" << std::endl;
-    } else if (backtrack_pct > 5.0) {
-        std::cout << "  ℹ️  Backtrack 5-15%: CPU offloading may help (Option B)" << std::endl;
+    std::cout << "  Sequences Found:        " << h_num_sequences << std::endl;
+    
+    if (size > 1024 * 1024) {
+        std::cout << "  ℹ️  Parallel Backtracking likely used (Size > 1MB)" << std::endl;
     } else {
-        std::cout << "  ✓ Backtrack <5%: Current performance acceptable (Option C)" << std::endl;
+        std::cout << "  ℹ️  CPU Backtracking likely used (Size <= 1MB)" << std::endl;
     }
 
     free_compression_workspace(workspace);
@@ -148,15 +156,14 @@ void run_benchmark(size_t size, int iterations) {
 
 int main() {
     try {
+        cudaFree(0); // Initialize CUDA context
+        
         std::vector<size_t> sizes = {
             4 * 1024,            // 4KB
             64 * 1024,           // 64KB
             1024 * 1024,         // 1MB
             16 * 1024 * 1024,    // 16MB
-            100 * 1024 * 1024,   // 100MB
-            200 * 1024 * 1024    // 200MB (SAFE MAX for 16GB VRAM)
-            // REMOVED: 500MB requires ~28GB VRAM (input×57 multiplier for workspace)
-            // With 16GB VRAM, safe maximum is ~280MB theoretical, 200MB practical
+            50 * 1024 * 1024     // 50MB (Reduced from 100MB)
         };
 
         for (size_t size : sizes) {

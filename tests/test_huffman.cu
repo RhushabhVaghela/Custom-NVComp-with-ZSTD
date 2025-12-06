@@ -44,7 +44,7 @@ void test_huffman_roundtrip(size_t input_size) {
     
     // 2. Allocate Device Memory
     u8 *d_input, *d_compressed, *d_decompressed;
-    size_t max_compressed_size = (input_size * 2) + 512; // Header + slack (2x for safety)
+    size_t max_compressed_size = (input_size * 2) + 65536; // Header + slack (64KB for safety)
     
     CUDA_CHECK(cudaMalloc(&d_input, input_size));
     CUDA_CHECK(cudaMalloc(&d_compressed, max_compressed_size));

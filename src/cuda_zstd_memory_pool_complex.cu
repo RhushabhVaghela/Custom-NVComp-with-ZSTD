@@ -93,6 +93,14 @@ void MemoryPoolManager::update_peak_usage(size_t current_usage) {
 
 void* MemoryPoolManager::allocate_from_cuda(size_t size) {
     void* ptr = nullptr;
+    
+    // CRITICAL: In emergency mode, do not allocate GPU memory
+    // This forces fallback to host memory as intended
+    if (is_emergency_mode()) {
+        allocation_failures_.fetch_add(1, std::memory_order_relaxed);
+        return nullptr;
+    }
+
 //     std::cerr << "MemoryPoolManager::allocate_from_cuda: trying cudaMalloc size=" << size << std::endl;
     cudaError_t err = cudaMalloc(&ptr, size);
 //     std::cerr << "MemoryPoolManager::allocate_from_cuda: cudaMalloc returned err=" << err << " ptr=" << ptr << std::endl;
@@ -344,7 +352,9 @@ FallbackAllocation MemoryPoolManager::allocate_with_cuda_fallback(size_t size, c
     }
     
     // CUDA allocation failed, check if we should use fallback
-    if (!fallback_config_.enable_host_memory_fallback || is_emergency_mode()) {
+    // We should fail ONLY if host memory fallback is disabled.
+    // If is_emergency_mode() is true, we MUST allow proceeding to host fallback.
+    if (!fallback_config_.enable_host_memory_fallback) {
         result.status = Status::ERROR_OUT_OF_MEMORY;
         allocation_failures_.fetch_add(1, std::memory_order_relaxed);
         return result;
@@ -872,6 +882,9 @@ FallbackAllocation MemoryPoolManager::allocate_with_fallback(size_t requested_si
     if (ptr) {
         result.ptr = ptr;
         result.status = Status::SUCCESS;
+        // Fix: allocate() returns void* but might return host memory in fallback cases.
+        // We need to check if the returned pointer is device memory to set the flag correctly.
+        result.is_host_memory = !is_device_pointer(ptr);
         return result;
     }
     

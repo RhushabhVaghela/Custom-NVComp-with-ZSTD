@@ -78,6 +78,13 @@ bool test_single_block_roundtrip() {
     const size_t data_size = 64 * 1024; // 64KB
     std::vector<byte_t> h_input;
     generate_test_data(h_input, data_size);
+    std::vector<byte_t> h_output;
+    NvcompV5Options opts;
+    std::unique_ptr<ZstdManager> manager;
+    size_t temp_size = 0;
+    size_t compressed_size = 0;
+    Status status = Status::SUCCESS;
+    size_t decompressed_size = 0;
     
     // Allocate device memory
     void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
@@ -107,20 +114,20 @@ bool test_single_block_roundtrip() {
     }
     
     // Create manager
-    NvcompV5Options opts;
     opts.level = 3;
-    auto manager = create_nvcomp_v5_manager(opts);
+    // Create manager
+    manager = create_nvcomp_v5_manager(opts);
     
     // Get temp size and allocate
-    size_t temp_size = manager->get_compress_temp_size(data_size);
+    temp_size = manager->get_compress_temp_size(data_size);
     if (!safe_cuda_malloc(&d_temp, temp_size)) {
         printf("❌ Failed to allocate temp buffer\n");
         goto cleanup;
     }
     
     // Compress
-    size_t compressed_size = data_size * 2;
-    Status status = manager->compress(
+    compressed_size = data_size * 2;
+    status = manager->compress(
         d_input, data_size,
         d_compressed, &compressed_size,
         d_temp, temp_size,
@@ -136,7 +143,7 @@ bool test_single_block_roundtrip() {
            data_size, compressed_size, (float)data_size / compressed_size);
     
     // Decompress
-    size_t decompressed_size = data_size;
+    decompressed_size = data_size;
     status = manager->decompress(
         d_compressed, compressed_size,
         d_output, &decompressed_size,
@@ -154,7 +161,8 @@ bool test_single_block_roundtrip() {
     }
     
     // Verify
-    std::vector<byte_t> h_output(data_size);
+    // Verify
+    h_output.resize(data_size);
     if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
         printf("❌ Failed to copy output from device\n");
         goto cleanup;
@@ -372,6 +380,12 @@ bool test_c_api() {
     generate_test_data(h_input, data_size);
     
     void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+    nvcompZstdManagerHandle handle = nullptr;
+    size_t temp_size = 0;
+    size_t compressed_size = 0;
+    int result = 0;
+    size_t decompressed_size = 0;
+    std::vector<byte_t> h_output;
     
     if (!safe_cuda_malloc(&d_input, data_size) ||
         !safe_cuda_malloc(&d_compressed, data_size * 2) ||
@@ -386,14 +400,14 @@ bool test_c_api() {
     }
     
     // Create manager via C API
-    auto handle = nvcomp_zstd_create_manager_v5(3);
+    handle = nvcomp_zstd_create_manager_v5(3);
     if (!handle) {
         printf("❌ C API manager creation failed\n");
         goto cleanup_c_api;
     }
     
     // Get temp size
-    size_t temp_size = nvcomp_zstd_get_compress_temp_size_v5(handle, data_size);
+    temp_size = nvcomp_zstd_get_compress_temp_size_v5(handle, data_size);
     if (!safe_cuda_malloc(&d_temp, temp_size)) {
         printf("❌ Failed to allocate temp buffer\n");
         nvcomp_zstd_destroy_manager_v5(handle);
@@ -401,8 +415,8 @@ bool test_c_api() {
     }
     
     // Compress via C API
-    size_t compressed_size = data_size * 2;
-    int result = nvcomp_zstd_compress_async_v5(
+    compressed_size = data_size * 2;
+    result = nvcomp_zstd_compress_async_v5(
         handle,
         d_input, data_size,
         d_compressed, &compressed_size,
@@ -420,7 +434,7 @@ bool test_c_api() {
     printf("✅ C API compression successful: %zu bytes\n", compressed_size);
     
     // Decompress via C API
-    size_t decompressed_size = data_size;
+    decompressed_size = data_size;
     result = nvcomp_zstd_decompress_async_v5(
         handle,
         d_compressed, compressed_size,
@@ -439,7 +453,7 @@ bool test_c_api() {
     printf("✅ C API decompression successful\n");
     
     // Verify
-    std::vector<byte_t> h_output(data_size);
+    h_output.resize(data_size);
     if (!safe_cuda_memcpy(h_output.data(), d_output, data_size, cudaMemcpyDeviceToHost)) {
         printf("❌ Failed to copy output\n");
         nvcomp_zstd_destroy_manager_v5(handle);

@@ -1,0 +1,372 @@
+UpdateCTestConfiguration  from :/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/DartConfiguration.tcl
+Test project /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+      Start  1: test_adaptive_level
+
+1: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_adaptive_level
+1: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+1: Test timeout computed to be: 300
+1: 
+1: ========================================
+1: CUDA ZSTD - Adaptive Level Selector Test Suite
+1: ========================================
+1: 
+1: Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+1: Compute capability: 12.0
+1: Total memory: 16302 MB
+1: Running on: NVIDIA GeForce RTX 5080 Laptop GPU
+1: Compute Capability: 12.0
+1: 
+1: ========================================
+1: SUITE 1: Data Characteristic Analysis
+1: ========================================
+1: 
+1: [TEST] Random Data Detection
+1:   [INFO] Recommended level: 3
+1:   [INFO] Entropy: 8.00 bits
+1:   [INFO] Repetition ratio: 0.00
+1:   [INFO] Compressibility: 0.00
+1:   [INFO] Is random: yes
+1:   [INFO] Confidence: 85.00%
+1:   [INFO] Reasoning: Data appears random (high entropy), using fast compression
+1:   [PASS] Random Data Detection
+1: 
+1: [TEST] Highly Repetitive Data Detection
+1:   [INFO] Recommended level: 12
+1:   [INFO] Entropy: 2.00 bits
+1:   [INFO] Repetition ratio: 0.94
+1:   [INFO] Compressibility: 0.83
+1:   [INFO] Has patterns: yes
+1:   [INFO] Unique bytes: 0
+1:   [INFO] Reasoning: Highly repetitive data detected, using high compression level
+1:   [PASS] Highly Repetitive Data Detection
+1: 
+1: [TEST] Text Data Detection
+1:   [INFO] Recommended level: 3
+1:   [INFO] Entropy: 4.05 bits
+1:   [INFO] Repetition ratio: 0.00
+1:   [INFO] Compressibility: 0.30
+1:   [INFO] Reasoning: Low compressibility, prioritizing speed
+1:   [PASS] Text Data Detection
+1: 
+1: [TEST] Binary Data Analysis
+1:   [INFO] Recommended level: 3
+1:   [INFO] Entropy: 4.73 bits
+1:   [INFO] Compressibility: 0.35
+1:   [INFO] Unique bytes: 0
+1:   [INFO] Max run length: 4
+1:   [INFO] Reasoning: Low compressibility, prioritizing speed
+1:   [PASS] Binary Data Analysis
+1: 
+1: [TEST] Mixed Data Analysis
+1:   [INFO] Recommended level: 3
+1:   [INFO] Entropy: 6.87 bits
+1:   [INFO] Repetition ratio: 0.00
+1:   [INFO] Compressibility: 0.08
+1:   [INFO] Reasoning: Low compressibility, prioritizing speed
+1:   [PASS] Mixed Data Analysis
+1: 
+1: ========================================
+1: SUITE 2: Preference Mode Tests
+1: ========================================
+1: 
+1: [TEST] SPEED Preference Mode
+1:   [INFO] Recommended level: 1
+1:   [INFO] Reasoning: Low compressibility, prioritizing speed
+1:   [PASS] SPEED Preference Mode
+1: 
+1: [TEST] BALANCED Preference Mode
+1:   [INFO] Recommended level: 3
+1:   [INFO] Reasoning: Low compressibility, prioritizing speed
+1:   [PASS] BALANCED Preference Mode
+1: 
+1: [TEST] RATIO Preference Mode
+1:   [INFO] Recommended level: 6
+1:   [INFO] Reasoning: Low compressibility, prioritizing speed
+1:   [INFO] RATIO level: 6, BALANCED level: 3
+1:   [PASS] RATIO Preference Mode
+1: 
+1: [TEST] Preference Override for Incompressible Data
+1:   [INFO] Recommended level (RATIO pref, random data): 3
+1:   [INFO] Compressibility: 0.00
+1:   [INFO] Reasoning: Data appears random (high entropy), using fast compression
+1:   [PASS] Preference Override
+1: 
+1: ========================================
+1: SUITE 3: Compressibility Estimation
+1: ========================================
+1: 
+1: [TEST] Compressibility Estimation Accuracy
+1:   [INFO] Testing: Random
+1:   [INFO]   Estimated compressibility: 0.00
+1:   [INFO]   Expected range: [0.00, 0.30]
+1:   [INFO] Testing: Repetitive
+1:   [INFO]   Estimated compressibility: 0.83
+1:   [INFO]   Expected range: [0.80, 1.00]
+1:   [INFO] Testing: Text
+1:   [INFO]   Estimated compressibility: 0.30
+1:   [INFO]   Expected range: [0.20, 0.70]
+1:   [INFO] Testing: Binary
+1:   [INFO]   Estimated compressibility: 0.36
+1:   [INFO]   Expected range: [0.30, 0.80]
+1:   [PASS] Compressibility Estimation Accuracy
+1: 
+1: [TEST] Predicted vs Actual Compression Ratio
+1:   [INFO] Skipping heavy predicted-vs-actual test (set ENABLE_PREDICTED_ACTUAL=1 to enable)
+1: 
+1: ========================================
+1: SUITE 4: Performance Tests
+1: ========================================
+1: Skipping performance tests (set ENABLE_PERF_TESTS=1 to enable)
+1: 
+1: ========================================
+1: TEST RESULTS
+1: ========================================
+1: Passed: 11/11
+1: Failed: 0/11
+1: 
+1: ✓ ALL TESTS PASSED
+1: ========================================
+1: 
+ 1/53 Test  #1: test_adaptive_level .......................   Passed    0.65 sec
+test 2
+      Start  2: test_alternative_allocation_strategies
+
+2: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_alternative_allocation_strategies
+2: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+2: Test timeout computed to be: 300
+2: 
+2: ========================================
+2: CUDA ZSTD - Alternative Allocation Strategies Test Suite
+2: ========================================
+2: 
+2: Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+2: Compute capability: 12.0
+2: Total memory: 16302 MB
+2: ========================================
+2: SUITE 1: Smart Allocation Algorithms
+2: ========================================
+2: 
+2: [TEST] Smart Allocation Interface
+2:   [INFO] Smart allocation succeeded: 1048576 bytes
+2:   [INFO]   Strategy used: 0
+2:   [INFO]   Is enhanced: No
+2:   [INFO]   Is dual memory: No
+2:   [PASS] Smart Allocation Interface
+2: 
+2: [TEST] Allocation Strategy Selection
+2:   [INFO] Strategy AUTO_ADAPTIVE succeeded: 524288 bytes
+2:   [INFO]   Is host memory: No
+2:   [INFO] Strategy PREFER_GPU succeeded: 524288 bytes
+2:   [INFO]   Is host memory: No
+2:   [INFO] Strategy PREFER_HOST succeeded: 524288 bytes
+2:   [INFO]   Is host memory: Yes
+2:   [INFO] Strategy BALANCED succeeded: 524288 bytes
+2:   [INFO]   Is host memory: No
+2:   [INFO] Strategy PERFORMANCE_FIRST succeeded: 524288 bytes
+2:   [INFO]   Is host memory: No
+2:   [PASS] Allocation Strategy Selection
+2: 
+2: [TEST] Dual Memory Allocation
+2:   [INFO] Dual memory allocation succeeded
+2:   [INFO]   GPU allocation: Yes
+2:   [INFO]   Host allocation: Yes
+2:   [INFO]   Effective size: 0 bytes
+2:   [INFO]   Is dual memory: Yes
+2:   [PASS] Dual Memory Allocation
+2: ========================================
+2: SUITE 2: Rollback Procedures
+2: ========================================
+2: 
+2: [TEST] Rollback Context Management
+2:   [INFO] Rollback context created and completed successfully
+2:   [PASS] Rollback Context Management
+2: 
+2: [TEST] Rollback Protection
+2:   [INFO] Intentional failure 0 recorded
+2:   [INFO] Intentional failure 1 recorded
+2:   [INFO] Intentional failure 2 recorded
+2:   [INFO] Intentional failure 3 recorded
+ 2/53 Test  #2: test_alternative_allocation_strategies ....***Timeout 301.37 sec
+test 3
+      Start  3: test_basic_profile
+
+3: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_basic_profile
+3: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+3: Test timeout computed to be: 300
+3: CUDA Zstandard Profiling Test
+3: ==============================
+3: 
+3: Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+3: Compute capability: 12.0
+3: Total memory: 16302 MB
+3: Device: NVIDIA GeForce RTX 5080 Laptop GPU
+3: Compute Capability: 12.0
+3: 
+3: Processing 10 MB of data
+3: 
+3: Host->Device transfer: 1.88966 ms
+3: Kernel execution: 81.3893 ms
+3: Device->Host transfer: 1.77018 ms
+3: 
+3: Total time: 85.0491 ms
+3: Throughput: 117.579 MB/s
+3: 
+3: Basic profiling test completed successfully.
+3: For detailed profiling, run with: nvprof ./profile_test
+3: Or: nsys profile --stats=true ./profile_test
+ 3/53 Test  #3: test_basic_profile ........................   Passed    0.49 sec
+test 4
+      Start  4: test_checksum_validation
+
+4: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_checksum_validation
+4: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+4: Test timeout computed to be: 300
+4: ========================================
+4:    Checksum Validation Test Suite
+4: ========================================
+4: 
+4: [TEST] XXHash32 Computation
+4:   [INFO] GPU hash: 0xE85EA4DE
+4:   [INFO] CPU hash: 0xE85EA4DE
+4:   [PASS] XXHash32
+4: [TEST] XXHash64 Computation
+4:   [INFO] GPU hash: 0x0B242D361FDA71BC
+4:   [INFO] CPU hash: 0x0B242D361FDA71BC
+4:   [PASS] XXHash64
+4: [TEST] Hash Determinism
+4:   [PASS] Determinism verified
+4: [TEST] Seed Variation
+4:   [INFO] Seed 0x0 -> Hash 0xFA56F7EBF111F1BA
+4:   [INFO] Seed 0x1 -> Hash 0xCCF55351CE39090
+4:   [INFO] Seed 0x2A -> Hash 0xAB79EBFC4E82326F
+4:   [INFO] Seed 0xDEADBEEF -> Hash 0x8539B03A42176B04
+4:   [INFO] Seed 0x123456789ABCDEF -> Hash 0xA5030CCF8BB75679
+4:   [PASS] Different seeds produce different hashes
+4: [TEST] Invalid Input
+4:   [PASS] Empty input correctly rejected
+4: 
+4: ========================================
+4: ✅ ALL CHECKSUM TESTS PASSED
+4: ========================================
+ 4/53 Test  #4: test_checksum_validation ..................   Passed    0.48 sec
+test 5
+      Start  5: test_comprehensive_fallback
+
+5: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_comprehensive_fallback
+5: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+5: Test timeout computed to be: 300
+5: 
+5: ========================================
+5: CUDA ZSTD - Comprehensive Fallback Integration Test
+5: ========================================
+5: 
+5: Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+5: Compute capability: 12.0
+5: Total memory: 16302 MB
+5: ========================================
+5: COMPREHENSIVE FALLBACK INTEGRATION SUITE
+5: ========================================
+5: 
+5: [TEST] Comprehensive Fallback Integration Test
+5:   [INFO] Configured fallback strategy:
+5:   [INFO]   - Host memory fallback: Enabled
+5:   [INFO]   - Progressive degradation: Enabled
+5:   [INFO]   - Rollback protection: Enabled
+5:   [INFO]   - Emergency threshold: 50MB
+5:   [INFO]   - Host memory limit: 200MB
+5:   [INFO] 
+5: --- Test 1: Normal Operation Baseline ---
+5:   [INFO] Initial mode: 0
+5:   [INFO] Initial available GPU memory: 14957 MB
+5:   [INFO] Normal allocation succeeded
+5:   [INFO] 
+5: --- Test 2: Progressive Memory Pressure ---
+5:   [INFO] Pressure test 0: 4096KB -> 4096KB (gpu)
+5:   [INFO] Pressure test 1: 6144KB -> 6144KB (gpu)
+5:   [INFO] Pressure test 2: 8192KB -> 8192KB (gpu)
+5:   [INFO] Pressure test 3: 10240KB -> 10240KB (gpu)
+5:   [INFO] Pressure test 4: 12288KB -> 12288KB (gpu)
+5:   [INFO] Pressure test completed:
+5:   [INFO]   Current mode: 0
+5:   [INFO]   Fallback rate: 0%
+5:   [INFO]   Degradation rate: 0%
+5:   [INFO] 
+5: --- Test 3: Emergency Mode Simulation ---
+5:   [INFO] Emergency mode activated:
+5:   [INFO]   Current mode: 3
+5:   [INFO]   Available GPU memory: 14957 MB
+5:   [INFO] Emergency allocation succeeded: 2048KB (host)
+5:   [FAIL] test_comprehensive_fallback_integration: Emergency allocation should be host memory
+5: 
+5: [TEST] Memory Pool Robustness Test
+5:   [INFO] Testing memory pool robustness under various stress conditions
+5:   [INFO] 
+5: --- Test 1: Rapid Allocation Cycles ---
+5:   [INFO] Rapid allocation test completed:
+5:   [INFO]   100 allocations in 33 ms
+5:   [INFO]   Average: 0.33 ms per allocation
+5:   [INFO]   Active allocations: 60
+5:   [INFO] 
+5: --- Test 2: Concurrent Stress Test ---
+5:   [INFO] Thread 9399334479710: 25 successes
+5:   [INFO] Thread 9399334479710: 25 successes
+5:   [INFO] Thread 9399334479710: 25 successes
+5:   [INFO] Thread 9399334479710: 25 successes
+5:   [INFO] Concurrent stress test completed:
+5:   [INFO]   Total operations: 100
+5:   [INFO]   Successful: 100
+5:   [INFO]   Success rate: 100%
+5:   [INFO] 
+5: --- Test 3: Memory Integrity Verification ---
+5:   [INFO] 
+5: --- Test 4: Recovery from Failures ---
+5:   [PASS] Memory Pool Robustness
+5: ========================================
+5: FINAL COMPREHENSIVE STATISTICS
+5: ========================================
+5: === Allocation Statistics ===
+5: Total Allocations: 0
+5: Total Deallocations: 0
+5: Cache Hits: 0
+5: Cache Misses: 0
+5: Hit Rate: 0.00%
+5: 
+5: === Fallback Statistics ===
+5: Fallback Allocations: 0
+5: Host Memory Allocs: 0
+5: Degraded Allocations: 0
+5: Allocation Failures: 0
+5: Rollback Operations: 0
+5: Fallback Rate: 0.00%
+5: Degradation Rate: 0.00%
+5: 
+5: === Memory Usage ===
+5: Current GPU Usage: 0.00 MB
+5: Host Memory Usage: 0.00 MB
+5: Peak Usage: 0.00 MB
+5: Total Pool Capacity: 0.00 MB
+5: 
+5: === System State ===
+5: Current Degradation Mode: NORMAL
+5: Available GPU Memory: 10861.00 MB
+5: Memory Pressure: 33%
+5: ========================================
+5: 
+5: ========================================
+5: COMPREHENSIVE TEST RESULTS
+5: ========================================
+5: Passed: 1/2
+5: Failed: 1/2
+5: 
+5: ✗ SOME COMPREHENSIVE TESTS FAILED
+5:   Fallback strategies need attention.
+5: ========================================
+5: 

@@ -1,0 +1,82 @@
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+  FSE Advanced Features Test Suite
+========================================
+
+
+========================================
+TEST 1: Low Entropy (Repetitive)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=40
+[DEBUG] Step 2 Analysis: unique=1 entropy=0.000000 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=65 size=144
+[DEBUG] Step 4 Memcpy: dst=0x90ba00200 src=0x5e055fbb3820 size=144 max_sym=65
+[DEBUG] Step 5 Checks: table_log=5 table_size=32 freq_sum=32
+[DEBUG] Step 5 Done. SymTable: 0x5e055f87a1e0
+[DEBUG] Deleting symbol table...
+[DEBUG] Deleting next state...
+[DEBUG] Deleting state to symbol...
+[DEBUG] Step 5 Cleanup Done
+
+========================================
+TEST 2: Medium Entropy (Text)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=45
+[DEBUG] Step 2 Analysis: unique=29 entropy=4.441093 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=122 size=258
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x5e055f827b10 size=258 max_sym=122
+[DEBUG] Step 5 Checks: table_log=5 table_size=32 freq_sum=32
+[DEBUG] Step 5 Done. SymTable: 0x5e055fbb4e70
+[DEBUG] Deleting symbol table...
+[DEBUG] Deleting next state...
+[DEBUG] Deleting state to symbol...
+[DEBUG] Step 5 Cleanup Done
+
+========================================
+TEST 3: High Entropy (Mixed)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=41
+[DEBUG] Step 2 Analysis: unique=41 entropy=5.357552 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=6 table_size=64
+[DEBUG] Step 4 Memcpy Prep: dim=121 size=256
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x5e055f827b10 size=256 max_sym=121
+[DEBUG] Step 5 Checks: table_log=6 table_size=64 freq_sum=64
+[DEBUG] Step 5 Done. SymTable: 0x5e055fbb4e70
+[DEBUG] Deleting symbol table...
+[DEBUG] Deleting next state...
+[DEBUG] Deleting state to symbol...
+[DEBUG] Step 5 Cleanup Done
+
+========================================
+TEST 4: Multi-Table FSE
+========================================
+
+Active Tables: 0x9
+  ✓ LITERALS table
+  ✓ CUSTOM table
+Testing FSE roundtrip with 11 bytes of data
+Encoding with FSE...
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=11
+[DEBUG] Step 2 Analysis: unique=6 entropy=2.299896 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=6 size=26
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x5e055f6dc200 size=26 max_sym=6
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_fse.cu:1527 in encode_fse_advanced_debug() (CUDA: invalid argument)
+test_fse_advanced: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_fse_advanced.cu:68: void test_bit_exact_fse_roundtrip(): Assertion `0' failed.

@@ -116,12 +116,18 @@ CompressionResult test_compression(
     result.input_size = input_data.size();
     result.success = false;
     
+    // Declare all variables at the top to avoid goto bypass initialization errors
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+    std::unique_ptr<ZstdManager> manager;
+    size_t temp_size = 0;
+    Status status = Status::SUCCESS;
+    size_t decompressed_size = 0;
+    std::vector<byte_t> output_data;
+
     printf("\n=== Testing: %s ===\n", test_name);
     printf("Input size: %zu bytes\n", input_data.size());
     
     // Allocate device memory
-    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
-    
     if (!safe_cuda_malloc(&d_input, input_data.size())) {
         printf("❌ CUDA malloc for d_input failed\n");
         return result;
@@ -148,8 +154,8 @@ CompressionResult test_compression(
     }
     
     // Create manager
-    auto manager = create_manager(3);  // Level 3 is a good balance
-    size_t temp_size = manager->get_compress_temp_size(input_data.size());
+    manager = create_manager(3);  // Level 3 is a good balance
+    temp_size = manager->get_compress_temp_size(input_data.size());
     
     if (!safe_cuda_malloc(&d_temp, temp_size)) {
         printf("❌ CUDA malloc for temp failed\n");
@@ -158,7 +164,7 @@ CompressionResult test_compression(
     
     // Compress
     result.compressed_size = input_data.size() * 2;  // Buffer capacity
-    Status status = manager->compress(
+    status = manager->compress(
         d_input, input_data.size(),
         d_compressed, &result.compressed_size,
         d_temp, temp_size,
@@ -171,7 +177,7 @@ CompressionResult test_compression(
     }
     
     // Decompress to verify
-    size_t decompressed_size = input_data.size();
+    decompressed_size = input_data.size();
     status = manager->decompress(
         d_compressed, result.compressed_size,
         d_output, &decompressed_size,
@@ -189,7 +195,7 @@ CompressionResult test_compression(
     }
     
     // Verify data integrity
-    std::vector<byte_t> output_data(input_data.size());
+    output_data.resize(input_data.size());
     if (!safe_cuda_memcpy(output_data.data(), d_output, input_data.size(),
                          cudaMemcpyDeviceToHost)) {
         printf("❌ CUDA memcpy from d_output failed\n");

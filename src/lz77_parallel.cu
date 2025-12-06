@@ -5,8 +5,10 @@
 #include "lz77_parallel.h"
 #include "cuda_zstd_lz77.h"  // For V2 kernel
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
-namespace compression {
+namespace cuda_zstd {
 namespace lz77 {
 
 __global__ void init_hash_table_kernel(
@@ -42,8 +44,9 @@ __global__ void find_matches_kernel(
     u32 hash = compute_hash(input, pos, hash_log);
     u32 hash_idx = hash % (1 << hash_log);
 
+    u32 chain_mask = (1 << config.chain_log) - 1;
     u32 prev_pos = atomicExch(&hash_table[hash_idx], pos);
-    chain_table[pos] = prev_pos;
+    chain_table[pos & chain_mask] = prev_pos;
 
     Match best_match(pos, 0, 0, 0);
     u32 best_cost = 0xFFFFFFFF;
@@ -66,7 +69,7 @@ __global__ void find_matches_kernel(
             if (len >= config.good_length) break;
         }
 
-        search_pos = chain_table[search_pos];
+        search_pos = chain_table[search_pos & chain_mask];
     }
 
     matches[pos] = best_match;
@@ -102,10 +105,10 @@ __global__ void compute_costs_kernel(
     costs[pos] = best_cost;
 }
 
-__global__ void backtrack_kernel(
-    const ParseCost* costs,
-    u32 input_size,
-    u32* literal_lengths,
+// LEGACY_BACKTRACK: __global__ void backtrack_kernel(
+// LEGACY_BACKTRACK:     const ParseCost* costs,
+// LEGACY_BACKTRACK:     u32 input_size,
+// LEGACY_BACKTRACK:     u32* literal_lengths,
 // LEGACY_BACKTRACK:     u32* match_lengths,
 // LEGACY_BACKTRACK:     u32* offsets,
 // LEGACY_BACKTRACK:     u32* num_sequences
@@ -204,128 +207,55 @@ __global__ void backtrack_kernel(
 // LEGACY_BACKTRACK:     d_sequence_counts[seg_id] = seq_idx;
 // LEGACY_BACKTRACK: }
 
-// LEGACY_BACKTRACK_IMPL: Status find_matches_parallel(
-// LEGACY_BACKTRACK_IMPL:     const u8* d_input,
-// LEGACY_BACKTRACK_IMPL:     u32 input_size,
-// LEGACY_BACKTRACK_IMPL:     CompressionWorkspace& workspace,
-// LEGACY_BACKTRACK_IMPL:     const LZ77Config& config,
-// LEGACY_BACKTRACK_IMPL:     cudaStream_t stream
-// LEGACY_BACKTRACK_IMPL: ) {
-// LEGACY_BACKTRACK_IMPL: //     std::cout << "[LZ77] Pass 1: Finding matches (parallel)" << std::endl;
-// LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL:     u32 hash_size = workspace.hash_table_size;
-// LEGACY_BACKTRACK_IMPL:     u32 chain_size = workspace.chain_table_size;
-// LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL:     const u32 init_threads = 256;
-// LEGACY_BACKTRACK_IMPL:     const u32 init_blocks = (std::max(hash_size, chain_size) + init_threads - 1) / init_threads;
-// LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL:     init_hash_table_kernel<<<init_blocks, init_threads, 0, stream>>>(
-// LEGACY_BACKTRACK_IMPL:         workspace.d_hash_table,
-// LEGACY_BACKTRACK_IMPL:         workspace.d_chain_table,
-// LEGACY_BACKTRACK_IMPL:         hash_size,
-// LEGACY_BACKTRACK_IMPL:         chain_size
-// LEGACY_BACKTRACK_IMPL:     );
-// LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL:     cudaError_t err = cudaGetLastError();
-// LEGACY_BACKTRACK_IMPL:     if (err != cudaSuccess) {
-// LEGACY_BACKTRACK_IMPL: //         std::cerr << "[LZ77] init_hash_table_kernel launch failed: " 
-// LEGACY_BACKTRACK_IMPL: //                   << cudaGetErrorString(err) << std::endl;
-// LEGACY_BACKTRACK_IMPL:         return Status::ERROR_CUDA_ERROR;
-// LEGACY_BACKTRACK_IMPL:     }
-// LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL:     const u32 threads = 256;
-// LEGACY_BACKTRACK_IMPL:     const u32 blocks = (input_size + threads - 1) / threads;
-// LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL:     find_matches_kernel<<<blocks, threads, 0, stream>>>(
-// LEGACY_BACKTRACK_IMPL:         d_input,
-// LEGACY_BACKTRACK_IMPL:         input_size,
-// LEGACY_BACKTRACK_IMPL:         workspace.d_hash_table,
-// LEGACY_BACKTRACK_IMPL:         workspace.d_chain_table,
-// LEGACY_BACKTRACK_IMPL:         workspace.d_matches,
-// LEGACY_BACKTRACK_IMPL:         config,
-// LEGACY_BACKTRACK_IMPL:         config.hash_log
-// LEGACY_BACKTRACK_IMPL:     );
-// LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL:     err = cudaGetLastError();
-// LEGACY_BACKTRACK_IMPL:     if (err != cudaSuccess) {
-// LEGACY_BACKTRACK_IMPL: //         std::cerr << "[LZ77] find_matches_kernel launch failed: " 
-// LEGACY_BACKTRACK_IMPL: //                   << cudaGetErrorString(err) << std::endl;
-// LEGACY_BACKTRACK_IMPL:         return Status::ERROR_CUDA_ERROR;
-// LEGACY_BACKTRACK_IMPL:     }
-// LEGACY_BACKTRACK_IMPL: 
-// LEGACY_BACKTRACK_IMPL:     return Status::SUCCESS;
-// LEGACY_BACKTRACK_IMPL: }
-// LEGACY_BACKTRACK_IMPL: 
-Status compute_optimal_parse(
+Status find_matches_parallel(
     const u8* d_input,
-// LEGACY: u32 input_size,
-// LEGACY: CompressionWorkspace& workspace,
-// LEGACY: const LZ77Config& config,
-// LEGACY: cudaStream_t stream
+    u32 input_size,
+    CompressionWorkspace* workspace,
+    const LZ77Config& config,
+    cudaStream_t stream
 ) {
-//     std::cout << "[LZ77] Pass 2: Computing optimal parse (parallel)" << std::endl;
+    if (!workspace) {
+        printf("Error: workspace is null\n");
+        return Status::ERROR_INVALID_PARAMETER;
+    }
 
-    ParseCost initial_cost;
-    initial_cost.set(0, 0);  // cost=0, parent=0
+    u32 hash_size = workspace->hash_table_size;
+    u32 chain_size = workspace->chain_table_size;
 
-    cudaMemcpyAsync(workspace.d_costs, &initial_cost, sizeof(ParseCost),
-                    cudaMemcpyHostToDevice, stream);
+    const u32 init_threads = 256;
+    const u32 init_blocks = (std::max(hash_size, chain_size) + init_threads - 1) / init_threads;
 
-    const u32 threads = 256;
-    const u32 blocks = (input_size + threads - 1) / threads;
-
-    compute_costs_kernel<<<blocks, threads, 0, stream>>>(
-        d_input,
-        input_size,
-        workspace.d_matches,
-        workspace.d_costs,
-        config
+    init_hash_table_kernel<<<init_blocks, init_threads, 0, stream>>>(
+        workspace->d_hash_table,
+        workspace->d_chain_table,
+        hash_size,
+        chain_size
     );
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-//         std::cerr << "[LZ77] compute_costs_kernel launch failed: " 
-//                   << cudaGetErrorString(err) << std::endl;
         return Status::ERROR_CUDA_ERROR;
     }
 
-    return Status::SUCCESS;
-}
+    const u32 threads = 256;
+    const u32 blocks = (input_size + threads - 1) / threads;
 
+    find_matches_kernel<<<blocks, threads, 0, stream>>>(
+        d_input,
+        input_size,
+        workspace->d_hash_table,
+        workspace->d_chain_table,
+        reinterpret_cast<Match*>(workspace->d_matches),
+        config,
+        config.hash_log
+    );
 
-// ==============================================================================
-// Parallel Backtracking Implementation (Phase 2)
-// ==============================================================================
-
-// Create backtracking configuration based on input size
-BacktrackConfig create_backtrack_config(u32 input_size) {
-    BacktrackConfig config;
-    
-    // Threshold: use parallel for inputs >= 1MB
-    config.parallel_threshold = 1024 * 1024;  // 1MB
-    
-    if (input_size < config.parallel_threshold) {
-        // Small input: use CPU (parallel overhead not worth it)
-        config.use_parallel = false;
-        config.segment_size = input_size;
-        config.num_segments = 1;
-    } else {
-        // Large input: use parallel GPU backtracking
-        config.use_parallel = true;
-        
-        // Adaptive segment sizing based on input size
-        if (input_size < 10 * 1024 * 1024) {
-            // 1-10MB: use 256KB segments
-            config.segment_size = 256 * 1024;
-        } else {
-            // >10MB: use 1MB segments
-            config.segment_size = 1024 * 1024;
-        }
-        
-        config.num_segments = (input_size + config.segment_size - 1) / config.segment_size;
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        return Status::ERROR_CUDA_ERROR;
     }
     
-    return config;
+    return Status::SUCCESS;
 }
 
 // ============================================================================
@@ -335,36 +265,38 @@ BacktrackConfig create_backtrack_config(u32 input_size) {
 Status compute_optimal_parse_v2(
     const u8* d_input,
     u32 input_size,
-    CompressionWorkspace& workspace,
+    CompressionWorkspace* workspace,
     const LZ77Config& config,
     cudaStream_t stream
 ) {
-    cudaMemsetAsync(workspace.d_costs, 0xFF, (input_size + 1) * sizeof(ParseCost), stream);
+    cudaMemset(workspace->d_costs, 0xFF, (input_size + 1) * sizeof(ParseCost));
 
     ParseCost initial_cost;
     initial_cost.set(0, 0);
-    cudaMemcpyAsync(workspace.d_costs, &initial_cost, sizeof(ParseCost),
-                    cudaMemcpyHostToDevice, stream);
+    cudaMemcpy(workspace->d_costs, &initial_cost, sizeof(ParseCost), cudaMemcpyHostToDevice);
 
     const u32 threads = 256;
     const u32 num_blocks = (input_size + threads - 1) / threads;
     
     int max_passes;
-    if (input_size < 100 * 1024) max_passes = 50;
-    else if (input_size < 1024 * 1024) max_passes = 100;
-    else if (input_size < 10 * 1024 * 1024) max_passes = 200;
-    else max_passes = 300;
+    if (input_size < 100 * 1024) max_passes = input_size / 2; // Heuristic: need many passes
+    else if (input_size < 1024 * 1024) max_passes = 5000;
+    else max_passes = 10000;
     
     for (int pass = 0; pass < max_passes; ++pass) {
         cuda_zstd::lz77::optimal_parse_kernel_v2<<<num_blocks, threads, 0, stream>>>(
             input_size,
-            reinterpret_cast<cuda_zstd::lz77::Match*>(workspace.d_matches),
-            reinterpret_cast<cuda_zstd::lz77::ParseCost*>(workspace.d_costs)
+            reinterpret_cast<cuda_zstd::lz77::Match*>(workspace->d_matches),
+            reinterpret_cast<cuda_zstd::lz77::ParseCost*>(workspace->d_costs)
         );
-        cudaStreamSynchronize(stream);
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) return Status::ERROR_CUDA_ERROR;
     }
+    
+    // Check for errors occasionally or at the end
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        return Status::ERROR_CUDA_ERROR;
+    }
+
     return Status::SUCCESS;
 }
 
@@ -677,118 +609,105 @@ Status backtrack_sequences_cpu(
 // LEGACY_PARALLEL_BACKTRACK:     delete[] h_literal_lengths;
 // LEGACY_PARALLEL_BACKTRACK:     delete[] h_match_lengths;
 // LEGACY_PARALLEL_BACKTRACK:     delete[] h_offsets;
-// LEGACY_PARALLEL_BACKTRACK:     delete[] h_literal_lengths_temp;
-// LEGACY_PARALLEL_BACKTRACK:     delete[] h_match_lengths_temp;
-// LEGACY_PARALLEL_BACKTRACK:     delete[] h_offsets_temp;
-// LEGACY_PARALLEL_BACKTRACK:     
-// LEGACY_PARALLEL_BACKTRACK:     return Status::SUCCESS;
-// LEGACY_PARALLEL_BACKTRACK: }
+// V2 Backtracking Implementation (CPU)
+Status backtrack_sequences_v2(
+    u32 input_size,
+    CompressionWorkspace& workspace,
+    u32* h_num_sequences,
+    cudaStream_t stream
+) {
+    // 1. Allocate host memory
+    ParseCost* h_costs = new ParseCost[input_size + 1];
+    Match* h_matches = new Match[input_size];
+    
+    // 2. Copy from device
+    cudaMemcpyAsync(h_costs, workspace.d_costs, (input_size + 1) * sizeof(ParseCost), cudaMemcpyDeviceToHost, stream);
+    cudaMemcpyAsync(h_matches, workspace.d_matches, input_size * sizeof(Match), cudaMemcpyDeviceToHost, stream);
+    cudaStreamSynchronize(stream);
+    
+    // 3. Backtrack
+    std::vector<u32> lit_lens;
+    std::vector<u32> match_lens;
+    std::vector<u32> offsets;
+    
+    // Pre-allocate to avoid reallocations
+    lit_lens.reserve(input_size / 4);
+    match_lens.reserve(input_size / 4);
+    offsets.reserve(input_size / 4);
+    
+    u32 pos = input_size;
+    
+    // Handle trailing literals (literals at the very end of file)
+    // In LZ77, the last sequence can have match_len=0
+    
+    while (pos > 0) {
+        u32 parent = h_costs[pos].parent();
+        
+        if (parent >= pos) {
+             // Invalid parent, likely due to insufficient passes
+             // Fallback: treat as literal
+             parent = pos - 1;
+        }
+
+        u32 len = pos - parent;
+        
+        if (len >= 3) { // Match
+            u32 offset = h_matches[parent].offset;
+            lit_lens.push_back(0);
+            match_lens.push_back(len);
+            offsets.push_back(offset);
+        } else { // Literal
+            if (lit_lens.empty()) {
+                // Trailing literals
+                lit_lens.push_back(1);
+                match_lens.push_back(0);
+                offsets.push_back(0);
+            } else {
+                // Add to current sequence (which is "after" this literal in reverse order)
+                // So it belongs to the sequence we just pushed
+                lit_lens.back()++;
+            }
+        }
+        pos = parent;
+    }
+    
+    // Reverse to get forward order
+    std::reverse(lit_lens.begin(), lit_lens.end());
+    std::reverse(match_lens.begin(), match_lens.end());
+    std::reverse(offsets.begin(), offsets.end());
+    
+    u32 num_seqs = (u32)lit_lens.size();
+    if (h_num_sequences) *h_num_sequences = num_seqs;
+    
+    // 4. Copy to device buffers in workspace
+    if (num_seqs > workspace.max_sequences) {
+        delete[] h_costs;
+        delete[] h_matches;
+        return Status::ERROR_OUT_OF_MEMORY;
+    }
+    
+    cudaMemcpyAsync(workspace.d_literal_lengths_reverse, lit_lens.data(), num_seqs * sizeof(u32), cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(workspace.d_match_lengths_reverse, match_lens.data(), num_seqs * sizeof(u32), cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(workspace.d_offsets_reverse, offsets.data(), num_seqs * sizeof(u32), cudaMemcpyHostToDevice, stream);
+    
+    delete[] h_costs;
+    delete[] h_matches;
+    return Status::SUCCESS;
+}
 
 // LEGACY_PARALLEL_BACKTRACK: 
 // LEGACY_PARALLEL_BACKTRACK: // Adaptive backtracking: chooses parallel or CPU based on input size
+// Adaptive backtracking: chooses parallel or CPU based on input size
 Status backtrack_sequences(
     u32 input_size,
     CompressionWorkspace& workspace,
     u32* h_num_sequences,
     cudaStream_t stream
 ) {
-    // Get adaptive configuration
-    BacktrackConfig config = create_backtrack_config(input_size);
-    
-    if (config.use_parallel) {
-        // Use parallel GPU backtracking for large inputs
-//        std::cout << "[LZ77] Pass 3: Backtracking sequences (parallel GPU, " 
-//                  << config.num_segments << " segments)" << std::endl;
-        return backtrack_sequences_parallel(workspace.d_costs, input_size, 
-                                           workspace, h_num_sequences, stream);
-    } else {
-        // Use CPU backtracking for small inputs
-//        std::cout << "[LZ77] Pass 3: Backtracking sequences (CPU offload)" << std::endl;
-        
-        // Allocate host memory for costs array and sequence outputs
-        ParseCost* h_costs = new ParseCost[input_size + 1];
-        u32* h_literal_lengths = new u32[workspace.max_sequences];
-        u32* h_match_lengths = new u32[workspace.max_sequences];
-        u32* h_offsets = new u32[workspace.max_sequences];
-        
-        // Copy costs from device to host (async for potential overlap)
-        cudaError_t err = cudaMemcpyAsync(h_costs, workspace.d_costs, 
-                                          (input_size + 1) * sizeof(ParseCost),
-                                          cudaMemcpyDeviceToHost, stream);
-        if (err != cudaSuccess) {
-            delete[] h_costs;
-            delete[] h_literal_lengths;
-            delete[] h_match_lengths;
-            delete[] h_offsets;
-            return Status::ERROR_CUDA_ERROR;
-        }
-        
-        // Wait for D2H copy to complete
-        err = cudaStreamSynchronize(stream);
-        if (err != cudaSuccess) {
-            delete[] h_costs;
-            delete[] h_literal_lengths;
-            delete[] h_match_lengths;
-            delete[] h_offsets;
-            return Status::ERROR_CUDA_ERROR;
-        }
-        
-        // Perform backtracking on CPU
-        backtrack_sequences_cpu(h_costs, input_size, h_literal_lengths, 
-                               h_match_lengths, h_offsets, h_num_sequences);
-        
-        // Copy results back to device (async)
-        err = cudaMemcpyAsync(workspace.d_literal_lengths_reverse, h_literal_lengths,
-                             *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
-        if (err != cudaSuccess) {
-            delete[] h_costs;
-            delete[] h_literal_lengths;
-            delete[] h_match_lengths;
-            delete[] h_offsets;
-            return Status::ERROR_CUDA_ERROR;
-        }
-        
-        err = cudaMemcpyAsync(workspace.d_match_lengths_reverse, h_match_lengths,
-                             *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
-        if (err != cudaSuccess) {
-            delete[] h_costs;
-            delete[] h_literal_lengths;
-            delete[] h_match_lengths;
-            delete[] h_offsets;
-            return Status::ERROR_CUDA_ERROR;
-        }
-        
-        err = cudaMemcpyAsync(workspace.d_offsets_reverse, h_offsets,
-                             *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice, stream);
-        if (err != cudaSuccess) {
-            delete[] h_costs;
-            delete[] h_literal_lengths;
-            delete[] h_match_lengths;
-            delete[] h_offsets;
-            return Status::ERROR_CUDA_ERROR;
-        }
-        
-        // Wait for H2D copies to complete
-        err = cudaStreamSynchronize(stream);
-        if (err != cudaSuccess) {
-            delete[] h_costs;
-            delete[] h_literal_lengths;
-            delete[] h_match_lengths;
-            delete[] h_offsets;
-            return Status::ERROR_CUDA_ERROR;
-        }
-        
-//        std::cout << "[LZ77] Found " << *h_num_sequences << " sequences (CPU)" << std::endl;
-        
-        // Cleanup
-        delete[] h_costs;
-        delete[] h_literal_lengths;
-        delete[] h_match_lengths;
-        delete[] h_offsets;
-        
-        return Status::SUCCESS;
-    }
+    // V2: Always use V2 backtracking (CPU for now, but uses new ParseCost format)
+    return backtrack_sequences_v2(input_size, workspace, h_num_sequences, stream);
 }
 
+
 } // namespace lz77
-} // namespace compression
+} // namespace cuda_zstd

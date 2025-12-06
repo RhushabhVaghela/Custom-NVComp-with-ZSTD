@@ -26,7 +26,7 @@ void fill_rle(std::vector<byte_t>& buffer, byte_t val) {
     std::fill(buffer.begin(), buffer.end(), val);
 }
 
-void test_rle_roundtrip() {
+bool test_rle_roundtrip() {
     printf("=== Testing RLE Roundtrip ===\n");
     
     const u32 data_size = 1024 * 1024; // 1MB
@@ -48,12 +48,21 @@ void test_rle_roundtrip() {
     u32 input_sizes_arr[] = { data_size };
     byte_t* d_outputs_arr[] = { d_output };
     
+    // Verify d_input content
+    std::vector<byte_t> h_check(data_size);
+    CUDA_CHECK(cudaMemcpy(h_check.data(), d_input, data_size, cudaMemcpyDeviceToHost));
+    if (h_check != h_input) {
+        printf("❌ Input mismatch before encoding!\n");
+        printf("Expected 0xAA, got 0x%02x\n", h_check[0]);
+        exit(1);
+    }
+    
     // Encode
     printf("Encoding RLE data...\n");
     Status status = encode_fse_batch(
-        d_inputs_arr,
+        (const byte_t**)d_inputs_arr,
         input_sizes_arr,
-        d_outputs_arr,
+        (byte_t**)d_outputs_arr,
         d_output_sizes,
         1, // num_blocks
         0  // stream
@@ -111,6 +120,20 @@ void test_rle_roundtrip() {
     
     if (h_decoded != h_input) {
         printf("❌ Content mismatch!\n");
+        printf("Expected (first 20 bytes): ");
+        for (int i = 0; i < 20 && i < data_size; i++) printf("%02x ", h_input[i]);
+        printf("\n");
+        printf("Actual   (first 20 bytes): ");
+        for (int i = 0; i < 20 && i < data_size; i++) printf("%02x ", h_decoded[i]);
+        printf("\n");
+        
+        // Find first mismatch
+        for (size_t i = 0; i < data_size; ++i) {
+            if (h_decoded[i] != h_input[i]) {
+                printf("First mismatch at index %zu: expected %02x, got %02x\n", i, h_input[i], h_decoded[i]);
+                break;
+            }
+        }
         exit(1);
     }
     
@@ -120,9 +143,10 @@ void test_rle_roundtrip() {
     cudaFree(d_output);
     cudaFree(d_output_sizes);
     cudaFree(d_decoded);
+    return true;
 }
 
-void test_exact_256kb_input() {
+bool test_exact_256kb_input() {
     printf("=== Testing Exact 256KB Input ===\n");
     
     const u32 data_size = 256 * 1024;
@@ -144,9 +168,9 @@ void test_exact_256kb_input() {
     byte_t* d_outputs_arr[] = { d_output };
     
     Status status = encode_fse_batch(
-        d_inputs_arr,
+        (const byte_t**)d_inputs_arr,
         input_sizes_arr,
-        d_outputs_arr,
+        (byte_t**)d_outputs_arr,
         d_output_sizes,
         1,
         0
@@ -176,6 +200,20 @@ void test_exact_256kb_input() {
     
     if (h_decoded != h_input) {
         printf("❌ Content mismatch for 256KB!\n");
+        printf("Decoded size: %u\n", decoded_size);
+        printf("Expected size: %u\n", data_size);
+        printf("First 20 bytes expected: ");
+        for (int i = 0; i < 20 && i < data_size; i++) printf("%02x ", h_input[i]);
+        printf("\nFirst 20 bytes actual:   ");
+        for (int i = 0; i < 20 && i < decoded_size; i++) printf("%02x ", h_decoded[i]);
+        printf("\n");
+        // Find first mismatch
+        for (size_t i = 0; i < std::min(data_size, decoded_size); ++i) {
+            if (h_decoded[i] != h_input[i]) {
+                printf("First mismatch at index %zu: expected %02x, got %02x\n", i, h_input[i], h_decoded[i]);
+                break;
+            }
+        }
         exit(1);
     }
     
@@ -185,9 +223,10 @@ void test_exact_256kb_input() {
     cudaFree(d_output);
     cudaFree(d_output_sizes);
     cudaFree(d_decoded);
+    return true;
 }
 
-void test_zero_byte_input() {
+bool test_zero_byte_input() {
     printf("=== Testing 0-Byte Input ===\n");
     
     const u32 data_size = 0;
@@ -205,9 +244,9 @@ void test_zero_byte_input() {
     byte_t* d_outputs_arr[] = { d_output };
     
     Status status = encode_fse_batch(
-        d_inputs_arr,
+        (const byte_t**)d_inputs_arr,
         input_sizes_arr,
-        d_outputs_arr,
+        (byte_t**)d_outputs_arr,
         d_output_sizes,
         1,
         0
@@ -240,6 +279,7 @@ void test_zero_byte_input() {
     cudaFree(d_input);
     cudaFree(d_output);
     cudaFree(d_output_sizes);
+    return true;
 }
 
 int main() {

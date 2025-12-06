@@ -78,7 +78,7 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_c_api.cpp
     src/cuda_zstd_types.cpp
     src/cuda_zstd_manager.cu
-    # src/cuda_zstd_lz77.cu  <-- Included in manager.cu
+    src/cuda_zstd_lz77.cu
     src/cuda_zstd_fse.cu
     src/cuda_zstd_huffman.cu
     src/cuda_zstd_dictionary.cu
@@ -204,6 +204,13 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(comprehensive_benchmark cuda_zstd_static)
+
+    add_executable(benchmark_lz77 tests/benchmark_lz77.cu)
+    set_target_properties(benchmark_lz77 PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_lz77 cuda_zstd_static)
 endif()
 
 # Installation

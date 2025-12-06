@@ -2,6 +2,12 @@
 // Preparation Kernel: Calculate codes and extra bits from raw values
 // ============================================================================
 
+#include "cuda_zstd_types.h"
+#include "cuda_zstd_sequence.h"
+#include <stdio.h>
+
+using namespace cuda_zstd;
+
 __global__ void fse_prepare_sequences_kernel(
     const u32* d_literal_lengths,
     const u32* d_match_lengths,
@@ -26,18 +32,20 @@ __global__ void fse_prepare_sequences_kernel(
     
     // Calculate literal length code and extra bits
     u32 ll_code = sequence::ZstdSequence::get_lit_len_code(ll);
-    u32 ll_extra = sequence::ZstdSequence::get_lit_len_extra_bits(ll);
-    u32 ll_num_bits = sequence::ZstdSequence::get_lit_len_num_extra_bits(ll_code);
+    u32 ll_num_bits = sequence::ZstdSequence::get_lit_len_extra_bits(ll_code);
+    u32 ll_base = sequence::ZstdSequence::get_lit_len(ll_code);
+    u32 ll_extra = ll - ll_base;
     
     // Calculate match length code and extra bits
     u32 ml_code = sequence::ZstdSequence::get_match_len_code(ml);
-    u32 ml_extra = sequence::ZstdSequence::get_match_len_extra_bits(ml);
-    u32 ml_num_bits = sequence::ZstdSequence::get_match_len_num_extra_bits(ml_code);
+    u32 ml_num_bits = sequence::ZstdSequence::get_match_len_extra_bits(ml_code);
+    u32 ml_base = sequence::ZstdSequence::get_match_len(ml_code);
+    u32 ml_extra = ml - ml_base;
     
     // Calculate offset code and extra bits
     u32 of_code = sequence::ZstdSequence::get_offset_code(of);
-    u32 of_extra = sequence::ZstdSequence::get_offset_code_extra_bits(of_code);
-    u32 of_num_bits = sequence::ZstdSequence::get_offset_code_num_extra_bits(of_code);
+    u32 of_num_bits = sequence::ZstdSequence::get_offset_code_extra_bits(of_code);
+    u32 of_extra = sequence::ZstdSequence::get_offset_extra_bits(of, of_code);
     
     // Store results
     d_ll_codes[idx] = (u8)ll_code;

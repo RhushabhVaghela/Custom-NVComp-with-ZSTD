@@ -1195,6 +1195,7 @@ __global__ void fse_parallel_encode_kernel(
     byte_t* d_output = d_parallel_bitstreams + (chunk_id * max_chunk_bitstream_size_bytes);
     
     u32 state = d_chunk_start_states[chunk_id];
+    u32 initial_state = state; // Save for writing at end
     u32 bit_pos = 0; // Tracks BYTES written to output
     u32 total_bits = 0; // Tracks EXACT bits written
     u64 bit_buffer = 0;
@@ -1236,12 +1237,14 @@ __global__ void fse_parallel_encode_kernel(
         }
     }
     
-    // Write final state (table_log bits) ONLY for the LAST chunk
+    // Write INITIAL state (table_log bits) ONLY for the LAST chunk
+    // This is the state the decoder needs to start with
     // Intermediate chunks are just concatenated bitstreams.
-    // The state at the end of Chunk K (reverse) is the start state of Chunk K+1.
-    // Pass 1 ensures this linkage.
     if (chunk_id == num_chunks - 1) {
-        bit_buffer |= (u64)state << bits_in_buffer;
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("GPU Encode: Writing initial_state=%u to bitstream\n", initial_state);
+        }
+        bit_buffer |= (u64)initial_state << bits_in_buffer;
         bits_in_buffer += table_log;
         total_bits += table_log;
         

@@ -5,27 +5,13 @@
 #ifndef ERROR_CONTEXT_H
 #define ERROR_CONTEXT_H
 
-#include "common_types.h"
-#include <cuda_runtime.h>
+#include "cuda_zstd_types.h"
 #include <iostream>
 #include <mutex>
 
-namespace compression {
+namespace cuda_zstd {
 
-// Error context structure
-struct ErrorContext {
-    Status status = Status::SUCCESS;
-    const char* file = nullptr;
-    int line = 0;
-    const char* function = nullptr;
-    const char* message = nullptr;
-    cudaError_t cuda_error = cudaSuccess;
-
-    ErrorContext() = default;
-
-    ErrorContext(Status s, const char* f, int l, const char* fn, const char* msg = nullptr)
-        : status(s), file(f), line(l), function(fn), message(msg) {}
-};
+// ErrorContext is defined in cuda_zstd_types.h
 
 // Global error handling
 namespace error_handling {
@@ -113,6 +99,6 @@ namespace error_handling {
 } while(0)
 #endif
 
-} // namespace compression
+} // namespace cuda_zstd
 
 #endif // ERROR_CONTEXT_H

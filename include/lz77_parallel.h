@@ -11,20 +11,10 @@
 #include "workspace_manager.h"
 #include <cuda_runtime.h>
 
-namespace compression {
+namespace cuda_zstd {
 namespace lz77 {
 
-__device__ inline u32 calculate_match_cost(u32 length, u32 offset) {
-    if (length == 0) return 1000000;
-
-    u32 offset_bits = (offset == 0) ? 0 : (31 - __clz(static_cast<int>(offset)));
-    u32 length_bits = (length >= 19) ? 9 : 5;
-    return 1 + length_bits + offset_bits;
-}
-
-__device__ inline u32 calculate_literal_cost(u32 num_literals) {
-    return num_literals * 8;
-}
+// calculate_match_cost, calculate_literal_cost removed (definitions in cuda_zstd_lz77.h)
 
 __device__ inline u32 compute_hash(const u8* data, u32 pos, u32 hash_log) {
     u32 val = (data[pos] << 16) | (data[pos + 1] << 8) | data[pos + 2];
@@ -49,24 +39,18 @@ __device__ inline u32 match_length(
 Status find_matches_parallel(
     const u8* d_input,
     u32 input_size,
-    CompressionWorkspace& workspace,
+    CompressionWorkspace* workspace,
     const LZ77Config& config,
     cudaStream_t stream
 );
 
-Status compute_optimal_parse(
-    const u8* d_input,
-    u32 input_size,
-    CompressionWorkspace& workspace,
-    const LZ77Config& config,
-    cudaStream_t stream
-);
+Status compute_optimal_parse();
 
 // V2: Optimized multi-pass algorithm (10-100x faster!)
 Status compute_optimal_parse_v2(
     const u8* d_input,
     u32 input_size,
-    CompressionWorkspace& workspace,
+    CompressionWorkspace* workspace,
     const LZ77Config& config,
     cudaStream_t stream
 );
@@ -122,6 +106,6 @@ Status backtrack_sequences(
 );
 
 } // namespace lz77
-} // namespace compression
+} // namespace cuda_zstd
 
 #endif // LZ77_PARALLEL_H

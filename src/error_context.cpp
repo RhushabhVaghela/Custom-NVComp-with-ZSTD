@@ -5,7 +5,7 @@
 #include "error_context.h"
 #include <mutex>
 
-namespace compression {
+namespace cuda_zstd {
 namespace error_handling {
 
 // CRITICAL FIX: Use pointer with lazy initialization to avoid static init heap corruption
@@ -22,4 +22,4 @@ std::mutex& get_error_mutex() {
 ErrorContext last_error;
 
 } // namespace error_handling
-} // namespace compression
+} // namespace cuda_zstd

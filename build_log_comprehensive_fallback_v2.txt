@@ -1,0 +1,187 @@
+UpdateCTestConfiguration  from :/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/DartConfiguration.tcl
+Test project /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 5
+    Start 5: test_comprehensive_fallback
+
+5: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_comprehensive_fallback
+5: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+5: Test timeout computed to be: 300
+5: 
+5: ========================================
+5: CUDA ZSTD - Comprehensive Fallback Integration Test
+5: ========================================
+5: 
+5: Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+5: Compute capability: 12.0
+5: Total memory: 16302 MB
+5: ========================================
+5: COMPREHENSIVE FALLBACK INTEGRATION SUITE
+5: ========================================
+5: 
+5: [TEST] Comprehensive Fallback Integration Test
+5:   [INFO] Configured fallback strategy:
+5:   [INFO]   - Host memory fallback: Enabled
+5:   [INFO]   - Progressive degradation: Enabled
+5:   [INFO]   - Rollback protection: Enabled
+5:   [INFO]   - Emergency threshold: 50MB
+5:   [INFO]   - Host memory limit: 200MB
+5:   [INFO] 
+5: --- Test 1: Normal Operation Baseline ---
+5:   [INFO] Initial mode: 0
+5:   [INFO] Initial available GPU memory: 15045 MB
+5:   [INFO] Normal allocation succeeded
+5:   [INFO] 
+5: --- Test 2: Progressive Memory Pressure ---
+5:   [INFO] Pressure test 0: 4096KB -> 4096KB (gpu)
+5:   [INFO] Pressure test 1: 6144KB -> 6144KB (gpu)
+5:   [INFO] Pressure test 2: 8192KB -> 8192KB (gpu)
+5:   [INFO] Pressure test 3: 10240KB -> 10240KB (gpu)
+5:   [INFO] Pressure test 4: 12288KB -> 12288KB (gpu)
+5:   [INFO] Pressure test completed:
+5:   [INFO]   Current mode: 0
+5:   [INFO]   Fallback rate: 0%
+5:   [INFO]   Degradation rate: 0%
+5:   [INFO] 
+5: --- Test 3: Emergency Mode Simulation ---
+5:   [INFO] Emergency mode activated:
+5:   [INFO]   Current mode: 3
+5:   [INFO]   Available GPU memory: 15045 MB
+5:   [INFO] Emergency allocation succeeded: 2048KB (host)
+5:   [INFO] 
+5: --- Test 4: Rollback Protection Test ---
+5:   [INFO] Intentional failure 0 recorded
+5:   [INFO] Intentional failure 1 recorded
+5:   [INFO] Intentional failure 2 recorded
+5:   [INFO] Intentional failure 3 recorded
+5:   [INFO] Intentional failure 4 recorded
+5:   [INFO] Rollback protection test:
+5:   [INFO]   Pre-rollback failures: 2
+5:   [INFO]   Post-rollback failures: 22
+5:   [INFO]   Rollback operations: 1
+5:   [INFO] 
+5: --- Test 5: Health Check and Recovery ---
+5:   [INFO] 
+5: --- Test 6: Mixed Pattern Stress Test ---
+5:   [INFO] Stress alloc 0: 1KB -> 1KB (gpu)
+5:   [INFO] Stress alloc 1: 64KB -> 64KB (gpu)
+5:   [INFO] Stress alloc 2: 1024KB -> 1024KB (gpu)
+5:   [INFO] Stress alloc 3: 8192KB -> 8192KB (gpu)
+5:   [INFO] Stress alloc 4: 1KB -> 1KB (gpu)
+5:   [INFO] Stress alloc 5: 64KB -> 64KB (gpu)
+5:   [INFO] Stress alloc 6: 1024KB -> 1024KB (gpu)
+5:   [INFO] Stress alloc 7: 8192KB -> 8192KB (gpu)
+5:   [INFO] Stress alloc 8: 1KB -> 1KB (gpu)
+5:   [INFO] Stress alloc 9: 64KB -> 64KB (gpu)
+5:   [INFO] Stress alloc 10: 1024KB -> 1024KB (gpu)
+5:   [INFO] Stress alloc 11: 8192KB -> 8192KB (gpu)
+5:   [INFO] Stress alloc 12: 1KB -> 1KB (gpu)
+5:   [INFO] Stress alloc 13: 64KB -> 64KB (gpu)
+5:   [INFO] Stress alloc 14: 1024KB -> 1024KB (gpu)
+5:   [INFO] Stress alloc 15: 8192KB -> 8192KB (gpu)
+5:   [INFO] Stress alloc 16: 1KB -> 1KB (gpu)
+5:   [INFO] Stress alloc 17: 64KB -> 64KB (gpu)
+5:   [INFO] Stress alloc 18: 1024KB -> 1024KB (gpu)
+5:   [INFO] Stress alloc 19: 8192KB -> 8192KB (gpu)
+5:   [INFO] Stress test results:
+5:   [INFO]   Successful: 20/20
+5:   [INFO]   Host memory: 0
+5:   [INFO]   Degraded: 0
+5:   [INFO] 
+5: --- Final Statistics ---
+5:   [INFO] Total allocations: 32
+5:   [INFO] Fallback allocations: 1
+5:   [INFO] Host memory allocations: 1
+5:   [INFO] Degraded allocations: 0
+5:   [INFO] Allocation failures: 22
+5:   [INFO] Rollback operations: 1
+5:   [INFO] Final fallback rate: 3.12%
+5:   [INFO] Final degradation rate: 0.00%
+5:   [INFO] Final mode: 0
+5:   [PASS] Comprehensive Fallback Integration
+5: 
+5: [TEST] Memory Pool Robustness Test
+5:   [INFO] Testing memory pool robustness under various stress conditions
+5:   [INFO] 
+5: --- Test 1: Rapid Allocation Cycles ---
+5:   [INFO] Rapid allocation test completed:
+5:   [INFO]   100 allocations in 24 ms
+5:   [INFO]   Average: 0.24 ms per allocation
+5:   [INFO]   Active allocations: 60
+5:   [INFO] 
+5: --- Test 2: Concurrent Stress Test ---
+5:   [INFO] Thread 11625897893310: 25 successes
+5:   [INFO] Thread 11625897893310: 25 successes
+5:   [INFO] Thread 11625897893310: 25 successes
+5:   [INFO] Thread 11625897893310: 25 successes
+5:   [INFO] Concurrent stress test completed:
+5:   [INFO]   Total operations: 100
+5:   [INFO]   Successful: 100
+5:   [INFO]   Success rate: 100.00%
+5:   [INFO] 
+5: --- Test 3: Memory Integrity Verification ---
+5:   [INFO] 
+5: --- Test 4: Recovery from Failures ---
+5:   [PASS] Memory Pool Robustness
+5: ========================================
+5: FINAL COMPREHENSIVE STATISTICS
+5: ========================================
+5: === Allocation Statistics ===
+5: Total Allocations: 0
+5: Total Deallocations: 0
+5: Cache Hits: 0
+5: Cache Misses: 0
+5: Hit Rate: 0.00%
+5: 
+5: === Fallback Statistics ===
+5: Fallback Allocations: 0
+5: Host Memory Allocs: 0
+5: Degraded Allocations: 0
+5: Allocation Failures: 0
+5: Rollback Operations: 0
+5: Fallback Rate: 0.00%
+5: Degradation Rate: 0.00%
+5: 
+5: === Memory Usage ===
+5: Current GPU Usage: 0.00 MB
+5: Host Memory Usage: 0.00 MB
+5: Peak Usage: 0.00 MB
+5: Total Pool Capacity: 0.00 MB
+5: 
+5: === System State ===
+5: Current Degradation Mode: NORMAL
+5: Available GPU Memory: 10949.00 MB
+5: Memory Pressure: 32%
+5: ========================================
+5: 
+5: ========================================
+5: COMPREHENSIVE TEST RESULTS
+5: ========================================
+5: Passed: 2/2
+5: Failed: 0/2
+5: 
+5: ✓ ALL COMPREHENSIVE FALLBACK TESTS PASSED
+5:   The memory pool fallback strategies are robust and comprehensive!
+5:   System demonstrates:
+5:   - Proper host memory fallback
+5:   - Progressive degradation under pressure
+5:   - Effective rollback protection
+5:   - Emergency mode operations
+5:   - Memory pressure monitoring
+5:   - Recovery mechanisms
+5: ========================================
+5: 
+1/1 Test #5: test_comprehensive_fallback ......   Passed    0.97 sec
+
+The following tests passed:
+	test_comprehensive_fallback
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   1.03 sec

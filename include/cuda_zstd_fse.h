@@ -48,16 +48,19 @@ enum class TableType : u8 {
  * The CTable contains (nbBits, newStateBase) for each *symbol*.
  */
 struct alignas(16) FSEEncodeTable {
-    // (NEW) CTable format: { newStateBase, nbBits }
+    // (NEW) CTable format matching Zstandard's symbolTT
     struct FSEEncodeSymbol {
-        u16 newStateBase;
-        u8  nbBits;
+        i32 deltaFindState; // Offset to find state in tableU16
+        u32 deltaNbBits;    // Encoded (nbBits << 16) - minStatePlus
     };
 
     FSEEncodeSymbol* d_symbol_table; // [max_symbol + 1]
     u32  table_log;
     u32  table_size;
-    u32  max_symbol; // (NEW) Need to store this
+    u32  max_symbol;
+    
+    // Zstandard State Table (tableU16)
+    u16* d_next_state;      // [table_size] sorted state values (L+u)
     
     // RFC 8878 State Table: For correct initial state calculation
     u8*  d_state_to_symbol;     // [table_size] state→symbol mapping
@@ -283,17 +286,7 @@ __host__ Status FSE_buildDTable_Simple_Host(
 );
 
 
-__host__ Status encode_fse_advanced(
-    const byte_t* d_input,
-    u32 input_size,
-    byte_t* d_output,
-    u32* d_output_size,
-    TableType table_type = TableType::LITERALS,
-    bool auto_table_log = true,
-    bool accurate_norm = true,
-    bool gpu_optimize = true,
-    cudaStream_t stream = 0
-);
+
 
 __host__ Status encode_fse_batch(
     const byte_t** d_inputs,
@@ -309,6 +302,26 @@ __host__ Status decode_fse(
     u32 input_size,
     byte_t* d_output,
     u32* d_output_size, // Host pointer
+    cudaStream_t stream = 0
+);
+
+// Debug version
+__host__ Status encode_fse_advanced_debug(
+    const byte_t* d_input,
+    u32 input_size,
+    byte_t* d_output,
+    u32* d_output_size,
+    bool gpu_optimize = true,
+    cudaStream_t stream = 0
+);
+
+// Production version (wrapper)
+__host__ Status encode_fse_advanced(
+    const byte_t* d_input,
+    u32 input_size,
+    byte_t* d_output,
+    u32* d_output_size,
+    bool gpu_optimize = true,
     cudaStream_t stream = 0
 );
 

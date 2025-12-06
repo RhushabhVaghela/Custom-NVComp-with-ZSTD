@@ -1,0 +1,176 @@
+UpdateCTestConfiguration  from :/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/DartConfiguration.tcl
+Test project /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 2
+    Start 2: test_alternative_allocation_strategies
+
+2: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_alternative_allocation_strategies
+2: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+2: Test timeout computed to be: 300
+2: 
+2: ========================================
+2: CUDA ZSTD - Alternative Allocation Strategies Test Suite
+2: ========================================
+2: 
+2: Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+2: Compute capability: 12.0
+2: Total memory: 16302 MB
+2: ========================================
+2: SUITE 1: Smart Allocation Algorithms
+2: ========================================
+2: 
+2: [TEST] Smart Allocation Interface
+2:   [INFO] Smart allocation succeeded: 1048576 bytes
+2:   [INFO]   Strategy used: 0
+2:   [INFO]   Is enhanced: No
+2:   [INFO]   Is dual memory: No
+2:   [PASS] Smart Allocation Interface
+2: 
+2: [TEST] Allocation Strategy Selection
+2:   [INFO] Strategy AUTO_ADAPTIVE succeeded: 524288 bytes
+2:   [INFO]   Is host memory: No
+2:   [INFO] Strategy PREFER_GPU succeeded: 524288 bytes
+2:   [INFO]   Is host memory: No
+2:   [INFO] Strategy PREFER_HOST succeeded: 524288 bytes
+2:   [INFO]   Is host memory: Yes
+2:   [INFO] Strategy BALANCED succeeded: 524288 bytes
+2:   [INFO]   Is host memory: No
+2:   [INFO] Strategy PERFORMANCE_FIRST succeeded: 524288 bytes
+2:   [INFO]   Is host memory: No
+2:   [PASS] Allocation Strategy Selection
+2: 
+2: [TEST] Dual Memory Allocation
+2:   [INFO] Dual memory allocation succeeded
+2:   [INFO]   GPU allocation: Yes
+2:   [INFO]   Host allocation: Yes
+2:   [INFO]   Effective size: 0 bytes
+2:   [INFO]   Is dual memory: Yes
+2:   [PASS] Dual Memory Allocation
+2: ========================================
+2: SUITE 2: Rollback Procedures
+2: ========================================
+2: 
+2: [TEST] Rollback Context Management
+2:   [INFO] Rollback context created and completed successfully
+2:   [PASS] Rollback Context Management
+2: 
+2: [TEST] Rollback Protection
+2:   [INFO] Intentional failure 0 recorded
+2:   [INFO] Intentional failure 1 recorded
+2:   [INFO] Intentional failure 2 recorded
+2:   [INFO] Intentional failure 3 recorded
+2:   [INFO] Intentional failure 4 recorded
+2:   [INFO] Pre-rollback failures: 0
+2:   [INFO] Post-rollback failures: 15
+2:   [INFO] Rollback operations: 0
+2:   [PASS] Rollback Protection
+2: 
+2: [TEST] System Recovery
+2:   [INFO] System recovery completed successfully
+2:   [PASS] System Recovery
+2: ========================================
+2: SUITE 3: Progressive Enhancement
+2: ========================================
+2: 
+2: [TEST] Enhancement State Management
+2:   [PASS] Enhancement State Management
+2: 
+2: [TEST] Progressive Enhancement
+2:   [PASS] Progressive Enhancement
+2: 
+2: [TEST] Allocation Enhancement
+2:   [INFO] Allocation enhancement failed (may be expected)
+2:   [PASS] Allocation Enhancement
+2: ========================================
+2: SUITE 4: Resource-Aware Allocation
+2: ========================================
+2: 
+2: [TEST] Resource State Tracking
+2:   [INFO] Available GPU memory: 15045 MB
+2:   [INFO] Current GPU usage: 0 MB
+2:   [INFO] Current host usage: 0 MB
+2:   [INFO] Active allocations: 0
+2:   [INFO] Fragmentation ratio: 0%
+2:   [INFO] Memory efficiency: 0%
+2:   [PASS] Resource State Tracking
+2: 
+2: [TEST] Strategy Optimization
+2:   [INFO] Optimal strategy for 1048576 bytes: 1
+2:   [INFO] Optimal size for 1048576 bytes: 1048576 bytes
+2:   [INFO] Resource balance status: SUCCESS
+2:   [PASS] Strategy Optimization
+2: ========================================
+2: SUITE 5: Advanced Statistics
+2: ========================================
+2: 
+2: [TEST] Advanced Statistics
+2:   [INFO] Allocation 0: 65536 -> 65536 bytes
+2:   [INFO] Allocation 1: 81920 -> 81920 bytes
+2:   [INFO] Allocation 2: 98304 -> 98304 bytes
+2:   [INFO] Allocation 3: 114688 -> 114688 bytes
+2:   [INFO] Allocation 4: 131072 -> 131072 bytes
+2:   [INFO] Allocation 5: 147456 -> 147456 bytes
+2:   [INFO] Allocation 6: 163840 -> 163840 bytes
+2:   [INFO] Allocation 7: 180224 -> 180224 bytes
+2:   [INFO] Allocation 8: 196608 -> 196608 bytes
+2:   [INFO] Allocation 9: 212992 -> 212992 bytes
+2:   [INFO] === Advanced Statistics ===
+2:   [PASS] Advanced Statistics
+2: 
+2: [TEST] Performance Metrics
+2:   [INFO] Manual allocation time: 1454 microseconds
+2:   [INFO] Manual deallocation time: 0 microseconds
+2:   [INFO] Tracked allocation latency: 0 ms
+2:   [INFO] Tracked deallocation latency: 0 ms
+2:   [PASS] Performance Metrics
+2: ========================================
+2: SUITE 6: Stress Testing with Alternative Strategies
+2: ========================================
+2: 
+2: [TEST] Alternative Strategy Stress Test
+2:   [INFO] Testing 3 threads with alternative strategies
+2:   [INFO] Thread 0: 15 success, 4 smart, 4 dual
+2:   [INFO] Thread 1: 15 success, 4 smart, 4 dual
+2:   [INFO] Thread 2: 15 success, 4 smart, 4 dual
+2:   [INFO] Total: 45/45 success, 12 smart, 12 dual allocations
+2:   [INFO] Final statistics:
+2:   [PASS] Alternative Strategy Stress Test
+2: ========================================
+2: FINAL ALTERNATIVE STRATEGIES STATISTICS
+2: ========================================
+2: === Allocation Statistics ===
+2: Total Allocations: 0
+2: Rollback Operations: 0
+2: ========================================
+2: 
+2: ========================================
+2: TEST RESULTS
+2: ========================================
+2: Passed: 14/14
+2: Failed: 0/14
+2: 
+2: ✓ ALL ALTERNATIVE STRATEGY TESTS PASSED
+2:   Alternative allocation strategies are working correctly!
+2:   System demonstrates:
+2:   - Smart allocation algorithms
+2:   - Sophisticated rollback procedures
+2:   - Progressive enhancement capabilities
+2:   - Resource-aware allocation strategies
+2:   - Advanced statistics tracking
+2:   - Stress resilience
+2: ========================================
+2: 
+1/1 Test #2: test_alternative_allocation_strategies ...   Passed   73.07 sec
+
+The following tests passed:
+	test_alternative_allocation_strategies
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =  73.23 sec

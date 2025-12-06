@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace compression {
+namespace cuda_zstd {
 
 constexpr size_t GPU_MEMORY_ALIGNMENT = 256;
 
@@ -235,4 +235,4 @@ void ZstdBatchManager::synchronize() {
     stream_pool_->synchronize_all();
 }
 
-} // namespace compression
+} // namespace cuda_zstd

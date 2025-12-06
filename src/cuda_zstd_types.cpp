@@ -22,14 +22,12 @@ namespace cuda_zstd {
 static ErrorCallback g_error_callback = nullptr;
 static ErrorContext g_last_error;
 // CRITICAL FIX: Use pointer to avoid static initialization heap corruption
-static std::mutex* g_error_mutex = nullptr;
+// static std::recursive_mutex* g_error_mutex = nullptr; // Global removed
 
-// Helper to get or create mutex (lazy initialization)
-static std::mutex& get_error_mutex() {
-    if (!g_error_mutex) {
-        g_error_mutex = new std::mutex();
-    }
-    return *g_error_mutex;
+// Helper to get or create mutex (thread-safe lazy initialization)
+static std::recursive_mutex& get_error_mutex() {
+    static std::recursive_mutex* m = new std::recursive_mutex();
+    return *m;
 }
 
 const char* status_to_string(Status status) {
@@ -61,37 +59,37 @@ const char* get_detailed_error_message(const ErrorContext& ctx) {
     static thread_local char buffer[512];
     
     if (ctx.cuda_error != cudaSuccess) {
-//         snprintf(buffer, sizeof(buffer),
-//                  "%s at %s:%d in %s() - CUDA Error: %s (%d)%s%s",
-//                  status_to_string(ctx.status),
-//                  ctx.file ? ctx.file : "unknown",
-//                  ctx.line,
-//                  ctx.function ? ctx.function : "unknown",
-//                  cudaGetErrorString(ctx.cuda_error),
-//                  ctx.cuda_error,
-//                  ctx.message ? " - " : "",
-//                  ctx.message ? ctx.message : "");
+        snprintf(buffer, sizeof(buffer),
+                 "%s at %s:%d in %s() - CUDA Error: %s (%d)%s%s",
+                 status_to_string(ctx.status),
+                 ctx.file ? ctx.file : "unknown",
+                 ctx.line,
+                 ctx.function ? ctx.function : "unknown",
+                 cudaGetErrorString(ctx.cuda_error),
+                 (int)ctx.cuda_error,
+                 ctx.message ? " - " : "",
+                 ctx.message ? ctx.message : "");
     } else {
-//         snprintf(buffer, sizeof(buffer),
-//                  "%s at %s:%d in %s()%s%s",
-//                  status_to_string(ctx.status),
-//                  ctx.file ? ctx.file : "unknown",
-//                  ctx.line,
-//                  ctx.function ? ctx.function : "unknown",
-//                  ctx.message ? " - " : "",
-//                  ctx.message ? ctx.message : "");
+        snprintf(buffer, sizeof(buffer),
+                 "%s at %s:%d in %s()%s%s",
+                 status_to_string(ctx.status),
+                 ctx.file ? ctx.file : "unknown",
+                 ctx.line,
+                 ctx.function ? ctx.function : "unknown",
+                 ctx.message ? " - " : "",
+                 ctx.message ? ctx.message : "");
     }
     
     return buffer;
 }
 
 void set_error_callback(ErrorCallback callback) {
-    std::lock_guard<std::mutex> lock(get_error_mutex());
+    std::lock_guard<std::recursive_mutex> lock(get_error_mutex());
     g_error_callback = callback;
 }
 
 void log_error(const ErrorContext& ctx) {
-    std::lock_guard<std::mutex> lock(get_error_mutex());
+    std::lock_guard<std::recursive_mutex> lock(get_error_mutex());
     g_last_error = ctx;
     
     // Print to stderr for debugging
@@ -116,12 +114,12 @@ void log_error(const ErrorContext& ctx) {
 }
 
 ErrorContext get_last_error() {
-    std::lock_guard<std::mutex> lock(get_error_mutex());
+    std::lock_guard<std::recursive_mutex> lock(get_error_mutex());
     return g_last_error;
 }
 
 void clear_last_error() {
-    std::lock_guard<std::mutex> lock(get_error_mutex());
+    std::lock_guard<std::recursive_mutex> lock(get_error_mutex());
     g_last_error = ErrorContext();
 }
 
