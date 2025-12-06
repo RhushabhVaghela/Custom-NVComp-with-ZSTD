@@ -126,6 +126,15 @@ void test_bit_exact_fse_roundtrip() {
     }
     
     for (cuda_zstd::u32 i = 0; i < data_size; i++) {
+        if (decoded_data[i] != test_data[i]) {
+            printf("MISMATCH at byte %u: decoded=0x%02X expected=0x%02X\n", 
+                   i, decoded_data[i], test_data[i]);
+            for (cuda_zstd::u32 j = 0; j < data_size; j++) {
+                printf("  [%u]: decoded=0x%02X expected=0x%02X %s\n", 
+                       j, decoded_data[j], test_data[j], 
+                       (decoded_data[j] == test_data[j]) ? "OK" : "MISMATCH");
+            }
+        }
         assert(decoded_data[i] == test_data[i]);
     }
     
