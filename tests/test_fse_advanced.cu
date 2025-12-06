@@ -82,6 +82,7 @@ void test_bit_exact_fse_roundtrip() {
     */
     
     printf("Encoded to %u bytes\n", encoded_size);
+    fflush(stdout);
     
     // Allocate memory for decoded data
     cuda_zstd::byte_t* d_decoded = nullptr;

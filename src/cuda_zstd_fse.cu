@@ -1230,7 +1230,14 @@ __global__ void fse_parallel_encode_kernel(
         // Update state
         state = d_next_state[(state >> nbBitsOut) + stateInfo.deltaFindState];
         
-        // Debug output removed for clean test runs
+        // Detailed trace for first symbol
+        if (i == in_idx_start && threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("[ENCODE] Symbol[%u]=%u: state_in=%u, nbBitsOut=%u, val=%u, nextIdx=%u, state_out=%u\n",
+                   i, symbol, old_state, nbBitsOut, val, 
+                   (old_state >> nbBitsOut) + stateInfo.deltaFindState, state);
+            printf("         deltaNbBits=%d, deltaFindState=%d\n", 
+                   stateInfo.deltaNbBits, stateInfo.deltaFindState);
+        }
     }
     
     // Write FINAL state (table_log bits) ONLY for the LAST chunk
@@ -2643,6 +2650,7 @@ __host__ Status decode_fse(
         // Debug output removed
         
         for (int i = (int)output_size_expected - 1; i >= 0; i--) {
+            u32 old_state = state;  // Save for logging
             u8 symbol = h_table.symbol[state];
             u8 num_bits = h_table.nbBits[state];
             u16 next_state_base = h_table.newState[state];
@@ -2653,6 +2661,12 @@ __host__ Status decode_fse(
             
             state = next_state_base + new_bits;
             h_output[i] = symbol;
+            
+            // Detailed trace for first symbol 
+            if (i == 0) {
+                printf("[DECODE] Symbol[%d]=%u: state_in=%u, nbBits=%u, new_bits=%u, next_base=%u, state_out=%u\n",
+                       i, symbol, old_state, num_bits, new_bits, next_state_base, state);
+            }
         }
         
         // 5. Copy output to device
