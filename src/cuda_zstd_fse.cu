@@ -1231,6 +1231,7 @@ __global__ void fse_parallel_encode_kernel(
         state = d_next_state[(state >> nbBitsOut) + stateInfo.deltaFindState];
         
         // Log all symbols for small data (<=20 bytes)
+        /*
         if (in_idx_end <= 20 && threadIdx.x == 0 && blockIdx.x == 0) {
             printf("[ENCODE] Symbol[%u]=%u: state_in=%u, nbBitsOut=%u, val=%u, nextIdx=%u, state_out=%u\n",
                    i, symbol, old_state, nbBitsOut, val, 
@@ -1238,16 +1239,31 @@ __global__ void fse_parallel_encode_kernel(
             printf("         deltaNbBits=%d, deltaFindState=%d\n", 
                    stateInfo.deltaNbBits, stateInfo.deltaFindState);
         }
+        */
     }
     
     // Write FINAL state (table_log bits) ONLY for the LAST chunk
     // Decoder expects final state at end to begin decoding backwards
     if (chunk_id == num_chunks - 1) {
+        u32 table_size = 1 << table_log;
+        // Adjust state to 0..table_size-1 range for decoder
+        u32 state_to_write = state - table_size;
+        
         // Debug: Writing final state to bitstream
-        bit_buffer |= (u64)state << bits_in_buffer;
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            printf("[ENCODE] Writing final state: %u (raw %u) - %u bits\n", 
+                   state_to_write, state, table_log);
+        }
+        
+        bit_buffer |= (u64)state_to_write << bits_in_buffer;
         bits_in_buffer += table_log;
         total_bits += table_log;
-        // Note: NO terminator bit - decoder does not expect it
+        
+        // Add TERMINATOR bit (1) to mark end of stream
+        // This allows decoder to find the exact end of valid bits
+        bit_buffer |= (u64)1 << bits_in_buffer;
+        bits_in_buffer++;
+        total_bits++;
     }
     
     // Flush remaining bits (partial byte)
@@ -2635,7 +2651,31 @@ __host__ Status decode_fse(
         u32 bitstream_size = input_size - header_size;
         
         // Bitstream is read backwards from end
+        // Bitstream is read backwards from end
         u32 bit_position = bitstream_size * 8;
+        
+        // Find the terminator bit (last '1' bit in the stream)
+        // Scan backwards byte by byte
+        i32 byte_idx = (i32)bitstream_size - 1;
+        while (byte_idx >= 0 && bitstream[byte_idx] == 0) {
+            byte_idx--;
+        }
+        
+        if (byte_idx >= 0) {
+            // Find highest set bit in this byte
+            u8 b = bitstream[byte_idx];
+            int bit_idx = 7;
+            while (bit_idx >= 0 && ((b >> bit_idx) & 1) == 0) {
+                bit_idx--;
+            }
+            bit_position = byte_idx * 8 + bit_idx;
+            printf("[DECODE] Found terminator at bit %u (byte %d, bit %d)\n", bit_position, byte_idx, bit_idx);
+        } else {
+             printf("[DECODE] ERROR: No terminator bit found!\n");
+             // Fallback to end (or error)
+             bit_position = bitstream_size * 8; 
+        }
+
         bit_position -= table_log;
         
         // Read initial state

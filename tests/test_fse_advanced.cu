@@ -13,10 +13,12 @@ using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
 
 void test_bit_exact_fse_roundtrip() {
+    printf("[TEST4] === ENTRY test_bit_exact_fse_roundtrip ===\n"); fflush(stdout);
+    // REVERTED: Use original 11 bytes
     const cuda_zstd::byte_t test_data[] = {1, 2, 3, 4, 5, 5, 5, 6, 6, 6, 6};
     cuda_zstd::u32 data_size = sizeof(test_data);
     
-    printf("Testing FSE roundtrip with %u bytes of data\n", data_size);
+    printf("[TEST4] Testing FSE roundtrip with %u bytes of data\n", data_size); fflush(stdout);
     
     // Allocate device memory
     cuda_zstd::byte_t* d_input = nullptr;
