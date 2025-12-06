@@ -1460,12 +1460,14 @@ __host__ Status encode_fse_advanced_debug(
     fflush(stdout);
 
     // Step 1: Analyze input
+    printf("[ENCODE] Step 1: analyze_block_statistics...\n"); fflush(stdout);
     FSEStats stats;
     auto status = analyze_block_statistics(d_input, input_size, &stats, stream);
     if (status != cuda_zstd::Status::SUCCESS) {
-        printf("[DEBUG] analyze_block_statistics failed: %d\n", (int)status);
+        printf("[ENCODE] ERROR: analyze_block_statistics failed: %d\n", (int)status); fflush(stdout);
         return status;
     }
+    printf("[ENCODE] Step 1 complete: unique=%u, max_symbol=%u\n", stats.unique_symbols, stats.max_symbol); fflush(stdout);
 
     // Step 2: Select table size
     u32 table_log = FSE_DEFAULT_TABLELOG;
@@ -1507,8 +1509,9 @@ __host__ Status encode_fse_advanced_debug(
     }
 
     // Step 4: Write FSE table header to output
+    printf("[ENCODE] Step 4: Write header...\n"); fflush(stdout);
     if (stats.max_symbol > 255) {
-        printf("[DEBUG] ERROR: max_symbol %u > 255\n", stats.max_symbol);
+        printf("[ENCODE] ERROR: max_symbol %u > 255\n", stats.max_symbol); fflush(stdout);
         return Status::ERROR_INVALID_PARAMETER;
     }
 
@@ -1550,8 +1553,9 @@ __host__ Status encode_fse_advanced_debug(
         table_log,
         &h_ctable
     );
+    printf("[ENCODE] Step 5: FSE_buildCTable_Host returned status=%d\n", (int)status); fflush(stdout);
     if (status != cuda_zstd::Status::SUCCESS) {
-        printf("[DEBUG] FSE_buildCTable_Host failed: %d\n", (int)status);
+        printf("[ENCODE] ERROR: FSE_buildCTable_Host failed\n"); fflush(stdout);
         return status;
     }
 
