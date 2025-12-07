@@ -6,7 +6,6 @@
 #include <cuda_runtime.h>
 #include <vector>
 
-
 void test_bit_exact_fse_roundtrip() {
   const cuda_zstd::byte_t test_data[] = {1, 2, 3, 4, 5, 5, 5, 6, 6, 6, 6};
   cuda_zstd::u32 data_size = sizeof(test_data);
@@ -16,23 +15,16 @@ void test_bit_exact_fse_roundtrip() {
   // Allocate device memory
   cuda_zstd::byte_t *d_input = nullptr;
   cuda_zstd::byte_t *d_output = nullptr;
-  cuda_zstd::u32 *d_output_size = nullptr;
 
   if (!safe_cuda_malloc((void **)&d_input, data_size)) {
     printf("ERROR: CUDA malloc for d_input failed\n");
     assert(0);
   }
 
-  if (!safe_cuda_malloc((void **)&d_output, data_size * 2)) {
+  // Increased buffer size for FSE header safety
+  if (!safe_cuda_malloc((void **)&d_output, data_size * 2 + 1024)) {
     printf("ERROR: CUDA malloc for d_output failed\n");
     safe_cuda_free(d_input);
-    assert(0);
-  }
-
-  if (!safe_cuda_malloc((void **)&d_output_size, sizeof(cuda_zstd::u32))) {
-    printf("ERROR: CUDA malloc for d_output_size failed\n");
-    safe_cuda_free(d_input);
-    safe_cuda_free(d_output);
     assert(0);
   }
 
@@ -41,14 +33,16 @@ void test_bit_exact_fse_roundtrip() {
     printf("ERROR: CUDA memcpy to d_input failed\n");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
-    safe_cuda_free(d_output_size);
     assert(0);
   }
 
   // Encode using the FSE API directly
+  // Note: encode_fse_advanced expects d_output_size to be a HOST pointer
+  cuda_zstd::u32 h_encoded_size = 0;
+
   printf("Encoding with FSE...\n");
   cuda_zstd::Status status = cuda_zstd::fse::encode_fse_advanced(
-      d_input, data_size, d_output, d_output_size,
+      d_input, data_size, d_output, &h_encoded_size,
       false, // gpu_optimize
       0      // stream
   );
@@ -57,22 +51,10 @@ void test_bit_exact_fse_roundtrip() {
     printf("ERROR: FSE encoding failed: %d\n", (int)status);
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
-    safe_cuda_free(d_output_size);
     assert(0);
   }
 
-  // Copy encoded size back
-  cuda_zstd::u32 encoded_size = 0;
-  if (!safe_cuda_memcpy(&encoded_size, d_output_size, sizeof(cuda_zstd::u32),
-                        cudaMemcpyDeviceToHost)) {
-    printf("ERROR: CUDA memcpy for encoded_size failed\n");
-    safe_cuda_free(d_input);
-    safe_cuda_free(d_output);
-    safe_cuda_free(d_output_size);
-    assert(0);
-  }
-
-  printf("Encoded to %u bytes\n", encoded_size);
+  printf("Encoded to %u bytes\n", h_encoded_size);
 
   // Allocate memory for decoded data
   cuda_zstd::byte_t *d_decoded = nullptr;
@@ -80,7 +62,6 @@ void test_bit_exact_fse_roundtrip() {
     printf("ERROR: CUDA malloc for d_decoded failed\n");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
-    safe_cuda_free(d_output_size);
     assert(0);
   }
 
@@ -88,7 +69,7 @@ void test_bit_exact_fse_roundtrip() {
   // output_size_ptr, stream)
   cuda_zstd::u32 h_decoded_size = 0;
   cuda_zstd::Status dec_status = cuda_zstd::fse::decode_fse(
-      d_output, encoded_size, d_decoded, &h_decoded_size,
+      d_output, h_encoded_size, d_decoded, &h_decoded_size,
       0 // stream
   );
 
@@ -96,7 +77,6 @@ void test_bit_exact_fse_roundtrip() {
     printf("ERROR: FSE decoding failed: %d\n", (int)dec_status);
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
-    safe_cuda_free(d_output_size);
     safe_cuda_free(d_decoded);
     assert(0);
   }
@@ -113,7 +93,6 @@ void test_bit_exact_fse_roundtrip() {
     printf("ERROR: CUDA memcpy for decoded data failed\n");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
-    safe_cuda_free(d_output_size);
     safe_cuda_free(d_decoded);
     assert(0);
   }
@@ -127,7 +106,6 @@ void test_bit_exact_fse_roundtrip() {
   // Cleanup
   safe_cuda_free(d_input);
   safe_cuda_free(d_output);
-  safe_cuda_free(d_output_size);
   safe_cuda_free(d_decoded);
 }
 
