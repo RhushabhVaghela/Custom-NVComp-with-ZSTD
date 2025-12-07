@@ -1175,7 +1175,7 @@ __global__ void fse_parallel_encode_kernel(
     u32 mask = (1u << nbBitsOut) - 1;
     u32 val = state & mask;
 
-    u32 old_state = state;
+    // u32 old_state = state;
 
     bit_buffer |= (u64)val << bits_in_buffer;
     bits_in_buffer += nbBitsOut;
@@ -1281,7 +1281,7 @@ __global__ void fse_parallel_bitstream_copy_kernel(
   // shared with the next chunk. The previous optimization for rem==0 used
   // direct assignment, which caused race conditions.
 
-  u32 inv_shift = 8 - out_bit_rem;
+  // u32 inv_shift = 8 - out_bit_rem;
 
   // Optimization: Direct copy if aligned (avoids atomicOr issues)
   if (out_bit_rem == 0) {
@@ -1422,7 +1422,7 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
 
 __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
                                           byte_t *d_output, u32 *d_output_size,
-                                          bool gpu_optimize,
+                                          [[maybe_unused]] bool gpu_optimize,
                                           cudaStream_t stream) {
   [[maybe_unused]] TableType table_type = TableType::LITERALS;
   bool auto_table_log = true;
@@ -1609,7 +1609,7 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
 
   // 7d: Copy Bitstreams
   // Output starts AFTER header
-  byte_t *d_payload = d_output + header_size;
+  // byte_t *d_payload = d_output + header_size;
 
   // We need to calculate total size on host to set *d_output_size
   // But first launch the copy
@@ -2661,7 +2661,7 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     printf("[DECODE] Initial state read: %u\n", state);
 
     for (int i = (int)output_size_expected - 1; i >= 0; i--) {
-      u32 old_state = state; // Save for logging
+      // u32 old_state = state; // Save for logging
       u8 symbol = h_table.symbol[state];
       u8 num_bits = h_table.nbBits[state];
       u16 next_state_base = h_table.newState[state];
