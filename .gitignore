@@ -2,7 +2,6 @@ build/
 .history/
 logs/
 temp/
-*.log
 *.tmp
 .DS_Store
 .vscode/

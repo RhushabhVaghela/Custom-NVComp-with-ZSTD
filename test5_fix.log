@@ -1,0 +1,106 @@
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+  FSE Advanced Features Test Suite
+========================================
+
+
+========================================
+TEST 1: Low Entropy (Repetitive)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=40
+[DEBUG] Step 2 Analysis: unique=1 entropy=0.000000 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=65 size=144
+[DEBUG] Step 4 Memcpy: dst=0x90ba00200 src=0x594f4ee2f650 size=144 max_sym=65
+[ENCODE] Writing final state: 0 (raw 32) - 5 bits
+
+========================================
+TEST 2: Medium Entropy (Text)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=45
+[DEBUG] Step 2 Analysis: unique=29 entropy=4.441093 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=122 size=258
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x594f4f004b20 size=258 max_sym=122
+[ENCODE] Writing final state: 23 (raw 55) - 5 bits
+
+========================================
+TEST 3: High Entropy (Mixed)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=41
+[DEBUG] Step 2 Analysis: unique=41 entropy=5.357552 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=6 table_size=64
+[DEBUG] Step 4 Memcpy Prep: dim=121 size=256
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x594f4f004b20 size=256 max_sym=121
+[ENCODE] Writing final state: 2 (raw 66) - 6 bits
+
+========================================
+TEST 4: Multi-Table FSE
+========================================
+
+Active Tables: 0x9
+  ✓ LITERALS table
+  ✓ CUSTOM table
+[TEST4] === ENTRY test_bit_exact_fse_roundtrip ===
+[TEST4] Testing FSE roundtrip with 5 bytes of data
+[TEST4] Allocating d_input (5 bytes)...
+[TEST4] d_input allocated: 0x902c00000
+[TEST4] Allocating d_output...
+[TEST4] d_output allocated: 0x902c00200
+[TEST4] Copying 5 bytes to d_input...
+[TEST4] Data copied to device
+[TEST4] === CALLING encode_fse_advanced_debug ===
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=5
+[DEBUG] Step 2 Analysis: unique=3 entropy=1.521928 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=3 size=20
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x594f4ee235e0 size=20 max_sym=3
+[ENCODE] Symbol[0]=1: state_in=32, nbBitsOut=1, val=0, nextIdx=2, state_out=37
+         deltaNbBits=131016, deltaFindState=-14
+[ENCODE] Symbol[1]=2: state_in=37, nbBitsOut=1, val=1, nextIdx=20, state_out=49
+         deltaNbBits=131024, deltaFindState=2
+[ENCODE] Symbol[2]=3: state_in=49, nbBitsOut=3, val=1, nextIdx=26, state_out=36
+         deltaNbBits=196560, deltaFindState=20
+[ENCODE] Symbol[3]=2: state_in=36, nbBitsOut=1, val=0, nextIdx=20, state_out=49
+         deltaNbBits=131024, deltaFindState=2
+[ENCODE] Symbol[4]=1: state_in=49, nbBitsOut=1, val=1, nextIdx=10, state_out=55
+         deltaNbBits=131016, deltaFindState=-14
+[ENCODE] Writing final state: 23 (raw 55) - 5 bits
+[TEST4] === RETURNED from encode_fse_advanced_debug, status=0 ===
+[TEST4] Encoding SUCCESS
+Encoded to 22 bytes
+[TEST4] Allocating d_decoded (5 bytes)...
+[TEST4] d_decoded allocated: 0x902c00a00
+[TEST4] === CALLING decode_fse ===
+CTable: total_freq=32, table_size=32
+CTable Freqs: [0]=0, [1]=14, [2]=12, [3]=6
+[DECODE] Initial state read from bitstream: 1 (table_log=5)
+[DECODE] Symbol[4]=1: state_in=1, nbBits=2, new_bits=0, next_base=28, state_out=28
+[DECODE] Symbol[3]=1: state_in=28, nbBits=1, new_bits=0, next_base=20, state_out=20
+[DECODE] Symbol[2]=1: state_in=20, nbBits=1, new_bits=0, next_base=14, state_out=14
+[DECODE] Symbol[1]=1: state_in=14, nbBits=1, new_bits=1, next_base=8, state_out=9
+[DECODE] Symbol[0]=3: state_in=9, nbBits=3, new_bits=3, next_base=24, state_out=27
+[TEST4] === RETURNED from decode_fse, status=0 ===
+[TEST4] Decoded to 5 bytes (expected 5)
+[TEST4] Checking decoded_size == data_size...
+[TEST4] Size check passed
+[TEST4] Copying decoded data to host...
+[TEST4] Decoded data copied to host
+[TEST4] Verifying 5 bytes...
+[TEST4] MISMATCH at byte 0: decoded=0x03 expected=0x01
+test_fse_advanced: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_fse_advanced.cu:153: void test_bit_exact_fse_roundtrip(): Assertion `decoded_data[i] == test_data[i]' failed.

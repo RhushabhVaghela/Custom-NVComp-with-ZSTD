@@ -1,0 +1,50 @@
+[ 83%] Building CUDA object CMakeFiles/test_stream_pool.dir/tests/test_stream_pool.cu.o
+[ 83%] Built target test_memory_pool_double_free_race_fixed
+[ 84%] Building CUDA object CMakeFiles/test_stream_pool_timeout.dir/tests/test_stream_pool_timeout.cu.o
+[ 84%] Built target test_memory_pool_lock_ordering
+[ 85%] Building CUDA object CMakeFiles/test_streaming.dir/tests/test_streaming.cu.o
+[ 85%] Built target test_memory_pool_lock_timeout
+[ 86%] Building CUDA object CMakeFiles/test_workspace_patterns.dir/tests/test_workspace_patterns.cu.o
+[ 86%] Built target test_metadata_roundtrip
+[ 87%] Building CXX object CMakeFiles/test_c_api.dir/tests/test_c_api.c.o
+[ 87%] Linking CXX executable test_c_api
+[ 88%] Linking CUDA device code CMakeFiles/test_nvcomp_batch.dir/cmake_device_link.o
+[ 89%] Linking CXX executable test_nvcomp_batch
+[ 89%] Built target test_c_api
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_workspace_patterns.cu(20): error: incomplete type "compression::CompressionWorkspace" is not allowed
+      CompressionWorkspace workspace;
+                           ^
+
+[ 89%] Building CUDA object CMakeFiles/level_nvcomp_demo.dir/tests/level_nvcomp_demo.cu.o
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_workspace_patterns.cu(40): error: incomplete type "compression::CompressionWorkspace" is not allowed
+      CompressionWorkspace workspace;
+                           ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_workspace_patterns.cu(80): error: incomplete type "compression::CompressionWorkspace" is not allowed
+      CompressionWorkspace workspace;
+                           ^
+
+3 errors detected in the compilation of "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_workspace_patterns.cu".
+make[2]: *** [CMakeFiles/test_workspace_patterns.dir/build.make:77: CMakeFiles/test_workspace_patterns.dir/tests/test_workspace_patterns.cu.o] Error 2
+make[1]: *** [CMakeFiles/Makefile2:983: CMakeFiles/test_workspace_patterns.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+[ 90%] Linking CUDA device code CMakeFiles/test_roundtrip.dir/cmake_device_link.o
+[ 91%] Linking CXX executable test_roundtrip
+[ 91%] Linking CUDA device code CMakeFiles/test_stream_pool_timeout.dir/cmake_device_link.o
+[ 92%] Linking CXX executable test_stream_pool_timeout
+[ 93%] Linking CUDA device code CMakeFiles/test_performance.dir/cmake_device_link.o
+[ 93%] Built target test_nvcomp_batch
+[ 94%] Linking CXX executable test_performance
+[ 94%] Built target test_stream_pool_timeout
+[ 95%] Linking CUDA device code CMakeFiles/test_streaming.dir/cmake_device_link.o
+[ 95%] Built target test_roundtrip
+[ 95%] Linking CXX executable test_streaming
+[ 95%] Linking CUDA device code CMakeFiles/test_stream_pool.dir/cmake_device_link.o
+[ 96%] Linking CXX executable test_stream_pool
+[ 96%] Built target test_performance
+[ 96%] Built target test_streaming
+[ 96%] Built target test_stream_pool
+[ 97%] Linking CUDA device code CMakeFiles/level_nvcomp_demo.dir/cmake_device_link.o
+[ 98%] Linking CXX executable level_nvcomp_demo
+[ 98%] Built target level_nvcomp_demo
+make: *** [Makefile:146: all] Error 2

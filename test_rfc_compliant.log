@@ -1,0 +1,572 @@
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+  FSE Advanced Features Test Suite
+========================================
+
+
+========================================
+TEST 1: Low Entropy (Repetitive)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=40
+[DEBUG] Point A: Start Analyze
+[DEBUG] Step 2 Analysis: unique=1 entropy=0.000000 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=65 size=144
+[DEBUG] Step 4 Memcpy: dst=0x90ba00200 src=0x5864896bced0 size=144 max_sym=65
+[DEBUG] Point B: Header Copy
+[DEBUG] Point C: Header Copy Done
+[CTable SPREAD] First 20 state_to_symbol mappings:
+[CTable SPREAD] state=0 symbol=65
+[CTable SPREAD] state=1 symbol=65
+[CTable SPREAD] state=2 symbol=65
+[CTable SPREAD] state=3 symbol=65
+[CTable SPREAD] state=4 symbol=65
+[CTable SPREAD] state=5 symbol=65
+[CTable SPREAD] state=6 symbol=65
+[CTable SPREAD] state=7 symbol=65
+[CTable SPREAD] state=8 symbol=65
+[CTable SPREAD] state=9 symbol=65
+[CTable SPREAD] state=10 symbol=65
+[CTable SPREAD] state=11 symbol=65
+[CTable SPREAD] state=12 symbol=65
+[CTable SPREAD] state=13 symbol=65
+[CTable SPREAD] state=14 symbol=65
+[CTable SPREAD] state=15 symbol=65
+[CTable SPREAD] state=16 symbol=65
+[CTable SPREAD] state=17 symbol=65
+[CTable SPREAD] state=18 symbol=65
+[CTable SPREAD] state=19 symbol=65
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=65 deltaNbBits=0 deltaFindState=0
+[CTable] NextState[0] = 32
+[CTable] NextState[1] = 33
+[CTable] NextState[2] = 34
+[CTable] NextState[3] = 35
+[CTable] NextState[4] = 36
+[CTable] NextState[5] = 37
+[CTable] NextState[6] = 38
+[CTable] NextState[7] = 39
+[CTable] NextState[8] = 40
+[CTable] NextState[9] = 41
+[CTable] NextState[10] = 42
+[CTable] NextState[11] = 43
+[CTable] NextState[12] = 44
+[CTable] NextState[13] = 45
+[CTable] NextState[14] = 46
+[CTable] NextState[15] = 47
+[CTable] NextState[16] = 48
+[CTable] NextState[17] = 49
+[CTable] NextState[18] = 50
+[CTable] NextState[19] = 51
+[CTable] NextState[20] = 52
+[CTable] NextState[21] = 53
+[CTable] NextState[22] = 54
+[CTable] NextState[23] = 55
+[CTable] NextState[24] = 56
+[CTable] NextState[25] = 57
+[CTable] NextState[26] = 58
+[CTable] NextState[27] = 59
+[CTable] NextState[28] = 60
+[CTable] NextState[29] = 61
+[CTable] NextState[30] = 62
+[CTable] NextState[31] = 63
+[DEBUG] Point D: Table Copy
+[DEBUG] Point E: Table Copy Done
+[DEBUG] Point G: Launch Encode
+[DEBUG] Point H: Encode Launched
+[DEBUG] Point I: Launch Copy
+[DEBUG] Point J: Copy Launched
+[ENCODE] Writing final state: 0 (raw 32) - 5 bits
+[BS_DUMP] Chunk 0 Input: 20 00 00 00
+[BS_DUMP] Chunk 0 Input (4-7): 00 00 00 00
+
+========================================
+TEST 2: Medium Entropy (Text)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=45
+[DEBUG] Point A: Start Analyze
+[DEBUG] Step 2 Analysis: unique=29 entropy=4.441093 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=122 size=258
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x58648932ca40 size=258 max_sym=122
+[DEBUG] Point B: Header Copy
+[DEBUG] Point C: Header Copy Done
+[CTable SPREAD] First 20 state_to_symbol mappings:
+[CTable SPREAD] state=0 symbol=32
+[CTable SPREAD] state=1 symbol=98
+[CTable SPREAD] state=2 symbol=105
+[CTable SPREAD] state=3 symbol=112
+[CTable SPREAD] state=4 symbol=119
+[CTable SPREAD] state=5 symbol=32
+[CTable SPREAD] state=6 symbol=101
+[CTable SPREAD] state=7 symbol=108
+[CTable SPREAD] state=8 symbol=115
+[CTable SPREAD] state=9 symbol=122
+[CTable SPREAD] state=10 symbol=97
+[CTable SPREAD] state=11 symbol=104
+[CTable SPREAD] state=12 symbol=111
+[CTable SPREAD] state=13 symbol=118
+[CTable SPREAD] state=14 symbol=32
+[CTable SPREAD] state=15 symbol=100
+[CTable SPREAD] state=16 symbol=107
+[CTable SPREAD] state=17 symbol=114
+[CTable SPREAD] state=18 symbol=121
+[CTable SPREAD] state=19 symbol=84
+[CTable] Sym=32 deltaNbBits=22628 deltaFindState=-1992225200
+[CTable] Sym=98 deltaNbBits=22628 deltaFindState=-1992577808
+[CTable] Sym=105 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=112 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=119 deltaNbBits=0 deltaFindState=32
+[CTable] Sym=32 deltaNbBits=22628 deltaFindState=-1992225200
+[CTable] Sym=101 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=108 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=115 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=122 deltaNbBits=0 deltaFindState=1408
+[CTable] Sym=97 deltaNbBits=0 deltaFindState=177
+[CTable] Sym=104 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=111 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=118 deltaNbBits=0 deltaFindState=1760
+[CTable] Sym=32 deltaNbBits=22628 deltaFindState=-1992225200
+[CTable] Sym=100 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=107 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=114 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=121 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=84 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=103 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=110 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=117 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=32 deltaNbBits=22628 deltaFindState=-1992225200
+[CTable] Sym=99 deltaNbBits=31074 deltaFindState=807418656
+[CTable] Sym=106 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=113 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=120 deltaNbBits=22625 deltaFindState=259204379
+[CTable] Sym=46 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=102 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=109 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=116 deltaNbBits=0 deltaFindState=0
+[CTable] NextState[0] = 32
+[CTable] NextState[1] = 37
+[CTable] NextState[2] = 46
+[CTable] NextState[3] = 55
+[CTable] NextState[4] = 60
+[CTable] NextState[5] = 51
+[CTable] NextState[6] = 42
+[CTable] NextState[7] = 33
+[CTable] NextState[8] = 56
+[CTable] NextState[9] = 47
+[CTable] NextState[10] = 38
+[CTable] NextState[11] = 61
+[CTable] NextState[12] = 52
+[CTable] NextState[13] = 43
+[CTable] NextState[14] = 34
+[CTable] NextState[15] = 57
+[CTable] NextState[16] = 48
+[CTable] NextState[17] = 39
+[CTable] NextState[18] = 62
+[CTable] NextState[19] = 53
+[CTable] NextState[20] = 44
+[CTable] NextState[21] = 35
+[CTable] NextState[22] = 58
+[CTable] NextState[23] = 49
+[CTable] NextState[24] = 40
+[CTable] NextState[25] = 63
+[CTable] NextState[26] = 54
+[CTable] NextState[27] = 45
+[CTable] NextState[28] = 36
+[CTable] NextState[29] = 59
+[CTable] NextState[30] = 50
+[CTable] NextState[31] = 41
+[DEBUG] Point D: Table Copy
+[DEBUG] Point E: Table Copy Done
+[DEBUG] Point G: Launch Encode
+[DEBUG] Point H: Encode Launched
+[DEBUG] Point I: Launch Copy
+[DEBUG] Point J: Copy Launched
+[ENCODE] Writing final state: 23 (raw 55) - 5 bits
+[BS_DUMP] Chunk 0 Input: 60 2E 03 6D
+[BS_DUMP] Chunk 0 Input (4-7): 05 86 0B 91
+
+========================================
+TEST 3: High Entropy (Mixed)
+========================================
+
+--- Feature 1 & 2: Adaptive + Accurate ---
+--- Feature 3: GPU Optimization ---
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=41
+[DEBUG] Point A: Start Analyze
+[DEBUG] Step 2 Analysis: unique=41 entropy=5.357552 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=6 table_size=64
+[DEBUG] Step 4 Memcpy Prep: dim=121 size=256
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x58648932ca40 size=256 max_sym=121
+[DEBUG] Point B: Header Copy
+[DEBUG] Point C: Header Copy Done
+[CTable SPREAD] First 20 state_to_symbol mappings:
+[CTable SPREAD] state=0 symbol=33
+[CTable SPREAD] state=1 symbol=35
+[CTable SPREAD] state=2 symbol=37
+[CTable SPREAD] state=3 symbol=48
+[CTable SPREAD] state=4 symbol=50
+[CTable SPREAD] state=5 symbol=51
+[CTable SPREAD] state=6 symbol=53
+[CTable SPREAD] state=7 symbol=54
+[CTable SPREAD] state=8 symbol=56
+[CTable SPREAD] state=9 symbol=57
+[CTable SPREAD] state=10 symbol=66
+[CTable SPREAD] state=11 symbol=68
+[CTable SPREAD] state=12 symbol=72
+[CTable SPREAD] state=13 symbol=74
+[CTable SPREAD] state=14 symbol=78
+[CTable SPREAD] state=15 symbol=80
+[CTable SPREAD] state=16 symbol=86
+[CTable SPREAD] state=17 symbol=97
+[CTable SPREAD] state=18 symbol=103
+[CTable SPREAD] state=19 symbol=109
+[CTable] Sym=33 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=35 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=37 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=48 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=50 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=51 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=53 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=54 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=56 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=57 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=66 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=68 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=72 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=74 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=78 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=80 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=86 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=97 deltaNbBits=327648 deltaFindState=5
+[CTable] Sym=103 deltaNbBits=327648 deltaFindState=11
+[CTable] Sym=109 deltaNbBits=327648 deltaFindState=17
+[CTable] Sym=115 deltaNbBits=327648 deltaFindState=23
+[CTable] Sym=121 deltaNbBits=327648 deltaFindState=29
+[CTable] Sym=35 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=36 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=48 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=49 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=51 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=52 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=54 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=55 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=57 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=64 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=68 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=70 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=74 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=76 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=80 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=84 deltaNbBits=327648 deltaFindState=4
+[CTable] Sym=90 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=101 deltaNbBits=327648 deltaFindState=9
+[CTable] Sym=107 deltaNbBits=327648 deltaFindState=15
+[CTable] Sym=113 deltaNbBits=327648 deltaFindState=21
+[CTable] Sym=119 deltaNbBits=327648 deltaFindState=27
+[CTable] Sym=33 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=36 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=37 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=49 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=50 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=52 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=53 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=55 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=56 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=64 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=66 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=70 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=72 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=76 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=78 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=82 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=88 deltaNbBits=393184 deltaFindState=0
+[CTable] Sym=99 deltaNbBits=327648 deltaFindState=7
+[CTable] Sym=105 deltaNbBits=327648 deltaFindState=13
+[CTable] Sym=111 deltaNbBits=327648 deltaFindState=19
+[CTable] Sym=117 deltaNbBits=327648 deltaFindState=25
+[CTable] NextState[0] = 64
+[CTable] NextState[1] = 107
+[CTable] NextState[2] = 65
+[CTable] NextState[3] = 86
+[CTable] NextState[4] = 87
+[CTable] NextState[5] = 108
+[CTable] NextState[6] = 66
+[CTable] NextState[7] = 109
+[CTable] NextState[8] = 67
+[CTable] NextState[9] = 88
+[CTable] NextState[10] = 89
+[CTable] NextState[11] = 110
+[CTable] NextState[12] = 68
+[CTable] NextState[13] = 111
+[CTable] NextState[14] = 69
+[CTable] NextState[15] = 90
+[CTable] NextState[16] = 91
+[CTable] NextState[17] = 112
+[CTable] NextState[18] = 70
+[CTable] NextState[19] = 113
+[CTable] NextState[20] = 71
+[CTable] NextState[21] = 92
+[CTable] NextState[22] = 93
+[CTable] NextState[23] = 114
+[CTable] NextState[24] = 72
+[CTable] NextState[25] = 115
+[CTable] NextState[26] = 73
+[CTable] NextState[27] = 94
+[CTable] NextState[28] = 95
+[CTable] NextState[29] = 116
+[CTable] NextState[30] = 74
+[CTable] NextState[31] = 117
+[DEBUG] Point D: Table Copy
+[DEBUG] Point E: Table Copy Done
+[DEBUG] Point G: Launch Encode
+[DEBUG] Point H: Encode Launched
+[DEBUG] Point I: Launch Copy
+[DEBUG] Point J: Copy Launched
+[ENCODE] Writing final state: 2 (raw 66) - 6 bits
+[BS_DUMP] Chunk 0 Input: 20 8B 44 15
+[BS_DUMP] Chunk 0 Input (4-7): 1C 82 F8 F0
+[TEST4] === ENTRY test_bit_exact_fse_roundtrip ===
+[TEST4] Testing FSE roundtrip with 11 bytes of data
+[TEST4] Allocating d_input (11 bytes)...
+[TEST4] d_input allocated: 0x902c00000
+[TEST4] Allocating d_output...
+[TEST4] d_output allocated: 0x902c00200
+[TEST4] Copying 11 bytes to d_input...
+[TEST4] Data copied to device
+[TEST4] === CALLING encode_fse_advanced_debug ===
+
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=11
+[DEBUG] Point A: Start Analyze
+[DEBUG] Step 2 Analysis: unique=6 entropy=2.299896 recommended_log=5
+[DEBUG] Step 2 Adjusted: table_log=5 table_size=32
+[DEBUG] Step 4 Memcpy Prep: dim=6 size=26
+[DEBUG] Step 4 Memcpy: dst=0x902c00200 src=0x5864896bce80 size=26 max_sym=6
+[DEBUG] Point B: Header Copy
+[DEBUG] Point C: Header Copy Done
+[CTable SPREAD] First 20 state_to_symbol mappings:
+[CTable SPREAD] state=0 symbol=1
+[CTable SPREAD] state=1 symbol=3
+[CTable SPREAD] state=2 symbol=5
+[CTable SPREAD] state=3 symbol=6
+[CTable SPREAD] state=4 symbol=6
+[CTable SPREAD] state=5 symbol=2
+[CTable SPREAD] state=6 symbol=4
+[CTable SPREAD] state=7 symbol=5
+[CTable SPREAD] state=8 symbol=6
+[CTable SPREAD] state=9 symbol=6
+[CTable SPREAD] state=10 symbol=3
+[CTable SPREAD] state=11 symbol=5
+[CTable SPREAD] state=12 symbol=5
+[CTable SPREAD] state=13 symbol=6
+[CTable SPREAD] state=14 symbol=1
+[CTable SPREAD] state=15 symbol=4
+[CTable SPREAD] state=16 symbol=5
+[CTable SPREAD] state=17 symbol=6
+[CTable SPREAD] state=18 symbol=6
+[CTable SPREAD] state=19 symbol=2
+[CTable] Sym=1 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=3 deltaNbBits=0 deltaFindState=1
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=2 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=4 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=3 deltaNbBits=0 deltaFindState=1
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=1 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=4 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=2 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=1 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=3 deltaNbBits=0 deltaFindState=1
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=2 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=4 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=5 deltaNbBits=0 deltaFindState=0
+[CTable] Sym=6 deltaNbBits=0 deltaFindState=0
+[CTable] NextState[0] = 32
+[CTable] NextState[1] = 46
+[CTable] NextState[2] = 55
+[CTable] NextState[3] = 37
+[CTable] NextState[4] = 51
+[CTable] NextState[5] = 60
+[CTable] NextState[6] = 33
+[CTable] NextState[7] = 42
+[CTable] NextState[8] = 56
+[CTable] NextState[9] = 38
+[CTable] NextState[10] = 47
+[CTable] NextState[11] = 61
+[CTable] NextState[12] = 34
+[CTable] NextState[13] = 39
+[CTable] NextState[14] = 43
+[CTable] NextState[15] = 44
+[CTable] NextState[16] = 48
+[CTable] NextState[17] = 52
+[CTable] NextState[18] = 53
+[CTable] NextState[19] = 57
+[CTable] NextState[20] = 62
+[CTable] NextState[21] = 35
+[CTable] NextState[22] = 36
+[CTable] NextState[23] = 40
+[CTable] NextState[24] = 41
+[CTable] NextState[25] = 45
+[CTable] NextState[26] = 49
+[CTable] NextState[27] = 50
+[CTable] NextState[28] = 54
+[CTable] NextState[29] = 58
+[CTable] NextState[30] = 59
+[CTable] NextState[31] = 63
+[DEBUG] Point D: Table Copy
+[DEBUG] Point E: Table Copy Done
+[DEBUG] Point G: Launch Encode
+[DEBUG] Point H: Encode Launched
+[DEBUG] Point I: Launch Copy
+[DEBUG] Point J: Copy Launched
+[ENC] i=0 sym=1 st_in=32 bits=3 val=0 st_out=46
+[ENC] i=1 sym=2 st_in=46 bits=3 val=6 st_out=60
+[ENC] i=2 sym=3 st_in=60 bits=4 val=12 st_out=33
+[ENC] i=3 sym=4 st_in=33 bits=3 val=1 st_out=47
+[ENC] i=4 sym=5 st_in=47 bits=2 val=3 st_out=43
+[ENC] i=5 sym=5 st_in=43 bits=2 val=3 st_out=39
+[ENC] i=6 sym=5 st_in=39 bits=2 val=3 st_out=34
+[ENC] i=7 sym=6 st_in=34 bits=1 val=0 st_out=50
+[ENC] i=8 sym=6 st_in=50 bits=2 val=2 st_out=36
+[ENC] i=9 sym=6 st_in=36 bits=1 val=0 st_out=54
+[ENC] i=10 sym=6 st_in=54 bits=2 val=2 st_out=40
+[ENCODE] Writing final state: 8 (raw 40) - 5 bits
+[BS_DUMP] Chunk 0 Input: 30 E7 27 51
+[BS_DUMP] Chunk 0 Input (4-7): 00 00 00 00
+[TEST4] === RETURNED from encode_fse_advanced_debug, status=0 ===
+[TEST4] encoded_size reported: 30
+[TEST4] Encoding SUCCESS
+Encoded to 30 bytes
+[TEST4] Allocating d_decoded (11 bytes)...
+[TEST4] d_decoded allocated: 0x902c00a00
+[TEST4] Copying encoded data to host...
+[TEST4] === CALLING decode_fse ===
+DTable: total_freq=32, table_size=32
+DTable Freqs: [0]=0 [1]=3 [2]=3 [3]=3 [4]=3 [5]=9 [6]=11 
+[DTable SPREAD] ALL spread_symbol mappings:
+[DTable SPREAD] state=0 symbol=1
+[DTable SPREAD] state=1 symbol=3
+[DTable SPREAD] state=2 symbol=5
+[DTable SPREAD] state=3 symbol=6
+[DTable SPREAD] state=4 symbol=6
+[DTable SPREAD] state=5 symbol=2
+[DTable SPREAD] state=6 symbol=4
+[DTable SPREAD] state=7 symbol=5
+[DTable SPREAD] state=8 symbol=6
+[DTable SPREAD] state=9 symbol=6
+[DTable SPREAD] state=10 symbol=3
+[DTable SPREAD] state=11 symbol=5
+[DTable SPREAD] state=12 symbol=5
+[DTable SPREAD] state=13 symbol=6
+[DTable SPREAD] state=14 symbol=1
+[DTable SPREAD] state=15 symbol=4
+[DTable SPREAD] state=16 symbol=5
+[DTable SPREAD] state=17 symbol=6
+[DTable SPREAD] state=18 symbol=6
+[DTable SPREAD] state=19 symbol=2
+[DTable SPREAD] state=20 symbol=5
+[DTable SPREAD] state=21 symbol=5
+[DTable SPREAD] state=22 symbol=6
+[DTable SPREAD] state=23 symbol=1
+[DTable SPREAD] state=24 symbol=3
+[DTable SPREAD] state=25 symbol=5
+[DTable SPREAD] state=26 symbol=6
+[DTable SPREAD] state=27 symbol=6
+[DTable SPREAD] state=28 symbol=2
+[DTable SPREAD] state=29 symbol=4
+[DTable SPREAD] state=30 symbol=5
+[DTable SPREAD] state=31 symbol=6
+[DTable RFC] State=0 Sym=1 NbBits=2 Baseline=0 (sorted_pos=0/3)
+[DTable RFC] State=14 Sym=1 NbBits=1 Baseline=4 (sorted_pos=1/3)
+[DTable RFC] State=5 Sym=2 NbBits=2 Baseline=0 (sorted_pos=0/3)
+[DTable RFC] State=19 Sym=2 NbBits=1 Baseline=4 (sorted_pos=1/3)
+[DTable RFC] State=1 Sym=3 NbBits=2 Baseline=0 (sorted_pos=0/3)
+[DTable RFC] State=10 Sym=3 NbBits=1 Baseline=4 (sorted_pos=1/3)
+[DTable RFC] State=6 Sym=4 NbBits=2 Baseline=0 (sorted_pos=0/3)
+[DTable RFC] State=15 Sym=4 NbBits=1 Baseline=4 (sorted_pos=1/3)
+[DTable RFC] State=2 Sym=5 NbBits=4 Baseline=0 (sorted_pos=0/9)
+[DTable RFC] State=7 Sym=5 NbBits=4 Baseline=16 (sorted_pos=1/9)
+[DTable RFC] State=11 Sym=5 NbBits=4 Baseline=32 (sorted_pos=2/9)
+[DTable RFC] State=12 Sym=5 NbBits=4 Baseline=48 (sorted_pos=3/9)
+[DTable RFC] State=16 Sym=5 NbBits=4 Baseline=64 (sorted_pos=4/9)
+[DTable RFC] State=21 Sym=5 NbBits=4 Baseline=96 (sorted_pos=6/9)
+[DTable RFC] State=3 Sym=6 NbBits=4 Baseline=0 (sorted_pos=0/11)
+[DTable RFC] State=4 Sym=6 NbBits=4 Baseline=16 (sorted_pos=1/11)
+[DTable RFC] State=8 Sym=6 NbBits=4 Baseline=32 (sorted_pos=2/11)
+[DTable RFC] State=9 Sym=6 NbBits=4 Baseline=48 (sorted_pos=3/11)
+[DTable RFC] State=13 Sym=6 NbBits=4 Baseline=64 (sorted_pos=4/11)
+[DTable RFC] State=17 Sym=6 NbBits=3 Baseline=80 (sorted_pos=5/11)
+[DTable RFC] State=18 Sym=6 NbBits=3 Baseline=88 (sorted_pos=6/11)
+[DECODE] Found terminator at bit 30 (byte 3, bit 6)
+[DECODE] Reading Initial State from bit_pos=25 (table_log=5)
+[DECODE] Initial state read: 8
+[DECODE] i=10 sym=6 reading 4 bits from pos 26 (OldState=8 -> NextBase=32)
+[DEC] i=10 sym=6 st_in=8 bits=4 new=4 st_out=36
+[DECODE] i=9 sym=0 reading 100 bits from pos 4294967222 (OldState=36 -> NextBase=289)
+[DECODE] FATAL: bit_position underflow! 4294967222
+[TEST4] === RETURNED from decode_fse, status=0 ===
+[TEST4] Decoded to 11 bytes (expected 11)
+[TEST4] Checking decoded_size == data_size...
+[TEST4] Size check passed
+[TEST4] Copying decoded data to host...
+[TEST4] Decoded data copied to host
+[TEST4] Verifying 11 bytes...
+[TEST4] MISMATCH at byte 0: decoded=0x00 expected=0x01
+test_fse_advanced: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_fse_advanced.cu:169: void test_bit_exact_fse_roundtrip(): Assertion `decoded_data[i] == test_data[i]' failed.

@@ -1,0 +1,20 @@
+[  2%] Building CXX object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_types.cpp.o
+[  2%] Building CXX object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_types.cpp.o
+[  4%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_memory_pool_complex.cu.o
+[  4%] Building CUDA object CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_memory_pool_complex.cu.o
+[  5%] Linking CUDA device code CMakeFiles/cuda_zstd_static.dir/cmake_device_link.o
+[  5%] Linking CUDA device code CMakeFiles/cuda_zstd_shared.dir/cmake_device_link.o
+[  6%] Linking CXX shared library libcuda_zstd.so
+[  7%] Linking CXX static library libcuda_zstd.a
+/usr/bin/ld: CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_xxhash.cu.o: in function `cuda_zstd::xxhash::compute_xxhash64(void const*, unsigned long, unsigned long, unsigned long*, CUstream_st*)':
+tmpxft_000005eb_00000000-6_cuda_zstd_xxhash.compute_90.cudafe1.cpp:(.text+0x176): undefined reference to `cuda_zstd::xxhash::xxhash64_kernel(unsigned char const*, unsigned long, unsigned long, unsigned long*)'
+/usr/bin/ld: CMakeFiles/cuda_zstd_shared.dir/src/cuda_zstd_xxhash.cu.o: in function `cuda_zstd::xxhash::compute_xxhash32(void const*, unsigned long, unsigned int, unsigned int*, CUstream_st*)':
+tmpxft_000005eb_00000000-6_cuda_zstd_xxhash.compute_90.cudafe1.cpp:(.text+0x2a9): undefined reference to `cuda_zstd::xxhash::xxhash32_kernel(unsigned char const*, unsigned long, unsigned int, unsigned int*)'
+/usr/bin/ld: libcuda_zstd.so.1.0.0: hidden symbol `_ZN9cuda_zstd6xxhash15xxhash32_kernelEPKhmjPj' isn't defined
+/usr/bin/ld: final link failed: bad value
+collect2: error: ld returned 1 exit status
+make[2]: *** [CMakeFiles/cuda_zstd_shared.dir/build.make:456: libcuda_zstd.so.1.0.0] Error 1
+make[1]: *** [CMakeFiles/Makefile2:177: CMakeFiles/cuda_zstd_shared.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+[ 23%] Built target cuda_zstd_static
+make: *** [Makefile:146: all] Error 2

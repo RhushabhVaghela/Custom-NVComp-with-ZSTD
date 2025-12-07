@@ -1,0 +1,32 @@
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=40
+[ENCODE] Writing final state: 0 (raw 32) - 5 bits
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=45
+[ENCODE] Writing final state: 23 (raw 55) - 5 bits
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=41
+[ENCODE] Writing final state: 2 (raw 66) - 6 bits
+[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=11
+[ENC] i=0 sym=1 st_in=32 bits=3 val=0 st_out=46
+[ENC] i=1 sym=2 st_in=46 bits=3 val=6 st_out=60
+[ENC] i=2 sym=3 st_in=60 bits=4 val=12 st_out=33
+[ENC] i=3 sym=4 st_in=33 bits=3 val=1 st_out=47
+[ENC] i=4 sym=5 st_in=47 bits=2 val=3 st_out=43
+[ENC] i=5 sym=5 st_in=43 bits=2 val=3 st_out=39
+[ENC] i=6 sym=5 st_in=39 bits=2 val=3 st_out=34
+[ENC] i=7 sym=6 st_in=34 bits=1 val=0 st_out=50
+[ENC] i=8 sym=6 st_in=50 bits=2 val=2 st_out=36
+[ENC] i=9 sym=6 st_in=36 bits=1 val=0 st_out=54
+[ENC] i=10 sym=6 st_in=54 bits=2 val=2 st_out=40
+[ENCODE] Writing final state: 8 (raw 40) - 5 bits
+[DECODE] Found terminator at bit 30 (byte 3, bit 6)
+[DECODE] Initial state read from bitstream: 8 (table_log=5)
+[DEC] i=10 sym=6 st_in=8 bits=2 new=1 st_out=21
+[DEC] i=9 sym=5 st_in=21 bits=2 new=0 st_out=28
+[DEC] i=8 sym=2 st_in=28 bits=3 new=2 st_out=10
+[DEC] i=7 sym=3 st_in=10 bits=3 new=2 st_out=2
+[DEC] i=6 sym=5 st_in=2 bits=2 new=1 st_out=5
+[DEC] i=5 sym=2 st_in=5 bits=4 new=15 st_out=31
+[DEC] i=4 sym=6 st_in=31 bits=1 new=1 st_out=11
+[DEC] i=3 sym=5 st_in=11 bits=2 new=0 st_out=12
+[DEC] i=2 sym=5 st_in=12 bits=2 new=3 st_out=19
+[DEC] i=1 sym=2 st_in=19 bits=3 new=4 st_out=4
+[DEC] i=0 sym=6 st_in=4 bits=2 new=3 st_out=19
