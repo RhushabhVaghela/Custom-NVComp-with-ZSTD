@@ -1000,11 +1000,11 @@ __host__ Status FSE_buildCTable_Host(
   }
 
   // Debug output
-  printf("[CTable] Rebuilt d_next_state using Zstd logic\n");
+  // printf("[CTable] Rebuilt d_next_state using Zstd logic\n");
 
   // Dump d_next_state for first few entries
   for (int i = 0; i < min(32u, table_size); i++) {
-    printf("[CTable] NextState[%d] = %u\n", i, h_table->d_next_state[i]);
+    // printf("[CTable] NextState[%d] = %u\n", i, h_table->d_next_state[i]);
   }
   fflush(stdout);
 
@@ -1195,8 +1195,9 @@ __global__ void fse_parallel_encode_kernel(
     // Log all symbols for small data (<=20 bytes)
     // Log all symbols for small data (<=20 bytes)
     if (in_idx_end <= 20 && threadIdx.x == 0 && blockIdx.x == 0) {
-      printf("[ENC] i=%u sym=%u st_in=%u bits=%u val=%u st_out=%u\n", i, symbol,
-             old_state, nbBitsOut, val, state);
+      // printf("[ENC] i=%u sym=%u st_in=%u bits=%u val=%u st_out=%u\n", i,
+      // symbol,
+      //        old_state, nbBitsOut, val, state);
     }
   }
 
@@ -1209,8 +1210,8 @@ __global__ void fse_parallel_encode_kernel(
 
     // Debug: Writing final state to bitstream
     if (threadIdx.x == 0 && blockIdx.x == 0) {
-      printf("[ENCODE] Writing final state: %u (raw %u) - %u bits\n",
-             state_to_write, state, table_log);
+      // printf("[ENCODE] Writing final state: %u (raw %u) - %u bits\n",
+      //        state_to_write, state, table_log);
     }
 
     bit_buffer |= (u64)state_to_write << bits_in_buffer;
@@ -1266,12 +1267,13 @@ __global__ void fse_parallel_bitstream_copy_kernel(
       d_parallel_bitstreams + (chunk_id * max_chunk_bitstream_size_bytes);
 
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    printf("[BS_DUMP] Chunk 0 Input: %02X %02X %02X %02X\n", d_chunk_input[0],
-           d_chunk_input[1], d_chunk_input[2], d_chunk_input[3]);
+    // printf("[BS_DUMP] Chunk 0 Input: %02X %02X %02X %02X\n",
+    // d_chunk_input[0],
+    //        d_chunk_input[1], d_chunk_input[2], d_chunk_input[3]);
     // Also dump potential extra bytes just in case
-    printf("[BS_DUMP] Chunk 0 Input (4-7): %02X %02X %02X %02X\n",
-           d_chunk_input[4], d_chunk_input[5], d_chunk_input[6],
-           d_chunk_input[7]);
+    // printf("[BS_DUMP] Chunk 0 Input (4-7): %02X %02X %02X %02X\n",
+    //        d_chunk_input[4], d_chunk_input[5], d_chunk_input[6],
+    //        d_chunk_input[7]);
   }
 
   // Always use atomicOr to handle potential overlaps at chunk boundaries.
@@ -1406,8 +1408,8 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
     h_table.newState[state] = (u16)((nextState << nbBits) - table_size);
   }
 
-  printf("[DECODER] Using Zstd SPREAD + symbolNext baseline (Phase A)\n");
-  fflush(stdout);
+  // printf("[DECODER] Using Zstd SPREAD + symbolNext baseline (Phase A)\n");
+  // fflush(stdout);
 
   fflush(stdout);
 
@@ -1426,13 +1428,13 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   bool auto_table_log = true;
   [[maybe_unused]] bool accurate_norm = true;
 
-  printf("\n[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=%u\n",
-         input_size);
+  // printf("\n[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=%u\n",
+  //        input_size);
 
   // Step 1: Analyze input
   FSEStats stats;
-  printf("[DEBUG] Point A: Start Analyze\n");
-  fflush(stdout);
+  // printf("[DEBUG] Point A: Start Analyze\n");
+  // fflush(stdout);
   auto status = analyze_block_statistics(d_input, input_size, &stats, stream);
   if (status != cuda_zstd::Status::SUCCESS) {
     return status;
@@ -1446,8 +1448,9 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
                                  stats.max_symbol, stats.unique_symbols);
   }
 
-  printf("[DEBUG] Step 2 Analysis: unique=%u entropy=%f recommended_log=%u\n",
-         stats.unique_symbols, stats.entropy, table_log);
+  // printf("[DEBUG] Step 2 Analysis: unique=%u entropy=%f
+  // recommended_log=%u\n",
+  //        stats.unique_symbols, stats.entropy, table_log);
 
   // Safeguard: table must be large enough for all unique symbols
   while ((1u << table_log) <= stats.unique_symbols) {
@@ -1456,8 +1459,8 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   if (table_log > FSE_MAX_TABLELOG)
     table_log = FSE_MAX_TABLELOG;
 
-  printf("[DEBUG] Step 2 Adjusted: table_log=%u table_size=%u\n", table_log,
-         1u << table_log);
+  // printf("[DEBUG] Step 2 Adjusted: table_log=%u table_size=%u\n", table_log,
+  //        1u << table_log);
 
   [[maybe_unused]] u32 table_size = 1u << table_log;
 
@@ -1482,8 +1485,8 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   u32 header_table_size = (stats.max_symbol + 1) * sizeof(u16);
   u32 header_size = header_base_size + header_table_size;
 
-  printf("[DEBUG] Step 4 Memcpy Prep: dim=%u size=%u\n", stats.max_symbol,
-         header_size);
+  // printf("[DEBUG] Step 4 Memcpy Prep: dim=%u size=%u\n", stats.max_symbol,
+  //        header_size);
 
   std::vector<byte_t> h_header(header_size);
   memcpy(h_header.data(), &table_log, sizeof(u32));
@@ -1491,15 +1494,16 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   memcpy(h_header.data() + 8, &stats.max_symbol, sizeof(u32));
   memcpy(h_header.data() + 12, h_normalized.data(), header_table_size);
 
-  printf("[DEBUG] Step 4 Memcpy: dst=%p src=%p size=%u max_sym=%u\n", d_output,
-         h_header.data(), header_size, stats.max_symbol);
+  // printf("[DEBUG] Step 4 Memcpy: dst=%p src=%p size=%u max_sym=%u\n",
+  // d_output,
+  //        h_header.data(), header_size, stats.max_symbol);
 
-  printf("[DEBUG] Point B: Header Copy\n");
-  fflush(stdout);
+  // printf("[DEBUG] Point B: Header Copy\n");
+  // fflush(stdout);
   CUDA_CHECK(cudaMemcpyAsync(d_output, h_header.data(), header_size,
                              cudaMemcpyHostToDevice, stream));
-  printf("[DEBUG] Point C: Header Copy Done\n");
-  fflush(stdout);
+  // printf("[DEBUG] Point C: Header Copy Done\n");
+  // fflush(stdout);
 
   // Step 5: Build encoding table on host
   FSEEncodeTable h_ctable = {}; // Initialize to zero
@@ -1510,7 +1514,7 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
     for (u32 i = 0; i <= stats.max_symbol; ++i)
       freq_sum += h_normalized[i];
     if (freq_sum != table_size) {
-      printf("[DEBUG] Freq Sum Mismatch: %u != %u\n", freq_sum, table_size);
+      // printf("[DEBUG] Freq Sum Mismatch: %u != %u\n", freq_sum, table_size);
       return Status::ERROR_CORRUPT_DATA;
     }
   }
@@ -1535,14 +1539,15 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
 
   CUDA_CHECK(cudaMemcpyAsync(d_dev_symbol_table, h_ctable.d_symbol_table,
                              sym_size_bytes, cudaMemcpyHostToDevice, stream));
-  printf("[DEBUG] Point D: Table Copy\n");
+  // printf("[DEBUG] Point D: Table Copy\n");
+  // fflush(stdout);
   fflush(stdout);
   CUDA_CHECK(cudaMemcpyAsync(d_dev_symbol_table, h_ctable.d_symbol_table,
                              sym_size_bytes, cudaMemcpyHostToDevice, stream));
   CUDA_CHECK(cudaMemcpyAsync(d_dev_next_state, h_ctable.d_next_state,
                              next_state_bytes, cudaMemcpyHostToDevice, stream));
-  printf("[DEBUG] Point E: Table Copy Done\n");
-  fflush(stdout);
+  // printf("[DEBUG] Point E: Table Copy Done\n");
+  // fflush(stdout);
 
   // Step 7: Run encoding kernel
   // Allocation for temporary buffers
@@ -1580,14 +1585,14 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   // 7b: Encode Kernel
   // Use 256 threads per chunk if enough data, or fewer
   const u32 encode_threads = 256;
-  printf("[DEBUG] Point G: Launch Encode\n");
-  fflush(stdout);
+  // printf("[DEBUG] Point G: Launch Encode\n");
+  // fflush(stdout);
   fse_parallel_encode_kernel<<<num_chunks, encode_threads, 0, stream>>>(
       d_input, input_size, d_dev_symbol_table, d_dev_next_state, table_log,
       num_chunks, d_chunk_start_states, d_bitstreams, d_chunk_bit_counts,
       max_chunk_stream_size);
-  printf("[DEBUG] Point H: Encode Launched\n");
-  fflush(stdout);
+  // printf("[DEBUG] Point H: Encode Launched\n");
+  // fflush(stdout);
 
   // 7c: Scan (prefix sum of bit counts)
   // 7c: Scan (prefix sum of bit counts)
@@ -1608,12 +1613,12 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
 
   // We need to calculate total size on host to set *d_output_size
   // But first launch the copy
-  printf("[DEBUG] Point I: Launch Copy\n");
-  fflush(stdout);
+  // printf("[DEBUG] Point I: Launch Copy\n");
+  // fflush(stdout);
   fse_parallel_bitstream_copy_kernel<<<num_chunks, 256, 0, stream>>>(
       d_output, header_size, d_bitstreams, d_chunk_bit_counts, d_chunk_offsets,
       num_chunks, max_chunk_stream_size);
-  printf("[DEBUG] Point J: Copy Launched\n");
+  // printf("[DEBUG] Point J: Copy Launched\n");
   fflush(stdout);
 
   // Step 8: Finalize Output Size
@@ -2496,9 +2501,9 @@ __global__ void fse_parallel_decode_kernel_v2(
   u32 bit_pos = info.bit_position;
 
   if (chunk_id == 0) {
-    printf(
-        "GPU Decoder Chunk 0: start_seq=%u, count=%u, state=%u, bit_pos=%u\n",
-        info.start_seq, info.num_symbols, state, bit_pos);
+    // printf(
+    //     "GPU Decoder Chunk 0: start_seq=%u, count=%u, state=%u,
+    //     bit_pos=%u\n", info.start_seq, info.num_symbols, state, bit_pos);
   }
 
   // Decode symbols
@@ -2558,8 +2563,8 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     if (max_symbol == 0) {
       // RLE Block
       u8 symbol = h_header[12];
-      printf("DEBUG: decode_fse RLE: size %u, symbol %u\n",
-             output_size_expected, symbol);
+      // printf("DEBUG: decode_fse RLE: size %u, symbol %u\n",
+      //        output_size_expected, symbol);
       CUDA_CHECK(
           cudaMemsetAsync(d_output, symbol, output_size_expected, stream));
 
@@ -2648,8 +2653,8 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
 
     // Read initial state
     // [INSTRUMENT] Log bit position
-    printf("[DECODE] Reading Initial State from bit_pos=%u (table_log=%u)\n",
-           bit_position, table_log);
+    // printf("[DECODE] Reading Initial State from bit_pos=%u (table_log=%u)\n",
+    //        bit_position, table_log);
 
     u32 read_pos = bit_position; // Use temp to avoid modifying bit_position
     u32 state = read_bits_from_buffer(bitstream, read_pos, table_log);
@@ -2665,9 +2670,10 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
       u32 read_pos = bit_position; // Local copy for read_bits_from_buffer
 
       // [INSTRUMENT] Log bit position
-      printf("[DECODE] i=%d sym=%u reading %u bits from pos %u (OldState=%u -> "
-             "NextBase=%u)\n",
-             i, symbol, num_bits, read_pos, old_state, next_state_base);
+      // printf("[DECODE] i=%d sym=%u reading %u bits from pos %u (OldState=%u
+      // -> "
+      //        "NextBase=%u)\n",
+      //        i, symbol, num_bits, read_pos, old_state, next_state_base);
 
       if (read_pos > 1000000) {
         printf("[DECODE] FATAL: bit_position underflow! %u\n", read_pos);
@@ -2681,8 +2687,8 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
 
       // Log all symbols for small data (<=20 bytes)
       if (output_size_expected <= 20) {
-        printf("[DEC] i=%d sym=%u st_in=%u bits=%u new=%u st_out=%u\n", i,
-               symbol, old_state, num_bits, new_bits, state);
+        // printf("[DEC] i=%d sym=%u st_in=%u bits=%u new=%u st_out=%u\n", i,
+        //        symbol, old_state, num_bits, new_bits, state);
       }
     }
 
