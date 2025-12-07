@@ -947,16 +947,20 @@ __host__ Status FSE_buildCTable_Host(
   std::vector<u16> state_to_symbol(table_size);
   std::vector<u32> cumul(max_symbol + 2, 0); // Cumulative frequency
 
-  // 2a. Calculate cumulative frequencies
+  // 2a. Calculate cumulative frequencies (needed for partitioning d_next_state)
   for (u32 s = 0; s <= max_symbol; s++) {
     cumul[s + 1] = cumul[s] + h_normalized[s];
   }
 
-  // 2b. Spread symbols
+  // === STEP 2b: SPREAD SYMBOLS (Match Zstd Decoder) ===
   const u32 SPREAD_STEP = (table_size >> 1) + (table_size >> 3) + 3;
   const u32 table_mask = table_size - 1;
   u32 position = 0;
 
+  // Clear state_to_symbol just in case
+  std::fill(state_to_symbol.begin(), state_to_symbol.end(), 0);
+
+  // Spread symbols sequentially
   for (u32 s = 0; s <= max_symbol; s++) {
     u16 freq = h_normalized[s];
     if (freq == 0)
@@ -964,44 +968,39 @@ __host__ Status FSE_buildCTable_Host(
 
     for (u32 i = 0; i < freq; i++) {
       state_to_symbol[position] = (u16)s;
-      h_table->d_state_to_symbol[position] = (u8)s;
-
-      // Zstandard spreading
+      h_table->d_state_to_symbol[position] = (u8)s; // Update device copy
       position = (position + SPREAD_STEP) & table_mask;
-      while (position >= table_size) { // Should not happen with correct mask
-        position = (position + SPREAD_STEP) & table_mask;
-      }
     }
   }
 
-  // DEBUG: Dump spread table
-  printf("[CTable SPREAD] First 20 state_to_symbol mappings:\n");
-  for (u32 i = 0; i < min(20u, table_size); i++) {
-    printf("[CTable SPREAD] state=%u symbol=%u\n", i, state_to_symbol[i]);
+  // === STEP 3: Build d_next_state (Match Zstd Decoder) ===
+  // Initialize symbolNext counters to frequencies
+  std::vector<u32> symbolNext(max_symbol + 1);
+  for (u32 s = 0; s <= max_symbol; s++) {
+    symbolNext[s] = h_normalized[s];
   }
-  fflush(stdout);
 
-  // === Step 3: Build tableU16 (d_next_state) ===
-  // This is the cumulative sorted table: tableU16[cumul[s]++] = tableSize +
-  // position We iterate through the SPREAD positions to fill the SORTED table
+  // Iterate states 0..table_size-1 (Spread Order)
+  for (u32 state = 0; state < table_size; state++) {
+    u16 symbol = state_to_symbol[state];
 
-  // Make a copy of cumul because we'll increment it
-  std::vector<u32> cumul_current = cumul;
+    // Get nextState for this symbol (Zstd approach)
+    // Range: [freq, 2*freq - 1]
+    u32 nextState = symbolNext[symbol]++;
 
-  for (u32 u = 0; u < table_size; u++) {
-    u16 s = state_to_symbol[u];
-    // The value stored is (table_size + u)
-    // Stored at the next available slot for symbol s
-    if (cumul_current[s] >= table_size) {
-      // Fatal error: frequency sum incorrect or logic error
-      return Status::ERROR_CORRUPT_DATA;
-    }
-    h_table->d_next_state[cumul_current[s]++] = (u16)(table_size + u);
+    // Map to cumulative index for Encoder lookup
+    // index = cumulative_start + (nextState - freq)
+    u32 freq = h_normalized[symbol];
+    u32 cumul_idx = cumul[symbol] + (nextState - freq);
 
-    printf("[CTable] Sym=%u deltaNbBits=%d deltaFindState=%d\n", s,
-           h_table->d_symbol_table[s].deltaNbBits,
-           h_table->d_symbol_table[s].deltaFindState);
+    // Store next state for Encoder
+    // This maps (symbol, k-th occurrence) -> next_state (raw)
+    // Encoder kernel expects state to be table_size + index
+    h_table->d_next_state[cumul_idx] = (u16)(table_size + state);
   }
+
+  // Debug output
+  printf("[CTable] Rebuilt d_next_state using Zstd logic\n");
 
   // Dump d_next_state for first few entries
   for (int i = 0; i < min(32u, table_size); i++) {
@@ -1354,7 +1353,6 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
 
   const u32 SPREAD_STEP = (table_size >> 1) + (table_size >> 3) + 3;
   const u32 table_mask = table_size - 1;
-  u32 position = 0;
 
   // Cumulative frequency tracking
   std::vector<u32> cumulative_freq(max_symbol + 2, 0);
@@ -1365,71 +1363,50 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
   }
   cumulative_freq[max_symbol + 1] = total_freq;
 
-  // === Step 3: SYMBOL SPREADING - Custom Algorithm (matches encoder) ===
+  // === DECODER: ZSTD SPREAD ALGORITHM ===
+  // Spread symbols sequentially (matches official Zstd)
+  u32 position = 0;
   for (u32 s = 0; s <= max_symbol; s++) {
-    u32 freq = h_normalized[s];
-    if (freq == 0)
-      continue;
-
-    for (u32 i = 0; i < freq; i++) {
+    for (u32 i = 0; i < (u32)h_normalized[s]; i++) {
       spread_symbol[position] = (u8)s;
       position = (position + SPREAD_STEP) & table_mask;
     }
   }
 
-  // === Step 4: Build DTable - Custom Formula (73% Success) ===
+  // === DECODER: ZSTD DTABLE BUILD ===
+  // Assign symbols from spread table
   for (u32 state = 0; state < table_size; state++) {
-    u8 sym = spread_symbol[state];
-    h_table.symbol[state] = sym;
-
-    u32 freq = h_normalized[sym];
-    if (freq == 0)
-      continue;
-
-    // Calculate nbBits using CLZ (matches encoder)
-    u32 clz_result;
-#if defined(__GNUC__) || defined(__clang__)
-    clz_result = __builtin_clz(freq);
-#elif defined(_MSC_VER)
-    unsigned long index;
-    _BitScanReverse(&index, freq);
-    clz_result = 31 - index;
-#else
-    u32 x = freq;
-    u32 n = 0;
-    if (x <= 0x0000FFFF) {
-      n += 16;
-      x <<= 16;
-    }
-    if (x <= 0x00FFFFFF) {
-      n += 8;
-      x <<= 8;
-    }
-    if (x <= 0x0FFFFFFF) {
-      n += 4;
-      x <<= 4;
-    }
-    if (x <= 0x3FFFFFFF) {
-      n += 2;
-      x <<= 2;
-    }
-    if (x <= 0x7FFFFFFF) {
-      n += 1;
-    }
-    clz_result = n;
-#endif
-
-    u32 high_bit = 31 - clz_result;
-    u32 maxBitsOut = table_log - high_bit;
-    u32 minStatePlus = freq << maxBitsOut;
-
-    h_table.nbBits[state] = (u8)maxBitsOut;
-
-    // 73% Solution: Baseline with per-state offset and masking
-    // This prevents overflow but causes 3/11 bytes to fail (documented)
-    u32 baseline_raw = minStatePlus - table_size + state;
-    h_table.newState[state] = (u16)(baseline_raw & (table_size - 1));
+    h_table.symbol[state] = spread_symbol[state];
   }
+
+  // Initialize symbolNext counters (Zstd approach)
+  std::vector<u32> symbolNext(max_symbol + 1);
+  for (u32 s = 0; s <= max_symbol; s++) {
+    symbolNext[s] = h_normalized[s];
+  }
+
+  // Build DTable using official Zstd formula
+  for (u32 state = 0; state < table_size; state++) {
+    u8 symbol = h_table.symbol[state];
+
+    // Get and increment nextState
+    u32 nextState = symbolNext[symbol]++;
+
+    // Calculate nbBits: tableLog - highBit(nextState)
+    u32 highBit = 0;
+    if (nextState > 0) {
+      u32 tmp = nextState;
+      while (tmp >>= 1)
+        highBit++;
+    }
+    u32 nbBits = table_log - highBit;
+
+    // Zstd formula: newState = (nextState << nbBits) - tableSize
+    h_table.nbBits[state] = (u8)nbBits;
+    h_table.newState[state] = (u16)((nextState << nbBits) - table_size);
+  }
+
+  printf("[DECODER] Using Zstd SPREAD + symbolNext baseline (Phase A)\n");
   fflush(stdout);
 
   fflush(stdout);
@@ -2670,11 +2647,12 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     bit_position -= table_log;
 
     // Read initial state
-    // Read initial state
     // [INSTRUMENT] Log bit position
     printf("[DECODE] Reading Initial State from bit_pos=%u (table_log=%u)\n",
            bit_position, table_log);
-    u32 state = read_bits_from_buffer(bitstream, bit_position, table_log);
+
+    u32 read_pos = bit_position; // Use temp to avoid modifying bit_position
+    u32 state = read_bits_from_buffer(bitstream, read_pos, table_log);
     printf("[DECODE] Initial state read: %u\n", state);
 
     for (int i = (int)output_size_expected - 1; i >= 0; i--) {
