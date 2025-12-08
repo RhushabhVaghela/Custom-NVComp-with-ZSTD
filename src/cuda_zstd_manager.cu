@@ -1735,7 +1735,8 @@ public:
              num_sequences);
 
       if (num_sequences > 0) {
-        const u32 threads = 256;
+        const u32 threads =
+            512; // Testing: changed from 256 to reduce grid size
         const u32 seq_blocks = (num_sequences + threads - 1) / threads;
 
         // Validate buffer capacity (512KB = 131072 u32 values)
@@ -1750,6 +1751,24 @@ public:
         printf("[DEBUG] compress: Calling build_sequences for block %u with "
                "num_sequences=%u\\n",
                block_idx, num_sequences);
+
+        // Validate LZ77 output (first 5 sequences)
+        u32 h_lit_lens[5], h_match_lens[5], h_offsets[5];
+        cudaMemcpy(h_lit_lens, block_seq_ctxs[block_idx].d_literal_lengths,
+                   std::min(5u, num_sequences) * sizeof(u32),
+                   cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_match_lens, block_seq_ctxs[block_idx].d_match_lengths,
+                   std::min(5u, num_sequences) * sizeof(u32),
+                   cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_offsets, block_seq_ctxs[block_idx].d_offsets,
+                   std::min(5u, num_sequences) * sizeof(u32),
+                   cudaMemcpyDeviceToHost);
+        printf("[DEBUG] First 5 sequences: ");
+        for (u32 i = 0; i < std::min(5u, num_sequences); i++) {
+          printf("[LL=%u,ML=%u,OF=%u] ", h_lit_lens[i], h_match_lens[i],
+                 h_offsets[i]);
+        }
+        printf("\n");
 
         status =
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,
