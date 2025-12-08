@@ -135,7 +135,7 @@ test 1
 1: ✓ ALL TESTS PASSED
 1: ========================================
 1: 
- 1/55 Test  #1: test_adaptive_level .......................   Passed    0.78 sec
+ 1/55 Test  #1: test_adaptive_level .......................   Passed    0.88 sec
 test 2
       Start  2: test_alternative_allocation_strategies
 
@@ -253,7 +253,7 @@ test 2
 2:   [PASS] Advanced Statistics
 2: 
 2: [TEST] Performance Metrics
-2:   [INFO] Manual allocation time: 623 microseconds
+2:   [INFO] Manual allocation time: 943 microseconds
 2:   [INFO] Manual deallocation time: 0 microseconds
 2:   [INFO] Tracked allocation latency: 0 ms
 2:   [INFO] Tracked deallocation latency: 0 ms
@@ -295,7 +295,7 @@ test 2
 2:   - Stress resilience
 2: ========================================
 2: 
- 2/55 Test  #2: test_alternative_allocation_strategies ....   Passed   27.10 sec
+ 2/55 Test  #2: test_alternative_allocation_strategies ....   Passed   31.71 sec
 test 3
       Start  3: test_basic_profile
 
@@ -313,17 +313,17 @@ test 3
 3: 
 3: Processing 10 MB of data
 3: 
-3: Host->Device transfer: 1.89898 ms
-3: Kernel execution: 106.069 ms
-3: Device->Host transfer: 2.02566 ms
+3: Host->Device transfer: 1.79504 ms
+3: Kernel execution: 77.6151 ms
+3: Device->Host transfer: 2.31072 ms
 3: 
-3: Total time: 109.994 ms
-3: Throughput: 90.9141 MB/s
+3: Total time: 81.7208 ms
+3: Throughput: 122.368 MB/s
 3: 
 3: Basic profiling test completed successfully.
 3: For detailed profiling, run with: nvprof ./profile_test
 3: Or: nsys profile --stats=true ./profile_test
- 3/55 Test  #3: test_basic_profile ........................   Passed    0.51 sec
+ 3/55 Test  #3: test_basic_profile ........................   Passed    0.45 sec
 test 4
       Start  4: test_checksum_validation
 
@@ -357,7 +357,7 @@ test 4
 4: ========================================
 4: ✅ ALL CHECKSUM TESTS PASSED
 4: ========================================
- 4/55 Test  #4: test_checksum_validation ..................   Passed    0.34 sec
+ 4/55 Test  #4: test_checksum_validation ..................   Passed    0.37 sec
 test 5
       Start  5: test_comprehensive_fallback
 
@@ -462,15 +462,15 @@ test 5
 5:   [INFO] 
 5: --- Test 1: Rapid Allocation Cycles ---
 5:   [INFO] Rapid allocation test completed:
-5:   [INFO]   100 allocations in 22 ms
-5:   [INFO]   Average: 0.22 ms per allocation
+5:   [INFO]   100 allocations in 26 ms
+5:   [INFO]   Average: 0.26 ms per allocation
 5:   [INFO]   Active allocations: 60
 5:   [INFO] 
 5: --- Test 2: Concurrent Stress Test ---
-5:   [INFO] Thread 10508499991894: 25 successes
-5:   [INFO] Thread 10508499991894: 25 successes
-5:   [INFO] Thread 10508499991894: 25 successes
-5:   [INFO] Thread 10508499991894: 25 successes
+5:   [INFO] Thread 10487992551998: 25 successes
+5:   [INFO] Thread 10487992551998: 25 successes
+5:   [INFO] Thread 10487992551998: 25 successes
+5:   [INFO] Thread 10487992551998: 25 successes
 5:   [INFO] Concurrent stress test completed:
 5:   [INFO]   Total operations: 100
 5:   [INFO]   Successful: 100
@@ -528,14 +528,13 @@ test 5
 5:   - Recovery mechanisms
 5: ========================================
 5: 
- 5/55 Test  #5: test_comprehensive_fallback ...............   Passed    0.81 sec
+ 5/55 Test  #5: test_comprehensive_fallback ...............   Passed    0.77 sec
 test 6
       Start  6: test_compressible_data
 
 6: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_compressible_data
 6: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 6: Test timeout computed to be: 300
-6: [DEBUG] compress: ENTRY at TOP. Size=65536
 6: ========================================
 6: Compressible Data Validation Tests
 6: ========================================
@@ -546,9 +545,8 @@ test 6
 6: 
 6: === Testing: Repeated Text (64KB) ===
 6: Input size: 65536 bytes
-6: [DEBUG] compress: ENTRY at TOP. Size=65536
-6: ✅ Compressed: 8569 bytes
-6: ✅ Compression ratio: 7.65:1
+6: ✅ Compressed: 9314 bytes
+6: ✅ Compression ratio: 7.04:1
 6: ✅ Round-trip verified!
 6: ✅ Repeated text test PASSED
 6: 
@@ -556,7 +554,7 @@ test 6
 6: Input size: 65536 bytes
 6: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 6: test_compressible_data: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_compressible_data.cu:246: bool test_json_pattern(): Assertion `result.success && "Compression should succeed"' failed.
- 6/55 Test  #6: test_compressible_data ....................Subprocess aborted***Exception:   2.64 sec
+ 6/55 Test  #6: test_compressible_data ....................Subprocess aborted***Exception:   3.23 sec
 test 7
       Start  7: test_correctness
 
@@ -571,249 +569,86 @@ test 7
 7: Total memory: 16302 MB
 7: 
 7: [TEST] Identity Property: decompress(compress(data)) == data
-7: [DEBUG] compress: ENTRY at TOP. Size=4096
 7:   [INFO] ✓ Identity property holds
 7:   [PASS] Identity Property
 7: 
 7: [TEST] Various Input Sizes Round-trip
 7:   [INFO] Testing 39 different sizes
-7: [DEBUG] compress: ENTRY at TOP. Size=1
 7:   [PASS] Size 1
-7: [DEBUG] compress: ENTRY at TOP. Size=2
 7:   [PASS] Size 2
-7: [DEBUG] compress: ENTRY at TOP. Size=3
 7:   [PASS] Size 3
-7: [DEBUG] compress: ENTRY at TOP. Size=7
 7:   [PASS] Size 7
-7: [DEBUG] compress: ENTRY at TOP. Size=15
 7:   [PASS] Size 15
-7: [DEBUG] compress: ENTRY at TOP. Size=16
 7:   [PASS] Size 16
-7: [DEBUG] compress: ENTRY at TOP. Size=17
 7:   [PASS] Size 17
-7: [DEBUG] compress: ENTRY at TOP. Size=31
 7:   [PASS] Size 31
-7: [DEBUG] compress: ENTRY at TOP. Size=32
 7:   [PASS] Size 32
-7: [DEBUG] compress: ENTRY at TOP. Size=33
 7:   [PASS] Size 33
-7: [DEBUG] compress: ENTRY at TOP. Size=63
 7:   [PASS] Size 63
-7: [DEBUG] compress: ENTRY at TOP. Size=64
 7:   [PASS] Size 64
-7: [DEBUG] compress: ENTRY at TOP. Size=65
 7:   [PASS] Size 65
-7: [DEBUG] compress: ENTRY at TOP. Size=127
 7:   [PASS] Size 127
-7: [DEBUG] compress: ENTRY at TOP. Size=128
 7:   [PASS] Size 128
-7: [DEBUG] compress: ENTRY at TOP. Size=129
 7:   [PASS] Size 129
-7: [DEBUG] compress: ENTRY at TOP. Size=255
 7:   [PASS] Size 255
-7: [DEBUG] compress: ENTRY at TOP. Size=256
 7:   [PASS] Size 256
-7: [DEBUG] compress: ENTRY at TOP. Size=257
 7:   [PASS] Size 257
-7: [DEBUG] compress: ENTRY at TOP. Size=511
 7:   [PASS] Size 511
-7: [DEBUG] compress: ENTRY at TOP. Size=512
 7:   [PASS] Size 512
-7: [DEBUG] compress: ENTRY at TOP. Size=513
 7:   [PASS] Size 513
-7: [DEBUG] compress: ENTRY at TOP. Size=1023
 7:   [PASS] Size 1023
-7: [DEBUG] compress: ENTRY at TOP. Size=1024
 7:   [PASS] Size 1024
-7: [DEBUG] compress: ENTRY at TOP. Size=1025
 7:   [PASS] Size 1025
-7: [DEBUG] compress: ENTRY at TOP. Size=4095
 7:   [PASS] Size 4095
-7: [DEBUG] compress: ENTRY at TOP. Size=4096
 7:   [PASS] Size 4096
-7: [DEBUG] compress: ENTRY at TOP. Size=4097
 7:   [PASS] Size 4097
-7: [DEBUG] compress: ENTRY at TOP. Size=8191
 7:   [PASS] Size 8191
-7: [DEBUG] compress: ENTRY at TOP. Size=8192
 7:   [PASS] Size 8192
-7: [DEBUG] compress: ENTRY at TOP. Size=8193
 7:   [PASS] Size 8193
-7: [DEBUG] compress: ENTRY at TOP. Size=16383
 7:   [PASS] Size 16383
-7: [DEBUG] compress: ENTRY at TOP. Size=16384
 7:   [PASS] Size 16384
-7: [DEBUG] compress: ENTRY at TOP. Size=16385
 7:   [PASS] Size 16385
-7: [DEBUG] compress: ENTRY at TOP. Size=32767
 7:   [PASS] Size 32767
-7: [DEBUG] compress: ENTRY at TOP. Size=32768
 7:   [PASS] Size 32768
-7: [DEBUG] compress: ENTRY at TOP. Size=32769
 7:   [PASS] Size 32769
-7: [DEBUG] compress: ENTRY at TOP. Size=65535
 7:   [PASS] Size 65535
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
 7:   [PASS] Size 65536
 7:   [INFO] Passed: 39/39
 7:   [PASS] Various Sizes Round-trip
 7: 
 7: [TEST] Random Inputs Round-trip (1000 tests)
-7: [DEBUG] compress: ENTRY at TOP. Size=59475
-7: [DEBUG] compress: ENTRY at TOP. Size=51816
-7: [DEBUG] compress: ENTRY at TOP. Size=2209
-7: [DEBUG] compress: ENTRY at TOP. Size=42476
-7: [DEBUG] compress: ENTRY at TOP. Size=39441
-7: [DEBUG] compress: ENTRY at TOP. Size=50003
-7: [DEBUG] compress: ENTRY at TOP. Size=60893
-7: [DEBUG] compress: ENTRY at TOP. Size=6591
-7: [DEBUG] compress: ENTRY at TOP. Size=23707
-7: [DEBUG] compress: ENTRY at TOP. Size=51953
-7: [DEBUG] compress: ENTRY at TOP. Size=51024
-7: [DEBUG] compress: ENTRY at TOP. Size=37569
-7: [DEBUG] compress: ENTRY at TOP. Size=7360
-7: [DEBUG] compress: ENTRY at TOP. Size=14213
-7: [DEBUG] compress: ENTRY at TOP. Size=29219
-7: [DEBUG] compress: ENTRY at TOP. Size=21043
-7: [DEBUG] compress: ENTRY at TOP. Size=1569
-7: [DEBUG] compress: ENTRY at TOP. Size=18893
-7: [DEBUG] compress: ENTRY at TOP. Size=54311
-7: [DEBUG] compress: ENTRY at TOP. Size=31621
-7: [DEBUG] compress: ENTRY at TOP. Size=4339
-7: [DEBUG] compress: ENTRY at TOP. Size=62258
-7: [DEBUG] compress: ENTRY at TOP. Size=23460
-7: [DEBUG] compress: ENTRY at TOP. Size=6090
-7: [DEBUG] compress: ENTRY at TOP. Size=60158
-7: [DEBUG] compress: ENTRY at TOP. Size=55803
-7: [DEBUG] compress: ENTRY at TOP. Size=49136
-7: [DEBUG] compress: ENTRY at TOP. Size=1984
-7: [DEBUG] compress: ENTRY at TOP. Size=63324
-7: [DEBUG] compress: ENTRY at TOP. Size=28901
-7: [DEBUG] compress: ENTRY at TOP. Size=39479
-7: [DEBUG] compress: ENTRY at TOP. Size=65504
-7: [DEBUG] compress: ENTRY at TOP. Size=35186
-7: [DEBUG] compress: ENTRY at TOP. Size=35610
-7: [DEBUG] compress: ENTRY at TOP. Size=51962
-7: [DEBUG] compress: ENTRY at TOP. Size=604
-7: [DEBUG] compress: ENTRY at TOP. Size=58049
-7: [DEBUG] compress: ENTRY at TOP. Size=14380
-7: [DEBUG] compress: ENTRY at TOP. Size=27856
-7: [DEBUG] compress: ENTRY at TOP. Size=3346
-7: [DEBUG] compress: ENTRY at TOP. Size=5898
-7: [DEBUG] compress: ENTRY at TOP. Size=10982
-7: [DEBUG] compress: ENTRY at TOP. Size=20266
-7: [DEBUG] compress: ENTRY at TOP. Size=46488
-7: [DEBUG] compress: ENTRY at TOP. Size=32652
-7: [DEBUG] compress: ENTRY at TOP. Size=7372
-7: [DEBUG] compress: ENTRY at TOP. Size=16435
-7: [DEBUG] compress: ENTRY at TOP. Size=2062
-7: [DEBUG] compress: ENTRY at TOP. Size=17245
-7: [DEBUG] compress: ENTRY at TOP. Size=7054
-7: [DEBUG] compress: ENTRY at TOP. Size=63241
-7: [DEBUG] compress: ENTRY at TOP. Size=47571
-7: [DEBUG] compress: ENTRY at TOP. Size=54338
-7: [DEBUG] compress: ENTRY at TOP. Size=14868
-7: [DEBUG] compress: ENTRY at TOP. Size=30163
-7: [DEBUG] compress: ENTRY at TOP. Size=23521
-7: [DEBUG] compress: ENTRY at TOP. Size=30383
-7: [DEBUG] compress: ENTRY at TOP. Size=23800
-7: [DEBUG] compress: ENTRY at TOP. Size=63689
-7: [DEBUG] compress: ENTRY at TOP. Size=25226
-7: [DEBUG] compress: ENTRY at TOP. Size=52529
-7: [DEBUG] compress: ENTRY at TOP. Size=20524
-7: [DEBUG] compress: ENTRY at TOP. Size=62284
-7: [DEBUG] compress: ENTRY at TOP. Size=23451
-7: [DEBUG] compress: ENTRY at TOP. Size=40764
-7: [DEBUG] compress: ENTRY at TOP. Size=35124
-7: [DEBUG] compress: ENTRY at TOP. Size=59956
-7: [DEBUG] compress: ENTRY at TOP. Size=24059
-7: [DEBUG] compress: ENTRY at TOP. Size=12175
-7: [DEBUG] compress: ENTRY at TOP. Size=54681
-7: [DEBUG] compress: ENTRY at TOP. Size=3288
-7: [DEBUG] compress: ENTRY at TOP. Size=23859
-7: [DEBUG] compress: ENTRY at TOP. Size=51176
-7: [DEBUG] compress: ENTRY at TOP. Size=60536
-7: [DEBUG] compress: ENTRY at TOP. Size=13640
-7: [DEBUG] compress: ENTRY at TOP. Size=36176
-7: [DEBUG] compress: ENTRY at TOP. Size=7210
-7: [DEBUG] compress: ENTRY at TOP. Size=65266
-7: [DEBUG] compress: ENTRY at TOP. Size=42721
-7: [DEBUG] compress: ENTRY at TOP. Size=50087
-7: [DEBUG] compress: ENTRY at TOP. Size=52004
-7: [DEBUG] compress: ENTRY at TOP. Size=63649
-7: [DEBUG] compress: ENTRY at TOP. Size=31860
-7: [DEBUG] compress: ENTRY at TOP. Size=39902
-7: [DEBUG] compress: ENTRY at TOP. Size=6818
-7: [DEBUG] compress: ENTRY at TOP. Size=32072
-7: [DEBUG] compress: ENTRY at TOP. Size=62581
-7: [DEBUG] compress: ENTRY at TOP. Size=51902
-7: [DEBUG] compress: ENTRY at TOP. Size=23724
-7: [DEBUG] compress: ENTRY at TOP. Size=62269
-7: [DEBUG] compress: ENTRY at TOP. Size=15579
-7: [DEBUG] compress: ENTRY at TOP. Size=65192
-7: [DEBUG] compress: ENTRY at TOP. Size=34536
-7: [DEBUG] compress: ENTRY at TOP. Size=53064
-7: [DEBUG] compress: ENTRY at TOP. Size=33903
-7: [DEBUG] compress: ENTRY at TOP. Size=9838
-7: [DEBUG] compress: ENTRY at TOP. Size=32234
-7: [DEBUG] compress: ENTRY at TOP. Size=19815
-7: [DEBUG] compress: ENTRY at TOP. Size=65502
-7: [DEBUG] compress: ENTRY at TOP. Size=57596
 7:   [INFO] Passed: 100/100
 7:   [PASS] Random Inputs Round-trip
 7: 
 7: [TEST] All Compression Levels (1-22)
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
 7: 
 7:   Level | Ratio   | Status
 7:   ------|---------|--------
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       1 |    6.88 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       2 |    7.01 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       3 |    7.04 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       4 |    7.21 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       5 |    7.20 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       6 |    7.11 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       7 |    6.62 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       8 |    6.79 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:       9 |    6.92 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      10 |    7.39 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      11 |    7.31 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      12 |    6.71 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      13 |    7.48 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      14 |    7.21 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      15 |    7.62 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      16 |    7.53 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      17 |    7.01 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      18 |    7.47 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      19 |    6.87 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      20 |    3.75 | PASS
-7: [DEBUG] compress: ENTRY at TOP. Size=65536
-7:      21 |    7.35 | PASS
-7:      22 |    6.90 | PASS
+7:       1 |    6.66 | PASS
+7:       2 |    7.32 | PASS
+7:       3 |    7.51 | PASS
+7:       4 |    7.42 | PASS
+7:       5 |    6.95 | PASS
+7:       6 |    7.19 | PASS
+7:       7 |    7.10 | PASS
+7:       8 |    7.46 | PASS
+7:       9 |    7.36 | PASS
+7:      10 |    7.71 | PASS
+7:      11 |    7.01 | PASS
+7:      12 |    7.39 | PASS
+7:      13 |    7.02 | PASS
+7:      14 |    7.06 | PASS
+7:      15 |    7.40 | PASS
+7:      16 |    6.94 | PASS
+7:      17 |    7.39 | PASS
+7:      18 |    7.17 | PASS
+7:      19 |    7.70 | PASS
+7:      20 |    7.22 | PASS
+7:      21 |    7.33 | PASS
+7:      22 |    7.21 | PASS
 7:   [PASS] All Compression Levels
 7: 
 7: [TEST] ZSTD Frame Format Validation
-7: [DEBUG] compress: ENTRY at TOP. Size=1024
 7:   [INFO] Magic number: 0x184d2a50
 7:   [INFO] Note: Custom format magic (non-standard ZSTD)
 7:   [INFO] Compressed size: 1051 bytes
@@ -821,50 +656,31 @@ test 7
 7:   [PASS] Frame Format Validation
 7: 
 7: [TEST] Checksum Validation
-7: [DEBUG] compress: ENTRY at TOP. Size=4096
-7:   [INFO] Compressed data size: 995 bytes
+7:   [INFO] Compressed data size: 1227 bytes
 7:   [INFO] Note: Checksum validation via decompression round-trip
 7:   [INFO] ✓ Data integrity verified via round-trip
 7:   [PASS] Checksum Validation
 7: 
 7: [TEST] Special Data Patterns
 7:   [INFO] Testing: All zeros
-7: [DEBUG] compress: ENTRY at TOP. Size=8192
-7:   [INFO]   All zeros: 1.97:1 ratio
+7:   [INFO]   All zeros: 2.53:1 ratio
 7:   [INFO] Testing: All ones
-7: [DEBUG] compress: ENTRY at TOP. Size=8192
-7:   [INFO]   All ones: 3.29:1 ratio
+7:   [INFO]   All ones: 2.86:1 ratio
 7:   [INFO] Testing: All 0xAA
-7: [DEBUG] compress: ENTRY at TOP. Size=8192
-7:   [INFO]   All 0xAA: 3.23:1 ratio
+7:   [INFO]   All 0xAA: 4.17:1 ratio
 7:   [INFO] Testing: All 0x55
-7: [DEBUG] compress: ENTRY at TOP. Size=8192
-7:   [INFO]   All 0x55: 3.23:1 ratio
+7:   [INFO]   All 0x55: 3.01:1 ratio
 7:   [INFO] Testing: Sequential
-7: [DEBUG] compress: ENTRY at TOP. Size=8192
-7:   [INFO]   Sequential: 5.45:1 ratio
+7:   [INFO]   Sequential: 5.77:1 ratio
 7:   [INFO] Testing: Random
-7: [DEBUG] compress: ENTRY at TOP. Size=8192
 7:   [INFO]   Random: 1.00:1 ratio
 7:   [PASS] Special Patterns
 7: 
 7: [TEST] Byte Alignment and Padding
-7: [DEBUG] compress: ENTRY at TOP. Size=1
-7: [DEBUG] compress: ENTRY at TOP. Size=3
-7: [DEBUG] compress: ENTRY at TOP. Size=5
-7: [DEBUG] compress: ENTRY at TOP. Size=7
-7: [DEBUG] compress: ENTRY at TOP. Size=9
-7: [DEBUG] compress: ENTRY at TOP. Size=11
-7: [DEBUG] compress: ENTRY at TOP. Size=13
-7: [DEBUG] compress: ENTRY at TOP. Size=15
-7: [DEBUG] compress: ENTRY at TOP. Size=17
-7: [DEBUG] compress: ENTRY at TOP. Size=19
 7:   [INFO] Passed: 10/10 unaligned sizes
 7:   [PASS] Byte Alignment
 7: 
 7: [TEST] Deterministic Compression
-7: [DEBUG] compress: ENTRY at TOP. Size=32768
-7: [DEBUG] compress: ENTRY at TOP. Size=32768
 7:   [INFO] First compression: 32795 bytes
 7:   [INFO] Second compression: 32795 bytes
 7:   [INFO] ✓ Compression is deterministic (bit-exact)
@@ -877,7 +693,7 @@ test 7
 7: 
 7: ✓ ALL TESTS PASSED
 7: ========================================
- 7/55 Test  #7: test_correctness ..........................   Passed   34.95 sec
+ 7/55 Test  #7: test_correctness ..........................   Passed   28.62 sec
 test 8
       Start  8: test_coverage_gaps
 
@@ -5074,7 +4890,7 @@ test 8
 8: First 20 bytes expected: 5f cb f3 2e bb c7 99 98 27 72 27 19 0e 75 dd 55 99 24 b5 a6 
 8: First 20 bytes actual:   00 8a 5a 00 8a 5a 00 8a 5a 00 8a 5a 00 8a 5a 00 8a 5a 00 8a 
 8: First mismatch at index 0: expected 5f, got 00
- 8/55 Test  #8: test_coverage_gaps ........................***Failed    0.48 sec
+ 8/55 Test  #8: test_coverage_gaps ........................***Failed    0.44 sec
 test 9
       Start  9: test_debug_infrastructure
 
@@ -5098,16 +4914,16 @@ test 9
 9: [TEST] Stacktrace Capture
 9:   [INFO] Stacktrace captured (length=628):
 9: --- Begin Stacktrace ---
-9: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_debug_infrastructure(+0xf5cc) [0x5b9d17e3c5cc]
-9: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_debug_infrastructure(+0xe6cb) [0x5b9d17e3b6cb]
-9: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_debug_infrastructure(+0x967d) [0x5b9d17e3667d]
-9: /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca) [0x75955662a1ca]
-9: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b) [0x75955662a28b]
-9: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_debug_infrastructure(+0x9b85) [0x5b9d17e36b85]
+9: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_debug_infrastructure(+0xf5ac) [0x650c39a2d5ac]
+9: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_debug_infrastructure(+0xe6ab) [0x650c39a2c6ab]
+9: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_debug_infrastructure(+0x965d) [0x650c39a2765d]
+9: /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca) [0x70efaa82a1ca]
+9: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b) [0x70efaa82a28b]
+9: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/test_debug_infrastructure(+0x9b65) [0x650c39a27b65]
 9: --- End Stacktrace ---
 9:   [PASS] Stacktrace captured successfully
 9: [TEST] Debug Allocation Tracking
-9:   [INFO] Allocated 1024 bytes at 0x5b9d35142040
+9:   [INFO] Allocated 1024 bytes at 0x650c410bbeb0
 9:   [INFO] Freed allocation
 9:   [INFO] Testing multiple allocations...
 9:   [PASS] Debug allocation tracking works
@@ -5118,14 +4934,13 @@ test 9
 9: ========================================
 9: ✅ ALL DEBUG INFRASTRUCTURE TESTS PASSED
 9: ========================================
- 9/55 Test  #9: test_debug_infrastructure .................   Passed    0.39 sec
+ 9/55 Test  #9: test_debug_infrastructure .................   Passed    0.37 sec
 test 10
       Start 10: test_dictionary
 
 10: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_dictionary
 10: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 10: Test timeout computed to be: 300
-10: [DEBUG] compress: ENTRY at TOP. Size=131072
 10: 
 10: ========================================
 10:   Test: Dictionary Training & Usage
@@ -5136,14 +4951,13 @@ test 10
 10:   ✓ Dictionary trained. Size: 32768 bytes.
 10: Compressing *without* dictionary...
 10:   ✗ FAILED: Compression without dictionary
-10/55 Test #10: test_dictionary ...........................***Failed    0.43 sec
+10/55 Test #10: test_dictionary ...........................***Failed    0.47 sec
 test 11
       Start 11: test_dictionary_compression
 
 11: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_dictionary_compression
 11: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 11: Test timeout computed to be: 300
-11: [DEBUG] compress: ENTRY at TOP. Size=131072
 11: 
 11: ==================================================
 11:   Test: Dictionary Compression Feature
@@ -5154,7 +4968,7 @@ test 11
 11: 
 11: --- Correctness Test (Round-trip) ---
 11: test_dictionary_compression: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_dictionary_compression.cu:103: int main(): Assertion `status == Status::SUCCESS' failed.
-11/55 Test #11: test_dictionary_compression ...............Subprocess aborted***Exception:   2.47 sec
+11/55 Test #11: test_dictionary_compression ...............Subprocess aborted***Exception:   2.25 sec
 test 12
       Start 12: test_error_handling
 
@@ -5206,18 +5020,13 @@ test 12
 12: ========================================
 12: 
 12: [TEST] Null Pointer Detection
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
 12:   [INFO] ✓ Null input detected
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
 12:   [INFO] ✓ Null output detected
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
 12:   [INFO] ✓ Null size pointer detected
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
 12:   [INFO] ✓ Null workspace detected
 12:   [PASS] Null Pointer Detection
 12: 
 12: [TEST] Invalid Size Parameters
-12: [DEBUG] compress: ENTRY at TOP. Size=0
 12:   [FAIL] test_invalid_size_parameters: Zero input size should fail Got: SUCCESS
 12: 
 12: [TEST] Invalid Compression Levels
@@ -5230,9 +5039,7 @@ test 12
 12: 
 12: [TEST] Invalid Workspace Size
 12:   [INFO] Required workspace: 8388608 bytes
-12: [DEBUG] compress: ENTRY at TOP. Size=65536
 12:   [INFO] ✓ Insufficient workspace detected
-12: [DEBUG] compress: ENTRY at TOP. Size=65536
 12:   [INFO] ✓ Sufficient workspace accepted
 12:   [PASS] Invalid Workspace Size
 12: 
@@ -5244,1111 +5051,11 @@ test 12
 12: ========================================
 12: 
 12: [TEST] Resource Cleanup on Error Paths
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
 12:   [INFO] Free memory before: 15019 MB
 12:   [INFO] Free memory after: 15015 MB
 12:   [FAIL] test_cleanup_on_error_paths: Memory leak detected: 4194304 bytes
 12: 
 12: [TEST] Memory Leak Detection on Repeated Failures
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
-12: [DEBUG] compress: ENTRY at TOP. Size=0
 12:   [INFO] Memory change: 4096 KB
 12:   [FAIL] test_memory_leak_on_failures: Memory leak on repeated failures
 12: 
@@ -6357,7 +5064,6 @@ test 12
 12: ========================================
 12: 
 12: [TEST] CUDA Error Detection and Propagation
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
 12:   [INFO] ✓ Invalid device pointer detected
 12:   [PASS] CUDA Error Detection
 12: 
@@ -6373,13 +5079,12 @@ test 12
 12: ========================================
 12: 
 12: [TEST] Buffer Overflow Prevention
-12: [DEBUG] compress: ENTRY at TOP. Size=1024
-12: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2505 in write_block() (CUDA: invalid argument)
+12: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2545 in write_block() (CUDA: invalid argument)
 12:   [FAIL] test_buffer_overflow_prevention: Should fail gracefully Got: ERROR_CUDA_ERROR
 12: 
 12: [TEST] Integer Overflow Checks
 12:   [INFO] Workspace for SIZE_MAX: 4194304
-12:   [INFO] Max compressed for SIZE_MAX: 72340172838076800
+12:   [INFO] Max compressed for SIZE_MAX: 72340172838077184
 12:   [INFO] ✓ Integer overflow handled
 12:   [PASS] Integer Overflow Checks
 12: 
@@ -6397,7 +5102,7 @@ test 12
 12: ✗ SOME TESTS FAILED
 12: ========================================
 12: 
-12/55 Test #12: test_error_handling .......................***Failed    1.08 sec
+12/55 Test #12: test_error_handling .......................***Failed    0.96 sec
 test 13
       Start 13: test_extended_validation
 
@@ -6410,34 +5115,29 @@ test 13
 13: 
 13: === Test 1: 2MB Sequential Pattern ===
 13: Input Size: 2 MB
-13: [DEBUG] compress: ENTRY at TOP. Size=2097152
-13: Compressed Size: 0.386683 MB
-13: Compression Ratio: 5.17219
-13: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_fse.cu:2712 in decode_fse() (CUDA: invalid argument)
-13: Decompression Failed: 4
+13: Compressed Size: 0.285032 MB
+13: Compression Ratio: 7.01675
+13: Decompression Failed: 6
 13: 
 13: === Test 2: 10MB Sequential Pattern ===
 13: Input Size: 10 MB
-13: [DEBUG] compress: ENTRY at TOP. Size=10485760
 13: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 13: Compression Failed: 4
 13: 
 13: === Test 3: 50MB Sequential Pattern ===
 13: Input Size: 50 MB
-13: [DEBUG] compress: ENTRY at TOP. Size=52428800
 13: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 13: Compression Failed: 4
 13: 
 13: === Test 4: 2MB Random Data ===
 13: Input Size: 2 MB
-13: [DEBUG] compress: ENTRY at TOP. Size=2097152
 13: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 13: Compression Failed: 4
 13: 
 13: ==================================================
 13: Test Results: 0/4 passed
 13: ==================================================
-13/55 Test #13: test_extended_validation ..................***Failed   14.05 sec
+13/55 Test #13: test_extended_validation ..................***Failed    8.60 sec
 test 14
       Start 14: test_fallback_strategies
 
@@ -6627,18 +5327,17 @@ test 14
 14:   The memory pool fallback strategies are working correctly!
 14: ========================================
 14: 
-14/55 Test #14: test_fallback_strategies ..................   Passed    3.46 sec
+14/55 Test #14: test_fallback_strategies ..................   Passed    3.73 sec
 test 15
       Start 15: test_find_matches_small
 
 15: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_find_matches_small
 15: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 15: Test timeout computed to be: 300
-15: [DEBUG] compress: ENTRY at TOP. Size=1024
 15: Small find_matches test (1KB)
-15: compress took 101 ms
+15: compress took 100 ms
 15: manager.compress returned status=SUCCESS cudaLast=0
-15/55 Test #15: test_find_matches_small ...................   Passed    0.46 sec
+15/55 Test #15: test_find_matches_small ...................   Passed    0.43 sec
 test 16
       Start 16: test_fse_advanced
 
@@ -6728,7 +5427,7 @@ test 16
 16: ========================================
 16:   ALL TESTS COMPLETED SUCCESSFULLY!
 16: ========================================
-16/55 Test #16: test_fse_advanced .........................   Passed    0.40 sec
+16/55 Test #16: test_fse_advanced .........................   Passed    0.41 sec
 test 17
       Start 17: test_fse_advanced_function
 
@@ -10981,7 +9680,7 @@ test 19
 19:    Chain table size: 16384
 19:    Input size: 4096
 19: === Test Complete ===
-19/55 Test #19: test_hash_chain_only ......................   Passed    0.33 sec
+19/55 Test #19: test_hash_chain_only ......................   Passed    0.31 sec
 test 20
       Start 20: test_huffman
 
@@ -11006,7 +9705,7 @@ test 20
 20: PASSED
 20: 
 20: All Huffman tests passed!
-20/55 Test #20: test_huffman ..............................   Passed    0.61 sec
+20/55 Test #20: test_huffman ..............................   Passed    0.62 sec
 test 21
       Start 21: test_hybrid
 
@@ -11015,18 +9714,15 @@ test 21
 21: Test timeout computed to be: 300
 21: === Hybrid CPU/GPU Integration Test + Size 1 Fix ===
 21: Testing Small Input (512 bytes)...
-21: [DEBUG] compress: ENTRY at TOP. Size=512
 21: Small Compress Success. Size: 539
 21: Testing Large Input (4096 bytes)...
-21: [DEBUG] compress: ENTRY at TOP. Size=4096
-21: Large Compress Success. Size: 995
+21: Large Compress Success. Size: 1010
 21: Changing Threshold to 0 (Force GPU)...
 21: Testing Size 1 (GPU Forced)...
-21: [DEBUG] compress: ENTRY at TOP. Size=1
 21: Decompressing Size 1...
 21: Size 1: VALID.
 21: === Hybrid Test Passed ===
-21/55 Test #21: test_hybrid ...............................   Passed    0.48 sec
+21/55 Test #21: test_hybrid ...............................   Passed    0.40 sec
 test 22
       Start 22: test_integration
 
@@ -11053,13 +9749,11 @@ test 22
 22:   [INFO] Getting temp size...
 22:   [INFO] Temp size: 99614720
 22:   [INFO] Compressing...
-22: [DEBUG] compress: ENTRY at TOP. Size=1048576
-22:   [INFO] ✓ Compression: 1048576 -> 380504 bytes
+22:   [INFO] ✓ Compression: 1048576 -> 275302 bytes
 22:   [FAIL] test_complete_compression_pipeline: Decompression failed
 22: 
 22: [TEST] Dictionary Integration
 22:   [INFO] ✓ Dictionary trained (16384 bytes)
-22: [DEBUG] compress: ENTRY at TOP. Size=131072
 22: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 22:   [FAIL] test_dictionary_integration: Dictionary compression failed
 22: 
@@ -11074,13 +9768,13 @@ test 22
 22: [TEST] Large File Compression (100MB)
 22:   [INFO] File size: 100 MB
 22:   [INFO] Processing in 4 MB chunks
-22:   [INFO] Progress: 10/25 chunks, 1318553145 MB compressed
-22:   [INFO] Progress: 20/25 chunks, 2637106291 MB compressed
-22:   [INFO] Progress: 25/25 chunks, 3296382864 MB compressed
-22:   [INFO] Total compressed: 3296382864 MB
+22:   [INFO] Progress: 10/25 chunks, 1279382205 MB compressed
+22:   [INFO] Progress: 20/25 chunks, 2558764411 MB compressed
+22:   [INFO] Progress: 25/25 chunks, 3198455514 MB compressed
+22:   [INFO] Total compressed: 3198455514 MB
 22:   [INFO] Compression ratio: 0.00:1
 22:   [INFO] Time: 0.03 seconds
-22:   [INFO] Throughput: 3093.2 MB/s
+22:   [INFO] Throughput: 3807.5 MB/s
 22:   [PASS] Large File Compression
 22: 
 22: [TEST] Memory Efficiency for Large Files
@@ -11097,11 +9791,7 @@ test 22
 22: [TEST] Concurrent Compression Operations
 22:   [INFO] Testing with 4 threads
 22:   [INFO] Each performing 20 compressions
-22: [DEBUG] compress: ENTRY at TOP. Size=65536
-22: [DEBUG] compress: ENTRY at TOP. Size=65536
-22: [DEBUG] compress: ENTRY at TOP. Size=65536
-22: [DEBUG] compress: ENTRY at TOP. Size=65536
-22/55 Test #22: test_integration ..........................***Exception: SegFault  4.37 sec
+22/55 Test #22: test_integration ..........................***Exception: SegFault  3.79 sec
 test 23
       Start 23: test_lz77_comprehensive
 
@@ -11111,10 +9801,9 @@ test 23
 23: ========================================
 23: Comprehensive LZ77 Testing
 23: ========================================
-23: [DEBUG] compress: ENTRY at TOP. Size=1048576
-23: Test: Random 1MB (1048576 bytes)... [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2755 in compress_literals() (CUDA: invalid argument)
+23: Test: Random 1MB (1048576 bytes)... [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2795 in compress_literals() (CUDA: invalid argument)
 23: Status error at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_lz77_comprehensive.cu:125 code=1
-23/55 Test #23: test_lz77_comprehensive ...................***Failed    4.67 sec
+23/55 Test #23: test_lz77_comprehensive ...................***Failed    4.16 sec
 test 24
       Start 24: test_manager_only
 
@@ -11123,7 +9812,7 @@ test 24
 24: Test timeout computed to be: 300
 24: Creating manager...
 24: Manager created!
-24/55 Test #24: test_manager_only .........................   Passed    0.30 sec
+24/55 Test #24: test_manager_only .........................   Passed    0.28 sec
 test 25
       Start 25: test_memory_pool
 
@@ -11185,7 +9874,7 @@ test 25
 25:   [INFO] Stream 3: allocated 256 KB
 25:   [INFO] Total async allocations: 4
 25:   [PASS] Stream-Based Allocations
-25/55 Test #25: test_memory_pool ..........................***Exception: SegFault  1.97 sec
+25/55 Test #25: test_memory_pool ..........................***Exception: SegFault  2.13 sec
 test 26
       Start 26: test_memory_pool_deallocate_timeout
 
@@ -11193,7 +9882,7 @@ test 26
 26: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 26: Test timeout computed to be: 300
 26: test_memory_pool_deallocate_timeout: expected ERROR_TIMEOUT, got=2
-26/55 Test #26: test_memory_pool_deallocate_timeout .......***Failed    0.85 sec
+26/55 Test #26: test_memory_pool_deallocate_timeout .......***Failed    0.79 sec
 test 27
       Start 27: test_memory_pool_double_free
 
@@ -11201,7 +9890,7 @@ test 27
 27: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 27: Test timeout computed to be: 300
 27: test_memory_pool_double_free PASSED
-27/55 Test #27: test_memory_pool_double_free ..............   Passed    0.31 sec
+27/55 Test #27: test_memory_pool_double_free ..............   Passed    0.26 sec
 test 28
       Start 28: test_memory_pool_double_free_fixed
 
@@ -11212,7 +9901,7 @@ test 28
 28: First deallocation successful
 28: Second deallocation correctly detected as double-free
 28: test_memory_pool_double_free PASSED
-28/55 Test #28: test_memory_pool_double_free_fixed ........   Passed    0.31 sec
+28/55 Test #28: test_memory_pool_double_free_fixed ........   Passed    0.28 sec
 test 29
       Start 29: test_memory_pool_double_free_race
 
@@ -11221,7 +9910,7 @@ test 29
 29: Test timeout computed to be: 300
 29: test_memory_pool_double_free_race: success_count=1 invalid_count=1 timeout_count=0
 29: test_memory_pool_double_free_race PASSED
-29/55 Test #29: test_memory_pool_double_free_race .........   Passed    0.27 sec
+29/55 Test #29: test_memory_pool_double_free_race .........   Passed    0.26 sec
 test 30
       Start 30: test_memory_pool_double_free_race_fixed
 
@@ -11229,15 +9918,15 @@ test 30
 30: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 30: Test timeout computed to be: 300
 30: Initial allocation successful: ptr=0x90bf00000
-30: Thread 2 starting...
-30: Thread 2 deallocation result: 0
-30: Thread 2 succeeded
 30: Thread 1 starting...
-30: Thread 1 deallocation result: 2
-30: Thread 1 detected invalid parameter (double-free)
+30: Thread 1 deallocation result: 0
+30: Thread 1 succeeded
+30: Thread 2 starting...
+30: Thread 2 deallocation result: 2
+30: Thread 2 detected invalid parameter (double-free)
 30: Results: success=1 invalid=1 timeout=0
 30: test_memory_pool_double_free_race PASSED
-30/55 Test #30: test_memory_pool_double_free_race_fixed ...   Passed    0.31 sec
+30/55 Test #30: test_memory_pool_double_free_race_fixed ...   Passed    0.30 sec
 test 31
       Start 31: test_memory_pool_lock_ordering
 
@@ -11245,7 +9934,7 @@ test 31
 31: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 31: Test timeout computed to be: 300
 31: Memory pool lock ordering test PASSED
-31/55 Test #31: test_memory_pool_lock_ordering ............   Passed    0.51 sec
+31/55 Test #31: test_memory_pool_lock_ordering ............   Passed    0.44 sec
 test 32
       Start 32: test_memory_pool_lock_timeout
 
@@ -11267,7 +9956,6 @@ test 33
 33: Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
 33: Compute capability: 12.0
 33: Total memory: 16302 MB
-33: [DEBUG] compress: ENTRY at TOP. Size=8192
 33: 
 33: ======================================================================
 33: TEST: RFC 8878 Frame Header Metadata Roundtrip
@@ -11291,8 +9979,8 @@ test 33
 33:     Compressing 8192 bytes...
 33:     Compression successful!
 33:     Original size: 8192 bytes
-33:     Compressed size: 1857 bytes
-33:     Compression ratio: 22.67%
+33:     Compressed size: 1774 bytes
+33:     Compression ratio: 21.66%
 33: 
 33:  Copied compressed data to host for inspection
 33: 
@@ -11304,7 +9992,7 @@ test 33
 33: 
 33: ✓ All tests completed
 33: 
-33/55 Test #33: test_metadata_roundtrip ...................   Passed    0.48 sec
+33/55 Test #33: test_metadata_roundtrip ...................   Passed    0.38 sec
 test 34
       Start 34: test_minimal_compress
 
@@ -11318,11 +10006,10 @@ test 34
 34: Allocating workspace...
 34: Allocating output buffer...
 34: Calling compress...
-34: [DEBUG] compress: ENTRY at TOP. Size=1024
-34: Compress status: 7
-34: Compressed size: 0
+34: Compress status: 0
+34: Compressed size: 1051
 34: === Test Complete ===
-34/55 Test #34: test_minimal_compress .....................***Failed    0.43 sec
+34/55 Test #34: test_minimal_compress .....................   Passed    0.34 sec
 test 35
       Start 35: test_minimal_create
 
@@ -11333,7 +10020,7 @@ test 35
 35: Step 2: Manager created successfully!
 35: Step 3: About to destroy manager...
 35: Step 4: Manager destroyed, exiting...
-35/55 Test #35: test_minimal_create .......................   Passed    0.36 sec
+35/55 Test #35: test_minimal_create .......................   Passed    0.30 sec
 test 36
       Start 36: test_minimal_manager
 
@@ -11342,7 +10029,7 @@ test 36
 36: Test timeout computed to be: 300
 36: Creating manager...
 36: Manager created successfully!
-36/55 Test #36: test_minimal_manager ......................   Passed    0.33 sec
+36/55 Test #36: test_minimal_manager ......................   Passed    0.26 sec
 test 37
       Start 37: test_multi_iteration
 
@@ -11353,30 +10040,25 @@ test 37
 37: =================================
 37: 
 37: Iteration 1: 10MB, block=1264KB
-37: [DEBUG] compress: ENTRY at TOP. Size=10485760
-37:   Result: PASS (3649808 bytes)
+37:   Result: PASS (6135246 bytes)
 37: Iteration 2: 10MB, block=2048KB
-37: [DEBUG] compress: ENTRY at TOP. Size=10485760
 37: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-37:   Result: FAIL (10527008 bytes)
+37:   Result: FAIL (10527392 bytes)
 37: Iteration 3: 25MB, block=2048KB
-37: [DEBUG] compress: ENTRY at TOP. Size=26214400
 37: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-37:   Result: FAIL (26317329 bytes)
+37:   Result: FAIL (26317713 bytes)
 37: Iteration 4: 50MB, block=4096KB
-37: [DEBUG] compress: ENTRY at TOP. Size=52428800
 37: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-37:   Result: FAIL (52634531 bytes)
+37:   Result: FAIL (52634915 bytes)
 37: Iteration 5: 10MB, block=1264KB
-37: [DEBUG] compress: ENTRY at TOP. Size=10485760
 37: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-37:   Result: FAIL (10527008 bytes)
+37:   Result: FAIL (10527392 bytes)
 37: 
 37: === FINAL RESULTS ===
 37: Passed: 1
 37: Failed: 4
 37: Success Rate: 20%
-37/55 Test #37: test_multi_iteration ......................***Failed   16.54 sec
+37/55 Test #37: test_multi_iteration ......................***Failed   16.72 sec
 test 38
       Start 38: test_multitable_fse
 
@@ -11384,14 +10066,13 @@ test 38
 38: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 38: Test timeout computed to be: 300
 38: MultiTableFSE default initialization and clear() -> OK
-38/55 Test #38: test_multitable_fse .......................   Passed    0.02 sec
+38/55 Test #38: test_multitable_fse .......................   Passed    0.01 sec
 test 39
       Start 39: test_nvcomp_batch
 
 39: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_nvcomp_batch
 39: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 39: Test timeout computed to be: 300
-39: [DEBUG] compress: ENTRY at TOP. Size=65536
 39: 
 39: ========================================
 39:   Test: NvcompV5BatchManager C++ API
@@ -11400,22 +10081,14 @@ test 39
 39: Created NvcompV5BatchManager with level 5
 39: Allocated 65536 KB temp workspace.
 39: Compressing batch of 8 items...
-39: [DEBUG] compress: ENTRY at TOP. Size=65536
-39: [DEBUG] compress: ENTRY at TOP. Size=65536
-39: [DEBUG] compress: ENTRY at TOP. Size=65536
-39: [DEBUG] compress: ENTRY at TOP. Size=65536
-39: [DEBUG] compress: ENTRY at TOP. Size=65536
-39: [DEBUG] compress: ENTRY at TOP. Size=65536
-39: [DEBUG] compress: ENTRY at TOP. Size=65536
 39:   ✗ FAILED: Batch compress returned ERROR_GENERIC
-39/55 Test #39: test_nvcomp_batch .........................***Failed    3.60 sec
+39/55 Test #39: test_nvcomp_batch .........................***Failed    3.16 sec
 test 40
       Start 40: test_nvcomp_interface
 
 40: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_nvcomp_interface
 40: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 40: Test timeout computed to be: 300
-40: [DEBUG] compress: ENTRY at TOP. Size=65536
 40: ========================================
 40: NVCOMP v5.0 Interface Validation Tests
 40: ========================================
@@ -11428,21 +10101,15 @@ test 40
 40: ✅ C API manager creation/destruction successful
 40: 
 40: === Test 2: Single Block Round-trip ===
-40: [DEBUG] compress: ENTRY at TOP. Size=32768
-40: ✅ Compressed 65536 bytes to 8968 bytes (7.31:1 ratio)
+40: ✅ Compressed 65536 bytes to 8793 bytes (7.45:1 ratio)
 40: ✅ Round-trip successful
 40: 
 40: === Test 3: Batch Operations ===
 40: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-40: [DEBUG] compress: ENTRY at TOP. Size=32768
-40: [DEBUG] compress: ENTRY at TOP. Size=32768
-40: [DEBUG] compress: ENTRY at TOP. Size=32768
-40: [DEBUG] compress: ENTRY at TOP. Size=16384
 40: ❌ Batch compression failed: 1
 40: 
 40: === Test 4: C API Compatibility ===
 40: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-40: [DEBUG] compress: ENTRY at TOP. Size=1024
 40: ❌ C API compression failed: 4
 40: 
 40: === Test 5: Error Handling ===
@@ -11456,7 +10123,7 @@ test 40
 40: 
 40: ❌ Some tests failed
 40: 
-40/55 Test #40: test_nvcomp_interface .....................***Failed    1.81 sec
+40/55 Test #40: test_nvcomp_interface .....................***Failed    1.55 sec
 test 41
       Start 41: test_parallel_backtracking
 
@@ -11471,7 +10138,7 @@ test 41
 41: Test 1: Small Input (< 1MB) - Should use CPU
 41: ========================================
 41: Adaptive routing selected mode for 512KB input
-41: Sequences found: 997
+41: Sequences found: 894
 41: ✅ Test passed (adaptive routing works)
 41: 
 41: ========================================
@@ -11479,18 +10146,18 @@ test 41
 41: ========================================
 41: 
 41: === 1MB Repeated Pattern ===
-41: CPU sequences: 1781 (20.57 ms)
-41: GPU sequences: 1781 (12.42 ms)
-41: ✅ Results match! Speedup: 1.66x
+41: CPU sequences: 1821 (19.52 ms)
+41: GPU sequences: 1821 (10.54 ms)
+41: ✅ Results match! Speedup: 1.85x
 41: 
 41: ========================================
 41: Test 3: Correctness - 10MB JSON Pattern
 41: ========================================
 41: 
 41: === 10MB JSON Pattern ===
-41: CPU sequences: 1625 (248.91 ms)
-41: GPU sequences: 1625 (170.29 ms)
-41: ✅ Results match! Speedup: 1.46x
+41: CPU sequences: 1502 (236.58 ms)
+41: GPU sequences: 1502 (161.07 ms)
+41: ✅ Results match! Speedup: 1.47x
 41: 
 41: ========================================
 41: Test 4: Performance - 50MB Repeated Pattern
@@ -11502,9 +10169,9 @@ test 41
 41: Running GPU parallel backtracking...
 41: 
 41: === 100MB Performance Test ===
-41: CPU sequences: 1714 (1119.02 ms)
-41: GPU sequences: 1714 (852.03 ms)
-41: ✅ Results match! Speedup: 1.31x
+41: CPU sequences: 1777 (1082.80 ms)
+41: GPU sequences: 1777 (743.52 ms)
+41: ✅ Results match! Speedup: 1.46x
 41: 
 41: ========================================
 41: Results: 4/4 tests passed
@@ -11514,33 +10181,30 @@ test 41
 41: Parallel backtracking is CORRECT.
 41: Run with --benchmark to see performance metrics.
 41: 
-41/55 Test #41: test_parallel_backtracking ................   Passed   12.69 sec
+41/55 Test #41: test_parallel_backtracking ................   Passed   12.12 sec
 test 42
       Start 42: test_parallel_compression
 
 42: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_parallel_compression
 42: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 42: Test timeout computed to be: 300
-42: [DEBUG] compress: ENTRY at TOP. Size=10485760
 42: === Parallel Compression Test (GPU Path) ===
 42: Input Size: 10 MB
 42: Allocated Workspace: 947 MB
 42: Compressing...
-42: Compression Successful! Size: 3203298 bytes
-42: Ratio: 3.27343
+42: Compression Successful! Size: 3090662 bytes
+42: Ratio: 3.39272
 42: Decompressing...
 42: Decompression Failed: 6
-42/55 Test #42: test_parallel_compression .................***Failed    2.33 sec
+42/55 Test #42: test_parallel_compression .................***Failed    1.99 sec
 test 43
       Start 43: test_perf_simple
 
 43: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_perf_simple
 43: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 43: Test timeout computed to be: 300
-43: [DEBUG] compress: ENTRY at TOP. Size=10485760
-43: [DEBUG] compress: ENTRY at TOP. Size=10485760
-43: \n=== PERFORMANCE RESULTS ===\nInput size:    10 MB\nCompress time: 1029 ms\nThroughput:    9.72 MB/s\nResult:        PASS\n
-43/55 Test #43: test_perf_simple ..........................   Passed    2.57 sec
+43: \n=== PERFORMANCE RESULTS ===\nInput size:    10 MB\nCompress time: 970 ms\nThroughput:    10.31 MB/s\nResult:        PASS\n
+43/55 Test #43: test_perf_simple ..........................   Passed    2.33 sec
 test 44
       Start 44: test_performance
 
@@ -11560,19 +10224,17 @@ test 44
 44: ========================================
 44: 
 44: [TEST] Compression Timing Breakdown
-44: [DEBUG] compress: ENTRY at TOP. Size=1048576
 44:   [INFO] === Timing Breakdown ===
-44:   [INFO] Total time: 470.22 ms
+44:   [INFO] Total time: 344.09 ms
 44:   [INFO] LZ77 time: 0.00 ms
 44:   [INFO] FSE encode time: 0.00 ms
 44:   [INFO] Huffman encode time: 0.00 ms
 44:   [INFO] Sequence generation: 0.00 ms
 44:   [INFO] Component sum: 0.00 ms
-44:   [INFO] Overhead: 470.22 ms
+44:   [INFO] Overhead: 344.09 ms
 44:   [PASS] Compression Timing Breakdown
 44: 
 44: [TEST] Decompression Timing
-44: [DEBUG] compress: ENTRY at TOP. Size=1048576
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 44:   [FAIL] test_decompression_timing: Compression failed
 44: 
@@ -11581,36 +10243,28 @@ test 44
 44: ========================================
 44: 
 44: [TEST] Compression Throughput Across Levels
-44: [DEBUG] compress: ENTRY at TOP. Size=4194304
 44: 
 44:   Level | Time (ms) | Throughput (MB/s) | Ratio | Size (KB)
 44:   ------|-----------|-------------------|-------|----------
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-44: [DEBUG] compress: ENTRY at TOP. Size=4194304
 44:       1 | ERROR | - | - | -
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-44: [DEBUG] compress: ENTRY at TOP. Size=4194304
 44:       3 | ERROR | - | - | -
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-44: [DEBUG] compress: ENTRY at TOP. Size=4194304
 44:       5 | ERROR | - | - | -
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-44: [DEBUG] compress: ENTRY at TOP. Size=4194304
 44:       9 | ERROR | - | - | -
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-44: [DEBUG] compress: ENTRY at TOP. Size=4194304
 44:      15 | ERROR | - | - | -
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 44:      19 | ERROR | - | - | -
 44:   [PASS] Compression Throughput
 44: 
 44: [TEST] Decompression Throughput
-44: [DEBUG] compress: ENTRY at TOP. Size=4194304
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 44:   [FAIL] test_decompression_throughput: Compression failed
 44: 
 44: [TEST] Memory Bandwidth Measurement
-44: [DEBUG] compress: ENTRY at TOP. Size=16777216
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 44:   [FAIL] test_memory_bandwidth: Compression failed
 44: 
@@ -11627,17 +10281,14 @@ test 44
 44:   [FAIL] test_named_timers: Timer should be ~100ms
 44: 
 44: [TEST] Metrics Reset
-44: [DEBUG] compress: ENTRY at TOP. Size=1048576
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 44:   [FAIL] test_metrics_reset: Compression failed
 44: 
 44: [TEST] CSV Export Functionality
-44: [DEBUG] compress: ENTRY at TOP. Size=524288
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 44:   [FAIL] test_csv_export: Compression failed
 44: 
 44: [TEST] JSON Export Functionality
-44: [DEBUG] compress: ENTRY at TOP. Size=524288
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 44:   [FAIL] test_json_export: Compression failed
 44: 
@@ -11646,7 +10297,6 @@ test 44
 44: ========================================
 44: 
 44: [TEST] Memory Pool Performance Impact
-44: [DEBUG] compress: ENTRY at TOP. Size=2097152
 44: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 44:   [FAIL] test_memory_pool_performance_impact: Warm-up compression failed
 44: 
@@ -11659,24 +10309,24 @@ test 44
 44: ✗ SOME TESTS FAILED
 44: ========================================
 44: 
-44/55 Test #44: test_performance ..........................***Failed   14.41 sec
+44/55 Test #44: test_performance ..........................***Failed   13.18 sec
 test 45
       Start 45: test_roundtrip
 
 45: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_roundtrip
 45: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 45: Test timeout computed to be: 300
-45: [DEBUG] compress: ENTRY at TOP. Size=1048576
 45: 
 45: ========================================
 45:   Test: Round-Trip (Compress/Decompress)
 45: ========================================
 45: 
 45: Compressing 1MB with level 5...
-45:   Compressed size: 255350 bytes.
+45:   Compressed size: 192478 bytes.
 45: Decompressing...
-45:   ✗ FAILED: Decompression returned ERROR_INVALID_PARAMETER
-45/55 Test #45: test_roundtrip ............................***Failed    0.75 sec
+45: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid configuration argument)
+45:   ✗ FAILED: Decompression returned ERROR_CUDA_ERROR
+45/55 Test #45: test_roundtrip ............................***Failed    0.68 sec
 test 46
       Start 46: test_simple_fse_reference
 
@@ -11719,7 +10369,7 @@ test 46
 46: 
 46: === COMPARISON ===
 46: ✅ BITSTREAMS MATCH!
-46/55 Test #46: test_simple_fse_reference .................   Passed    0.40 sec
+46/55 Test #46: test_simple_fse_reference .................   Passed    0.35 sec
 test 47
       Start 47: test_stream_pool
 
@@ -11754,7 +10404,7 @@ test 47
 47: Thread 1: waiting for compress
 47: Thread 1: compress completed with status SUCCESS
 47: StreamPool test PASSED
-47/55 Test #47: test_stream_pool ..........................   Passed    0.37 sec
+47/55 Test #47: test_stream_pool ..........................   Passed    0.34 sec
 test 48
       Start 48: test_stream_pool_timeout
 
@@ -11763,7 +10413,7 @@ test 48
 48: Test timeout computed to be: 300
 48: Pool size: 1
 48: Timed acquire properly returned empty optional -> timeout
-48/55 Test #48: test_stream_pool_timeout ..................   Passed    0.39 sec
+48/55 Test #48: test_stream_pool_timeout ..................   Passed    0.37 sec
 test 49
       Start 49: test_streaming
 
@@ -11784,7 +10434,7 @@ test 49
 49: 
 49: [TEST] Single Chunk Streaming
 49:   [INFO] Input size: 65536 bytes
-49:   [INFO] Compressed size: 140632192458800 bytes
+49:   [INFO] Compressed size: 139406209982512 bytes
 49:   [INFO] Compression ratio: 0.00:1
 49:   [FAIL] test_single_chunk_streaming: Decompressed size mismatch
 49: 
@@ -11794,28 +10444,27 @@ test 49
 49:   [INFO] Total size: 81920 bytes
 49: terminate called after throwing an instance of 'std::bad_alloc'
 49:   what():  std::bad_alloc
-49/55 Test #49: test_streaming ............................Subprocess aborted***Exception:   1.45 sec
+49/55 Test #49: test_streaming ............................Subprocess aborted***Exception:   1.64 sec
 test 50
       Start 50: test_timing
 
 50: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_timing
 50: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 50: Test timeout computed to be: 300
-50: [DEBUG] compress: ENTRY at TOP. Size=10485760
 50: Performance Test: Single 10MB Compression
 50: =========================================
 50: 
 50: Timings:
-50:   Manager creation: 244 ms
+50:   Manager creation: 220 ms
 50:   Data upload:      2 ms
 50:   Buffer alloc:     4 ms
-50:   Compression:      1139 ms
-50:   Total:            1390 ms
+50:   Compression:      1496 ms
+50:   Total:            1724 ms
 50: 
-50: Throughput: 8.77963 MB/s
+50: Throughput: 6.68449 MB/s
 50: Result: PASS
-50: Compressed size: 2421589 bytes
-50/55 Test #50: test_timing ...............................   Passed    1.45 sec
+50: Compressed size: 2444673 bytes
+50/55 Test #50: test_timing ...............................   Passed    1.79 sec
 test 51
       Start 51: test_twice
 
@@ -11825,16 +10474,14 @@ test 51
 51: Testing: Run Sqrt_K400@10MB twice to find state corruption
 51: 
 51: === Iteration 1 ===
-51: [DEBUG] compress: ENTRY at TOP. Size=10485760
 51: Status: 0 (SUCCESS)
-51: Compressed: 2438757 bytes
+51: Compressed: 7230645 bytes
 51: CUDA error state: no error
 51: 
 51: === Iteration 2 ===
-51: [DEBUG] compress: ENTRY at TOP. Size=10485760
 51: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
 51: Status: 4 (FAILED)
-51: Compressed: 10527008 bytes
+51: Compressed: 10527392 bytes
 51: CUDA error state: no error
 51: 
 51: === RESULTS ===
@@ -11842,7 +10489,7 @@ test 51
 51: Test 2: FAIL
 51: 
 51: **CONFIRMED**: State corruption after first compression!
-51/55 Test #51: test_twice ................................   Passed    2.53 sec
+51/55 Test #51: test_twice ................................   Passed    2.82 sec
 test 52
       Start 52: test_ultra_minimal
 
@@ -11852,7 +10499,7 @@ test 52
 52: Step 1: Starting
 52: Step 2: Device count = 1
 52: Step 3: Exiting normally
-52/55 Test #52: test_ultra_minimal ........................   Passed    0.10 sec
+52/55 Test #52: test_ultra_minimal ........................   Passed    0.15 sec
 test 53
       Start 53: test_workspace_patterns
 
@@ -11880,7 +10527,6 @@ test 54
 54: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/test_c_api
 54: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 54: Test timeout computed to be: 100
-54: [DEBUG] compress: ENTRY at TOP. Size=131072
 54: 
 54: ========================================
 54:   Test: C-API Validation (NVCOMP v5)
@@ -11888,15 +10534,17 @@ test 54
 54: 
 54:   ✓ nvcomp_zstd_create_manager_v5 passed.
 54:   ✓ Workspace allocated: 12288 KB
-54:   ✗ FAILED: nvcomp_zstd_compress_async_v5 returned error 7
-54/55 Test #54: test_c_api ................................***Failed    0.42 sec
+54:   ✓ nvcomp_zstd_compress_async_v5 passed. Size: 128218
+54:   ✓ nvcomp_zstd_destroy_manager_v5 passed.
+54: 
+54: Test complete. Result: PASSED ✓
+54/55 Test #54: test_c_api ................................   Passed    0.46 sec
 test 55
       Start 55: level_nvcomp_demo
 
 55: Test command: /mnt/d/Research\ Experiments/TDPE_and_GPU_loading/NVComp\ with\ ZSTD/build/level_nvcomp_demo
 55: Working Directory: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
 55: Test timeout computed to be: 100
-55: [DEBUG] compress: ENTRY at TOP. Size=10485760
 55: 
 55: CUDA Zstandard - NVCOMP API Examples
 55: ========================================
@@ -11907,15 +10555,13 @@ test 55
 55: 
 55: Level | Speed (MB/s) | Compressed Size (KB) | Category
 55: ------+--------------+----------------------+-----------
-55: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2755 in compress_literals() (CUDA: invalid argument)
-55: [DEBUG] compress: ENTRY at TOP. Size=10485760
+55: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2795 in compress_literals() (CUDA: invalid argument)
 55: [ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
-55: [DEBUG] compress: ENTRY at TOP. Size=10485760
-55/55 Test #55: level_nvcomp_demo .........................***Timeout 100.04 sec
+55/55 Test #55: level_nvcomp_demo .........................***Timeout 100.03 sec
 
-64% tests passed, 20 tests failed out of 55
+67% tests passed, 18 tests failed out of 55
 
-Total Test time (real) = 271.40 sec
+Total Test time (real) = 260.98 sec
 
 The following tests FAILED:
 	  6 - test_compressible_data (Subprocess aborted)
@@ -11928,7 +10574,6 @@ The following tests FAILED:
 	 23 - test_lz77_comprehensive (Failed)
 	 25 - test_memory_pool (SEGFAULT)
 	 26 - test_memory_pool_deallocate_timeout (Failed)
-	 34 - test_minimal_compress (Failed)
 	 37 - test_multi_iteration (Failed)
 	 39 - test_nvcomp_batch (Failed)
 	 40 - test_nvcomp_interface (Failed)
@@ -11936,7 +10581,6 @@ The following tests FAILED:
 	 44 - test_performance (Failed)
 	 45 - test_roundtrip (Failed)
 	 49 - test_streaming (Subprocess aborted)
-	 54 - test_c_api (Failed)
 	 55 - level_nvcomp_demo (Timeout)
 Errors while running CTest
 Output from these tests are in: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build/Testing/Temporary/LastTest.log
