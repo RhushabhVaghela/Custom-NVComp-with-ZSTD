@@ -1,0 +1,11 @@
+[ 57%] Built target libzstd_static
+[ 94%] Built target cuda_zstd_static
+[ 94%] Building CUDA object CMakeFiles/test_hybrid.dir/tests/test_hybrid.cu.o
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_hybrid.cu:1:10: fatal error: cuda_zstd.h: No such file or directory
+    1 | #include "cuda_zstd.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+make[3]: *** [CMakeFiles/test_hybrid.dir/build.make:77: CMakeFiles/test_hybrid.dir/tests/test_hybrid.cu.o] Error 1
+make[2]: *** [CMakeFiles/Makefile2:899: CMakeFiles/test_hybrid.dir/all] Error 2
+make[1]: *** [CMakeFiles/Makefile2:906: CMakeFiles/test_hybrid.dir/rule] Error 2
+make: *** [Makefile:478: test_hybrid] Error 2

@@ -44,6 +44,8 @@ add_test(test_hash_chain_only "/mnt/d/Research Experiments/TDPE_and_GPU_loading/
 set_tests_properties(test_hash_chain_only PROPERTIES  TIMEOUT "300" _BACKTRACE_TRIPLES "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/CMakeLists.txt;153;add_test;/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/CMakeLists.txt;0;")
 add_test(test_huffman "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/test_huffman")
 set_tests_properties(test_huffman PROPERTIES  TIMEOUT "300" _BACKTRACE_TRIPLES "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/CMakeLists.txt;153;add_test;/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/CMakeLists.txt;0;")
+add_test(test_hybrid "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/test_hybrid")
+set_tests_properties(test_hybrid PROPERTIES  TIMEOUT "300" _BACKTRACE_TRIPLES "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/CMakeLists.txt;153;add_test;/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/CMakeLists.txt;0;")
 add_test(test_integration "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/test_integration")
 set_tests_properties(test_integration PROPERTIES  TIMEOUT "300" _BACKTRACE_TRIPLES "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/CMakeLists.txt;153;add_test;/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/CMakeLists.txt;0;")
 add_test(test_lz77_comprehensive "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/test_lz77_comprehensive")

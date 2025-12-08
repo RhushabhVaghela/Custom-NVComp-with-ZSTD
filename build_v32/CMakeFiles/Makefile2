@@ -86,6 +86,7 @@ all: CMakeFiles/test_fse_advanced_function.dir/all
 all: CMakeFiles/test_fse_reference_comparison.dir/all
 all: CMakeFiles/test_hash_chain_only.dir/all
 all: CMakeFiles/test_huffman.dir/all
+all: CMakeFiles/test_hybrid.dir/all
 all: CMakeFiles/test_integration.dir/all
 all: CMakeFiles/test_lz77_comprehensive.dir/all
 all: CMakeFiles/test_manager_only.dir/all
@@ -156,6 +157,7 @@ clean: CMakeFiles/test_fse_advanced_function.dir/clean
 clean: CMakeFiles/test_fse_reference_comparison.dir/clean
 clean: CMakeFiles/test_hash_chain_only.dir/clean
 clean: CMakeFiles/test_huffman.dir/clean
+clean: CMakeFiles/test_hybrid.dir/clean
 clean: CMakeFiles/test_integration.dir/clean
 clean: CMakeFiles/test_lz77_comprehensive.dir/clean
 clean: CMakeFiles/test_manager_only.dir/clean
@@ -275,12 +277,12 @@ _deps/zstd-build/programs/clean: _deps/zstd-build/programs/CMakeFiles/zstdmt.dir
 CMakeFiles/cuda_zstd_static.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cuda_zstd_static.dir/build.make CMakeFiles/cuda_zstd_static.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cuda_zstd_static.dir/build.make CMakeFiles/cuda_zstd_static.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=9,10,11,12,13,14,15,16 "Built target cuda_zstd_static"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=9,10,11,12,13,14,15 "Built target cuda_zstd_static"
 .PHONY : CMakeFiles/cuda_zstd_static.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/cuda_zstd_static.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 20
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/cuda_zstd_static.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/cuda_zstd_static.dir/rule
@@ -306,7 +308,7 @@ CMakeFiles/cuda_zstd_shared.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_sta
 
 # Build rule for subdir invocation for target.
 CMakeFiles/cuda_zstd_shared.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/cuda_zstd_shared.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/cuda_zstd_shared.dir/rule
@@ -328,12 +330,12 @@ CMakeFiles/simple_test.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/simple_test.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/simple_test.dir/build.make CMakeFiles/simple_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/simple_test.dir/build.make CMakeFiles/simple_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target simple_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=43 "Built target simple_test"
 .PHONY : CMakeFiles/simple_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/simple_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 20
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/simple_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/simple_test.dir/rule
@@ -360,7 +362,7 @@ CMakeFiles/test_adaptive_level.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_adaptive_level.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_adaptive_level.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_adaptive_level.dir/rule
@@ -387,7 +389,7 @@ CMakeFiles/test_alternative_allocation_strategies.dir/all: _deps/zstd-build/lib/
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_alternative_allocation_strategies.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_alternative_allocation_strategies.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_alternative_allocation_strategies.dir/rule
@@ -414,7 +416,7 @@ CMakeFiles/test_basic_profile.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_s
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_basic_profile.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_basic_profile.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_basic_profile.dir/rule
@@ -436,12 +438,12 @@ CMakeFiles/test_checksum_validation.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_checksum_validation.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_checksum_validation.dir/build.make CMakeFiles/test_checksum_validation.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_checksum_validation.dir/build.make CMakeFiles/test_checksum_validation.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=48 "Built target test_checksum_validation"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=47 "Built target test_checksum_validation"
 .PHONY : CMakeFiles/test_checksum_validation.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_checksum_validation.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_checksum_validation.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_checksum_validation.dir/rule
@@ -463,12 +465,12 @@ CMakeFiles/test_comprehensive_fallback.dir/all: CMakeFiles/cuda_zstd_static.dir/
 CMakeFiles/test_comprehensive_fallback.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_comprehensive_fallback.dir/build.make CMakeFiles/test_comprehensive_fallback.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_comprehensive_fallback.dir/build.make CMakeFiles/test_comprehensive_fallback.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_comprehensive_fallback"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=48 "Built target test_comprehensive_fallback"
 .PHONY : CMakeFiles/test_comprehensive_fallback.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_comprehensive_fallback.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 20
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_comprehensive_fallback.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_comprehensive_fallback.dir/rule
@@ -495,7 +497,7 @@ CMakeFiles/test_compressible_data.dir/all: _deps/zstd-build/lib/CMakeFiles/libzs
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_compressible_data.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_compressible_data.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_compressible_data.dir/rule
@@ -522,7 +524,7 @@ CMakeFiles/test_correctness.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_sta
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_correctness.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_correctness.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_correctness.dir/rule
@@ -549,7 +551,7 @@ CMakeFiles/test_coverage_gaps.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_s
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_coverage_gaps.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_coverage_gaps.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_coverage_gaps.dir/rule
@@ -576,7 +578,7 @@ CMakeFiles/test_debug_infrastructure.dir/all: _deps/zstd-build/lib/CMakeFiles/li
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_debug_infrastructure.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_debug_infrastructure.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_debug_infrastructure.dir/rule
@@ -603,7 +605,7 @@ CMakeFiles/test_dictionary.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_stat
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_dictionary.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_dictionary.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_dictionary.dir/rule
@@ -625,12 +627,12 @@ CMakeFiles/test_dictionary_compression.dir/all: CMakeFiles/cuda_zstd_static.dir/
 CMakeFiles/test_dictionary_compression.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_dictionary_compression.dir/build.make CMakeFiles/test_dictionary_compression.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_dictionary_compression.dir/build.make CMakeFiles/test_dictionary_compression.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=54 "Built target test_dictionary_compression"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_dictionary_compression"
 .PHONY : CMakeFiles/test_dictionary_compression.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_dictionary_compression.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_dictionary_compression.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_dictionary_compression.dir/rule
@@ -652,12 +654,12 @@ CMakeFiles/test_error_handling.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_error_handling.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_error_handling.dir/build.make CMakeFiles/test_error_handling.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_error_handling.dir/build.make CMakeFiles/test_error_handling.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=55 "Built target test_error_handling"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=54 "Built target test_error_handling"
 .PHONY : CMakeFiles/test_error_handling.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_error_handling.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_error_handling.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_error_handling.dir/rule
@@ -679,12 +681,12 @@ CMakeFiles/test_extended_validation.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_extended_validation.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_extended_validation.dir/build.make CMakeFiles/test_extended_validation.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_extended_validation.dir/build.make CMakeFiles/test_extended_validation.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=56 "Built target test_extended_validation"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=55 "Built target test_extended_validation"
 .PHONY : CMakeFiles/test_extended_validation.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_extended_validation.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_extended_validation.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_extended_validation.dir/rule
@@ -706,12 +708,12 @@ CMakeFiles/test_fallback_strategies.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_fallback_strategies.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fallback_strategies.dir/build.make CMakeFiles/test_fallback_strategies.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fallback_strategies.dir/build.make CMakeFiles/test_fallback_strategies.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=57 "Built target test_fallback_strategies"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=56 "Built target test_fallback_strategies"
 .PHONY : CMakeFiles/test_fallback_strategies.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_fallback_strategies.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_fallback_strategies.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_fallback_strategies.dir/rule
@@ -733,12 +735,12 @@ CMakeFiles/test_find_matches_small.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_find_matches_small.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_find_matches_small.dir/build.make CMakeFiles/test_find_matches_small.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_find_matches_small.dir/build.make CMakeFiles/test_find_matches_small.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=58 "Built target test_find_matches_small"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=57 "Built target test_find_matches_small"
 .PHONY : CMakeFiles/test_find_matches_small.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_find_matches_small.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_find_matches_small.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_find_matches_small.dir/rule
@@ -760,12 +762,12 @@ CMakeFiles/test_fse_advanced.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_fse_advanced.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fse_advanced.dir/build.make CMakeFiles/test_fse_advanced.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fse_advanced.dir/build.make CMakeFiles/test_fse_advanced.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=59 "Built target test_fse_advanced"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=58 "Built target test_fse_advanced"
 .PHONY : CMakeFiles/test_fse_advanced.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_fse_advanced.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_fse_advanced.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_fse_advanced.dir/rule
@@ -787,12 +789,12 @@ CMakeFiles/test_fse_advanced_function.dir/all: CMakeFiles/cuda_zstd_static.dir/a
 CMakeFiles/test_fse_advanced_function.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fse_advanced_function.dir/build.make CMakeFiles/test_fse_advanced_function.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fse_advanced_function.dir/build.make CMakeFiles/test_fse_advanced_function.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=60 "Built target test_fse_advanced_function"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=59 "Built target test_fse_advanced_function"
 .PHONY : CMakeFiles/test_fse_advanced_function.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_fse_advanced_function.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_fse_advanced_function.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_fse_advanced_function.dir/rule
@@ -814,12 +816,12 @@ CMakeFiles/test_fse_reference_comparison.dir/all: CMakeFiles/cuda_zstd_static.di
 CMakeFiles/test_fse_reference_comparison.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fse_reference_comparison.dir/build.make CMakeFiles/test_fse_reference_comparison.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fse_reference_comparison.dir/build.make CMakeFiles/test_fse_reference_comparison.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_fse_reference_comparison"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=60 "Built target test_fse_reference_comparison"
 .PHONY : CMakeFiles/test_fse_reference_comparison.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_fse_reference_comparison.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 20
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_fse_reference_comparison.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_fse_reference_comparison.dir/rule
@@ -846,7 +848,7 @@ CMakeFiles/test_hash_chain_only.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_hash_chain_only.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_hash_chain_only.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_hash_chain_only.dir/rule
@@ -873,7 +875,7 @@ CMakeFiles/test_huffman.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_huffman.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_huffman.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_huffman.dir/rule
@@ -888,6 +890,33 @@ CMakeFiles/test_huffman.dir/clean:
 .PHONY : CMakeFiles/test_huffman.dir/clean
 
 #=============================================================================
+# Target rules for target CMakeFiles/test_hybrid.dir
+
+# All Build rule for target.
+CMakeFiles/test_hybrid.dir/all: CMakeFiles/cuda_zstd_static.dir/all
+CMakeFiles/test_hybrid.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_hybrid.dir/build.make CMakeFiles/test_hybrid.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_hybrid.dir/build.make CMakeFiles/test_hybrid.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=63 "Built target test_hybrid"
+.PHONY : CMakeFiles/test_hybrid.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/test_hybrid.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_hybrid.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
+.PHONY : CMakeFiles/test_hybrid.dir/rule
+
+# Convenience name for target.
+test_hybrid: CMakeFiles/test_hybrid.dir/rule
+.PHONY : test_hybrid
+
+# clean rule for target.
+CMakeFiles/test_hybrid.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_hybrid.dir/build.make CMakeFiles/test_hybrid.dir/clean
+.PHONY : CMakeFiles/test_hybrid.dir/clean
+
+#=============================================================================
 # Target rules for target CMakeFiles/test_integration.dir
 
 # All Build rule for target.
@@ -895,12 +924,12 @@ CMakeFiles/test_integration.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_integration.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_integration.dir/build.make CMakeFiles/test_integration.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_integration.dir/build.make CMakeFiles/test_integration.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=63 "Built target test_integration"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=64 "Built target test_integration"
 .PHONY : CMakeFiles/test_integration.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_integration.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_integration.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_integration.dir/rule
@@ -922,12 +951,12 @@ CMakeFiles/test_lz77_comprehensive.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_lz77_comprehensive.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_lz77_comprehensive.dir/build.make CMakeFiles/test_lz77_comprehensive.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_lz77_comprehensive.dir/build.make CMakeFiles/test_lz77_comprehensive.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=64 "Built target test_lz77_comprehensive"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_lz77_comprehensive"
 .PHONY : CMakeFiles/test_lz77_comprehensive.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_lz77_comprehensive.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_lz77_comprehensive.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_lz77_comprehensive.dir/rule
@@ -954,7 +983,7 @@ CMakeFiles/test_manager_only.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_st
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_manager_only.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_manager_only.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_manager_only.dir/rule
@@ -981,7 +1010,7 @@ CMakeFiles/test_memory_pool.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_sta
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_memory_pool.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_memory_pool.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_memory_pool.dir/rule
@@ -1008,7 +1037,7 @@ CMakeFiles/test_memory_pool_deallocate_timeout.dir/all: _deps/zstd-build/lib/CMa
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_memory_pool_deallocate_timeout.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_memory_pool_deallocate_timeout.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_memory_pool_deallocate_timeout.dir/rule
@@ -1035,7 +1064,7 @@ CMakeFiles/test_memory_pool_double_free.dir/all: _deps/zstd-build/lib/CMakeFiles
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_memory_pool_double_free.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_memory_pool_double_free.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_memory_pool_double_free.dir/rule
@@ -1062,7 +1091,7 @@ CMakeFiles/test_memory_pool_double_free_fixed.dir/all: _deps/zstd-build/lib/CMak
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_memory_pool_double_free_fixed.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_memory_pool_double_free_fixed.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_memory_pool_double_free_fixed.dir/rule
@@ -1089,7 +1118,7 @@ CMakeFiles/test_memory_pool_double_free_race.dir/all: _deps/zstd-build/lib/CMake
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_memory_pool_double_free_race.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_memory_pool_double_free_race.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_memory_pool_double_free_race.dir/rule
@@ -1116,7 +1145,7 @@ CMakeFiles/test_memory_pool_double_free_race_fixed.dir/all: _deps/zstd-build/lib
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_memory_pool_double_free_race_fixed.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_memory_pool_double_free_race_fixed.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_memory_pool_double_free_race_fixed.dir/rule
@@ -1143,7 +1172,7 @@ CMakeFiles/test_memory_pool_lock_ordering.dir/all: _deps/zstd-build/lib/CMakeFil
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_memory_pool_lock_ordering.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_memory_pool_lock_ordering.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_memory_pool_lock_ordering.dir/rule
@@ -1165,12 +1194,12 @@ CMakeFiles/test_memory_pool_lock_timeout.dir/all: CMakeFiles/cuda_zstd_static.di
 CMakeFiles/test_memory_pool_lock_timeout.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_memory_pool_lock_timeout.dir/build.make CMakeFiles/test_memory_pool_lock_timeout.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_memory_pool_lock_timeout.dir/build.make CMakeFiles/test_memory_pool_lock_timeout.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_memory_pool_lock_timeout"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=73 "Built target test_memory_pool_lock_timeout"
 .PHONY : CMakeFiles/test_memory_pool_lock_timeout.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_memory_pool_lock_timeout.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 20
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_memory_pool_lock_timeout.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_memory_pool_lock_timeout.dir/rule
@@ -1192,12 +1221,12 @@ CMakeFiles/test_metadata_roundtrip.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_metadata_roundtrip.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_metadata_roundtrip.dir/build.make CMakeFiles/test_metadata_roundtrip.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_metadata_roundtrip.dir/build.make CMakeFiles/test_metadata_roundtrip.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=73 "Built target test_metadata_roundtrip"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=74 "Built target test_metadata_roundtrip"
 .PHONY : CMakeFiles/test_metadata_roundtrip.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_metadata_roundtrip.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_metadata_roundtrip.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_metadata_roundtrip.dir/rule
@@ -1219,12 +1248,12 @@ CMakeFiles/test_minimal_compress.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_minimal_compress.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_minimal_compress.dir/build.make CMakeFiles/test_minimal_compress.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_minimal_compress.dir/build.make CMakeFiles/test_minimal_compress.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=74 "Built target test_minimal_compress"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=75 "Built target test_minimal_compress"
 .PHONY : CMakeFiles/test_minimal_compress.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_minimal_compress.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_minimal_compress.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_minimal_compress.dir/rule
@@ -1246,12 +1275,12 @@ CMakeFiles/test_minimal_create.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_minimal_create.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_minimal_create.dir/build.make CMakeFiles/test_minimal_create.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_minimal_create.dir/build.make CMakeFiles/test_minimal_create.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=75 "Built target test_minimal_create"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_minimal_create"
 .PHONY : CMakeFiles/test_minimal_create.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_minimal_create.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_minimal_create.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_minimal_create.dir/rule
@@ -1278,7 +1307,7 @@ CMakeFiles/test_minimal_manager.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_minimal_manager.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_minimal_manager.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_minimal_manager.dir/rule
@@ -1305,7 +1334,7 @@ CMakeFiles/test_multi_iteration.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_multi_iteration.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_multi_iteration.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_multi_iteration.dir/rule
@@ -1332,7 +1361,7 @@ CMakeFiles/test_multitable_fse.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_multitable_fse.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_multitable_fse.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_multitable_fse.dir/rule
@@ -1359,7 +1388,7 @@ CMakeFiles/test_nvcomp_batch.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_st
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_nvcomp_batch.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_nvcomp_batch.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_nvcomp_batch.dir/rule
@@ -1386,7 +1415,7 @@ CMakeFiles/test_nvcomp_interface.dir/all: _deps/zstd-build/lib/CMakeFiles/libzst
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_nvcomp_interface.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_nvcomp_interface.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_nvcomp_interface.dir/rule
@@ -1413,7 +1442,7 @@ CMakeFiles/test_parallel_backtracking.dir/all: _deps/zstd-build/lib/CMakeFiles/l
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_parallel_backtracking.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_parallel_backtracking.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_parallel_backtracking.dir/rule
@@ -1440,7 +1469,7 @@ CMakeFiles/test_parallel_compression.dir/all: _deps/zstd-build/lib/CMakeFiles/li
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_parallel_compression.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_parallel_compression.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_parallel_compression.dir/rule
@@ -1467,7 +1496,7 @@ CMakeFiles/test_perf_simple.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_sta
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_perf_simple.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_perf_simple.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_perf_simple.dir/rule
@@ -1494,7 +1523,7 @@ CMakeFiles/test_performance.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_sta
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_performance.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_performance.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_performance.dir/rule
@@ -1516,12 +1545,12 @@ CMakeFiles/test_roundtrip.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_roundtrip.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_roundtrip.dir/build.make CMakeFiles/test_roundtrip.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_roundtrip.dir/build.make CMakeFiles/test_roundtrip.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_roundtrip"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=85 "Built target test_roundtrip"
 .PHONY : CMakeFiles/test_roundtrip.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_roundtrip.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 20
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_roundtrip.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_roundtrip.dir/rule
@@ -1543,12 +1572,12 @@ CMakeFiles/test_simple_fse_reference.dir/all: CMakeFiles/cuda_zstd_static.dir/al
 CMakeFiles/test_simple_fse_reference.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_simple_fse_reference.dir/build.make CMakeFiles/test_simple_fse_reference.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_simple_fse_reference.dir/build.make CMakeFiles/test_simple_fse_reference.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=85 "Built target test_simple_fse_reference"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_simple_fse_reference"
 .PHONY : CMakeFiles/test_simple_fse_reference.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_simple_fse_reference.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_simple_fse_reference.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_simple_fse_reference.dir/rule
@@ -1575,7 +1604,7 @@ CMakeFiles/test_stream_pool.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_sta
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_stream_pool.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_stream_pool.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_stream_pool.dir/rule
@@ -1602,7 +1631,7 @@ CMakeFiles/test_stream_pool_timeout.dir/all: _deps/zstd-build/lib/CMakeFiles/lib
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_stream_pool_timeout.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_stream_pool_timeout.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_stream_pool_timeout.dir/rule
@@ -1629,7 +1658,7 @@ CMakeFiles/test_streaming.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_stati
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_streaming.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_streaming.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_streaming.dir/rule
@@ -1656,7 +1685,7 @@ CMakeFiles/test_timing.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.d
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_timing.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_timing.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_timing.dir/rule
@@ -1683,7 +1712,7 @@ CMakeFiles/test_twice.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.di
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_twice.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_twice.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_twice.dir/rule
@@ -1710,7 +1739,7 @@ CMakeFiles/test_ultra_minimal.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_s
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_ultra_minimal.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_ultra_minimal.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_ultra_minimal.dir/rule
@@ -1737,7 +1766,7 @@ CMakeFiles/test_workspace_patterns.dir/all: _deps/zstd-build/lib/CMakeFiles/libz
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_workspace_patterns.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_workspace_patterns.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_workspace_patterns.dir/rule
@@ -1759,12 +1788,12 @@ CMakeFiles/test_c_api.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/test_c_api.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_c_api.dir/build.make CMakeFiles/test_c_api.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_c_api.dir/build.make CMakeFiles/test_c_api.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=47 "Built target test_c_api"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target test_c_api"
 .PHONY : CMakeFiles/test_c_api.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/test_c_api.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_c_api.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/test_c_api.dir/rule
@@ -1791,7 +1820,7 @@ CMakeFiles/level_nvcomp_demo.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_st
 
 # Build rule for subdir invocation for target.
 CMakeFiles/level_nvcomp_demo.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/level_nvcomp_demo.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/level_nvcomp_demo.dir/rule
@@ -1818,7 +1847,7 @@ CMakeFiles/fixed_benchmark.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_stat
 
 # Build rule for subdir invocation for target.
 CMakeFiles/fixed_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/fixed_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/fixed_benchmark.dir/rule
@@ -1840,12 +1869,12 @@ CMakeFiles/debug_single_test.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/debug_single_test.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_single_test.dir/build.make CMakeFiles/debug_single_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/debug_single_test.dir/build.make CMakeFiles/debug_single_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num= "Built target debug_single_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=16 "Built target debug_single_test"
 .PHONY : CMakeFiles/debug_single_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/debug_single_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 20
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/debug_single_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/debug_single_test.dir/rule
@@ -1867,12 +1896,12 @@ CMakeFiles/limited_benchmark.dir/all: CMakeFiles/cuda_zstd_static.dir/all
 CMakeFiles/limited_benchmark.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/limited_benchmark.dir/build.make CMakeFiles/limited_benchmark.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/limited_benchmark.dir/build.make CMakeFiles/limited_benchmark.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=43 "Built target limited_benchmark"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=42 "Built target limited_benchmark"
 .PHONY : CMakeFiles/limited_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/limited_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/limited_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/limited_benchmark.dir/rule
@@ -1899,7 +1928,7 @@ CMakeFiles/comprehensive_benchmark.dir/all: _deps/zstd-build/lib/CMakeFiles/libz
 
 # Build rule for subdir invocation for target.
 CMakeFiles/comprehensive_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 21
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 19
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/comprehensive_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/comprehensive_benchmark.dir/rule
@@ -1926,7 +1955,7 @@ CMakeFiles/benchmark_lz77.dir/all: _deps/zstd-build/lib/CMakeFiles/libzstd_stati
 
 # Build rule for subdir invocation for target.
 CMakeFiles/benchmark_lz77.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 20
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 18
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/benchmark_lz77.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : CMakeFiles/benchmark_lz77.dir/rule
@@ -1999,12 +2028,12 @@ _deps/zstd-build/lib/CMakeFiles/libzstd_shared.dir/clean:
 _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all:
 	$(MAKE) $(MAKESILENT) -f _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/build.make _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/depend
 	$(MAKE) $(MAKESILENT) -f _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/build.make _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=31,32,33,34,35,36,37,38,39,40,41,42 "Built target libzstd_static"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" --progress-num=31,32,33,34,35,36,37,38,39,40,41 "Built target libzstd_static"
 .PHONY : _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 
 # Build rule for subdir invocation for target.
 _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 12
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 11
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : _deps/zstd-build/lib/CMakeFiles/libzstd_static.dir/rule
@@ -2056,7 +2085,7 @@ _deps/zstd-build/programs/CMakeFiles/zstd.dir/all: _deps/zstd-build/lib/CMakeFil
 
 # Build rule for subdir invocation for target.
 _deps/zstd-build/programs/CMakeFiles/zstd.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 16
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 15
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 _deps/zstd-build/programs/CMakeFiles/zstd.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : _deps/zstd-build/programs/CMakeFiles/zstd.dir/rule
@@ -2082,7 +2111,7 @@ _deps/zstd-build/programs/CMakeFiles/zstdcat.dir/all: _deps/zstd-build/programs/
 
 # Build rule for subdir invocation for target.
 _deps/zstd-build/programs/CMakeFiles/zstdcat.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 16
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 15
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 _deps/zstd-build/programs/CMakeFiles/zstdcat.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : _deps/zstd-build/programs/CMakeFiles/zstdcat.dir/rule
@@ -2108,7 +2137,7 @@ _deps/zstd-build/programs/CMakeFiles/unzstd.dir/all: _deps/zstd-build/programs/C
 
 # Build rule for subdir invocation for target.
 _deps/zstd-build/programs/CMakeFiles/unzstd.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 16
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 15
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 _deps/zstd-build/programs/CMakeFiles/unzstd.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : _deps/zstd-build/programs/CMakeFiles/unzstd.dir/rule
@@ -2264,7 +2293,7 @@ _deps/zstd-build/programs/CMakeFiles/zstd-frugal.dir/all: _deps/zstd-build/lib/C
 
 # Build rule for subdir invocation for target.
 _deps/zstd-build/programs/CMakeFiles/zstd-frugal.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 14
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 13
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 _deps/zstd-build/programs/CMakeFiles/zstd-frugal.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : _deps/zstd-build/programs/CMakeFiles/zstd-frugal.dir/rule
@@ -2290,7 +2319,7 @@ _deps/zstd-build/programs/CMakeFiles/zstdmt.dir/all: _deps/zstd-build/programs/C
 
 # Build rule for subdir invocation for target.
 _deps/zstd-build/programs/CMakeFiles/zstdmt.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 17
+	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 16
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 _deps/zstd-build/programs/CMakeFiles/zstdmt.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles" 0
 .PHONY : _deps/zstd-build/programs/CMakeFiles/zstdmt.dir/rule

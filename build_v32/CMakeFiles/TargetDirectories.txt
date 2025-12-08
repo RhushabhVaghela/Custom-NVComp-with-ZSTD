@@ -21,6 +21,7 @@
 /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles/test_fse_reference_comparison.dir
 /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles/test_hash_chain_only.dir
 /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles/test_huffman.dir
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles/test_hybrid.dir
 /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles/test_integration.dir
 /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles/test_lz77_comprehensive.dir
 /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/CMakeFiles/test_manager_only.dir

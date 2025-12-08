@@ -471,6 +471,19 @@ test_huffman/fast:
 .PHONY : test_huffman/fast
 
 #=============================================================================
+# Target rules for targets named test_hybrid
+
+# Build rule for target.
+test_hybrid: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_hybrid
+.PHONY : test_hybrid
+
+# fast build rule for target.
+test_hybrid/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_hybrid.dir/build.make CMakeFiles/test_hybrid.dir/build
+.PHONY : test_hybrid/fast
+
+#=============================================================================
 # Target rules for targets named test_integration
 
 # Build rule for target.
@@ -2398,6 +2411,30 @@ tests/test_huffman.cu.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_huffman.dir/build.make CMakeFiles/test_huffman.dir/tests/test_huffman.cu.s
 .PHONY : tests/test_huffman.cu.s
 
+tests/test_hybrid.o: tests/test_hybrid.cu.o
+.PHONY : tests/test_hybrid.o
+
+# target to build an object file
+tests/test_hybrid.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_hybrid.dir/build.make CMakeFiles/test_hybrid.dir/tests/test_hybrid.cu.o
+.PHONY : tests/test_hybrid.cu.o
+
+tests/test_hybrid.i: tests/test_hybrid.cu.i
+.PHONY : tests/test_hybrid.i
+
+# target to preprocess a source file
+tests/test_hybrid.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_hybrid.dir/build.make CMakeFiles/test_hybrid.dir/tests/test_hybrid.cu.i
+.PHONY : tests/test_hybrid.cu.i
+
+tests/test_hybrid.s: tests/test_hybrid.cu.s
+.PHONY : tests/test_hybrid.s
+
+# target to generate assembly for a file
+tests/test_hybrid.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_hybrid.dir/build.make CMakeFiles/test_hybrid.dir/tests/test_hybrid.cu.s
+.PHONY : tests/test_hybrid.cu.s
+
 tests/test_integration.o: tests/test_integration.cu.o
 .PHONY : tests/test_integration.o
 
@@ -3221,6 +3258,7 @@ help:
 	@echo "... test_fse_reference_comparison"
 	@echo "... test_hash_chain_only"
 	@echo "... test_huffman"
+	@echo "... test_hybrid"
 	@echo "... test_integration"
 	@echo "... test_lz77_comprehensive"
 	@echo "... test_manager_only"
@@ -3402,6 +3440,9 @@ help:
 	@echo "... tests/test_huffman.o"
 	@echo "... tests/test_huffman.i"
 	@echo "... tests/test_huffman.s"
+	@echo "... tests/test_hybrid.o"
+	@echo "... tests/test_hybrid.i"
+	@echo "... tests/test_hybrid.s"
 	@echo "... tests/test_integration.o"
 	@echo "... tests/test_integration.i"
 	@echo "... tests/test_integration.s"
