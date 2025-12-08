@@ -1078,11 +1078,18 @@ public:
 
     byte_t *workspace_start = workspace_ptr;
 
-    // Partition hash/chain tables from workspace
-    // (FIX) Use config.block_size for num_blocks calculation
-    u32 block_size = effective_config.block_size;
-    if (block_size == 0)
-      block_size = CUDA_ZSTD_BLOCKSIZE_MAX;
+    // (FIX) Determine actual block size BEFORE partitioning
+    // This must be consistent between allocation and execution
+    u32 block_size;
+    if (effective_config.block_size == 0 ||
+        effective_config.block_size == 128 * 1024) {
+      // Use optimal block size if default (0 or 128KB)
+      block_size =
+          get_optimal_block_size(uncompressed_size, effective_config.level);
+    } else {
+      // Use user-specified size
+      block_size = effective_config.block_size;
+    }
 
     call_workspace.num_blocks =
         (uncompressed_size + block_size - 1) / block_size;
@@ -1244,13 +1251,13 @@ public:
     // find_optimal_parse
 
     // Synchronize to catch any pending errors before starting compression
-    // cudaError_t pre_compress_err = cudaDeviceSynchronize();
-    // if (pre_compress_err != cudaSuccess) {
-    //     printf("[ERROR] compress: CUDA error BEFORE compression pipeline:
-    //     %s\n", cudaGetErrorString(pre_compress_err)); return
-    //     Status::ERROR_CUDA_ERROR;
-    // }
-    //         // std::cerr << "Pre-compression sync: OK" << std::endl;
+    cudaError_t pre_compress_err = cudaDeviceSynchronize();
+    if (pre_compress_err != cudaSuccess) {
+      printf("[ERROR] compress: CUDA error BEFORE compression pipeline: %s\n",
+             cudaGetErrorString(pre_compress_err));
+      return Status::ERROR_CUDA_ERROR;
+    }
+    // std::cerr << "Pre-compression sync: OK" << std::endl;
 
     // --- 2. Start Compression Pipeline ---
 
@@ -1301,23 +1308,16 @@ public:
         has_dictionary ? dict.raw_content : nullptr,
         has_dictionary ? dict.raw_size : 0, stream);
     if (status != Status::SUCCESS) {
-      // printf("[ERROR] compress: write_frame_header failed with status %d\n",
-      //        (int)status);
+      printf("[ERROR] compress: write_frame_header failed with status %d\n",
+             (int)status);
       return status;
     }
     // printf("[DEBUG] compress: write_frame_header done\n");
 
     compressed_offset += header_size;
 
-    // Use config.block_size if explicitly set, otherwise calculate optimal
-    // u32 block_size; // Removed redeclaration
-    if (config.block_size != 128 * 1024) {
-      // User explicitly set block_size (for testing)
-      block_size = config.block_size;
-    } else {
-      // Use default algorithm
-      block_size = get_optimal_block_size(uncompressed_size, config.level);
-    }
+    // Block size already calculated during workspace partitioning
+    // (see line ~1082, stored in effective_config.block_size)
     u32 num_blocks = (uncompressed_size + block_size - 1) / block_size;
 
     // Calculate per-block workspace size (Must match get_compress_temp_size)
@@ -1458,8 +1458,11 @@ public:
             // Create per-block stream for parallel execution
             cudaStream_t block_stream;
             cudaError_t err = cudaStreamCreate(&block_stream);
-            if (err != cudaSuccess)
+            if (err != cudaSuccess) {
+              printf("[ERROR] cudaStreamCreate failed: %s\n",
+                     cudaGetErrorString(err));
               return Status::ERROR_CUDA_ERROR;
+            }
 
             // Wait for input data copy (on main stream) to complete
             cudaStreamWaitEvent(block_stream, start_event, 0);
@@ -1650,6 +1653,8 @@ public:
     for (auto &future : block_futures) {
       Status block_status = future.get();
       if (block_status != Status::SUCCESS) {
+        printf("[ERROR] compress: Phase 1 Block failed with status %d\n",
+               (int)block_status);
         return block_status;
       }
     }
@@ -1740,8 +1745,12 @@ public:
         status =
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,
                                       seq_blocks, threads, stream);
-        if (status != Status::SUCCESS)
+        if (status != Status::SUCCESS) {
+          printf("[ERROR] compress: build_sequences failed for block %u with "
+                 "status %d\n",
+                 block_idx, (int)status);
           return status;
+        }
       }
 
       // Compress Literals
@@ -1752,8 +1761,12 @@ public:
                                  block_seq_ctxs[block_idx].num_literals,
                                  block_outputs[block_idx], &literals_size,
                                  &block_ws, stream);
-      if (status != Status::SUCCESS)
+      if (status != Status::SUCCESS) {
+        printf("[ERROR] compress: compress_literals "
+               "failed for block %u with status %d\n",
+               block_idx, (int)status);
         return status;
+      }
 
       // Compress Sequences
       byte_t *sequences_compressed = block_outputs[block_idx] + literals_size;
@@ -1762,18 +1775,25 @@ public:
       status =
           compress_sequences(&block_seq_ctxs[block_idx], num_sequences,
                              sequences_compressed, &sequences_size, stream);
-      if (status != Status::SUCCESS)
+      if (status != Status::SUCCESS) {
+        printf("[ERROR] compress: compress_sequences "
+               "failed for block %u with status %d\n",
+               block_idx, (int)status);
         return status;
+      }
 
       block_compressed_sizes[block_idx] = literals_size + sequences_size;
 
       // if (block_idx == 0) {
       //   byte_t check[5];
-      //   cudaMemcpy(check, block_outputs[block_idx], 5,
-      //   cudaMemcpyDeviceToHost); printf("[DEBUG] compress: Block 0 Output
-      //   Readback: %02X %02X %02X %02X "
+      //   cudaMemcpy(check,
+      //   block_outputs[block_idx], 5,
+      //   cudaMemcpyDeviceToHost); printf("[DEBUG]
+      //   compress: Block 0 Output Readback: %02X
+      //   %02X %02X %02X "
       //          "%02X (Ptr: %p)\n",
-      //          check[0], check[1], check[2], check[3], check[4],
+      //          check[0], check[1], check[2],
+      //          check[3], check[4],
       //          block_outputs[block_idx]);
       //   fflush(stdout);
       // }
