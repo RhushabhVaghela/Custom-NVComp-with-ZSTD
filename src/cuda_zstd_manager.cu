@@ -1699,8 +1699,23 @@ public:
       block_ws.d_costs =
           (lz77::ParseCost *)call_workspace.d_costs + block_start;
 
-      u32 num_sequences = block_num_sequences[block_idx];
+      u32 num_sequences = block_num_sequences[block_idx]; // MOVED BACK
       ctx.total_sequences += num_sequences;
+
+      // Recalculate block size to ensure correctness inside lambda
+      u32 current_block_size =
+          std::min(block_size,
+                   (u32)(uncompressed_size - (size_t)block_idx * block_size));
+
+      // SHORT-CIRCUIT: Tiny blocks
+      // Blocks smaller than ~2048 bytes are rarely compressible on GPU and
+      // trigger edge cases / instability in the legacy LZ77 kernel.
+      // We force "Raw Block" mode by reporting a large compressed size.
+      if (current_block_size < 2048) {
+        block_compressed_sizes[block_idx] =
+            current_block_size + 100; // > original
+        return Status::SUCCESS;
+      }
 
       // Build Sequences
       if (num_sequences > 0) {

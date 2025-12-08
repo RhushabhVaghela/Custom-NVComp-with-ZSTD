@@ -1,0 +1,2619 @@
+========================================
+CUDA ZSTD Correctness Tests
+========================================
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+
+[TEST] Identity Property: decompress(compress(data)) == data
+[DEBUG] compress: ENTRY at TOP. Size=4096
+[DEBUG] compress: Input Start Bytes: 00 1F 3E 5D 7C (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=4096
+[DEBUG] compress_literals: NumLit=818, HeaderLen=2, Bytes: 24 33 00
+[DEBUG] encode_sequences_raw: NumSeq=26, HeaderSize=2, Bytes: 1A FF 00
+[DEBUG] compress: Block 0 Output Readback: 24 33 00 1F 3E (Ptr: 0x90c139600)
+[PERF] Phase 1 (LZ77): 233 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=1134, is_last=1, original=4096, compressed=1134
+[DEBUG] write_block_peek: Src Bytes: 24 33 00 1F 3E (src=0x90c139600)
+[DEBUG] compress: Phase 3 Block 0 Source: 24 33 00 1F 3E (Ptr: 0x90c139600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 24 33 00 1F 3E
+[DEBUG] decompress: Block header parsed. size=1134, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1134, header: 24 33 00 1F 3E
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=314, header bytes: 1A FF B7 02 00
+[DEBUG] decompress_sequences: Parsed num_sequences=26, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=4096
+  [INFO] ✓ Identity property holds
+  [PASS] Identity Property
+
+[TEST] Various Input Sizes Round-trip
+  [INFO] Testing 39 different sizes
+[DEBUG] compress: ENTRY at TOP. Size=1
+[DEBUG] compress: Input Start Bytes: 28 B5 2F FD 20 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=1
+  [FAIL] Size 1 (Decompress Status: 8, Size: 1)
+[DEBUG] compress: ENTRY at TOP. Size=2
+[DEBUG] compress: Input Start Bytes: 28 B5 2F FD 20 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=2
+  [FAIL] Size 2 (Decompress Status: 8, Size: 2)
+[DEBUG] compress: ENTRY at TOP. Size=3
+[DEBUG] compress: Input Start Bytes: 28 B5 2F FD 20 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=3
+  [FAIL] Size 3 (Decompress Status: 8, Size: 3)
+[DEBUG] compress: ENTRY at TOP. Size=7
+[DEBUG] compress: Input Start Bytes: 28 B5 2F FD 20 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=7
+  [FAIL] Size 7 (Decompress Status: 8, Size: 7)
+[DEBUG] compress: ENTRY at TOP. Size=15
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=15
+  [FAIL] Size 15 (Decompress Status: 8, Size: 15)
+[DEBUG] compress: ENTRY at TOP. Size=16
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=16
+  [FAIL] Size 16 (Decompress Status: 8, Size: 16)
+[DEBUG] compress: ENTRY at TOP. Size=17
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=17
+  [FAIL] Size 17 (Decompress Status: 8, Size: 17)
+[DEBUG] compress: ENTRY at TOP. Size=31
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=31
+  [FAIL] Size 31 (Decompress Status: 8, Size: 31)
+[DEBUG] compress: ENTRY at TOP. Size=32
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=32
+  [FAIL] Size 32 (Decompress Status: 8, Size: 32)
+[DEBUG] compress: ENTRY at TOP. Size=33
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=33
+  [FAIL] Size 33 (Decompress Status: 8, Size: 33)
+[DEBUG] compress: ENTRY at TOP. Size=63
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=63
+  [FAIL] Size 63 (Decompress Status: 8, Size: 63)
+[DEBUG] compress: ENTRY at TOP. Size=64
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=64
+  [FAIL] Size 64 (Decompress Status: 8, Size: 64)
+[DEBUG] compress: ENTRY at TOP. Size=65
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65
+  [FAIL] Size 65 (Decompress Status: 8, Size: 65)
+[DEBUG] compress: ENTRY at TOP. Size=127
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=127
+  [FAIL] Size 127 (Decompress Status: 8, Size: 127)
+[DEBUG] compress: ENTRY at TOP. Size=128
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=128
+  [FAIL] Size 128 (Decompress Status: 8, Size: 128)
+[DEBUG] compress: ENTRY at TOP. Size=129
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=129
+  [FAIL] Size 129 (Decompress Status: 8, Size: 129)
+[DEBUG] compress: ENTRY at TOP. Size=255
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=255
+  [FAIL] Size 255 (Decompress Status: 8, Size: 255)
+[DEBUG] compress: ENTRY at TOP. Size=256
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=256
+  [FAIL] Size 256 (Decompress Status: 6, Size: 256)
+[DEBUG] compress: ENTRY at TOP. Size=257
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=257
+  [FAIL] Size 257 (Decompress Status: 6, Size: 257)
+[DEBUG] compress: ENTRY at TOP. Size=511
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=511
+  [FAIL] Size 511 (Decompress Status: 6, Size: 511)
+[DEBUG] compress: ENTRY at TOP. Size=512
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=512
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:85 in build_sequences() (CUDA: invalid argument)
+  [FAIL] Size 512 (Compress Status: 4)
+[DEBUG] compress: ENTRY at TOP. Size=513
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=513
+[DEBUG] compress_literals: NumLit=513, HeaderLen=2, Bytes: 14 20 00
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 14 20 00 01 02 (Ptr: 0x902f07d00)
+[PERF] Phase 1 (LZ77): 6 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=513, is_last=1, original=513, compressed=529
+[DEBUG] write_block_peek: Src Bytes: 00 01 02 03 04 (src=0x90ba00a00)
+[DEBUG] compress: Phase 3 Block 0 Source: 14 20 00 01 02 (Ptr: 0x902f07d00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 00 01 02 03 04
+[DEBUG] decompress: Block header parsed. size=513, compressed=0, last=1, header_size=3
+  [PASS] Size 513
+[DEBUG] compress: ENTRY at TOP. Size=1023
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=1023
+[DEBUG] decompress: Block header parsed. size=513, compressed=0, last=1, header_size=3
+  [FAIL] Size 1023 (Decompress Status: 0, Size: 513)
+[DEBUG] compress: ENTRY at TOP. Size=1024
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=1024
+[DEBUG] decompress: Block header parsed. size=513, compressed=0, last=1, header_size=3
+  [FAIL] Size 1024 (Decompress Status: 0, Size: 513)
+[DEBUG] compress: ENTRY at TOP. Size=1025
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=1025
+  [FAIL] Size 1025 (Decompress Status: 6, Size: 1025)
+[DEBUG] compress: ENTRY at TOP. Size=4095
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=4095
+[DEBUG] compress_literals: NumLit=933, HeaderLen=2, Bytes: 54 3A 00
+[DEBUG] encode_sequences_raw: NumSeq=25, HeaderSize=2, Bytes: 19 FF 00
+[DEBUG] compress: Block 0 Output Readback: 54 3A 00 01 02 (Ptr: 0x902f39580)
+[PERF] Phase 1 (LZ77): 20 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=1237, is_last=1, original=4095, compressed=1237
+[DEBUG] write_block_peek: Src Bytes: 54 3A 00 01 02 (src=0x902f39580)
+[DEBUG] compress: Phase 3 Block 0 Source: 54 3A 00 01 02 (Ptr: 0x902f39580)
+[DEBUG] compress: Phase 3 Block 0 Dest: 54 3A 00 01 02
+[DEBUG] decompress: Block header parsed. size=1237, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1237, header: 54 3A 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=302, header bytes: 19 FF 5C 02 00
+[DEBUG] decompress_sequences: Parsed num_sequences=25, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=4095
+  [PASS] Size 4095
+[DEBUG] compress: ENTRY at TOP. Size=4096
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=4096
+[DEBUG] compress_literals: NumLit=800, HeaderLen=2, Bytes: 04 32 00
+[DEBUG] encode_sequences_raw: NumSeq=26, HeaderSize=2, Bytes: 1A FF 00
+[DEBUG] compress: Block 0 Output Readback: 04 32 00 01 02 (Ptr: 0x902f39600)
+[PERF] Phase 1 (LZ77): 20 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=1116, is_last=1, original=4096, compressed=1116
+[DEBUG] write_block_peek: Src Bytes: 04 32 00 01 02 (src=0x902f39600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 32 00 01 02 (Ptr: 0x902f39600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 32 00 01 02
+[DEBUG] decompress: Block header parsed. size=1116, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1116, header: 04 32 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=314, header bytes: 1A FF 3B 02 00
+[DEBUG] decompress_sequences: Parsed num_sequences=26, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=4096
+  [PASS] Size 4096
+[DEBUG] compress: ENTRY at TOP. Size=4097
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=4097
+[DEBUG] compress_literals: NumLit=769, HeaderLen=2, Bytes: 14 30 00
+[DEBUG] encode_sequences_raw: NumSeq=26, HeaderSize=2, Bytes: 1A FF 00
+[DEBUG] compress: Block 0 Output Readback: 14 30 00 01 02 (Ptr: 0x902f39b00)
+[PERF] Phase 1 (LZ77): 19 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=1085, is_last=1, original=4097, compressed=1085
+[DEBUG] write_block_peek: Src Bytes: 14 30 00 01 02 (src=0x902f39b00)
+[DEBUG] compress: Phase 3 Block 0 Source: 14 30 00 01 02 (Ptr: 0x902f39b00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 14 30 00 01 02
+[DEBUG] decompress: Block header parsed. size=1085, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1085, header: 14 30 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=314, header bytes: 1A FF 35 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=26, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=4097
+  [PASS] Size 4097
+[DEBUG] compress: ENTRY at TOP. Size=8191
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8191
+[DEBUG] compress_literals: NumLit=1043, HeaderLen=2, Bytes: 34 41 00
+[DEBUG] encode_sequences_raw: NumSeq=56, HeaderSize=2, Bytes: 38 FF 00
+[DEBUG] compress: Block 0 Output Readback: 34 41 00 01 02 (Ptr: 0x902f72580)
+[PERF] Phase 1 (LZ77): 37 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=1719, is_last=1, original=8191, compressed=1719
+[DEBUG] write_block_peek: Src Bytes: 34 41 00 01 02 (src=0x902f72580)
+[DEBUG] compress: Phase 3 Block 0 Source: 34 41 00 01 02 (Ptr: 0x902f72580)
+[DEBUG] compress: Phase 3 Block 0 Dest: 34 41 00 01 02
+[DEBUG] decompress: Block header parsed. size=1719, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1719, header: 34 41 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=674, header bytes: 38 FF 3E 02 00
+[DEBUG] decompress_sequences: Parsed num_sequences=56, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=8191
+  [PASS] Size 8191
+[DEBUG] compress: ENTRY at TOP. Size=8192
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8192
+[DEBUG] compress_literals: NumLit=1117, HeaderLen=2, Bytes: D4 45 00
+[DEBUG] encode_sequences_raw: NumSeq=56, HeaderSize=2, Bytes: 38 FF 00
+[DEBUG] compress: Block 0 Output Readback: D4 45 00 01 02 (Ptr: 0x902f72600)
+[PERF] Phase 1 (LZ77): 37 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=1793, is_last=1, original=8192, compressed=1793
+[DEBUG] write_block_peek: Src Bytes: D4 45 00 01 02 (src=0x902f72600)
+[DEBUG] compress: Phase 3 Block 0 Source: D4 45 00 01 02 (Ptr: 0x902f72600)
+[DEBUG] compress: Phase 3 Block 0 Dest: D4 45 00 01 02
+[DEBUG] decompress: Block header parsed. size=1793, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1793, header: D4 45 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=674, header bytes: 38 FF 36 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=56, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=8192
+  [PASS] Size 8192
+[DEBUG] compress: ENTRY at TOP. Size=8193
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00a00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8193
+[DEBUG] compress_literals: NumLit=804, HeaderLen=2, Bytes: 44 32 00
+[DEBUG] encode_sequences_raw: NumSeq=58, HeaderSize=2, Bytes: 3A FF 00
+[DEBUG] compress: Block 0 Output Readback: 44 32 00 01 02 (Ptr: 0x902f72b00)
+[PERF] Phase 1 (LZ77): 40 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=1504, is_last=1, original=8193, compressed=1504
+[DEBUG] write_block_peek: Src Bytes: 44 32 00 01 02 (src=0x902f72b00)
+[DEBUG] compress: Phase 3 Block 0 Source: 44 32 00 01 02 (Ptr: 0x902f72b00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 44 32 00 01 02
+[DEBUG] decompress: Block header parsed. size=1504, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1504, header: 44 32 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=698, header bytes: 3A FF 72 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=58, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=8193
+  [PASS] Size 8193
+[DEBUG] compress: ENTRY at TOP. Size=16383
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=16383
+[DEBUG] compress_literals: NumLit=1058, HeaderLen=2, Bytes: 24 42 00
+[DEBUG] encode_sequences_raw: NumSeq=120, HeaderSize=2, Bytes: 78 FF 00
+[DEBUG] compress: Block 0 Output Readback: 24 42 00 01 02 (Ptr: 0x902fe4580)
+[PERF] Phase 1 (LZ77): 75 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=2502, is_last=1, original=16383, compressed=2502
+[DEBUG] write_block_peek: Src Bytes: 24 42 00 01 02 (src=0x902fe4580)
+[DEBUG] compress: Phase 3 Block 0 Source: 24 42 00 01 02 (Ptr: 0x902fe4580)
+[DEBUG] compress: Phase 3 Block 0 Dest: 24 42 00 01 02
+[DEBUG] decompress: Block header parsed. size=2502, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=2502, header: 24 42 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=1442, header bytes: 78 FF 5A 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=120, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=16383
+  [PASS] Size 16383
+[DEBUG] compress: ENTRY at TOP. Size=16384
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=16384
+[DEBUG] compress_literals: NumLit=1316, HeaderLen=2, Bytes: 44 52 00
+[DEBUG] encode_sequences_raw: NumSeq=118, HeaderSize=2, Bytes: 76 FF 00
+[DEBUG] compress: Block 0 Output Readback: 44 52 00 01 02 (Ptr: 0x902fe4600)
+[PERF] Phase 1 (LZ77): 101 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=2, size=2736, is_last=1, original=16384, compressed=2736
+[DEBUG] write_block_peek: Src Bytes: 44 52 00 01 02 (src=0x902fe4600)
+[DEBUG] compress: Phase 3 Block 0 Source: 44 52 00 01 02 (Ptr: 0x902fe4600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 44 52 00 01 02
+[DEBUG] decompress: Block header parsed. size=2736, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=2736, header: 44 52 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=1418, header bytes: 76 FF 17 02 00
+[DEBUG] decompress_sequences: Parsed num_sequences=118, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=16384
+  [PASS] Size 16384
+[DEBUG] compress: ENTRY at TOP. Size=16385
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=16385
+[DEBUG] compress_literals: NumLit=1320, HeaderLen=2, Bytes: 84 52 00
+[DEBUG] encode_sequences_raw: NumSeq=118, HeaderSize=2, Bytes: 76 FF 00
+[DEBUG] compress: Block 0 Output Readback: 84 52 00 01 02 (Ptr: 0x902fe4b00)
+[PERF] Phase 1 (LZ77): 111 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=2740, is_last=1, original=16385, compressed=2740
+[DEBUG] write_block_peek: Src Bytes: 84 52 00 01 02 (src=0x902fe4b00)
+[DEBUG] compress: Phase 3 Block 0 Source: 84 52 00 01 02 (Ptr: 0x902fe4b00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 84 52 00 01 02
+[DEBUG] decompress: Block header parsed. size=2740, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=2740, header: 84 52 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=1418, header bytes: 76 FF 0C 02 00
+[DEBUG] decompress_sequences: Parsed num_sequences=118, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=16385
+  [PASS] Size 16385
+[DEBUG] compress: ENTRY at TOP. Size=32767
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=32767
+[DEBUG] compress_literals: NumLit=1755, HeaderLen=2, Bytes: B4 6D 00
+[DEBUG] encode_sequences_raw: NumSeq=243, HeaderSize=3, Bytes: 80 F3 FF
+[DEBUG] compress: Block 0 Output Readback: B4 6D 00 01 02 (Ptr: 0x9030c8580)
+[PERF] Phase 1 (LZ77): 151 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=4676, is_last=1, original=32767, compressed=4676
+[DEBUG] write_block_peek: Src Bytes: B4 6D 00 01 02 (src=0x9030c8580)
+[DEBUG] compress: Phase 3 Block 0 Source: B4 6D 00 01 02 (Ptr: 0x9030c8580)
+[DEBUG] compress: Phase 3 Block 0 Dest: B4 6D 00 01 02
+[DEBUG] decompress: Block header parsed. size=4676, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=4676, header: B4 6D 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=2919, header bytes: 80 F3 FF 67 01
+[DEBUG] decompress_sequences: Parsed num_sequences=243, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=32767
+  [PASS] Size 32767
+[DEBUG] compress: ENTRY at TOP. Size=32768
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=32768
+[DEBUG] compress_literals: NumLit=1920, HeaderLen=2, Bytes: 04 78 00
+[DEBUG] encode_sequences_raw: NumSeq=242, HeaderSize=3, Bytes: 80 F2 FF
+[DEBUG] compress: Block 0 Output Readback: 04 78 00 01 02 (Ptr: 0x9030c8600)
+[PERF] Phase 1 (LZ77): 181 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=4829, is_last=1, original=32768, compressed=4829
+[DEBUG] write_block_peek: Src Bytes: 04 78 00 01 02 (src=0x9030c8600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 78 00 01 02 (Ptr: 0x9030c8600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 78 00 01 02
+[DEBUG] decompress: Block header parsed. size=4829, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=4829, header: 04 78 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=2907, header bytes: 80 F2 FF 3F 02
+[DEBUG] decompress_sequences: Parsed num_sequences=242, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=32768
+  [PASS] Size 32768
+[DEBUG] compress: ENTRY at TOP. Size=32769
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=32769
+[DEBUG] compress_literals: NumLit=2019, HeaderLen=2, Bytes: 34 7E 00
+[DEBUG] encode_sequences_raw: NumSeq=241, HeaderSize=3, Bytes: 80 F1 FF
+[DEBUG] compress: Block 0 Output Readback: 34 7E 00 01 02 (Ptr: 0x9030c8b00)
+[PERF] Phase 1 (LZ77): 152 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=4916, is_last=1, original=32769, compressed=4916
+[DEBUG] write_block_peek: Src Bytes: 34 7E 00 01 02 (src=0x9030c8b00)
+[DEBUG] compress: Phase 3 Block 0 Source: 34 7E 00 01 02 (Ptr: 0x9030c8b00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 34 7E 00 01 02
+[DEBUG] decompress: Block header parsed. size=4916, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=4916, header: 34 7E 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=2895, header bytes: 80 F1 FF 78 02
+[DEBUG] decompress_sequences: Parsed num_sequences=241, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=32769
+  [PASS] Size 32769
+[DEBUG] compress: ENTRY at TOP. Size=65535
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65535
+[DEBUG] compress_literals: NumLit=3072, HeaderLen=2, Bytes: 04 C0 00
+[DEBUG] encode_sequences_raw: NumSeq=488, HeaderSize=3, Bytes: 81 E8 FF
+[DEBUG] compress: Block 0 Output Readback: 04 C0 00 01 02 (Ptr: 0x903290580)
+[PERF] Phase 1 (LZ77): 407 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=8933, is_last=1, original=65535, compressed=8933
+[DEBUG] write_block_peek: Src Bytes: 04 C0 00 01 02 (src=0x903290580)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 C0 00 01 02 (Ptr: 0x903290580)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 C0 00 01 02
+[DEBUG] decompress: Block header parsed. size=8933, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=8933, header: 04 C0 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5859, header bytes: 81 E8 FF 19 02
+[DEBUG] decompress_sequences: Parsed num_sequences=488, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65535
+  [PASS] Size 65535
+[DEBUG] compress: ENTRY at TOP. Size=65536
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3072, HeaderLen=2, Bytes: 04 C0 00
+[DEBUG] encode_sequences_raw: NumSeq=488, HeaderSize=3, Bytes: 81 E8 FF
+[DEBUG] compress: Block 0 Output Readback: 04 C0 00 01 02 (Ptr: 0x903290600)
+[PERF] Phase 1 (LZ77): 347 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=8933, is_last=1, original=65536, compressed=8933
+[DEBUG] write_block_peek: Src Bytes: 04 C0 00 01 02 (src=0x903290600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 C0 00 01 02 (Ptr: 0x903290600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 C0 00 01 02
+[DEBUG] decompress: Block header parsed. size=8933, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=8933, header: 04 C0 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5859, header bytes: 81 E8 FF 5C 01
+[DEBUG] decompress_sequences: Parsed num_sequences=488, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+  [PASS] Size 65536
+  [INFO] Passed: 15/39
+  [FAIL] test_various_sizes_roundtrip: Some size tests failed
+
+[TEST] Random Inputs Round-trip (1000 tests)
+[DEBUG] compress: ENTRY at TOP. Size=21298
+[DEBUG] compress: Input Start Bytes: 8C 97 B7 D8 9A (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=21298
+[DEBUG] compress_literals: NumLit=21286, HeaderLen=3, Bytes: 68 32 05
+[DEBUG] encode_sequences_raw: NumSeq=5, HeaderSize=2, Bytes: 05 FF 00
+[DEBUG] compress: Block 0 Output Readback: 68 32 05 8C 97 (Ptr: 0x903228e80)
+[PERF] Phase 1 (LZ77): 113 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=21298, is_last=1, original=21298, compressed=21351
+[DEBUG] write_block_peek: Src Bytes: 8C 97 B7 D8 9A (src=0x90bbc4000)
+[DEBUG] compress: Phase 3 Block 0 Source: 68 32 05 8C 97 (Ptr: 0x903228e80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 8C 97 B7 D8 9A
+[DEBUG] decompress: Block header parsed. size=21298, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=9235
+[DEBUG] compress: Input Start Bytes: 6A FF B8 EE 00 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=9235
+[DEBUG] compress_literals: NumLit=9232, HeaderLen=3, Bytes: 08 41 02
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 41 02 6A FF (Ptr: 0x903581080)
+[PERF] Phase 1 (LZ77): 44 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=9235, is_last=1, original=9235, compressed=9261
+[DEBUG] write_block_peek: Src Bytes: 6A FF B8 EE 00 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 41 02 6A FF (Ptr: 0x903581080)
+[DEBUG] compress: Phase 3 Block 0 Dest: 6A FF B8 EE 00
+[DEBUG] decompress: Block header parsed. size=9235, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=60869
+[DEBUG] compress: Input Start Bytes: 6F 2F 06 EE 8C (d_input=0x90bbc4000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=60869
+[DEBUG] compress_literals: NumLit=60809, HeaderLen=3, Bytes: 98 D8 0E
+[DEBUG] encode_sequences_raw: NumSeq=21, HeaderSize=2, Bytes: 15 FF 00
+[DEBUG] compress: Block 0 Output Readback: 98 D8 0E 6F 2F (Ptr: 0x903a4fa80)
+[PERF] Phase 1 (LZ77): 316 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=60869, is_last=1, original=60869, compressed=61066
+[DEBUG] write_block_peek: Src Bytes: 6F 2F 06 EE 8C (src=0x90bbc4000)
+[DEBUG] compress: Phase 3 Block 0 Source: 98 D8 0E 6F 2F (Ptr: 0x903a4fa80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 6F 2F 06 EE 8C
+[DEBUG] decompress: Block header parsed. size=60869, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=9537
+[DEBUG] compress: Input Start Bytes: 8D 12 B5 D7 4A (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=9537
+[DEBUG] compress_literals: NumLit=9534, HeaderLen=3, Bytes: E8 53 02
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: E8 53 02 8D 12 (Ptr: 0x903b85600)
+[PERF] Phase 1 (LZ77): 65 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=9537, is_last=1, original=9537, compressed=9563
+[DEBUG] write_block_peek: Src Bytes: 8D 12 B5 D7 4A (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: E8 53 02 8D 12 (Ptr: 0x903b85600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 8D 12 B5 D7 4A
+[DEBUG] decompress: Block header parsed. size=9537, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=64096
+[DEBUG] compress: Input Start Bytes: F7 E6 8C 2C F9 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=64096
+[DEBUG] compress_literals: NumLit=64015, HeaderLen=3, Bytes: F8 A0 0F
+[DEBUG] encode_sequences_raw: NumSeq=28, HeaderSize=2, Bytes: 1C FF 00
+[DEBUG] compress: Block 0 Output Readback: F8 A0 0F F7 E6 (Ptr: 0x90427c580)
+[PERF] Phase 1 (LZ77): 309 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=64096, is_last=1, original=64096, compressed=64356
+[DEBUG] write_block_peek: Src Bytes: F7 E6 8C 2C F9 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: F8 A0 0F F7 E6 (Ptr: 0x90427c580)
+[DEBUG] compress: Phase 3 Block 0 Dest: F7 E6 8C 2C F9
+[DEBUG] decompress: Block header parsed. size=64096, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=16757
+[DEBUG] compress: Input Start Bytes: 38 0E DE D4 34 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=16757
+[DEBUG] compress_literals: NumLit=16754, HeaderLen=3, Bytes: 28 17 04
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: 28 17 04 38 0E (Ptr: 0x9041e9a80)
+[PERF] Phase 1 (LZ77): 113 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=16757, is_last=1, original=16757, compressed=16783
+[DEBUG] write_block_peek: Src Bytes: 38 0E DE D4 34 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 28 17 04 38 0E (Ptr: 0x9041e9a80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 38 0E DE D4 34
+[DEBUG] decompress: Block header parsed. size=16757, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=14824
+[DEBUG] compress: Input Start Bytes: E4 F2 54 35 D2 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=14824
+[DEBUG] compress_literals: NumLit=14818, HeaderLen=3, Bytes: 28 9E 03
+[DEBUG] encode_sequences_raw: NumSeq=3, HeaderSize=2, Bytes: 03 FF 00
+[DEBUG] compress: Block 0 Output Readback: 28 9E 03 E4 F2 (Ptr: 0x9045ced80)
+[PERF] Phase 1 (LZ77): 84 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=14824, is_last=1, original=14824, compressed=14859
+[DEBUG] write_block_peek: Src Bytes: E4 F2 54 35 D2 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 28 9E 03 E4 F2 (Ptr: 0x9045ced80)
+[DEBUG] compress: Phase 3 Block 0 Dest: E4 F2 54 35 D2
+[DEBUG] decompress: Block header parsed. size=14824, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=20059
+[DEBUG] compress: Input Start Bytes: 13 3A C7 51 70 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=20059
+[DEBUG] compress_literals: NumLit=20056, HeaderLen=3, Bytes: 88 E5 04
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: 88 E5 04 13 3A (Ptr: 0x904817900)
+[PERF] Phase 1 (LZ77): 114 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=20059, is_last=1, original=20059, compressed=20085
+[DEBUG] write_block_peek: Src Bytes: 13 3A C7 51 70 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 88 E5 04 13 3A (Ptr: 0x904817900)
+[DEBUG] compress: Phase 3 Block 0 Dest: 13 3A C7 51 70
+[DEBUG] decompress: Block header parsed. size=20059, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=2688
+[DEBUG] compress: Input Start Bytes: DF 02 F7 3D DE (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=2688
+[DEBUG] compress_literals: NumLit=2688, HeaderLen=2, Bytes: 04 A8 00
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 04 A8 DF 02 F7 (Ptr: 0x904b25c80)
+[PERF] Phase 1 (LZ77): 13 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=2688, is_last=1, original=2688, compressed=2704
+[DEBUG] write_block_peek: Src Bytes: DF 02 F7 3D DE (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 A8 DF 02 F7 (Ptr: 0x904b25c80)
+[DEBUG] compress: Phase 3 Block 0 Dest: DF 02 F7 3D DE
+[DEBUG] decompress: Block header parsed. size=2688, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=34631
+[DEBUG] compress: Input Start Bytes: 02 5D 80 7F 7E (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=34631
+[DEBUG] compress_literals: NumLit=34613, HeaderLen=3, Bytes: 58 73 08
+[DEBUG] encode_sequences_raw: NumSeq=7, HeaderSize=2, Bytes: 07 FF 00
+[DEBUG] compress: Block 0 Output Readback: 58 73 08 02 5D (Ptr: 0x904ee2800)
+[PERF] Phase 1 (LZ77): 153 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=34631, is_last=1, original=34631, compressed=34702
+[DEBUG] write_block_peek: Src Bytes: 02 5D 80 7F 7E (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 58 73 08 02 5D (Ptr: 0x904ee2800)
+[DEBUG] compress: Phase 3 Block 0 Dest: 02 5D 80 7F 7E
+[DEBUG] decompress: Block header parsed. size=34631, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=17716
+[DEBUG] compress: Input Start Bytes: C5 4C 05 7E A2 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=17716
+[DEBUG] compress_literals: NumLit=17716, HeaderLen=3, Bytes: 48 53 04
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 48 53 04 C5 4C (Ptr: 0x9051f7080)
+[PERF] Phase 1 (LZ77): 91 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=17716, is_last=1, original=17716, compressed=17733
+[DEBUG] write_block_peek: Src Bytes: C5 4C 05 7E A2 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 48 53 04 C5 4C (Ptr: 0x9051f7080)
+[DEBUG] compress: Phase 3 Block 0 Dest: C5 4C 05 7E A2
+[DEBUG] decompress: Block header parsed. size=17716, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=21425
+[DEBUG] compress: Input Start Bytes: 2E 11 04 AA 76 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=21425
+[DEBUG] compress_literals: NumLit=21419, HeaderLen=3, Bytes: B8 3A 05
+[DEBUG] encode_sequences_raw: NumSeq=3, HeaderSize=2, Bytes: 03 FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 3A 05 2E 11 (Ptr: 0x90562ab00)
+[PERF] Phase 1 (LZ77): 148 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=21425, is_last=1, original=21425, compressed=21460
+[DEBUG] write_block_peek: Src Bytes: 2E 11 04 AA 76 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 3A 05 2E 11 (Ptr: 0x90562ab00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 2E 11 04 AA 76
+[DEBUG] decompress: Block header parsed. size=21425, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=53053
+[DEBUG] compress: Input Start Bytes: 27 72 BD DF 43 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=53053
+[DEBUG] compress_literals: NumLit=52999, HeaderLen=3, Bytes: 78 F0 0C
+[DEBUG] encode_sequences_raw: NumSeq=19, HeaderSize=2, Bytes: 13 FF 00
+[DEBUG] compress: Block 0 Output Readback: 78 F0 0C 27 72 (Ptr: 0x9059e2b00)
+[PERF] Phase 1 (LZ77): 292 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=53053, is_last=1, original=53053, compressed=53232
+[DEBUG] write_block_peek: Src Bytes: 27 72 BD DF 43 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 78 F0 0C 27 72 (Ptr: 0x9059e2b00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 27 72 BD DF 43
+[DEBUG] decompress: Block header parsed. size=53053, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=64945
+[DEBUG] compress: Input Start Bytes: C7 9B 3C DC D3 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=64945
+[DEBUG] compress_literals: NumLit=64888, HeaderLen=3, Bytes: 88 D7 0F
+[DEBUG] encode_sequences_raw: NumSeq=20, HeaderSize=2, Bytes: 14 FF 00
+[DEBUG] compress: Block 0 Output Readback: 88 D7 0F C7 9B (Ptr: 0x905e88500)
+[PERF] Phase 1 (LZ77): 364 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=64945, is_last=1, original=64945, compressed=65133
+[DEBUG] write_block_peek: Src Bytes: C7 9B 3C DC D3 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 88 D7 0F C7 9B (Ptr: 0x905e88500)
+[DEBUG] compress: Phase 3 Block 0 Dest: C7 9B 3C DC D3
+[DEBUG] decompress: Block header parsed. size=64945, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=27367
+[DEBUG] compress: Input Start Bytes: 83 EC C5 A8 DE (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=27367
+[DEBUG] compress_literals: NumLit=27355, HeaderLen=3, Bytes: B8 AD 06
+[DEBUG] encode_sequences_raw: NumSeq=5, HeaderSize=2, Bytes: 05 FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 AD 06 83 EC (Ptr: 0x905e7d680)
+[PERF] Phase 1 (LZ77): 178 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=27367, is_last=1, original=27367, compressed=27420
+[DEBUG] write_block_peek: Src Bytes: 83 EC C5 A8 DE (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 AD 06 83 EC (Ptr: 0x905e7d680)
+[DEBUG] compress: Phase 3 Block 0 Dest: 83 EC C5 A8 DE
+[DEBUG] decompress: Block header parsed. size=27367, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=18848
+[DEBUG] compress: Input Start Bytes: D9 D0 2D 97 0D (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=18848
+[DEBUG] compress_literals: NumLit=18845, HeaderLen=3, Bytes: D8 99 04
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: D8 99 04 D9 D0 (Ptr: 0x906206b00)
+[PERF] Phase 1 (LZ77): 94 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=18848, is_last=1, original=18848, compressed=18874
+[DEBUG] write_block_peek: Src Bytes: D9 D0 2D 97 0D (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: D8 99 04 D9 D0 (Ptr: 0x906206b00)
+[DEBUG] compress: Phase 3 Block 0 Dest: D9 D0 2D 97 0D
+[DEBUG] decompress: Block header parsed. size=18848, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=20934
+[DEBUG] compress: Input Start Bytes: 39 53 85 0E 8C (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=20934
+[DEBUG] compress_literals: NumLit=20928, HeaderLen=3, Bytes: 08 1C 05
+[DEBUG] encode_sequences_raw: NumSeq=3, HeaderSize=2, Bytes: 03 FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 1C 05 39 53 (Ptr: 0x906423e80)
+[PERF] Phase 1 (LZ77): 127 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=20934, is_last=1, original=20934, compressed=20969
+[DEBUG] write_block_peek: Src Bytes: 39 53 85 0E 8C (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 1C 05 39 53 (Ptr: 0x906423e80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 39 53 85 0E 8C
+[DEBUG] decompress: Block header parsed. size=20934, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=15278
+[DEBUG] compress: Input Start Bytes: 4B 2E 87 D8 31 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=15278
+[DEBUG] compress_literals: NumLit=15278, HeaderLen=3, Bytes: E8 BA 03
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: E8 BA 03 4B 2E (Ptr: 0x9067d5200)
+[PERF] Phase 1 (LZ77): 97 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=15278, is_last=1, original=15278, compressed=15295
+[DEBUG] write_block_peek: Src Bytes: 4B 2E 87 D8 31 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: E8 BA 03 4B 2E (Ptr: 0x9067d5200)
+[DEBUG] compress: Phase 3 Block 0 Dest: 4B 2E 87 D8 31
+[DEBUG] decompress: Block header parsed. size=15278, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=19196
+[DEBUG] compress: Input Start Bytes: A6 13 81 6E E0 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=19196
+[DEBUG] compress_literals: NumLit=19190, HeaderLen=3, Bytes: 68 AF 04
+[DEBUG] encode_sequences_raw: NumSeq=3, HeaderSize=2, Bytes: 03 FF 00
+[DEBUG] compress: Block 0 Output Readback: 68 AF 04 A6 13 (Ptr: 0x906c0b880)
+[PERF] Phase 1 (LZ77): 94 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=19196, is_last=1, original=19196, compressed=19231
+[DEBUG] write_block_peek: Src Bytes: A6 13 81 6E E0 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 68 AF 04 A6 13 (Ptr: 0x906c0b880)
+[DEBUG] compress: Phase 3 Block 0 Dest: A6 13 81 6E E0
+[DEBUG] decompress: Block header parsed. size=19196, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=21155
+[DEBUG] compress: Input Start Bytes: 18 6E C2 69 3F (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=21155
+[DEBUG] compress_literals: NumLit=21146, HeaderLen=3, Bytes: A8 29 05
+[DEBUG] encode_sequences_raw: NumSeq=4, HeaderSize=2, Bytes: 04 FF 00
+[DEBUG] compress: Block 0 Output Readback: A8 29 05 18 6E (Ptr: 0x906e27080)
+[PERF] Phase 1 (LZ77): 98 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=21155, is_last=1, original=21155, compressed=21199
+[DEBUG] write_block_peek: Src Bytes: 18 6E C2 69 3F (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: A8 29 05 18 6E (Ptr: 0x906e27080)
+[DEBUG] compress: Phase 3 Block 0 Dest: 18 6E C2 69 3F
+[DEBUG] decompress: Block header parsed. size=21155, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=29316
+[DEBUG] compress: Input Start Bytes: 96 E3 E5 F4 E4 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=29316
+[DEBUG] compress_literals: NumLit=29307, HeaderLen=3, Bytes: B8 27 07
+[DEBUG] encode_sequences_raw: NumSeq=4, HeaderSize=2, Bytes: 04 FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 27 07 96 E3 (Ptr: 0x907298980)
+[PERF] Phase 1 (LZ77): 149 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=29316, is_last=1, original=29316, compressed=29360
+[DEBUG] write_block_peek: Src Bytes: 96 E3 E5 F4 E4 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 27 07 96 E3 (Ptr: 0x907298980)
+[DEBUG] compress: Phase 3 Block 0 Dest: 96 E3 E5 F4 E4
+[DEBUG] decompress: Block header parsed. size=29316, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=48825
+[DEBUG] compress: Input Start Bytes: 0C CC 4A AE B8 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=48825
+[DEBUG] compress_literals: NumLit=48783, HeaderLen=3, Bytes: F8 E8 0B
+[DEBUG] encode_sequences_raw: NumSeq=15, HeaderSize=2, Bytes: 0F FF 00
+[DEBUG] compress: Block 0 Output Readback: F8 E8 0B 0C CC (Ptr: 0x9075a7e80)
+[PERF] Phase 1 (LZ77): 249 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=48825, is_last=1, original=48825, compressed=48968
+[DEBUG] write_block_peek: Src Bytes: 0C CC 4A AE B8 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: F8 E8 0B 0C CC (Ptr: 0x9075a7e80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 0C CC 4A AE B8
+[DEBUG] decompress: Block header parsed. size=48825, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=56685
+[DEBUG] compress: Input Start Bytes: 35 B3 7B BB 6B (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=56685
+[DEBUG] compress_literals: NumLit=56631, HeaderLen=3, Bytes: 78 D3 0D
+[DEBUG] encode_sequences_raw: NumSeq=19, HeaderSize=2, Bytes: 13 FF 00
+[DEBUG] compress: Block 0 Output Readback: 78 D3 0D 35 B3 (Ptr: 0x907a15580)
+[PERF] Phase 1 (LZ77): 319 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=56685, is_last=1, original=56685, compressed=56864
+[DEBUG] write_block_peek: Src Bytes: 35 B3 7B BB 6B (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 78 D3 0D 35 B3 (Ptr: 0x907a15580)
+[DEBUG] compress: Phase 3 Block 0 Dest: 35 B3 7B BB 6B
+[DEBUG] decompress: Block header parsed. size=56685, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=4661
+[DEBUG] compress: Input Start Bytes: 84 AB F2 2F C3 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=4661
+[DEBUG] compress_literals: NumLit=4658, HeaderLen=3, Bytes: 28 23 01
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: 28 23 01 84 AB (Ptr: 0x907941580)
+[PERF] Phase 1 (LZ77): 21 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=4661, is_last=1, original=4661, compressed=4687
+[DEBUG] write_block_peek: Src Bytes: 84 AB F2 2F C3 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 28 23 01 84 AB (Ptr: 0x907941580)
+[DEBUG] compress: Phase 3 Block 0 Dest: 84 AB F2 2F C3
+[DEBUG] decompress: Block header parsed. size=4661, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=41260
+[DEBUG] compress: Input Start Bytes: F5 4B B3 0D FF (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=41260
+[DEBUG] compress_literals: NumLit=41227, HeaderLen=3, Bytes: B8 10 0A
+[DEBUG] encode_sequences_raw: NumSeq=12, HeaderSize=2, Bytes: 0C FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 10 0A F5 4B (Ptr: 0x907f3eb80)
+[PERF] Phase 1 (LZ77): 223 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=41260, is_last=1, original=41260, compressed=41376
+[DEBUG] write_block_peek: Src Bytes: F5 4B B3 0D FF (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 10 0A F5 4B (Ptr: 0x907f3eb80)
+[DEBUG] compress: Phase 3 Block 0 Dest: F5 4B B3 0D FF
+[DEBUG] decompress: Block header parsed. size=41260, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=63834
+[DEBUG] compress: Input Start Bytes: DE B2 95 6E 47 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=63834
+[DEBUG] compress_literals: NumLit=63762, HeaderLen=3, Bytes: 28 91 0F
+[DEBUG] encode_sequences_raw: NumSeq=25, HeaderSize=2, Bytes: 19 FF 00
+[DEBUG] compress: Block 0 Output Readback: 28 91 0F DE B2 (Ptr: 0x908278c00)
+[PERF] Phase 1 (LZ77): 336 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=63834, is_last=1, original=63834, compressed=64067
+[DEBUG] write_block_peek: Src Bytes: DE B2 95 6E 47 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 28 91 0F DE B2 (Ptr: 0x908278c00)
+[DEBUG] compress: Phase 3 Block 0 Dest: DE B2 95 6E 47
+[DEBUG] decompress: Block header parsed. size=63834, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=42889
+[DEBUG] compress: Input Start Bytes: 4E B6 84 4B C4 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=42889
+[DEBUG] compress_literals: NumLit=42865, HeaderLen=3, Bytes: 18 77 0A
+[DEBUG] encode_sequences_raw: NumSeq=9, HeaderSize=2, Bytes: 09 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 77 0A 4E B6 (Ptr: 0x908555700)
+[PERF] Phase 1 (LZ77): 235 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=42889, is_last=1, original=42889, compressed=42978
+[DEBUG] write_block_peek: Src Bytes: 4E B6 84 4B C4 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 77 0A 4E B6 (Ptr: 0x908555700)
+[DEBUG] compress: Phase 3 Block 0 Dest: 4E B6 84 4B C4
+[DEBUG] decompress: Block header parsed. size=42889, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=5009
+[DEBUG] compress: Input Start Bytes: 6C 7B D0 EA BC (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=5009
+[DEBUG] compress_literals: NumLit=5009, HeaderLen=3, Bytes: 18 39 01
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 39 01 6C 7B (Ptr: 0x908746400)
+[PERF] Phase 1 (LZ77): 32 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=5009, is_last=1, original=5009, compressed=5026
+[DEBUG] write_block_peek: Src Bytes: 6C 7B D0 EA BC (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 39 01 6C 7B (Ptr: 0x908746400)
+[DEBUG] compress: Phase 3 Block 0 Dest: 6C 7B D0 EA BC
+[DEBUG] decompress: Block header parsed. size=5009, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=37718
+[DEBUG] compress: Input Start Bytes: BA 2B 8F 49 1F (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=37718
+[DEBUG] compress_literals: NumLit=37703, HeaderLen=3, Bytes: 78 34 09
+[DEBUG] encode_sequences_raw: NumSeq=6, HeaderSize=2, Bytes: 06 FF 00
+[DEBUG] compress: Block 0 Output Readback: 78 34 09 BA 2B (Ptr: 0x908b0d580)
+[PERF] Phase 1 (LZ77): 226 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=37718, is_last=1, original=37718, compressed=37780
+[DEBUG] write_block_peek: Src Bytes: BA 2B 8F 49 1F (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 78 34 09 BA 2B (Ptr: 0x908b0d580)
+[DEBUG] compress: Phase 3 Block 0 Dest: BA 2B 8F 49 1F
+[DEBUG] decompress: Block header parsed. size=37718, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=4433
+[DEBUG] compress: Input Start Bytes: DD CC 48 58 12 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=4433
+[DEBUG] compress_literals: NumLit=4433, HeaderLen=3, Bytes: 18 15 01
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 15 01 DD CC (Ptr: 0x908d3e380)
+[PERF] Phase 1 (LZ77): 20 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=4433, is_last=1, original=4433, compressed=4450
+[DEBUG] write_block_peek: Src Bytes: DD CC 48 58 12 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 15 01 DD CC (Ptr: 0x908d3e380)
+[DEBUG] compress: Phase 3 Block 0 Dest: DD CC 48 58 12
+[DEBUG] decompress: Block header parsed. size=4433, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=20505
+[DEBUG] compress: Input Start Bytes: A4 EA 61 37 A9 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=20505
+[DEBUG] compress_literals: NumLit=20496, HeaderLen=3, Bytes: 08 01 05
+[DEBUG] encode_sequences_raw: NumSeq=4, HeaderSize=2, Bytes: 04 FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 01 05 A4 EA (Ptr: 0x90901dd00)
+[PERF] Phase 1 (LZ77): 112 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=20505, is_last=1, original=20505, compressed=20549
+[DEBUG] write_block_peek: Src Bytes: A4 EA 61 37 A9 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 01 05 A4 EA (Ptr: 0x90901dd00)
+[DEBUG] compress: Phase 3 Block 0 Dest: A4 EA 61 37 A9
+[DEBUG] decompress: Block header parsed. size=20505, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=12721
+[DEBUG] compress: Input Start Bytes: 49 07 F5 52 C5 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=12721
+[DEBUG] compress_literals: NumLit=12721, HeaderLen=3, Bytes: 18 1B 03
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 1B 03 49 07 (Ptr: 0x9093b1900)
+[PERF] Phase 1 (LZ77): 69 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=12721, is_last=1, original=12721, compressed=12738
+[DEBUG] write_block_peek: Src Bytes: 49 07 F5 52 C5 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 1B 03 49 07 (Ptr: 0x9093b1900)
+[DEBUG] compress: Phase 3 Block 0 Dest: 49 07 F5 52 C5
+[DEBUG] decompress: Block header parsed. size=12721, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=15260
+[DEBUG] compress: Input Start Bytes: DB 0F 5F 6B 8E (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=15260
+[DEBUG] compress_literals: NumLit=15257, HeaderLen=3, Bytes: 98 B9 03
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: 98 B9 03 DB 0F (Ptr: 0x9095d4c80)
+[PERF] Phase 1 (LZ77): 81 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=15260, is_last=1, original=15260, compressed=15286
+[DEBUG] write_block_peek: Src Bytes: DB 0F 5F 6B 8E (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 98 B9 03 DB 0F (Ptr: 0x9095d4c80)
+[DEBUG] compress: Phase 3 Block 0 Dest: DB 0F 5F 6B 8E
+[DEBUG] decompress: Block header parsed. size=15260, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=12421
+[DEBUG] compress: Input Start Bytes: 3F B0 73 AB 69 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=12421
+[DEBUG] compress_literals: NumLit=12421, HeaderLen=3, Bytes: 58 08 03
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 58 08 03 3F B0 (Ptr: 0x9099ad780)
+[PERF] Phase 1 (LZ77): 76 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=12421, is_last=1, original=12421, compressed=12438
+[DEBUG] write_block_peek: Src Bytes: 3F B0 73 AB 69 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 58 08 03 3F B0 (Ptr: 0x9099ad780)
+[DEBUG] compress: Phase 3 Block 0 Dest: 3F B0 73 AB 69
+[DEBUG] decompress: Block header parsed. size=12421, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=63319
+[DEBUG] compress: Input Start Bytes: 09 32 C7 6C 17 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=63319
+[DEBUG] compress_literals: NumLit=63249, HeaderLen=3, Bytes: 18 71 0F
+[DEBUG] encode_sequences_raw: NumSeq=24, HeaderSize=2, Bytes: 18 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 71 0F 09 32 (Ptr: 0x90a071980)
+[PERF] Phase 1 (LZ77): 358 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=63319, is_last=1, original=63319, compressed=63542
+[DEBUG] write_block_peek: Src Bytes: 09 32 C7 6C 17 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 71 0F 09 32 (Ptr: 0x90a071980)
+[DEBUG] compress: Phase 3 Block 0 Dest: 09 32 C7 6C 17
+[DEBUG] decompress: Block header parsed. size=63319, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=48545
+[DEBUG] compress: Input Start Bytes: 75 73 4E AD 3B (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=48545
+[DEBUG] compress_literals: NumLit=48494, HeaderLen=3, Bytes: E8 D6 0B
+[DEBUG] encode_sequences_raw: NumSeq=18, HeaderSize=2, Bytes: 12 FF 00
+[DEBUG] compress: Block 0 Output Readback: E8 D6 0B 75 73 (Ptr: 0x90a1a4380)
+[PERF] Phase 1 (LZ77): 256 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=48545, is_last=1, original=48545, compressed=48715
+[DEBUG] write_block_peek: Src Bytes: 75 73 4E AD 3B (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: E8 D6 0B 75 73 (Ptr: 0x90a1a4380)
+[DEBUG] compress: Phase 3 Block 0 Dest: 75 73 4E AD 3B
+[DEBUG] decompress: Block header parsed. size=48545, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=38234
+[DEBUG] compress: Input Start Bytes: BA 16 9A B7 F3 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=38234
+[DEBUG] compress_literals: NumLit=38204, HeaderLen=3, Bytes: C8 53 09
+[DEBUG] encode_sequences_raw: NumSeq=11, HeaderSize=2, Bytes: 0B FF 00
+[DEBUG] compress: Block 0 Output Readback: C8 53 09 BA 16 (Ptr: 0x90a514800)
+[PERF] Phase 1 (LZ77): 644 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=38234, is_last=1, original=38234, compressed=38341
+[DEBUG] write_block_peek: Src Bytes: BA 16 9A B7 F3 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: C8 53 09 BA 16 (Ptr: 0x90a514800)
+[DEBUG] compress: Phase 3 Block 0 Dest: BA 16 9A B7 F3
+[DEBUG] decompress: Block header parsed. size=38234, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=19473
+[DEBUG] compress: Input Start Bytes: F1 23 76 86 31 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=19473
+[DEBUG] compress_literals: NumLit=19470, HeaderLen=3, Bytes: E8 C0 04
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: E8 C0 04 F1 23 (Ptr: 0x90a60f880)
+[PERF] Phase 1 (LZ77): 88 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=19473, is_last=1, original=19473, compressed=19499
+[DEBUG] write_block_peek: Src Bytes: F1 23 76 86 31 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: E8 C0 04 F1 23 (Ptr: 0x90a60f880)
+[DEBUG] compress: Phase 3 Block 0 Dest: F1 23 76 86 31
+[DEBUG] decompress: Block header parsed. size=19473, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=48793
+[DEBUG] compress: Input Start Bytes: 62 E5 DC E9 F1 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=48793
+[DEBUG] compress_literals: NumLit=48745, HeaderLen=3, Bytes: 98 E6 0B
+[DEBUG] encode_sequences_raw: NumSeq=17, HeaderSize=2, Bytes: 11 FF 00
+[DEBUG] compress: Block 0 Output Readback: 98 E6 0B 62 E5 (Ptr: 0x90aba7780)
+[PERF] Phase 1 (LZ77): 316 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=48793, is_last=1, original=48793, compressed=48954
+[DEBUG] write_block_peek: Src Bytes: 62 E5 DC E9 F1 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 98 E6 0B 62 E5 (Ptr: 0x90aba7780)
+[DEBUG] compress: Phase 3 Block 0 Dest: 62 E5 DC E9 F1
+[DEBUG] decompress: Block header parsed. size=48793, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=30
+[DEBUG] compress: Input Start Bytes: 8C 01 CC CF D2 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=30
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] decompress: Block header parsed. size=0, compressed=0, last=0, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=4823
+[DEBUG] compress: Input Start Bytes: 68 A4 0E 1C C9 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=4823
+[DEBUG] compress_literals: NumLit=4823, HeaderLen=3, Bytes: 78 2D 01
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 78 2D 01 68 A4 (Ptr: 0x90af43900)
+[PERF] Phase 1 (LZ77): 35 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=4823, is_last=1, original=4823, compressed=4840
+[DEBUG] write_block_peek: Src Bytes: 68 A4 0E 1C C9 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 78 2D 01 68 A4 (Ptr: 0x90af43900)
+[DEBUG] compress: Phase 3 Block 0 Dest: 68 A4 0E 1C C9
+[DEBUG] decompress: Block header parsed. size=4823, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=13538
+[DEBUG] compress: Input Start Bytes: 40 AE 0B 52 AD (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=13538
+[DEBUG] compress_literals: NumLit=13538, HeaderLen=3, Bytes: 28 4E 03
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 28 4E 03 40 AE (Ptr: 0x90b1bd080)
+[PERF] Phase 1 (LZ77): 55 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=13538, is_last=1, original=13538, compressed=13555
+[DEBUG] write_block_peek: Src Bytes: 40 AE 0B 52 AD (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 28 4E 03 40 AE (Ptr: 0x90b1bd080)
+[DEBUG] compress: Phase 3 Block 0 Dest: 40 AE 0B 52 AD
+[DEBUG] decompress: Block header parsed. size=13538, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=996
+[DEBUG] compress: Input Start Bytes: 5F CB F3 2E BB (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=996
+[DEBUG] compress_literals: NumLit=996, HeaderLen=2, Bytes: 44 3E 00
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 44 3E 5F CB F3 (Ptr: 0x90b50e780)
+[PERF] Phase 1 (LZ77): 4 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=996, is_last=1, original=996, compressed=1012
+[DEBUG] write_block_peek: Src Bytes: 5F CB F3 2E BB (src=0x904bffc00)
+[DEBUG] compress: Phase 3 Block 0 Source: 44 3E 5F CB F3 (Ptr: 0x90b50e780)
+[DEBUG] compress: Phase 3 Block 0 Dest: 5F CB F3 2E BB
+[DEBUG] decompress: Block header parsed. size=996, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=32367
+[DEBUG] compress: Input Start Bytes: 1D 7F 9B 1A 22 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=32367
+[DEBUG] compress_literals: NumLit=32355, HeaderLen=3, Bytes: 38 E6 07
+[DEBUG] encode_sequences_raw: NumSeq=5, HeaderSize=2, Bytes: 05 FF 00
+[DEBUG] compress: Block 0 Output Readback: 38 E6 07 1D 7F (Ptr: 0x916ac2e80)
+[PERF] Phase 1 (LZ77): 195 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=32367, is_last=1, original=32367, compressed=32420
+[DEBUG] write_block_peek: Src Bytes: 1D 7F 9B 1A 22 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 38 E6 07 1D 7F (Ptr: 0x916ac2e80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 1D 7F 9B 1A 22
+[DEBUG] decompress: Block header parsed. size=32367, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=57997
+[DEBUG] compress: Input Start Bytes: D5 6E 1A 08 BE (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=57997
+[DEBUG] compress_literals: NumLit=57925, HeaderLen=3, Bytes: 58 24 0E
+[DEBUG] encode_sequences_raw: NumSeq=25, HeaderSize=2, Bytes: 19 FF 00
+[DEBUG] compress: Block 0 Output Readback: 58 24 0E D5 6E (Ptr: 0x916c27a00)
+[PERF] Phase 1 (LZ77): 333 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=57997, is_last=1, original=57997, compressed=58230
+[DEBUG] write_block_peek: Src Bytes: D5 6E 1A 08 BE (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 58 24 0E D5 6E (Ptr: 0x916c27a00)
+[DEBUG] compress: Phase 3 Block 0 Dest: D5 6E 1A 08 BE
+[DEBUG] decompress: Block header parsed. size=57997, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=40108
+[DEBUG] compress: Input Start Bytes: FD 4D 8C AB 48 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=40108
+[DEBUG] compress_literals: NumLit=40078, HeaderLen=3, Bytes: E8 C8 09
+[DEBUG] encode_sequences_raw: NumSeq=11, HeaderSize=2, Bytes: 0B FF 00
+[DEBUG] compress: Block 0 Output Readback: E8 C8 09 FD 4D (Ptr: 0x916d2eb00)
+[PERF] Phase 1 (LZ77): 244 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=40108, is_last=1, original=40108, compressed=40215
+[DEBUG] write_block_peek: Src Bytes: FD 4D 8C AB 48 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: E8 C8 09 FD 4D (Ptr: 0x916d2eb00)
+[DEBUG] compress: Phase 3 Block 0 Dest: FD 4D 8C AB 48
+[DEBUG] decompress: Block header parsed. size=40108, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=31549
+[DEBUG] compress: Input Start Bytes: C8 42 A2 AF 3F (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=31549
+[DEBUG] compress_literals: NumLit=31543, HeaderLen=3, Bytes: 78 B3 07
+[DEBUG] encode_sequences_raw: NumSeq=3, HeaderSize=2, Bytes: 03 FF 00
+[DEBUG] compress: Block 0 Output Readback: 78 B3 07 C8 42 (Ptr: 0x916eb7700)
+[PERF] Phase 1 (LZ77): 194 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=31549, is_last=1, original=31549, compressed=31584
+[DEBUG] write_block_peek: Src Bytes: C8 42 A2 AF 3F (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 78 B3 07 C8 42 (Ptr: 0x916eb7700)
+[DEBUG] compress: Phase 3 Block 0 Dest: C8 42 A2 AF 3F
+[DEBUG] decompress: Block header parsed. size=31549, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=46551
+[DEBUG] compress: Input Start Bytes: 1D DA F9 E8 BA (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=46551
+[DEBUG] compress_literals: NumLit=46497, HeaderLen=3, Bytes: 18 5A 0B
+[DEBUG] encode_sequences_raw: NumSeq=19, HeaderSize=2, Bytes: 13 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 5A 0B 1D DA (Ptr: 0x917388400)
+[PERF] Phase 1 (LZ77): 234 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=46551, is_last=1, original=46551, compressed=46730
+[DEBUG] write_block_peek: Src Bytes: 1D DA F9 E8 BA (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 5A 0B 1D DA (Ptr: 0x917388400)
+[DEBUG] compress: Phase 3 Block 0 Dest: 1D DA F9 E8 BA
+[DEBUG] decompress: Block header parsed. size=46551, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=53966
+[DEBUG] compress: Input Start Bytes: 04 6D E4 44 48 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=53966
+[DEBUG] compress_literals: NumLit=53924, HeaderLen=3, Bytes: 48 2A 0D
+[DEBUG] encode_sequences_raw: NumSeq=15, HeaderSize=2, Bytes: 0F FF 00
+[DEBUG] compress: Block 0 Output Readback: 48 2A 0D 04 6D (Ptr: 0x9175ef800)
+[PERF] Phase 1 (LZ77): 269 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=53966, is_last=1, original=53966, compressed=54109
+[DEBUG] write_block_peek: Src Bytes: 04 6D E4 44 48 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 48 2A 0D 04 6D (Ptr: 0x9175ef800)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 6D E4 44 48
+[DEBUG] decompress: Block header parsed. size=53966, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=24865
+[DEBUG] compress: Input Start Bytes: 4D 79 3F C2 ED (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=24865
+[DEBUG] compress_literals: NumLit=24859, HeaderLen=3, Bytes: B8 11 06
+[DEBUG] encode_sequences_raw: NumSeq=3, HeaderSize=2, Bytes: 03 FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 11 06 4D 79 (Ptr: 0x91785ab00)
+[PERF] Phase 1 (LZ77): 104 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=24865, is_last=1, original=24865, compressed=24900
+[DEBUG] write_block_peek: Src Bytes: 4D 79 3F C2 ED (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 11 06 4D 79 (Ptr: 0x91785ab00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 4D 79 3F C2 ED
+[DEBUG] decompress: Block header parsed. size=24865, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=3180
+[DEBUG] compress: Input Start Bytes: 7E 21 3A 13 41 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=3180
+[DEBUG] compress_literals: NumLit=3180, HeaderLen=2, Bytes: C4 C6 00
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: C4 C6 7E 21 3A (Ptr: 0x917b2cc80)
+[PERF] Phase 1 (LZ77): 14 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=3180, is_last=1, original=3180, compressed=3196
+[DEBUG] write_block_peek: Src Bytes: 7E 21 3A 13 41 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: C4 C6 7E 21 3A (Ptr: 0x917b2cc80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 7E 21 3A 13 41
+[DEBUG] decompress: Block header parsed. size=3180, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=48270
+[DEBUG] compress: Input Start Bytes: AC 53 0B 82 57 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=48270
+[DEBUG] compress_literals: NumLit=48240, HeaderLen=3, Bytes: 08 C7 0B
+[DEBUG] encode_sequences_raw: NumSeq=11, HeaderSize=2, Bytes: 0B FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 C7 0B AC 53 (Ptr: 0x917fa0400)
+[PERF] Phase 1 (LZ77): 250 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=48270, is_last=1, original=48270, compressed=48377
+[DEBUG] write_block_peek: Src Bytes: AC 53 0B 82 57 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 C7 0B AC 53 (Ptr: 0x917fa0400)
+[DEBUG] compress: Phase 3 Block 0 Dest: AC 53 0B 82 57
+[DEBUG] decompress: Block header parsed. size=48270, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=61588
+[DEBUG] compress: Input Start Bytes: D2 D2 06 25 35 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=61588
+[DEBUG] compress_literals: NumLit=61522, HeaderLen=3, Bytes: 28 05 0F
+[DEBUG] encode_sequences_raw: NumSeq=23, HeaderSize=2, Bytes: 17 FF 00
+[DEBUG] compress: Block 0 Output Readback: 28 05 0F D2 D2 (Ptr: 0x918459900)
+[PERF] Phase 1 (LZ77): 314 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=61588, is_last=1, original=61588, compressed=61803
+[DEBUG] write_block_peek: Src Bytes: D2 D2 06 25 35 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 28 05 0F D2 D2 (Ptr: 0x918459900)
+[DEBUG] compress: Phase 3 Block 0 Dest: D2 D2 06 25 35
+[DEBUG] decompress: Block header parsed. size=61588, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=23693
+[DEBUG] compress: Input Start Bytes: D8 AD 8F D8 74 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=23693
+[DEBUG] compress_literals: NumLit=23684, HeaderLen=3, Bytes: 48 C8 05
+[DEBUG] encode_sequences_raw: NumSeq=4, HeaderSize=2, Bytes: 04 FF 00
+[DEBUG] compress: Block 0 Output Readback: 48 C8 05 D8 AD (Ptr: 0x91844a400)
+[PERF] Phase 1 (LZ77): 107 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=23693, is_last=1, original=23693, compressed=23737
+[DEBUG] write_block_peek: Src Bytes: D8 AD 8F D8 74 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 48 C8 05 D8 AD (Ptr: 0x91844a400)
+[DEBUG] compress: Phase 3 Block 0 Dest: D8 AD 8F D8 74
+[DEBUG] decompress: Block header parsed. size=23693, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=40119
+[DEBUG] compress: Input Start Bytes: 6B 31 5C 00 2F (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=40119
+[DEBUG] compress_literals: NumLit=40098, HeaderLen=3, Bytes: 28 CA 09
+[DEBUG] encode_sequences_raw: NumSeq=8, HeaderSize=2, Bytes: 08 FF 00
+[DEBUG] compress: Block 0 Output Readback: 28 CA 09 6B 31 (Ptr: 0x91892ec00)
+[PERF] Phase 1 (LZ77): 225 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=40119, is_last=1, original=40119, compressed=40199
+[DEBUG] write_block_peek: Src Bytes: 6B 31 5C 00 2F (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 28 CA 09 6B 31 (Ptr: 0x91892ec00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 6B 31 5C 00 2F
+[DEBUG] decompress: Block header parsed. size=40119, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=31425
+[DEBUG] compress: Input Start Bytes: 17 B1 F8 FA 7B (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=31425
+[DEBUG] compress_literals: NumLit=31416, HeaderLen=3, Bytes: 88 AB 07
+[DEBUG] encode_sequences_raw: NumSeq=4, HeaderSize=2, Bytes: 04 FF 00
+[DEBUG] compress: Block 0 Output Readback: 88 AB 07 17 B1 (Ptr: 0x918ab5f80)
+[PERF] Phase 1 (LZ77): 149 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=31425, is_last=1, original=31425, compressed=31469
+[DEBUG] write_block_peek: Src Bytes: 17 B1 F8 FA 7B (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 88 AB 07 17 B1 (Ptr: 0x918ab5f80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 17 B1 F8 FA 7B
+[DEBUG] decompress: Block header parsed. size=31425, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=56250
+[DEBUG] compress: Input Start Bytes: FB 18 55 D4 AC (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=56250
+[DEBUG] compress_literals: NumLit=56201, HeaderLen=3, Bytes: 98 B8 0D
+[DEBUG] encode_sequences_raw: NumSeq=17, HeaderSize=2, Bytes: 11 FF 00
+[DEBUG] compress: Block 0 Output Readback: 98 B8 0D FB 18 (Ptr: 0x91900f380)
+[PERF] Phase 1 (LZ77): 344 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=56250, is_last=1, original=56250, compressed=56410
+[DEBUG] write_block_peek: Src Bytes: FB 18 55 D4 AC (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 98 B8 0D FB 18 (Ptr: 0x91900f380)
+[DEBUG] compress: Phase 3 Block 0 Dest: FB 18 55 D4 AC
+[DEBUG] decompress: Block header parsed. size=56250, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=60891
+[DEBUG] compress: Input Start Bytes: 16 9C 3B A8 69 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=60891
+[DEBUG] compress_literals: NumLit=60822, HeaderLen=3, Bytes: 68 D9 0E
+[DEBUG] encode_sequences_raw: NumSeq=24, HeaderSize=2, Bytes: 18 FF 00
+[DEBUG] compress: Block 0 Output Readback: 68 D9 0E 16 9C (Ptr: 0x91924fc80)
+[PERF] Phase 1 (LZ77): 416 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=60891, is_last=1, original=60891, compressed=61115
+[DEBUG] write_block_peek: Src Bytes: 16 9C 3B A8 69 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 68 D9 0E 16 9C (Ptr: 0x91924fc80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 16 9C 3B A8 69
+[DEBUG] decompress: Block header parsed. size=60891, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=60058
+[DEBUG] compress: Input Start Bytes: 5D D5 73 E4 7E (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=60058
+[DEBUG] compress_literals: NumLit=59998, HeaderLen=3, Bytes: E8 A5 0E
+[DEBUG] encode_sequences_raw: NumSeq=21, HeaderSize=2, Bytes: 15 FF 00
+[DEBUG] compress: Block 0 Output Readback: E8 A5 0E 5D D5 (Ptr: 0x919644380)
+[PERF] Phase 1 (LZ77): 368 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=60058, is_last=1, original=60058, compressed=60255
+[DEBUG] write_block_peek: Src Bytes: 5D D5 73 E4 7E (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: E8 A5 0E 5D D5 (Ptr: 0x919644380)
+[DEBUG] compress: Phase 3 Block 0 Dest: 5D D5 73 E4 7E
+[DEBUG] decompress: Block header parsed. size=60058, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=42071
+[DEBUG] compress: Input Start Bytes: EC CD 28 A3 DD (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=42071
+[DEBUG] compress_literals: NumLit=42041, HeaderLen=3, Bytes: 98 43 0A
+[DEBUG] encode_sequences_raw: NumSeq=11, HeaderSize=2, Bytes: 0B FF 00
+[DEBUG] compress: Block 0 Output Readback: 98 43 0A EC CD (Ptr: 0x919949e80)
+[PERF] Phase 1 (LZ77): 260 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=42071, is_last=1, original=42071, compressed=42178
+[DEBUG] write_block_peek: Src Bytes: EC CD 28 A3 DD (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 98 43 0A EC CD (Ptr: 0x919949e80)
+[DEBUG] compress: Phase 3 Block 0 Dest: EC CD 28 A3 DD
+[DEBUG] decompress: Block header parsed. size=42071, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=51616
+[DEBUG] compress: Input Start Bytes: 4D C6 2F BA 52 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=51616
+[DEBUG] compress_literals: NumLit=51571, HeaderLen=3, Bytes: 38 97 0C
+[DEBUG] encode_sequences_raw: NumSeq=16, HeaderSize=2, Bytes: 10 FF 00
+[DEBUG] compress: Block 0 Output Readback: 38 97 0C 4D C6 (Ptr: 0x919bceb00)
+[PERF] Phase 1 (LZ77): 246 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=51616, is_last=1, original=51616, compressed=51768
+[DEBUG] write_block_peek: Src Bytes: 4D C6 2F BA 52 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 38 97 0C 4D C6 (Ptr: 0x919bceb00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 4D C6 2F BA 52
+[DEBUG] decompress: Block header parsed. size=51616, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=9589
+[DEBUG] compress: Input Start Bytes: D3 DC 2E 11 E0 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=9589
+[DEBUG] compress_literals: NumLit=9586, HeaderLen=3, Bytes: 28 57 02
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: 28 57 02 D3 DC (Ptr: 0x919d85e80)
+[PERF] Phase 1 (LZ77): 69 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=9589, is_last=1, original=9589, compressed=9615
+[DEBUG] write_block_peek: Src Bytes: D3 DC 2E 11 E0 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 28 57 02 D3 DC (Ptr: 0x919d85e80)
+[DEBUG] compress: Phase 3 Block 0 Dest: D3 DC 2E 11 E0
+[DEBUG] decompress: Block header parsed. size=9589, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=54687
+[DEBUG] compress: Input Start Bytes: 08 8A 7D 77 D8 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=54687
+[DEBUG] compress_literals: NumLit=54645, HeaderLen=3, Bytes: 58 57 0D
+[DEBUG] encode_sequences_raw: NumSeq=15, HeaderSize=2, Bytes: 0F FF 00
+[DEBUG] compress: Block 0 Output Readback: 58 57 0D 08 8A (Ptr: 0x91a1f9680)
+[PERF] Phase 1 (LZ77): 362 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=54687, is_last=1, original=54687, compressed=54830
+[DEBUG] write_block_peek: Src Bytes: 08 8A 7D 77 D8 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 58 57 0D 08 8A (Ptr: 0x91a1f9680)
+[DEBUG] compress: Phase 3 Block 0 Dest: 08 8A 7D 77 D8
+[DEBUG] decompress: Block header parsed. size=54687, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=37720
+[DEBUG] compress: Input Start Bytes: 8D 7C 65 04 0C (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=37720
+[DEBUG] compress_literals: NumLit=37699, HeaderLen=3, Bytes: 38 34 09
+[DEBUG] encode_sequences_raw: NumSeq=8, HeaderSize=2, Bytes: 08 FF 00
+[DEBUG] compress: Block 0 Output Readback: 38 34 09 8D 7C (Ptr: 0x91a50d580)
+[PERF] Phase 1 (LZ77): 244 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=37720, is_last=1, original=37720, compressed=37800
+[DEBUG] write_block_peek: Src Bytes: 8D 7C 65 04 0C (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 38 34 09 8D 7C (Ptr: 0x91a50d580)
+[DEBUG] compress: Phase 3 Block 0 Dest: 8D 7C 65 04 0C
+[DEBUG] decompress: Block header parsed. size=37720, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=16864
+[DEBUG] compress: Input Start Bytes: 61 C5 91 8D 98 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=16864
+[DEBUG] compress_literals: NumLit=16864, HeaderLen=3, Bytes: 08 1E 04
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 1E 04 61 C5 (Ptr: 0x91a5eb100)
+[PERF] Phase 1 (LZ77): 108 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=16864, is_last=1, original=16864, compressed=16881
+[DEBUG] write_block_peek: Src Bytes: 61 C5 91 8D 98 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 1E 04 61 C5 (Ptr: 0x91a5eb100)
+[DEBUG] compress: Phase 3 Block 0 Dest: 61 C5 91 8D 98
+[DEBUG] decompress: Block header parsed. size=16864, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=37271
+[DEBUG] compress: Input Start Bytes: 37 DE 08 AA 49 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=37271
+[DEBUG] compress_literals: NumLit=37241, HeaderLen=3, Bytes: 98 17 09
+[DEBUG] encode_sequences_raw: NumSeq=11, HeaderSize=2, Bytes: 0B FF 00
+[DEBUG] compress: Block 0 Output Readback: 98 17 09 37 DE (Ptr: 0x91ab07200)
+[PERF] Phase 1 (LZ77): 183 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=37271, is_last=1, original=37271, compressed=37378
+[DEBUG] write_block_peek: Src Bytes: 37 DE 08 AA 49 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 98 17 09 37 DE (Ptr: 0x91ab07200)
+[DEBUG] compress: Phase 3 Block 0 Dest: 37 DE 08 AA 49
+[DEBUG] decompress: Block header parsed. size=37271, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=19155
+[DEBUG] compress: Input Start Bytes: 27 32 22 45 5C (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=19155
+[DEBUG] compress_literals: NumLit=19155, HeaderLen=3, Bytes: 38 AD 04
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 38 AD 04 27 32 (Ptr: 0x91ae0b100)
+[PERF] Phase 1 (LZ77): 123 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=19155, is_last=1, original=19155, compressed=19172
+[DEBUG] write_block_peek: Src Bytes: 27 32 22 45 5C (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 38 AD 04 27 32 (Ptr: 0x91ae0b100)
+[DEBUG] compress: Phase 3 Block 0 Dest: 27 32 22 45 5C
+[DEBUG] decompress: Block header parsed. size=19155, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=240
+[DEBUG] compress: Input Start Bytes: 8B C0 DB F3 AF (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=240
+[DEBUG] compress: ENTRY at TOP. Size=60679
+[DEBUG] compress: Input Start Bytes: 42 67 0B C5 94 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=60679
+[DEBUG] compress_literals: NumLit=60616, HeaderLen=3, Bytes: 88 CC 0E
+[DEBUG] encode_sequences_raw: NumSeq=22, HeaderSize=2, Bytes: 16 FF 00
+[DEBUG] compress: Block 0 Output Readback: 88 CC 0E 42 67 (Ptr: 0x91b64d000)
+[PERF] Phase 1 (LZ77): 378 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=60679, is_last=1, original=60679, compressed=60885
+[DEBUG] write_block_peek: Src Bytes: 42 67 0B C5 94 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 88 CC 0E 42 67 (Ptr: 0x91b64d000)
+[DEBUG] compress: Phase 3 Block 0 Dest: 42 67 0B C5 94
+[DEBUG] decompress: Block header parsed. size=60679, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=37498
+[DEBUG] compress: Input Start Bytes: 4B 66 CF 98 59 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=37498
+[DEBUG] compress_literals: NumLit=37465, HeaderLen=3, Bytes: 98 25 09
+[DEBUG] encode_sequences_raw: NumSeq=12, HeaderSize=2, Bytes: 0C FF 00
+[DEBUG] compress: Block 0 Output Readback: 98 25 09 4B 66 (Ptr: 0x91b70a400)
+[PERF] Phase 1 (LZ77): 251 ms, Phase 2 (Encode): 41 ms
+[DEBUG] write_block: type=0, size=37498, is_last=1, original=37498, compressed=37614
+[DEBUG] write_block_peek: Src Bytes: 4B 66 CF 98 59 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 98 25 09 4B 66 (Ptr: 0x91b70a400)
+[DEBUG] compress: Phase 3 Block 0 Dest: 4B 66 CF 98 59
+[DEBUG] decompress: Block header parsed. size=37498, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=51595
+[DEBUG] compress: Input Start Bytes: ED A8 DF 15 95 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=51595
+[DEBUG] compress_literals: NumLit=51553, HeaderLen=3, Bytes: 18 96 0C
+[DEBUG] encode_sequences_raw: NumSeq=15, HeaderSize=2, Bytes: 0F FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 96 0C ED A8 (Ptr: 0x91bbce900)
+[PERF] Phase 1 (LZ77): 379 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=51595, is_last=1, original=51595, compressed=51738
+[DEBUG] write_block_peek: Src Bytes: ED A8 DF 15 95 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 96 0C ED A8 (Ptr: 0x91bbce900)
+[DEBUG] compress: Phase 3 Block 0 Dest: ED A8 DF 15 95
+[DEBUG] decompress: Block header parsed. size=51595, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=20558
+[DEBUG] compress: Input Start Bytes: 2F C2 62 19 D4 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=20558
+[DEBUG] compress_literals: NumLit=20549, HeaderLen=3, Bytes: 58 04 05
+[DEBUG] encode_sequences_raw: NumSeq=4, HeaderSize=2, Bytes: 04 FF 00
+[DEBUG] compress: Block 0 Output Readback: 58 04 05 2F C2 (Ptr: 0x91bc1e980)
+[PERF] Phase 1 (LZ77): 148 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=20558, is_last=1, original=20558, compressed=20602
+[DEBUG] write_block_peek: Src Bytes: 2F C2 62 19 D4 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 58 04 05 2F C2 (Ptr: 0x91bc1e980)
+[DEBUG] compress: Phase 3 Block 0 Dest: 2F C2 62 19 D4
+[DEBUG] decompress: Block header parsed. size=20558, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=62368
+[DEBUG] compress: Input Start Bytes: 1B FF AF 69 88 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=62368
+[DEBUG] compress_literals: NumLit=62308, HeaderLen=3, Bytes: 48 36 0F
+[DEBUG] encode_sequences_raw: NumSeq=21, HeaderSize=2, Bytes: 15 FF 00
+[DEBUG] compress: Block 0 Output Readback: 48 36 0F 1B FF (Ptr: 0x91c264500)
+[PERF] Phase 1 (LZ77): 306 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=62368, is_last=1, original=62368, compressed=62565
+[DEBUG] write_block_peek: Src Bytes: 1B FF AF 69 88 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 48 36 0F 1B FF (Ptr: 0x91c264500)
+[DEBUG] compress: Phase 3 Block 0 Dest: 1B FF AF 69 88
+[DEBUG] decompress: Block header parsed. size=62368, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=5167
+[DEBUG] compress: Input Start Bytes: A4 4E 89 9B 83 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=5167
+[DEBUG] compress_literals: NumLit=5167, HeaderLen=3, Bytes: F8 42 01
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: F8 42 01 A4 4E (Ptr: 0x91c148680)
+[PERF] Phase 1 (LZ77): 29 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=5167, is_last=1, original=5167, compressed=5184
+[DEBUG] write_block_peek: Src Bytes: A4 4E 89 9B 83 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: F8 42 01 A4 4E (Ptr: 0x91c148680)
+[DEBUG] compress: Phase 3 Block 0 Dest: A4 4E 89 9B 83
+[DEBUG] decompress: Block header parsed. size=5167, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=7083
+[DEBUG] compress: Input Start Bytes: 33 6B C8 EE DC (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=7083
+[DEBUG] compress_literals: NumLit=7083, HeaderLen=3, Bytes: B8 BA 01
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 BA 01 33 6B (Ptr: 0x91c563200)
+[PERF] Phase 1 (LZ77): 66 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=7083, is_last=1, original=7083, compressed=7100
+[DEBUG] write_block_peek: Src Bytes: 33 6B C8 EE DC (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 BA 01 33 6B (Ptr: 0x91c563200)
+[DEBUG] compress: Phase 3 Block 0 Dest: 33 6B C8 EE DC
+[DEBUG] decompress: Block header parsed. size=7083, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=23892
+[DEBUG] compress: Input Start Bytes: 91 B6 10 C1 E3 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=23892
+[DEBUG] compress_literals: NumLit=23883, HeaderLen=3, Bytes: B8 D4 05
+[DEBUG] encode_sequences_raw: NumSeq=4, HeaderSize=2, Bytes: 04 FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 D4 05 91 B6 (Ptr: 0x91ca4cf80)
+[PERF] Phase 1 (LZ77): 146 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=23892, is_last=1, original=23892, compressed=23936
+[DEBUG] write_block_peek: Src Bytes: 91 B6 10 C1 E3 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 D4 05 91 B6 (Ptr: 0x91ca4cf80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 91 B6 10 C1 E3
+[DEBUG] decompress: Block header parsed. size=23892, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=33139
+[DEBUG] compress: Input Start Bytes: 4F 84 D1 06 55 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=33139
+[DEBUG] compress_literals: NumLit=33130, HeaderLen=3, Bytes: A8 16 08
+[DEBUG] encode_sequences_raw: NumSeq=4, HeaderSize=2, Bytes: 04 FF 00
+[DEBUG] compress: Block 0 Output Readback: A8 16 08 4F 84 (Ptr: 0x91cccda80)
+[PERF] Phase 1 (LZ77): 259 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=33139, is_last=1, original=33139, compressed=33183
+[DEBUG] write_block_peek: Src Bytes: 4F 84 D1 06 55 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: A8 16 08 4F 84 (Ptr: 0x91cccda80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 4F 84 D1 06 55
+[DEBUG] decompress: Block header parsed. size=33139, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=24157
+[DEBUG] compress: Input Start Bytes: EB 08 A4 5A C0 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=24157
+[DEBUG] compress_literals: NumLit=24145, HeaderLen=3, Bytes: 18 E5 05
+[DEBUG] encode_sequences_raw: NumSeq=5, HeaderSize=2, Bytes: 05 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 E5 05 EB 08 (Ptr: 0x91d050900)
+[PERF] Phase 1 (LZ77): 133 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=24157, is_last=1, original=24157, compressed=24210
+[DEBUG] write_block_peek: Src Bytes: EB 08 A4 5A C0 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 E5 05 EB 08 (Ptr: 0x91d050900)
+[DEBUG] compress: Phase 3 Block 0 Dest: EB 08 A4 5A C0
+[DEBUG] decompress: Block header parsed. size=24157, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=17114
+[DEBUG] compress: Input Start Bytes: 0C E3 AE 92 CC (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=17114
+[DEBUG] compress_literals: NumLit=17111, HeaderLen=3, Bytes: 78 2D 04
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: 78 2D 04 0C E3 (Ptr: 0x91d1ee980)
+[PERF] Phase 1 (LZ77): 83 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=17114, is_last=1, original=17114, compressed=17140
+[DEBUG] write_block_peek: Src Bytes: 0C E3 AE 92 CC (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 78 2D 04 0C E3 (Ptr: 0x91d1ee980)
+[DEBUG] compress: Phase 3 Block 0 Dest: 0C E3 AE 92 CC
+[DEBUG] decompress: Block header parsed. size=17114, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=23148
+[DEBUG] compress: Input Start Bytes: 80 66 77 76 80 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=23148
+[DEBUG] compress_literals: NumLit=23148, HeaderLen=3, Bytes: C8 A6 05
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: C8 A6 05 80 66 (Ptr: 0x91d642a80)
+[PERF] Phase 1 (LZ77): 201 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=23148, is_last=1, original=23148, compressed=23165
+[DEBUG] write_block_peek: Src Bytes: 80 66 77 76 80 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: C8 A6 05 80 66 (Ptr: 0x91d642a80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 80 66 77 76 80
+[DEBUG] decompress: Block header parsed. size=23148, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=8091
+[DEBUG] compress: Input Start Bytes: 85 AD B3 87 45 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8091
+[DEBUG] compress_literals: NumLit=8091, HeaderLen=3, Bytes: B8 F9 01
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 F9 01 85 AD (Ptr: 0x91d771080)
+[PERF] Phase 1 (LZ77): 56 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=8091, is_last=1, original=8091, compressed=8108
+[DEBUG] write_block_peek: Src Bytes: 85 AD B3 87 45 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 F9 01 85 AD (Ptr: 0x91d771080)
+[DEBUG] compress: Phase 3 Block 0 Dest: 85 AD B3 87 45
+[DEBUG] decompress: Block header parsed. size=8091, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=34225
+[DEBUG] compress: Input Start Bytes: 5A 7A 57 D2 EE (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=34225
+[DEBUG] compress_literals: NumLit=34207, HeaderLen=3, Bytes: F8 59 08
+[DEBUG] encode_sequences_raw: NumSeq=7, HeaderSize=2, Bytes: 07 FF 00
+[DEBUG] compress: Block 0 Output Readback: F8 59 08 5A 7A (Ptr: 0x91dcdcd00)
+[PERF] Phase 1 (LZ77): 221 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=34225, is_last=1, original=34225, compressed=34296
+[DEBUG] write_block_peek: Src Bytes: 5A 7A 57 D2 EE (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: F8 59 08 5A 7A (Ptr: 0x91dcdcd00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 5A 7A 57 D2 EE
+[DEBUG] decompress: Block header parsed. size=34225, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=65137
+[DEBUG] compress: Input Start Bytes: 46 16 A3 66 9F (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65137
+[DEBUG] compress_literals: NumLit=65059, HeaderLen=3, Bytes: 38 E2 0F
+[DEBUG] encode_sequences_raw: NumSeq=27, HeaderSize=2, Bytes: 1B FF 00
+[DEBUG] compress: Block 0 Output Readback: 38 E2 0F 46 16 (Ptr: 0x91e28af80)
+[PERF] Phase 1 (LZ77): 439 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=65137, is_last=1, original=65137, compressed=65388
+[DEBUG] write_block_peek: Src Bytes: 46 16 A3 66 9F (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 38 E2 0F 46 16 (Ptr: 0x91e28af80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 46 16 A3 66 9F
+[DEBUG] decompress: Block header parsed. size=65137, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=34930
+[DEBUG] compress: Input Start Bytes: 41 90 AF D5 A9 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=34930
+[DEBUG] compress_literals: NumLit=34909, HeaderLen=3, Bytes: D8 85 08
+[DEBUG] encode_sequences_raw: NumSeq=8, HeaderSize=2, Bytes: 08 FF 00
+[DEBUG] compress: Block 0 Output Readback: D8 85 08 41 90 (Ptr: 0x91e2e6980)
+[PERF] Phase 1 (LZ77): 258 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=34930, is_last=1, original=34930, compressed=35010
+[DEBUG] write_block_peek: Src Bytes: 41 90 AF D5 A9 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: D8 85 08 41 90 (Ptr: 0x91e2e6980)
+[DEBUG] compress: Phase 3 Block 0 Dest: 41 90 AF D5 A9
+[DEBUG] decompress: Block header parsed. size=34930, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=43395
+[DEBUG] compress: Input Start Bytes: 0B 8F 5E 7A 3E (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=43395
+[DEBUG] compress_literals: NumLit=43365, HeaderLen=3, Bytes: 58 96 0A
+[DEBUG] encode_sequences_raw: NumSeq=11, HeaderSize=2, Bytes: 0B FF 00
+[DEBUG] compress: Block 0 Output Readback: 58 96 0A 0B 8F (Ptr: 0x91e75c880)
+[PERF] Phase 1 (LZ77): 242 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=43395, is_last=1, original=43395, compressed=43502
+[DEBUG] write_block_peek: Src Bytes: 0B 8F 5E 7A 3E (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 58 96 0A 0B 8F (Ptr: 0x91e75c880)
+[DEBUG] compress: Phase 3 Block 0 Dest: 0B 8F 5E 7A 3E
+[DEBUG] decompress: Block header parsed. size=43395, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=44631
+[DEBUG] compress: Input Start Bytes: 9E E6 82 88 4C (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=44631
+[DEBUG] compress_literals: NumLit=44604, HeaderLen=3, Bytes: C8 E3 0A
+[DEBUG] encode_sequences_raw: NumSeq=10, HeaderSize=2, Bytes: 0A FF 00
+[DEBUG] compress: Block 0 Output Readback: C8 E3 0A 9E E6 (Ptr: 0x91e96d880)
+[PERF] Phase 1 (LZ77): 245 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=44631, is_last=1, original=44631, compressed=44729
+[DEBUG] write_block_peek: Src Bytes: 9E E6 82 88 4C (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: C8 E3 0A 9E E6 (Ptr: 0x91e96d880)
+[DEBUG] compress: Phase 3 Block 0 Dest: 9E E6 82 88 4C
+[DEBUG] decompress: Block header parsed. size=44631, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=42848
+[DEBUG] compress: Input Start Bytes: 33 FE 35 E9 27 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=42848
+[DEBUG] compress_literals: NumLit=42824, HeaderLen=3, Bytes: 88 74 0A
+[DEBUG] encode_sequences_raw: NumSeq=9, HeaderSize=2, Bytes: 09 FF 00
+[DEBUG] compress: Block 0 Output Readback: 88 74 0A 33 FE (Ptr: 0x91ed54a80)
+[PERF] Phase 1 (LZ77): 280 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=42848, is_last=1, original=42848, compressed=42937
+[DEBUG] write_block_peek: Src Bytes: 33 FE 35 E9 27 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 88 74 0A 33 FE (Ptr: 0x91ed54a80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 33 FE 35 E9 27
+[DEBUG] decompress: Block header parsed. size=42848, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=37101
+[DEBUG] compress: Input Start Bytes: A8 E8 F4 45 F8 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=37101
+[DEBUG] compress_literals: NumLit=37083, HeaderLen=3, Bytes: B8 0D 09
+[DEBUG] encode_sequences_raw: NumSeq=7, HeaderSize=2, Bytes: 07 FF 00
+[DEBUG] compress: Block 0 Output Readback: B8 0D 09 A8 E8 (Ptr: 0x91ef04d00)
+[PERF] Phase 1 (LZ77): 261 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=37101, is_last=1, original=37101, compressed=37172
+[DEBUG] write_block_peek: Src Bytes: A8 E8 F4 45 F8 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: B8 0D 09 A8 E8 (Ptr: 0x91ef04d00)
+[DEBUG] compress: Phase 3 Block 0 Dest: A8 E8 F4 45 F8
+[DEBUG] decompress: Block header parsed. size=37101, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=9297
+[DEBUG] compress: Input Start Bytes: A5 9B 81 E8 87 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=9297
+[DEBUG] compress_literals: NumLit=9297, HeaderLen=3, Bytes: 18 45 02
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 45 02 A5 9B (Ptr: 0x91f181e80)
+[PERF] Phase 1 (LZ77): 50 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=9297, is_last=1, original=9297, compressed=9314
+[DEBUG] write_block_peek: Src Bytes: A5 9B 81 E8 87 (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 45 02 A5 9B (Ptr: 0x91f181e80)
+[DEBUG] compress: Phase 3 Block 0 Dest: A5 9B 81 E8 87
+[DEBUG] decompress: Block header parsed. size=9297, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=41230
+[DEBUG] compress: Input Start Bytes: 7F 63 41 AD 42 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=41230
+[DEBUG] compress_literals: NumLit=41212, HeaderLen=3, Bytes: C8 0F 0A
+[DEBUG] encode_sequences_raw: NumSeq=7, HeaderSize=2, Bytes: 07 FF 00
+[DEBUG] compress: Block 0 Output Readback: C8 0F 0A 7F 63 (Ptr: 0x91f73e480)
+[PERF] Phase 1 (LZ77): 227 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=41230, is_last=1, original=41230, compressed=41301
+[DEBUG] write_block_peek: Src Bytes: 7F 63 41 AD 42 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: C8 0F 0A 7F 63 (Ptr: 0x91f73e480)
+[DEBUG] compress: Phase 3 Block 0 Dest: 7F 63 41 AD 42
+[DEBUG] decompress: Block header parsed. size=41230, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=60458
+[DEBUG] compress: Input Start Bytes: 27 D1 28 28 FC (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=60458
+[DEBUG] compress_literals: NumLit=60401, HeaderLen=3, Bytes: 18 BF 0E
+[DEBUG] encode_sequences_raw: NumSeq=20, HeaderSize=2, Bytes: 14 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 BF 0E 27 D1 (Ptr: 0x91fa49e80)
+[PERF] Phase 1 (LZ77): 334 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=60458, is_last=1, original=60458, compressed=60646
+[DEBUG] write_block_peek: Src Bytes: 27 D1 28 28 FC (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 BF 0E 27 D1 (Ptr: 0x91fa49e80)
+[DEBUG] compress: Phase 3 Block 0 Dest: 27 D1 28 28 FC
+[DEBUG] decompress: Block header parsed. size=60458, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=61187
+[DEBUG] compress: Input Start Bytes: 33 FD 54 7A 4B (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=61187
+[DEBUG] compress_literals: NumLit=61136, HeaderLen=3, Bytes: 08 ED 0E
+[DEBUG] encode_sequences_raw: NumSeq=18, HeaderSize=2, Bytes: 12 FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 ED 0E 33 FD (Ptr: 0x91fe54200)
+[PERF] Phase 1 (LZ77): 386 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=61187, is_last=1, original=61187, compressed=61357
+[DEBUG] write_block_peek: Src Bytes: 33 FD 54 7A 4B (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 ED 0E 33 FD (Ptr: 0x91fe54200)
+[DEBUG] compress: Phase 3 Block 0 Dest: 33 FD 54 7A 4B
+[DEBUG] decompress: Block header parsed. size=61187, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=24921
+[DEBUG] compress: Input Start Bytes: E2 E9 C9 3D 6C (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=24921
+[DEBUG] compress_literals: NumLit=24915, HeaderLen=3, Bytes: 38 15 06
+[DEBUG] encode_sequences_raw: NumSeq=3, HeaderSize=2, Bytes: 03 FF 00
+[DEBUG] compress: Block 0 Output Readback: 38 15 06 E2 E9 (Ptr: 0x91fe5b400)
+[PERF] Phase 1 (LZ77): 140 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=24921, is_last=1, original=24921, compressed=24956
+[DEBUG] write_block_peek: Src Bytes: E2 E9 C9 3D 6C (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 38 15 06 E2 E9 (Ptr: 0x91fe5b400)
+[DEBUG] compress: Phase 3 Block 0 Dest: E2 E9 C9 3D 6C
+[DEBUG] decompress: Block header parsed. size=24921, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=6737
+[DEBUG] compress: Input Start Bytes: 9B 94 A8 DF 4E (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=6737
+[DEBUG] compress_literals: NumLit=6737, HeaderLen=3, Bytes: 18 A5 01
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 A5 01 9B 94 (Ptr: 0x92015e480)
+[PERF] Phase 1 (LZ77): 29 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=6737, is_last=1, original=6737, compressed=6754
+[DEBUG] write_block_peek: Src Bytes: 9B 94 A8 DF 4E (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 A5 01 9B 94 (Ptr: 0x92015e480)
+[DEBUG] compress: Phase 3 Block 0 Dest: 9B 94 A8 DF 4E
+[DEBUG] decompress: Block header parsed. size=6737, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=51920
+[DEBUG] compress: Input Start Bytes: B8 C9 9B 95 B0 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=51920
+[DEBUG] compress_literals: NumLit=51866, HeaderLen=3, Bytes: A8 A9 0C
+[DEBUG] encode_sequences_raw: NumSeq=19, HeaderSize=2, Bytes: 13 FF 00
+[DEBUG] compress: Block 0 Output Readback: A8 A9 0C B8 C9 (Ptr: 0x9205d3080)
+[PERF] Phase 1 (LZ77): 292 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=51920, is_last=1, original=51920, compressed=52099
+[DEBUG] write_block_peek: Src Bytes: B8 C9 9B 95 B0 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: A8 A9 0C B8 C9 (Ptr: 0x9205d3080)
+[DEBUG] compress: Phase 3 Block 0 Dest: B8 C9 9B 95 B0
+[DEBUG] decompress: Block header parsed. size=51920, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=46611
+[DEBUG] compress: Input Start Bytes: 3A 42 30 9D E2 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=46611
+[DEBUG] compress_literals: NumLit=46560, HeaderLen=3, Bytes: 08 5E 0B
+[DEBUG] encode_sequences_raw: NumSeq=18, HeaderSize=2, Bytes: 12 FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 5E 0B 3A 42 (Ptr: 0x920989280)
+[PERF] Phase 1 (LZ77): 253 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=46611, is_last=1, original=46611, compressed=46781
+[DEBUG] write_block_peek: Src Bytes: 3A 42 30 9D E2 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 5E 0B 3A 42 (Ptr: 0x920989280)
+[DEBUG] compress: Phase 3 Block 0 Dest: 3A 42 30 9D E2
+[DEBUG] decompress: Block header parsed. size=46611, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=47738
+[DEBUG] compress: Input Start Bytes: 36 79 E8 E4 D1 (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=47738
+[DEBUG] compress_literals: NumLit=47696, HeaderLen=3, Bytes: 08 A5 0B
+[DEBUG] encode_sequences_raw: NumSeq=15, HeaderSize=2, Bytes: 0F FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 A5 0B 36 79 (Ptr: 0x920b98c00)
+[PERF] Phase 1 (LZ77): 304 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=47738, is_last=1, original=47738, compressed=47881
+[DEBUG] write_block_peek: Src Bytes: 36 79 E8 E4 D1 (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 A5 0B 36 79 (Ptr: 0x920b98c00)
+[DEBUG] compress: Phase 3 Block 0 Dest: 36 79 E8 E4 D1
+[DEBUG] decompress: Block header parsed. size=47738, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=61716
+[DEBUG] compress: Input Start Bytes: D6 D2 F8 AB 72 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=61716
+[DEBUG] compress_literals: NumLit=61680, HeaderLen=3, Bytes: 08 0F 0F
+[DEBUG] encode_sequences_raw: NumSeq=13, HeaderSize=2, Bytes: 0D FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 0F 0F D6 D2 (Ptr: 0x92105b580)
+[PERF] Phase 1 (LZ77): 305 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=61716, is_last=1, original=61716, compressed=61841
+[DEBUG] write_block_peek: Src Bytes: D6 D2 F8 AB 72 (src=0x902deca00)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 0F 0F D6 D2 (Ptr: 0x92105b580)
+[DEBUG] compress: Phase 3 Block 0 Dest: D6 D2 F8 AB 72
+[DEBUG] decompress: Block header parsed. size=61716, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=46270
+[DEBUG] compress: Input Start Bytes: BB 53 91 00 4D (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=46270
+[DEBUG] compress_literals: NumLit=46246, HeaderLen=3, Bytes: 68 4A 0B
+[DEBUG] encode_sequences_raw: NumSeq=9, HeaderSize=2, Bytes: 09 FF 00
+[DEBUG] compress: Block 0 Output Readback: 68 4A 0B BB 53 (Ptr: 0x921384480)
+[PERF] Phase 1 (LZ77): 237 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=0, size=46270, is_last=1, original=46270, compressed=46359
+[DEBUG] write_block_peek: Src Bytes: BB 53 91 00 4D (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 68 4A 0B BB 53 (Ptr: 0x921384480)
+[DEBUG] compress: Phase 3 Block 0 Dest: BB 53 91 00 4D
+[DEBUG] decompress: Block header parsed. size=46270, compressed=0, last=1, header_size=3
+[DEBUG] compress: ENTRY at TOP. Size=19228
+[DEBUG] compress: Input Start Bytes: AC B8 7C D4 D3 (d_input=0x90bbf9000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=19228
+[DEBUG] compress_literals: NumLit=19225, HeaderLen=3, Bytes: 98 B1 04
+[DEBUG] encode_sequences_raw: NumSeq=2, HeaderSize=2, Bytes: 02 FF 00
+[DEBUG] compress: Block 0 Output Readback: 98 B1 04 AC B8 (Ptr: 0x92140c000)
+[PERF] Phase 1 (LZ77): 112 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=19228, is_last=1, original=19228, compressed=19254
+[DEBUG] write_block_peek: Src Bytes: AC B8 7C D4 D3 (src=0x90bbf9000)
+[DEBUG] compress: Phase 3 Block 0 Source: 98 B1 04 AC B8 (Ptr: 0x92140c000)
+[DEBUG] compress: Phase 3 Block 0 Dest: AC B8 7C D4 D3
+[DEBUG] decompress: Block header parsed. size=19228, compressed=0, last=1, header_size=3
+  [INFO] Passed: 98/100
+  [FAIL] test_random_inputs_roundtrip: Some random tests failed
+
+[TEST] All Compression Levels (1-22)
+[DEBUG] compress: ENTRY at TOP. Size=65536
+
+  Level | Ratio   | Status
+  ------|---------|--------
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3421, HeaderLen=2, Bytes: D4 D5 00
+[DEBUG] encode_sequences_raw: NumSeq=486, HeaderSize=3, Bytes: 81 E6 FF
+[DEBUG] compress: Block 0 Output Readback: D4 D5 00 01 02 (Ptr: 0x921a90600)
+[PERF] Phase 1 (LZ77): 384 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9258, is_last=1, original=65536, compressed=9258
+[DEBUG] write_block_peek: Src Bytes: D4 D5 00 01 02 (src=0x921a90600)
+[DEBUG] compress: Phase 3 Block 0 Source: D4 D5 00 01 02 (Ptr: 0x921a90600)
+[DEBUG] compress: Phase 3 Block 0 Dest: D4 D5 00 01 02
+[DEBUG] decompress: Block header parsed. size=9258, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9258, header: D4 D5 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5835, header bytes: 81 E6 FF 71 02
+[DEBUG] decompress_sequences: Parsed num_sequences=486, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      1 |    7.06 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3650, HeaderLen=2, Bytes: 24 E4 00
+[DEBUG] encode_sequences_raw: NumSeq=484, HeaderSize=3, Bytes: 81 E4 FF
+[DEBUG] compress: Block 0 Output Readback: 24 E4 00 01 02 (Ptr: 0x921c90600)
+[PERF] Phase 1 (LZ77): 356 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9463, is_last=1, original=65536, compressed=9463
+[DEBUG] write_block_peek: Src Bytes: 24 E4 00 01 02 (src=0x921c90600)
+[DEBUG] compress: Phase 3 Block 0 Source: 24 E4 00 01 02 (Ptr: 0x921c90600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 24 E4 00 01 02
+[DEBUG] decompress: Block header parsed. size=9463, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9463, header: 24 E4 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5811, header bytes: 81 E4 FF 19 01
+[DEBUG] decompress_sequences: Parsed num_sequences=484, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      2 |    6.91 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3157, HeaderLen=2, Bytes: 54 C5 00
+[DEBUG] encode_sequences_raw: NumSeq=488, HeaderSize=3, Bytes: 81 E8 FF
+[DEBUG] compress: Block 0 Output Readback: 54 C5 00 01 02 (Ptr: 0x922090600)
+[PERF] Phase 1 (LZ77): 411 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9018, is_last=1, original=65536, compressed=9018
+[DEBUG] write_block_peek: Src Bytes: 54 C5 00 01 02 (src=0x922090600)
+[DEBUG] compress: Phase 3 Block 0 Source: 54 C5 00 01 02 (Ptr: 0x922090600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 54 C5 00 01 02
+[DEBUG] decompress: Block header parsed. size=9018, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9018, header: 54 C5 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5859, header bytes: 81 E8 FF B0 03
+[DEBUG] decompress_sequences: Parsed num_sequences=488, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      3 |    7.25 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=2754, HeaderLen=2, Bytes: 24 AC 00
+[DEBUG] encode_sequences_raw: NumSeq=491, HeaderSize=3, Bytes: 81 EB FF
+[DEBUG] compress: Block 0 Output Readback: 24 AC 00 01 02 (Ptr: 0x922290600)
+[PERF] Phase 1 (LZ77): 338 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=8651, is_last=1, original=65536, compressed=8651
+[DEBUG] write_block_peek: Src Bytes: 24 AC 00 01 02 (src=0x922290600)
+[DEBUG] compress: Phase 3 Block 0 Source: 24 AC 00 01 02 (Ptr: 0x922290600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 24 AC 00 01 02
+[DEBUG] decompress: Block header parsed. size=8651, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=8651, header: 24 AC 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5895, header bytes: 81 EB FF 97 01
+[DEBUG] decompress_sequences: Parsed num_sequences=491, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      4 |    7.55 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3830, HeaderLen=2, Bytes: 64 EF 00
+[DEBUG] encode_sequences_raw: NumSeq=483, HeaderSize=3, Bytes: 81 E3 FF
+[DEBUG] compress: Block 0 Output Readback: 64 EF 00 01 02 (Ptr: 0x922690600)
+[PERF] Phase 1 (LZ77): 488 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=2, size=9631, is_last=1, original=65536, compressed=9631
+[DEBUG] write_block_peek: Src Bytes: 64 EF 00 01 02 (src=0x922690600)
+[DEBUG] compress: Phase 3 Block 0 Source: 64 EF 00 01 02 (Ptr: 0x922690600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 64 EF 00 01 02
+[DEBUG] decompress: Block header parsed. size=9631, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9631, header: 64 EF 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5799, header bytes: 81 E3 FF 3F 01
+[DEBUG] decompress_sequences: Parsed num_sequences=483, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      5 |    6.79 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=6400, HeaderLen=3, Bytes: 08 90 01
+[DEBUG] encode_sequences_raw: NumSeq=462, HeaderSize=3, Bytes: 81 CE FF
+[DEBUG] compress: Block 0 Output Readback: 08 90 01 00 01 (Ptr: 0x922a90600)
+[PERF] Phase 1 (LZ77): 434 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=11950, is_last=1, original=65536, compressed=11950
+[DEBUG] write_block_peek: Src Bytes: 08 90 01 00 01 (src=0x922a90600)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 90 01 00 01 (Ptr: 0x922a90600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 08 90 01 00 01
+[DEBUG] decompress: Block header parsed. size=11950, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=11950, header: 08 90 01 00 01
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5547, header bytes: 81 CE FF 7D 02
+[DEBUG] decompress_sequences: Parsed num_sequences=462, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      6 |    5.47 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3358, HeaderLen=2, Bytes: E4 D1 00
+[DEBUG] encode_sequences_raw: NumSeq=486, HeaderSize=3, Bytes: 81 E6 FF
+[DEBUG] compress: Block 0 Output Readback: E4 D1 00 01 02 (Ptr: 0x922c90600)
+[PERF] Phase 1 (LZ77): 474 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9195, is_last=1, original=65536, compressed=9195
+[DEBUG] write_block_peek: Src Bytes: E4 D1 00 01 02 (src=0x922c90600)
+[DEBUG] compress: Phase 3 Block 0 Source: E4 D1 00 01 02 (Ptr: 0x922c90600)
+[DEBUG] compress: Phase 3 Block 0 Dest: E4 D1 00 01 02
+[DEBUG] decompress: Block header parsed. size=9195, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9195, header: E4 D1 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5835, header bytes: 81 E6 FF 1F 01
+[DEBUG] decompress_sequences: Parsed num_sequences=486, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      7 |    7.11 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3907, HeaderLen=2, Bytes: 34 F4 00
+[DEBUG] encode_sequences_raw: NumSeq=482, HeaderSize=3, Bytes: 81 E2 FF
+[DEBUG] compress: Block 0 Output Readback: 34 F4 00 01 02 (Ptr: 0x923090600)
+[PERF] Phase 1 (LZ77): 329 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9696, is_last=1, original=65536, compressed=9696
+[DEBUG] write_block_peek: Src Bytes: 34 F4 00 01 02 (src=0x923090600)
+[DEBUG] compress: Phase 3 Block 0 Source: 34 F4 00 01 02 (Ptr: 0x923090600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 34 F4 00 01 02
+[DEBUG] decompress: Block header parsed. size=9696, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9696, header: 34 F4 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5787, header bytes: 81 E2 FF 8A 04
+[DEBUG] decompress_sequences: Parsed num_sequences=482, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      8 |    6.74 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3283, HeaderLen=2, Bytes: 34 CD 00
+[DEBUG] encode_sequences_raw: NumSeq=487, HeaderSize=3, Bytes: 81 E7 FF
+[DEBUG] compress: Block 0 Output Readback: 34 CD 00 01 02 (Ptr: 0x923290600)
+[PERF] Phase 1 (LZ77): 470 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=2, size=9132, is_last=1, original=65536, compressed=9132
+[DEBUG] write_block_peek: Src Bytes: 34 CD 00 01 02 (src=0x923290600)
+[DEBUG] compress: Phase 3 Block 0 Source: 34 CD 00 01 02 (Ptr: 0x923290600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 34 CD 00 01 02
+[DEBUG] decompress: Block header parsed. size=9132, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9132, header: 34 CD 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5847, header bytes: 81 E7 FF 3F 01
+[DEBUG] decompress_sequences: Parsed num_sequences=487, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+      9 |    7.16 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=4739, HeaderLen=3, Bytes: 38 28 01
+[DEBUG] encode_sequences_raw: NumSeq=475, HeaderSize=3, Bytes: 81 DB FF
+[DEBUG] compress: Block 0 Output Readback: 38 28 01 00 01 (Ptr: 0x923690600)
+[PERF] Phase 1 (LZ77): 384 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=10445, is_last=1, original=65536, compressed=10445
+[DEBUG] write_block_peek: Src Bytes: 38 28 01 00 01 (src=0x923690600)
+[DEBUG] compress: Phase 3 Block 0 Source: 38 28 01 00 01 (Ptr: 0x923690600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 38 28 01 00 01
+[DEBUG] decompress: Block header parsed. size=10445, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=10445, header: 38 28 01 00 01
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5703, header bytes: 81 DB FF 3F 02
+[DEBUG] decompress_sequences: Parsed num_sequences=475, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     10 |    6.26 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3344, HeaderLen=2, Bytes: 04 D1 00
+[DEBUG] encode_sequences_raw: NumSeq=486, HeaderSize=3, Bytes: 81 E6 FF
+[DEBUG] compress: Block 0 Output Readback: 04 D1 00 01 02 (Ptr: 0x923890600)
+[PERF] Phase 1 (LZ77): 430 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9181, is_last=1, original=65536, compressed=9181
+[DEBUG] write_block_peek: Src Bytes: 04 D1 00 01 02 (src=0x923890600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 D1 00 01 02 (Ptr: 0x923890600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 D1 00 01 02
+[DEBUG] decompress: Block header parsed. size=9181, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9181, header: 04 D1 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5835, header bytes: 81 E6 FF 7D 02
+[DEBUG] decompress_sequences: Parsed num_sequences=486, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     11 |    7.12 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3459, HeaderLen=2, Bytes: 34 D8 00
+[DEBUG] encode_sequences_raw: NumSeq=485, HeaderSize=3, Bytes: 81 E5 FF
+[DEBUG] compress: Block 0 Output Readback: 34 D8 00 01 02 (Ptr: 0x923c90600)
+[PERF] Phase 1 (LZ77): 473 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=2, size=9284, is_last=1, original=65536, compressed=9284
+[DEBUG] write_block_peek: Src Bytes: 34 D8 00 01 02 (src=0x923c90600)
+[DEBUG] compress: Phase 3 Block 0 Source: 34 D8 00 01 02 (Ptr: 0x923c90600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 34 D8 00 01 02
+[DEBUG] decompress: Block header parsed. size=9284, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9284, header: 34 D8 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5823, header bytes: 81 E5 FF 3F 01
+[DEBUG] decompress_sequences: Parsed num_sequences=485, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     12 |    7.04 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3137, HeaderLen=2, Bytes: 14 C4 00
+[DEBUG] encode_sequences_raw: NumSeq=488, HeaderSize=3, Bytes: 81 E8 FF
+[DEBUG] compress: Block 0 Output Readback: 14 C4 00 01 02 (Ptr: 0x924090600)
+[PERF] Phase 1 (LZ77): 441 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=8998, is_last=1, original=65536, compressed=8998
+[DEBUG] write_block_peek: Src Bytes: 14 C4 00 01 02 (src=0x924090600)
+[DEBUG] compress: Phase 3 Block 0 Source: 14 C4 00 01 02 (Ptr: 0x924090600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 14 C4 00 01 02
+[DEBUG] decompress: Block header parsed. size=8998, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=8998, header: 14 C4 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5859, header bytes: 81 E8 FF 23 02
+[DEBUG] decompress_sequences: Parsed num_sequences=488, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     13 |    7.26 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3103, HeaderLen=2, Bytes: F4 C1 00
+[DEBUG] encode_sequences_raw: NumSeq=488, HeaderSize=3, Bytes: 81 E8 FF
+[DEBUG] compress: Block 0 Output Readback: F4 C1 00 01 02 (Ptr: 0x924290600)
+[PERF] Phase 1 (LZ77): 444 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=8964, is_last=1, original=65536, compressed=8964
+[DEBUG] write_block_peek: Src Bytes: F4 C1 00 01 02 (src=0x924290600)
+[DEBUG] compress: Phase 3 Block 0 Source: F4 C1 00 01 02 (Ptr: 0x924290600)
+[DEBUG] compress: Phase 3 Block 0 Dest: F4 C1 00 01 02
+[DEBUG] decompress: Block header parsed. size=8964, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=8964, header: F4 C1 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5859, header bytes: 81 E8 FF 16 02
+[DEBUG] decompress_sequences: Parsed num_sequences=488, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     14 |    7.29 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3746, HeaderLen=2, Bytes: 24 EA 00
+[DEBUG] encode_sequences_raw: NumSeq=483, HeaderSize=3, Bytes: 81 E3 FF
+[DEBUG] compress: Block 0 Output Readback: 24 EA 00 01 02 (Ptr: 0x924690600)
+[PERF] Phase 1 (LZ77): 392 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9547, is_last=1, original=65536, compressed=9547
+[DEBUG] write_block_peek: Src Bytes: 24 EA 00 01 02 (src=0x924690600)
+[DEBUG] compress: Phase 3 Block 0 Source: 24 EA 00 01 02 (Ptr: 0x924690600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 24 EA 00 01 02
+[DEBUG] decompress: Block header parsed. size=9547, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9547, header: 24 EA 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5799, header bytes: 81 E3 FF 9E 00
+[DEBUG] decompress_sequences: Parsed num_sequences=483, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     15 |    6.85 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3020, HeaderLen=2, Bytes: C4 BC 00
+[DEBUG] encode_sequences_raw: NumSeq=489, HeaderSize=3, Bytes: 81 E9 FF
+[DEBUG] compress: Block 0 Output Readback: C4 BC 00 01 02 (Ptr: 0x924890600)
+[PERF] Phase 1 (LZ77): 435 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=8893, is_last=1, original=65536, compressed=8893
+[DEBUG] write_block_peek: Src Bytes: C4 BC 00 01 02 (src=0x924890600)
+[DEBUG] compress: Phase 3 Block 0 Source: C4 BC 00 01 02 (Ptr: 0x924890600)
+[DEBUG] compress: Phase 3 Block 0 Dest: C4 BC 00 01 02
+[DEBUG] decompress: Block header parsed. size=8893, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=8893, header: C4 BC 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5871, header bytes: 81 E9 FF 2F 02
+[DEBUG] decompress_sequences: Parsed num_sequences=489, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     16 |    7.35 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3616, HeaderLen=2, Bytes: 04 E2 00
+[DEBUG] encode_sequences_raw: NumSeq=484, HeaderSize=3, Bytes: 81 E4 FF
+[DEBUG] compress: Block 0 Output Readback: 04 E2 00 01 02 (Ptr: 0x924c90600)
+[PERF] Phase 1 (LZ77): 444 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9429, is_last=1, original=65536, compressed=9429
+[DEBUG] write_block_peek: Src Bytes: 04 E2 00 01 02 (src=0x924c90600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 E2 00 01 02 (Ptr: 0x924c90600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 E2 00 01 02
+[DEBUG] decompress: Block header parsed. size=9429, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9429, header: 04 E2 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5811, header bytes: 81 E4 FF 9F 00
+[DEBUG] decompress_sequences: Parsed num_sequences=484, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     17 |    6.93 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3132, HeaderLen=2, Bytes: C4 C3 00
+[DEBUG] encode_sequences_raw: NumSeq=488, HeaderSize=3, Bytes: 81 E8 FF
+[DEBUG] compress: Block 0 Output Readback: C4 C3 00 01 02 (Ptr: 0x924e90600)
+[PERF] Phase 1 (LZ77): 382 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=8993, is_last=1, original=65536, compressed=8993
+[DEBUG] write_block_peek: Src Bytes: C4 C3 00 01 02 (src=0x924e90600)
+[DEBUG] compress: Phase 3 Block 0 Source: C4 C3 00 01 02 (Ptr: 0x924e90600)
+[DEBUG] compress: Phase 3 Block 0 Dest: C4 C3 00 01 02
+[DEBUG] decompress: Block header parsed. size=8993, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=8993, header: C4 C3 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5859, header bytes: 81 E8 FF 5F 02
+[DEBUG] decompress_sequences: Parsed num_sequences=488, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     18 |    7.27 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=5793, HeaderLen=3, Bytes: 18 6A 01
+[DEBUG] encode_sequences_raw: NumSeq=467, HeaderSize=3, Bytes: 81 D3 FF
+[DEBUG] compress: Block 0 Output Readback: 18 6A 01 00 01 (Ptr: 0x925290600)
+[PERF] Phase 1 (LZ77): 464 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=11403, is_last=1, original=65536, compressed=11403
+[DEBUG] write_block_peek: Src Bytes: 18 6A 01 00 01 (src=0x925290600)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 6A 01 00 01 (Ptr: 0x925290600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 18 6A 01 00 01
+[DEBUG] decompress: Block header parsed. size=11403, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=11403, header: 18 6A 01 00 01
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5607, header bytes: 81 D3 FF 17 01
+[DEBUG] decompress_sequences: Parsed num_sequences=467, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     19 |    5.73 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3238, HeaderLen=2, Bytes: 64 CA 00
+[DEBUG] encode_sequences_raw: NumSeq=487, HeaderSize=3, Bytes: 81 E7 FF
+[DEBUG] compress: Block 0 Output Readback: 64 CA 00 01 02 (Ptr: 0x925490600)
+[PERF] Phase 1 (LZ77): 320 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9087, is_last=1, original=65536, compressed=9087
+[DEBUG] write_block_peek: Src Bytes: 64 CA 00 01 02 (src=0x925490600)
+[DEBUG] compress: Phase 3 Block 0 Source: 64 CA 00 01 02 (Ptr: 0x925490600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 64 CA 00 01 02
+[DEBUG] decompress: Block header parsed. size=9087, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9087, header: 64 CA 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5847, header bytes: 81 E7 FF 19 03
+[DEBUG] decompress_sequences: Parsed num_sequences=487, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     20 |    7.19 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3220, HeaderLen=2, Bytes: 44 C9 00
+[DEBUG] encode_sequences_raw: NumSeq=487, HeaderSize=3, Bytes: 81 E7 FF
+[DEBUG] compress: Block 0 Output Readback: 44 C9 00 01 02 (Ptr: 0x925890600)
+[PERF] Phase 1 (LZ77): 363 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9069, is_last=1, original=65536, compressed=9069
+[DEBUG] write_block_peek: Src Bytes: 44 C9 00 01 02 (src=0x925890600)
+[DEBUG] compress: Phase 3 Block 0 Source: 44 C9 00 01 02 (Ptr: 0x925890600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 44 C9 00 01 02
+[DEBUG] decompress: Block header parsed. size=9069, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9069, header: 44 C9 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5847, header bytes: 81 E7 FF 70 02
+[DEBUG] decompress_sequences: Parsed num_sequences=487, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+[DEBUG] compress: ENTRY at TOP. Size=65536
+     21 |    7.21 | PASS
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x902deca00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=65536
+[DEBUG] compress_literals: NumLit=3513, HeaderLen=2, Bytes: 94 DB 00
+[DEBUG] encode_sequences_raw: NumSeq=485, HeaderSize=3, Bytes: 81 E5 FF
+[DEBUG] compress: Block 0 Output Readback: 94 DB 00 01 02 (Ptr: 0x925c90600)
+[PERF] Phase 1 (LZ77): 417 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=9338, is_last=1, original=65536, compressed=9338
+[DEBUG] write_block_peek: Src Bytes: 94 DB 00 01 02 (src=0x925c90600)
+[DEBUG] compress: Phase 3 Block 0 Source: 94 DB 00 01 02 (Ptr: 0x925c90600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 94 DB 00 01 02
+[DEBUG] decompress: Block header parsed. size=9338, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=9338, header: 94 DB 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=5823, header bytes: 81 E5 FF 5F 01
+[DEBUG] decompress_sequences: Parsed num_sequences=485, offset=2
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=3
+[DEBUG] decompress: decompress_block DONE. decompressed_size=65536
+     22 |    7.00 | PASS
+  [PASS] All Compression Levels
+
+[TEST] ZSTD Frame Format Validation
+[DEBUG] compress: ENTRY at TOP. Size=1024
+[DEBUG] compress: Input Start Bytes: AA AA AA AA AA (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=1024
+  [INFO] Magic number: 0x184d2a50
+  [INFO] Note: Custom format magic (non-standard ZSTD)
+  [INFO] Compressed size: 2048 bytes
+  [INFO] ✓ Frame format appears valid
+  [PASS] Frame Format Validation
+
+[TEST] Checksum Validation
+[DEBUG] compress: ENTRY at TOP. Size=4096
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=4096
+[DEBUG] compress_literals: NumLit=832, HeaderLen=2, Bytes: 04 34 00
+[DEBUG] encode_sequences_raw: NumSeq=26, HeaderSize=2, Bytes: 1A FF 00
+[DEBUG] compress: Block 0 Output Readback: 04 34 00 01 02 (Ptr: 0x925f39600)
+[PERF] Phase 1 (LZ77): 32 ms, Phase 2 (Encode): 2 ms
+[DEBUG] write_block: type=2, size=1148, is_last=1, original=4096, compressed=1148
+[DEBUG] write_block_peek: Src Bytes: 04 34 00 01 02 (src=0x925f39600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 34 00 01 02 (Ptr: 0x925f39600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 34 00 01 02
+  [INFO] Compressed data size: 1174 bytes
+  [INFO] Note: Checksum validation via decompression round-trip
+[DEBUG] decompress: Block header parsed. size=1148, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1148, header: 04 34 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=314, header bytes: 1A FF BB 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=26, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=4096
+  [INFO] ✓ Data integrity verified via round-trip
+  [PASS] Checksum Validation
+
+[TEST] Special Data Patterns
+  [INFO] Testing: All zeros
+[DEBUG] compress: ENTRY at TOP. Size=8192
+[DEBUG] compress: Input Start Bytes: 00 00 00 00 00 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8192
+[DEBUG] compress_literals: NumLit=2636, HeaderLen=2, Bytes: C4 A4 00
+[DEBUG] encode_sequences_raw: NumSeq=44, HeaderSize=2, Bytes: 2C FF 00
+[DEBUG] compress: Block 0 Output Readback: C4 A4 00 00 00 (Ptr: 0x926172600)
+[PERF] Phase 1 (LZ77): 40 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=3168, is_last=1, original=8192, compressed=3168
+[DEBUG] write_block_peek: Src Bytes: C4 A4 00 00 00 (src=0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Source: C4 A4 00 00 00 (Ptr: 0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Dest: C4 A4 00 00 00
+[DEBUG] decompress: Block header parsed. size=3168, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=3168, header: C4 A4 00 00 00
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=530, header bytes: 2C FF 7D 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=44, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=8192
+  [INFO]   All zeros: 2.56:1 ratio
+  [INFO] Testing: All ones
+[DEBUG] compress: ENTRY at TOP. Size=8192
+[DEBUG] compress: Input Start Bytes: FF FF FF FF FF (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8192
+[DEBUG] compress_literals: NumLit=2304, HeaderLen=2, Bytes: 04 90 00
+[DEBUG] encode_sequences_raw: NumSeq=46, HeaderSize=2, Bytes: 2E FF 00
+[DEBUG] compress: Block 0 Output Readback: 04 90 FF FF FF (Ptr: 0x926172600)
+[PERF] Phase 1 (LZ77): 54 ms, Phase 2 (Encode): 3 ms
+[DEBUG] write_block: type=2, size=2860, is_last=1, original=8192, compressed=2860
+[DEBUG] write_block_peek: Src Bytes: 04 90 FF FF FF (src=0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 90 FF FF FF (Ptr: 0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 90 FF FF FF
+[DEBUG] decompress: Block header parsed. size=2860, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=2860, header: 04 90 FF FF FF
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=554, header bytes: 2E FF 7F 00 00
+[DEBUG] decompress_sequences: Parsed num_sequences=46, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=8192
+  [INFO]   All ones: 2.84:1 ratio
+  [INFO] Testing: All 0xAA
+[DEBUG] compress: ENTRY at TOP. Size=8192
+[DEBUG] compress: Input Start Bytes: AA AA AA AA AA (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8192
+[DEBUG] compress_literals: NumLit=2560, HeaderLen=2, Bytes: 04 A0 00
+[DEBUG] encode_sequences_raw: NumSeq=44, HeaderSize=2, Bytes: 2C FF 00
+[DEBUG] compress: Block 0 Output Readback: 04 A0 AA AA AA (Ptr: 0x926172600)
+[PERF] Phase 1 (LZ77): 59 ms, Phase 2 (Encode): 4 ms
+[DEBUG] write_block: type=2, size=3092, is_last=1, original=8192, compressed=3092
+[DEBUG] write_block_peek: Src Bytes: 04 A0 AA AA AA (src=0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 A0 AA AA AA (Ptr: 0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 A0 AA AA AA
+[DEBUG] decompress: Block header parsed. size=3092, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=3092, header: 04 A0 AA AA AA
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=530, header bytes: 2C FF 7F 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=44, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=8192
+  [INFO]   All 0xAA: 2.63:1 ratio
+  [INFO] Testing: All 0x55
+[DEBUG] compress: ENTRY at TOP. Size=8192
+[DEBUG] compress: Input Start Bytes: 55 55 55 55 55 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8192
+[DEBUG] compress_literals: NumLit=2465, HeaderLen=2, Bytes: 14 9A 00
+[DEBUG] encode_sequences_raw: NumSeq=45, HeaderSize=2, Bytes: 2D FF 00
+[DEBUG] compress: Block 0 Output Readback: 14 9A 55 55 55 (Ptr: 0x926172600)
+[PERF] Phase 1 (LZ77): 56 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=3009, is_last=1, original=8192, compressed=3009
+[DEBUG] write_block_peek: Src Bytes: 14 9A 55 55 55 (src=0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Source: 14 9A 55 55 55 (Ptr: 0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 14 9A 55 55 55
+[DEBUG] decompress: Block header parsed. size=3009, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=3009, header: 14 9A 55 55 55
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=542, header bytes: 2D FF 5F 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=45, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=8192
+  [INFO]   All 0x55: 2.70:1 ratio
+  [INFO] Testing: Sequential
+[DEBUG] compress: ENTRY at TOP. Size=8192
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8192
+[DEBUG] compress_literals: NumLit=768, HeaderLen=2, Bytes: 04 30 00
+[DEBUG] encode_sequences_raw: NumSeq=58, HeaderSize=2, Bytes: 3A FF 00
+[DEBUG] compress: Block 0 Output Readback: 04 30 00 01 02 (Ptr: 0x926172600)
+[PERF] Phase 1 (LZ77): 36 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=2, size=1468, is_last=1, original=8192, compressed=1468
+[DEBUG] write_block_peek: Src Bytes: 04 30 00 01 02 (src=0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Source: 04 30 00 01 02 (Ptr: 0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 04 30 00 01 02
+[DEBUG] decompress: Block header parsed. size=1468, compressed=1, last=1, header_size=3
+[DEBUG] decompress: calling decompress_block at offset 10
+[DEBUG] decompress_literals: input_size=1468, header: 04 30 00 01 02
+[DEBUG] decompress_literals: type=0
+[DEBUG] decompress_sequences: input_size=698, header bytes: 3A FF 23 01 00
+[DEBUG] decompress_sequences: Parsed num_sequences=58, offset=1
+[DEBUG] decompress_sequences: fse_modes=0xFF, offset=2
+[DEBUG] decompress: decompress_block DONE. decompressed_size=8192
+  [INFO]   Sequential: 5.48:1 ratio
+  [INFO] Testing: Random
+[DEBUG] compress: ENTRY at TOP. Size=8192
+[DEBUG] compress: Input Start Bytes: 5F CB F3 2E BB (d_input=0x90ba00000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=8192
+[DEBUG] compress_literals: NumLit=8192, HeaderLen=3, Bytes: 08 00 02
+[DEBUG] encode_sequences_raw: NumSeq=1, HeaderSize=2, Bytes: 01 FF 00
+[DEBUG] compress: Block 0 Output Readback: 08 00 02 5F CB (Ptr: 0x926172600)
+[PERF] Phase 1 (LZ77): 48 ms, Phase 2 (Encode): 1 ms
+[DEBUG] write_block: type=0, size=8192, is_last=1, original=8192, compressed=8209
+[DEBUG] write_block_peek: Src Bytes: 5F CB F3 2E BB (src=0x90ba00000)
+[DEBUG] compress: Phase 3 Block 0 Source: 08 00 02 5F CB (Ptr: 0x926172600)
+[DEBUG] compress: Phase 3 Block 0 Dest: 5F CB F3 2E BB
+[DEBUG] decompress: Block header parsed. size=8192, compressed=0, last=1, header_size=3
+  [INFO]   Random: 1.00:1 ratio
+  [PASS] Special Patterns
+
+[TEST] Byte Alignment and Padding
+[DEBUG] compress: ENTRY at TOP. Size=1
+[DEBUG] compress: Input Start Bytes: 00 01 00 00 00 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=1
+[DEBUG] compress: ENTRY at TOP. Size=3
+[DEBUG] compress: Input Start Bytes: 00 01 02 00 00 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=3
+[DEBUG] compress: ENTRY at TOP. Size=5
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=5
+[DEBUG] compress: ENTRY at TOP. Size=7
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=7
+[DEBUG] compress: ENTRY at TOP. Size=9
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=9
+[DEBUG] compress: ENTRY at TOP. Size=11
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=11
+[DEBUG] compress: ENTRY at TOP. Size=13
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=13
+[DEBUG] compress: ENTRY at TOP. Size=15
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=15
+[DEBUG] compress: ENTRY at TOP. Size=17
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=17
+[DEBUG] compress: ENTRY at TOP. Size=19
+[DEBUG] compress: Input Start Bytes: 00 01 02 03 04 (d_input=0x904bffc00)
+[DEBUG] compress: ENTRY. num_blocks=1, size=19
+  [INFO] Passed: 0/10 unaligned sizes
+  [FAIL] test_byte_alignment: Some alignment tests failed
+
+[TEST] Deterministic Compression
+[DEBUG] compress: ENTRY at TOP. Size=32768
+[DEBUG] compress: Input Start Bytes: ED E3 50 21 2F (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=32768
+[DEBUG] compress_literals: NumLit=32753, HeaderLen=3, Bytes: 18 FF 07
+[DEBUG] encode_sequences_raw: NumSeq=6, HeaderSize=2, Bytes: 06 FF 00
+[DEBUG] compress: Block 0 Output Readback: 18 FF 07 ED E3 (Ptr: 0x9268c8600)
+[PERF] Phase 1 (LZ77): 226 ms, Phase 2 (Encode): 3 ms
+[DEBUG] write_block: type=0, size=32768, is_last=1, original=32768, compressed=32830
+[DEBUG] write_block_peek: Src Bytes: ED E3 50 21 2F (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 18 FF 07 ED E3 (Ptr: 0x9268c8600)
+[DEBUG] compress: Phase 3 Block 0 Dest: ED E3 50 21 2F
+[DEBUG] compress: ENTRY at TOP. Size=32768
+[DEBUG] compress: Input Start Bytes: ED E3 50 21 2F (d_input=0x902dc0000)
+[DEBUG] compress: ENTRY. num_blocks=1, size=32768
+[DEBUG] compress_literals: NumLit=32756, HeaderLen=3, Bytes: 48 FF 07
+[DEBUG] encode_sequences_raw: NumSeq=5, HeaderSize=2, Bytes: 05 FF 00
+[DEBUG] compress: Block 0 Output Readback: 48 FF 07 ED E3 (Ptr: 0x9268c8600)
+[PERF] Phase 1 (LZ77): 232 ms, Phase 2 (Encode): 3 ms
+[DEBUG] write_block: type=0, size=32768, is_last=1, original=32768, compressed=32821
+[DEBUG] write_block_peek: Src Bytes: ED E3 50 21 2F (src=0x902dc0000)
+[DEBUG] compress: Phase 3 Block 0 Source: 48 FF 07 ED E3 (Ptr: 0x9268c8600)
+[DEBUG] compress: Phase 3 Block 0 Dest: ED E3 50 21 2F
+  [INFO] First compression: 32794 bytes
+  [INFO] Second compression: 32794 bytes
+  [INFO] ✓ Compression is deterministic (bit-exact)
+  [PASS] Deterministic Compression
+========================================
+TEST RESULTS
+========================================
+Passed: 6/9
+Failed: 3/9
+
+✗ SOME TESTS FAILED
+========================================
