@@ -1,0 +1,3 @@
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/_deps/zstd-subbuild/CMakeFiles/zstd-populate.dir
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/_deps/zstd-subbuild/CMakeFiles/edit_cache.dir
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/_deps/zstd-subbuild/CMakeFiles/rebuild_cache.dir

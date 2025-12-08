@@ -1,0 +1,1 @@
+-I"/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build_v32/_deps/zstd-src/lib" -I"/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include" -isystem "/usr/local/cuda/targets/x86_64-linux/include"
