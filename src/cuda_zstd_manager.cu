@@ -1742,6 +1742,20 @@ public:
       if (num_sequences > 0) {
         const u32 threads = 256;
         const u32 seq_blocks = (num_sequences + threads - 1) / threads;
+
+        // Validate buffer capacity (512KB = 131072 u32 values)
+        const u32 max_sequences = 131072;
+        if (num_sequences > max_sequences) {
+          printf("[ERROR] compress: num_sequences=%u exceeds buffer "
+                 "capacity=%u for block %u\n",
+                 num_sequences, max_sequences, block_idx);
+          return Status::ERROR_BUFFER_TOO_SMALL;
+        }
+
+        printf("[DEBUG] compress: Calling build_sequences for block %u with "
+               "num_sequences=%u\\n",
+               block_idx, num_sequences);
+
         status =
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,
                                       seq_blocks, threads, stream);
