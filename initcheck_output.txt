@@ -1,0 +1,31 @@
+========= COMPUTE-SANITIZER
+========================================
+Compressible Data Validation Tests
+========================================
+
+Objective: Prove system DOES compress when given compressible data
+Context: benchmark_lz77 showed 'zero sequences' with random data
+
+
+=== Testing: Repeated Text (64KB) ===
+Input size: 65536 bytes
+[DEBUG] compress: Block 0 has num_sequences=542
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=542\n[DEBUG] First 5 sequences: [LL=541,ML=3,OF=14] [LL=50,ML=128,OF=405] [LL=44,ML=3,OF=14] [LL=49,ML=128,OF=675] [LL=7,ML=128,OF=585] 
+[DEBUG] Pointers: d_lit=0x90ddc0080, d_match=0x90de00080, d_off=0x90de40080, d_seq=0x90df10600
+[DEBUG] Pointer deltas: match-lit=262144, off-lit=524288
+✅ Compressed: 9192 bytes
+✅ Compression ratio: 7.13:1
+✅ Round-trip verified!
+✅ Repeated text test PASSED
+
+=== Testing: JSON Pattern (64KB) ===
+Input size: 65536 bytes
+[DEBUG] compress: Block 0 has num_sequences=3007
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=3007\n[DEBUG] First 5 sequences: [LL=360,ML=6,OF=264] [LL=1,ML=35,OF=264] [LL=81,ML=3,OF=434] [LL=10,ML=3,OF=16] [LL=63,ML=3,OF=16] 
+[DEBUG] Pointers: d_lit=0x90e7c0080, d_match=0x90e800080, d_off=0x90e840080, d_seq=0x90e910600
+[DEBUG] Pointer deltas: match-lit=262144, off-lit=524288
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:100 in build_sequences() (CUDA: invalid argument)
+test_compressible_data: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_compressible_data.cu:246: bool test_json_pattern(): Assertion `result.success && "Compression should succeed"' failed.
+========= Error: process didn't terminate successfully
+========= Target application returned an error
+========= ERROR SUMMARY: 0 errors
