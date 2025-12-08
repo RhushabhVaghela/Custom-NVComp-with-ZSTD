@@ -1427,10 +1427,11 @@ public:
       byte_t *recycled_matches = reinterpret_cast<byte_t *>(block_ws.d_matches);
       byte_t *recycled_costs = reinterpret_cast<byte_t *>(block_ws.d_costs);
 
+      // FIX: Ensure correct byte offsets (was showing 256KB instead of 512KB)
       local_seq_ctx.d_literal_lengths =
           reinterpret_cast<u32 *>(recycled_matches);
-      local_seq_ctx.d_match_lengths =
-          reinterpret_cast<u32 *>(recycled_matches + 512 * 1024);
+      local_seq_ctx.d_match_lengths = reinterpret_cast<u32 *>(
+          (byte_t *)recycled_matches + (512 * 1024)); // Explicit byte offset
       local_seq_ctx.d_offsets = reinterpret_cast<u32 *>(recycled_costs);
 
       // FIX: d_literals_buffer must be a separate buffer for PACKED literals
@@ -1769,6 +1770,18 @@ public:
                  h_offsets[i]);
         }
         printf("\n");
+
+        // Pointer diagnostics
+        printf("[DEBUG] Pointers: d_lit=%p, d_match=%p, d_off=%p, d_seq=%p\n",
+               (void *)block_seq_ctxs[block_idx].d_literal_lengths,
+               (void *)block_seq_ctxs[block_idx].d_match_lengths,
+               (void *)block_seq_ctxs[block_idx].d_offsets,
+               (void *)block_seq_ctxs[block_idx].d_sequences);
+        printf("[DEBUG] Pointer deltas: match-lit=%td, off-lit=%td\n",
+               (char *)block_seq_ctxs[block_idx].d_match_lengths -
+                   (char *)block_seq_ctxs[block_idx].d_literal_lengths,
+               (char *)block_seq_ctxs[block_idx].d_offsets -
+                   (char *)block_seq_ctxs[block_idx].d_literal_lengths);
 
         status =
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,
