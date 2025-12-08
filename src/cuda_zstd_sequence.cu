@@ -64,6 +64,21 @@ Status build_sequences(const SequenceContext &ctx,
 
   // Clear the sequence count
   if (!ctx.d_num_sequences || !ctx.d_sequences || !ctx.d_literal_lengths) {
+    printf("[ERROR] build_sequences: Null pointer detected\n");
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
+  // Validate kernel launch parameters
+  if (num_blocks == 0 || num_threads == 0 || num_sequences_to_build == 0) {
+    printf("[ERROR] build_sequences: Invalid dimensions - blocks=%u, "
+           "threads=%u, seqs=%u\n",
+           num_blocks, num_threads, num_sequences_to_build);
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
+  if (num_threads > 1024) {
+    printf("[ERROR] build_sequences: threads=%u exceeds max 1024\n",
+           num_threads);
     return Status::ERROR_INVALID_PARAMETER;
   }
 
