@@ -1714,10 +1714,22 @@ public:
     // Vector to store compressed sizes
     std::vector<u32> block_compressed_sizes(num_blocks);
 
-    // === PHASE 2: Parallel Encoding ===
+    //  === PHASE 2: Parallel Encoding ===
     auto phase2_start = std::chrono::high_resolution_clock::now();
 
     for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
+      // DIAGNOSTIC: Check if pointers are already corrupted at Phase 2 start
+      if (block_idx == 0) {
+        printf("\n[PHASE2-START] Checking block_seq_ctxs[0] pointers:\n");
+        printf("[PHASE2-START] d_literal_lengths = %p\n",
+               (void *)block_seq_ctxs[0].d_literal_lengths);
+        printf("[PHASE2-START] d_match_lengths = %p\n",
+               (void *)block_seq_ctxs[0].d_match_lengths);
+        printf("[PHASE2-START] Offset: match - lit = %td bytes\n",
+               (char *)block_seq_ctxs[0].d_match_lengths -
+                   (char *)block_seq_ctxs[0].d_literal_lengths);
+      }
+
       u32 block_start = block_idx * block_size;
       // Use worst-case bound for temporary block output
       // u32 max_block_out = ZSTD_compressBound(block_size);
