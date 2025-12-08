@@ -18,15 +18,14 @@ void check(Status status, const char *msg) {
 }
 
 int main() {
-  std::cout << "=== Hybrid CPU/GPU Integration Test ===" << std::endl;
+  std::cout << "=== Hybrid CPU/GPU Integration Test + Size 1 Fix ==="
+            << std::endl;
 
   // 1. Setup Manager
-  // Use factory function from manager header
   auto manager = create_manager();
   CompressionConfig config = CompressionConfig::get_default();
 
   // 2. Set Dynamic Threshold (e.g., 2048 bytes)
-  // Inputs < 2048 should go to CPU. inputs >= 2048 should go to GPU.
   config.cpu_threshold = 2048;
   manager->configure(config);
 
@@ -86,21 +85,48 @@ int main() {
   config.cpu_threshold = 0;
   manager->configure(config);
 
-  out_size_small = comp_size_small;
-  // Note: This might return Status 8 (Unsupported) if decompressed on host or
-  // produce valid Raw block We just check it doesn't Crash (return SUCCESS or
-  // handled error) Actually, based on my previous fix, it should return SUCCESS
-  // (Raw Block)
-  Status s =
-      manager->compress(d_small, small_size, d_comp_small, &out_size_small,
-                        d_work, work_size, nullptr, 0, stream);
-  if (s == Status::SUCCESS) {
-    std::cout
-        << "Small Compress (GPU Forced) Success (Raw Block likely). Size: "
-        << out_size_small << std::endl;
-  } else {
-    std::cout << "Small Compress (GPU Forced) Status: " << (int)s << std::endl;
+  // Test Size 1 specifically
+  std::cout << "Testing Size 1 (GPU Forced)..." << std::endl;
+  size_t size_1 = 1;
+  void *d_1;
+  void *d_comp_1;
+  size_t comp_size_1 = ZSTD_compressBound(1);
+  cudaMalloc(&d_1, 1);
+  cudaMalloc(&d_comp_1, comp_size_1);
+  uint8_t h_1 = 0xAA;
+  cudaMemcpy(d_1, &h_1, 1, cudaMemcpyHostToDevice);
+
+  size_t out_size_1 = comp_size_1;
+  check(manager->compress(d_1, 1, d_comp_1, &out_size_1, d_work, work_size,
+                          nullptr, 0, stream),
+        "Compress Size 1");
+  cudaStreamSynchronize(stream);
+
+  // Verify Decompression for Size 1
+  std::cout << "Decompressing Size 1..." << std::endl;
+  void *d_out_1;
+  cudaMalloc(&d_out_1, 1);
+  size_t decomp_size_1 = 1; // Expected input size
+  size_t actual_decomp_size = 0;
+
+  // Note: decompress takes uncompressed_size as pointer to output capacity or
+  // expected? Prototype: decompress(const void *src, size_t src_size, void
+  // *dst, size_t *dst_size, ...) dst_size serves as Capacity (IN) and Actual
+  // Size (OUT).
+  size_t capacity_1 = 1;
+  check(manager->decompress(d_comp_1, out_size_1, d_out_1, &capacity_1, d_work,
+                            work_size, stream),
+        "Decompress Size 1");
+  cudaStreamSynchronize(stream);
+
+  uint8_t h_out_1 = 0;
+  cudaMemcpy(&h_out_1, d_out_1, 1, cudaMemcpyDeviceToHost);
+  if (h_out_1 != h_1) {
+    std::cerr << "Size 1 Content Mismatch! Expected " << (int)h_1 << " got "
+              << (int)h_out_1 << std::endl;
+    exit(1);
   }
+  std::cout << "Size 1: VALID." << std::endl;
 
   std::cout << "=== Hybrid Test Passed ===" << std::endl;
   return 0;

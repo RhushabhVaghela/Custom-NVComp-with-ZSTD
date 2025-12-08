@@ -1,4 +1,4 @@
-build/
+build*/
 .history/
 logs/
 temp/
