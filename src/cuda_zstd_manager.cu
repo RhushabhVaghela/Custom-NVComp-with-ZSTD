@@ -1731,13 +1731,8 @@ public:
       }
 
       // Build Sequences
-      // Build Sequences
-      // fprintf(stderr,
-      //         "[DEBUG] Block %u: num_sequences=%u, d_seq=%p, d_lit=%p\n",
-      //         block_idx, num_sequences,
-      //         block_seq_ctxs[block_idx].d_sequences,
-      //         block_seq_ctxs[block_idx].d_literals_buffer);
-      // fflush(stderr);
+      printf("[DEBUG] compress: Block %u has num_sequences=%u\n", block_idx,
+             num_sequences);
 
       if (num_sequences > 0) {
         const u32 threads = 256;
