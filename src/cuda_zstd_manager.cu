@@ -1396,10 +1396,11 @@ public:
       ws_offset += align_to_boundary(huff_size, GPU_MEMORY_ALIGNMENT);
 
       // Global buffers (shared/partitioned logically)
-      block_ws.d_matches =
-          (lz77::Match *)call_workspace.d_matches + block_start;
-      block_ws.d_costs =
-          (lz77::ParseCost *)call_workspace.d_costs + block_start;
+      // FIX: block_start is a byte offset, but we need element index for
+      // pointer arithmetic d_matches and d_costs are indexed by input position,
+      // not byte offset
+      block_ws.d_matches = (lz77::Match *)call_workspace.d_matches;
+      block_ws.d_costs = (lz77::ParseCost *)call_workspace.d_costs;
 
       // Block sums (3 slots per block)
       block_ws.d_block_sums = call_workspace.d_block_sums + (block_idx * 3);
