@@ -1398,10 +1398,35 @@ public:
       // Global buffers (shared/partitioned logically)
       // CRITICAL: Each block needs its own portion for parallel processing
       // Use block_idx * block_size as ELEMENT offset (not byte offset!)
+
+      // DIAGNOSTICS: Print struct sizes and offset calculations
+      if (block_idx == 0) {
+        printf("[DIAG] sizeof(Match)=%zu, sizeof(ParseCost)=%zu\n",
+               sizeof(lz77::Match), sizeof(lz77::ParseCost));
+        printf("[DIAG] block_size=%u, num_blocks=%u, input_size=%zu\n",
+               block_size, num_blocks, uncompressed_size);
+        printf("[DIAG] Element offset calculation: block_idx * block_size = %u "
+               "* %u = %u\n",
+               block_idx, block_size, block_idx * block_size);
+        printf("[DIAG] call_workspace.d_matches base = %p\n",
+               call_workspace.d_matches);
+        printf("[DIAG] call_workspace.d_costs base = %p\n",
+               call_workspace.d_costs);
+      }
+
       block_ws.d_matches =
           (lz77::Match *)call_workspace.d_matches + (block_idx * block_size);
       block_ws.d_costs =
           (lz77::ParseCost *)call_workspace.d_costs + (block_idx * block_size);
+
+      if (block_idx == 0) {
+        printf("[DIAG] block_ws.d_matches (after offset) = %p\n",
+               (void *)block_ws.d_matches);
+        printf("[DIAG] block_ws.d_costs (after offset) = %p\n",
+               (void *)block_ws.d_costs);
+        printf("[DIAG] Pointer delta: d_matches offset = %td bytes\n",
+               (char *)block_ws.d_matches - (char *)call_workspace.d_matches);
+      }
 
       // Block sums (3 slots per block)
       block_ws.d_block_sums = call_workspace.d_block_sums + (block_idx * 3);
@@ -1429,12 +1454,35 @@ public:
       byte_t *recycled_matches = reinterpret_cast<byte_t *>(block_ws.d_matches);
       byte_t *recycled_costs = reinterpret_cast<byte_t *>(block_ws.d_costs);
 
+      // DIAGNOSTICS: Check recycled pointer values
+      if (block_idx == 0) {
+        printf("[DIAG] recycled_matches = %p (cast from block_ws.d_matches)\n",
+               (void *)recycled_matches);
+        printf("[DIAG] recycled_costs = %p (cast from block_ws.d_costs)\n",
+               (void *)recycled_costs);
+      }
+
       // FIX: Ensure correct byte offsets (was showing 256KB instead of 512KB)
       local_seq_ctx.d_literal_lengths =
           reinterpret_cast<u32 *>(recycled_matches);
       local_seq_ctx.d_match_lengths = reinterpret_cast<u32 *>(
           (byte_t *)recycled_matches + (512 * 1024)); // Explicit byte offset
       local_seq_ctx.d_offsets = reinterpret_cast<u32 *>(recycled_costs);
+
+      // DIAGNOSTICS: Verify final sequence buffer pointers
+      if (block_idx == 0) {
+        printf("[DIAG] d_literal_lengths = %p\n",
+               (void *)local_seq_ctx.d_literal_lengths);
+        printf("[DIAG] d_match_lengths = %p\n",
+               (void *)local_seq_ctx.d_match_lengths);
+        printf("[DIAG] d_offsets = %p\n", (void *)local_seq_ctx.d_offsets);
+        printf(
+            "[DIAG] Expected offset for d_match_lengths: 512KB = %zu bytes\n",
+            512 * 1024);
+        printf("[DIAG] Actual offset: match - lit = %td bytes\n",
+               (char *)local_seq_ctx.d_match_lengths -
+                   (char *)local_seq_ctx.d_literal_lengths);
+      }
 
       // FIX: d_literals_buffer must be a separate buffer for PACKED literals
       // We can use the remaining space in recycled_costs (Offset 512KB)
@@ -1515,25 +1563,15 @@ public:
                 reinterpret_cast<byte_t *>(call_workspace.d_offsets_reverse) +
                 block_offset_idx * sizeof(u32));
 
-            // (FIX) Initialize block_seq_ctx pointers
-            block_seq_ctxs[block_idx].d_sequences =
-                reinterpret_cast<sequence::Sequence *>(
-                    reinterpret_cast<byte_t *>(ctx.seq_ctx->d_sequences) +
-                    block_offset_idx * sizeof(sequence::Sequence));
-            block_seq_ctxs[block_idx].d_literal_lengths =
-                reinterpret_cast<u32 *>(
-                    reinterpret_cast<byte_t *>(ctx.seq_ctx->d_literal_lengths) +
-                    block_offset_idx * sizeof(u32));
-            block_seq_ctxs[block_idx].d_match_lengths = reinterpret_cast<u32 *>(
-                reinterpret_cast<byte_t *>(ctx.seq_ctx->d_match_lengths) +
-                block_offset_idx * sizeof(u32));
-            block_seq_ctxs[block_idx].d_offsets = reinterpret_cast<u32 *>(
-                reinterpret_cast<byte_t *>(ctx.seq_ctx->d_offsets) +
-                block_offset_idx * sizeof(u32));
-            block_seq_ctxs[block_idx].d_literals_buffer =
-                reinterpret_cast<byte_t *>(
-                    reinterpret_cast<byte_t *>(ctx.seq_ctx->d_literals_buffer) +
-                    block_offset_idx * sizeof(byte_t));
+            // REMOVED DUPLICATE ASSIGNMENTS - block_seq_ctxs already set
+            // correctly in Phase 1! These duplicate assignments were using
+            // WRONG pointer arithmetic: ctx.seq_ctx->d_literal_lengths +
+            // block_offset_idx * sizeof(u32) was adding BYTE offset to u32*,
+            // causing the 256KB bug!
+
+            // block_seq_ctxs[block_idx] is already correctly initialized
+            // earlier (line ~1498) with proper recycled buffer pointers. Don't
+            // overwrite it!
 
             // Run LZ77 (Async)
             // Construct LZ77Config from manager config
