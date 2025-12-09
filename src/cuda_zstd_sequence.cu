@@ -33,6 +33,8 @@ __global__ void build_sequences_kernel(const u32 *d_literals_buffer,
                                        u32 *d_num_sequences) {
 
   const u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
+  /* Unconditional write test removed */
+
   // (FIXED) Loop bound is now the number of sequences to build
   if (idx >= num_sequences_to_build) {
     return;
@@ -50,11 +52,7 @@ __global__ void build_sequences_kernel(const u32 *d_literals_buffer,
   d_sequences[seq_idx].literal_length = lit_len;
   d_sequences[seq_idx].match_length = match_length;
   d_sequences[seq_idx].match_offset = offset;
-
-  if (seq_idx < 5) {
-    //       printf("[BUILD_SEQ] idx=%u, seq_idx=%u, LL=%u, ML=%u, OF=%u\n",
-    //              idx, seq_idx, lit_len, match_length, offset);
-  }
+  d_sequences[seq_idx].padding = 0; // (FIX) Ensure 16-byte vectorized write
 }
 
 // Host-side function implementation
@@ -67,6 +65,9 @@ Status build_sequences(const SequenceContext &ctx,
     printf("[ERROR] build_sequences: Null pointer detected\n");
     return Status::ERROR_INVALID_PARAMETER;
   }
+
+  printf("[DEBUG] build_sequences: d_sequences=%p, d_num_sequences=%p\n",
+         ctx.d_sequences, ctx.d_num_sequences);
 
   // Validate kernel launch parameters
   if (num_blocks == 0 || num_threads == 0 || num_sequences_to_build == 0) {
@@ -82,22 +83,37 @@ Status build_sequences(const SequenceContext &ctx,
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  CUDA_CHECK(cudaMemsetAsync(ctx.d_num_sequences, 0, sizeof(u32), stream));
+  printf("[DEBUG] build_sequences: d_sequences=%p, d_num_sequences=%p\n",
+         (void *)ctx.d_sequences, (void *)ctx.d_num_sequences);
+
+  // Check pre-existing errors
+  cudaError_t pre_err = cudaGetLastError();
+  if (pre_err != cudaSuccess) {
+    printf("[ERROR] build_sequences: Pre-existing error: %s\n",
+           cudaGetErrorString(pre_err));
+  }
+
+  cudaError_t err =
+      cudaMemsetAsync(ctx.d_num_sequences, 0, sizeof(u32), stream);
+  if (err != cudaSuccess) {
+    printf("[ERROR] build_sequences: cudaMemsetAsync failed: %s\n",
+           cudaGetErrorString(err));
+    return Status::ERROR_CUDA_ERROR;
+  }
+
+  CUDA_CHECK(cudaStreamSynchronize(stream)); // Isolate memset
 
   // Launch kernel
   build_sequences_kernel<<<num_blocks, num_threads, 0, stream>>>(
-      ctx.d_literal_lengths, // (FIXED) Was incorrectly d_literals_buffer
-      ctx.d_match_lengths, ctx.d_offsets,
-      num_sequences_to_build, // (MODIFIED) Pass correct count
-      ctx.d_sequences, ctx.d_num_sequences);
+      ctx.d_literal_lengths, ctx.d_match_lengths, ctx.d_offsets,
+      num_sequences_to_build, ctx.d_sequences, ctx.d_num_sequences);
 
-  // (NEW) We must update the host-side count
-  // This is a bug in the original design.
-  // The manager should be getting this from the device.
-  // We've fixed this in the manager patch by using a host-side variable.
-  // ctx.num_sequences = num_sequences_to_build; // This is a host var
-
-  CUDA_CHECK(cudaGetLastError());
+  err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    printf("[ERROR] build_sequences: Kernel launch failed: %s\n",
+           cudaGetErrorString(err));
+    return Status::ERROR_CUDA_ERROR;
+  }
   return Status::SUCCESS;
 }
 
