@@ -1,0 +1,40 @@
+========================================
+Compressible Data Validation Tests
+========================================
+
+Objective: Prove system DOES compress when given compressible data
+Context: benchmark_lz77 showed 'zero sequences' with random data
+
+
+=== Testing: JSON Pattern (64KB) ===
+Input size: 65536 bytes
+[DIAG] get_compress_temp_size: input=65536, total=10485760
+[DIAG] get_compress_temp_size: input=65536, total=10485760
+[DIAG] compress: temp_size=10485760, total_used=6882816, remaining=3602944
+[DIAG] sizeof(Match)=16, sizeof(ParseCost)=8, sizeof(Sequence)=12
+[DIAG] block_size=65536, num_blocks=1, input_size=65536
+[DIAG] Element offset calculation: block_idx * block_size = 0 * 65536 = 0
+[DIAG] call_workspace.d_matches base = 0x90bf80000
+[DIAG] call_workspace.d_costs base = 0x90c080000
+[DIAG] block_ws.d_matches (after offset) = 0x90bf80000
+[DIAG] block_ws.d_costs (after offset) = 0x90c080000
+[DIAG] Pointer delta: d_matches offset = 0 bytes
+[DIAG] recycled_matches = 0x90bf80000 (cast from block_ws.d_matches)
+[DIAG] recycled_costs = 0x90c080000 (cast from block_ws.d_costs)
+[DIAG] d_literal_lengths = 0x90bf80000
+[DIAG] d_match_lengths = 0x90c000000
+[DIAG] d_offsets = 0x90c080000
+[DIAG] d_sequences = 0x90c650600
+[DIAG] Expected offset for d_match_lengths: 512KB = 524288 bytes
+[DIAG] Actual offset: match - lit = 524288 bytes
+
+[PHASE2-START] Checking block_seq_ctxs[0] pointers:
+[PHASE2-START] d_literal_lengths = 0x90bf80000
+[PHASE2-START] d_match_lengths = 0x90c000000
+[PHASE2-START] Offset: match - lit = 524288 bytes
+[DEBUG] compress: Block 0 has num_sequences=3030
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=3030\n[DEBUG] First 5 sequences: [LL=537,ML=11,OF=264] [LL=31,ML=21,OF=528] [LL=51,ML=3,OF=507] [LL=36,ML=8,OF=266] [LL=27,ML=10,OF=531] 
+[DEBUG] Pointers: d_lit=0x90bf80000, d_match=0x90c000000, d_off=0x90c080000, d_seq=0x90c650600
+[DEBUG] Pointer deltas: match-lit=524288, off-lit=1048576
+[DEBUG] build_sequences: d_sequences=0x90c650600, d_num_sequences=0x90c290080
+test_compressible_data: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_compressible_data.cu:230: bool test_json_pattern(): Assertion `result.success && "Compression should succeed"' failed.

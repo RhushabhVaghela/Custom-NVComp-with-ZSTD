@@ -1,0 +1,34 @@
+[ 11%] Built target libzstd_static
+[ 11%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_manager.cu.o
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(1418): error: identifier "ZstdCompressionParameters" is undefined
+      ZstdCompressionParameters params = get_params(effective_config);
+      ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(1418): error: identifier "get_params" is undefined
+      ZstdCompressionParameters params = get_params(effective_config);
+                                         ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(1420): error: identifier "d_compressed" is undefined
+      status = write_frame_header(d_compressed, available_out_size, &header_size,
+                                  ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(1420): error: identifier "available_out_size" is undefined
+      status = write_frame_header(d_compressed, available_out_size, &header_size,
+                                                ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(1422): error: class "cuda_zstd::CompressionWorkspace" has no member "d_compressed_size"
+                                  call_workspace.d_compressed_size, stream);
+                                                 ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(1422): error: argument of type "cudaStream_t" (aka "CUstream_st *") is incompatible with parameter of type "size_t" (aka "unsigned long")
+                                  call_workspace.d_compressed_size, stream);
+                                                                    ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(1422): error: too few arguments in function call
+                                  call_workspace.d_compressed_size, stream);
+                                                                          ^
+
+7 errors detected in the compilation of "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu".
+gmake[2]: *** [CMakeFiles/cuda_zstd_static.dir/build.make:105: CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_manager.cu.o] Error 2
+gmake[1]: *** [CMakeFiles/Makefile2:279: CMakeFiles/cuda_zstd_static.dir/all] Error 2
+gmake: *** [Makefile:146: all] Error 2

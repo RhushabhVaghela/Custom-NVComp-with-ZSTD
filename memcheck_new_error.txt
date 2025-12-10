@@ -1,0 +1,168 @@
+========= COMPUTE-SANITIZER
+========================================
+Compressible Data Validation Tests
+========================================
+
+Objective: Prove system DOES compress when given compressible data
+Context: benchmark_lz77 showed 'zero sequences' with random data
+
+
+=== Testing: Repeated Text (64KB) ===
+Input size: 65536 bytes
+[DIAG] sizeof(Match)=16, sizeof(ParseCost)=8
+[DIAG] block_size=65536, num_blocks=1, input_size=65536
+[DIAG] Element offset calculation: block_idx * block_size = 0 * 65536 = 0
+[DIAG] call_workspace.d_matches base = 0x90f380000
+[DIAG] call_workspace.d_costs base = 0x90f480000
+[DIAG] block_ws.d_matches (after offset) = 0x90f380000
+[DIAG] block_ws.d_costs (after offset) = 0x90f480000
+[DIAG] Pointer delta: d_matches offset = 0 bytes
+[DIAG] recycled_matches = 0x90f380000 (cast from block_ws.d_matches)
+[DIAG] recycled_costs = 0x90f480000 (cast from block_ws.d_costs)
+[DIAG] d_literal_lengths = 0x90f380000
+[DIAG] d_match_lengths = 0x90f400000
+[DIAG] d_offsets = 0x90f480000
+[DIAG] d_sequences = 0x90fa50600
+[DIAG] Expected offset for d_match_lengths: 512KB = 524288 bytes
+[DIAG] Actual offset: match - lit = 524288 bytes
+
+[PHASE2-START] Checking block_seq_ctxs[0] pointers:
+[PHASE2-START] d_literal_lengths = 0x90f380000
+[PHASE2-START] d_match_lengths = 0x90f400000
+[PHASE2-START] Offset: match - lit = 524288 bytes
+[DEBUG] compress: Block 0 has num_sequences=528
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=528\n[DEBUG] First 5 sequences: [LL=316,ML=3,OF=14] [LL=4,ML=128,OF=45] [LL=113,ML=128,OF=405] [LL=162,ML=128,OF=90] [LL=237,ML=128,OF=135] 
+[DEBUG] Pointers: d_lit=0x90f380000, d_match=0x90f400000, d_off=0x90f480000, d_seq=0x90fa50600
+[DEBUG] Pointer deltas: match-lit=524288, off-lit=1048576
+[BUILD_SEQ] idx=0, seq_idx=0, LL=316, ML=3, OF=14, d_sequences=0x90fa50600
+[BUILD_SEQ] idx=1, seq_idx=1, LL=4, ML=128, OF=45, d_sequences=0x90fa50600
+[BUILD_SEQ] idx=2, seq_idx=2, LL=113, ML=128, OF=405, d_sequences=0x90fa50600
+[BUILD_SEQ] idx=3, seq_idx=3, LL=162, ML=128, OF=90, d_sequences=0x90fa50600
+[BUILD_SEQ] idx=4, seq_idx=4, LL=237, ML=128, OF=135, d_sequences=0x90fa50600
+[BUILD_SEQ] idx=0, seq_idx=0, LL=316, ML=3, OF=14, d_sequences=0x90f222580
+[BUILD_SEQ] idx=1, seq_idx=1, LL=4, ML=128, OF=45, d_sequences=0x90f222580
+[BUILD_SEQ] idx=2, seq_idx=2, LL=113, ML=128, OF=405, d_sequences=0x90f222580
+[BUILD_SEQ] idx=3, seq_idx=3, LL=162, ML=128, OF=90, d_sequences=0x90f222580
+[BUILD_SEQ] idx=4, seq_idx=4, LL=237, ML=128, OF=135, d_sequences=0x90f222580
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x1482b] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x14843] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x1485b] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x14873] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x148a6] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaGetLastError.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x3425a] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x227a6] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_json_pattern() [0xf19d] in test_compressible_data
+=========         Host Frame: main [0x987c] in test_compressible_data
+========= 
+✅ Compressed: 9425 bytes
+✅ Compression ratio: 6.95:1
+✅ Round-trip verified!
+✅ Repeated text test PASSED
+
+=== Testing: JSON Pattern (64KB) ===
+Input size: 65536 bytes
+[DIAG] sizeof(Match)=16, sizeof(ParseCost)=8
+[DIAG] block_size=65536, num_blocks=1, input_size=65536
+[DIAG] Element offset calculation: block_idx * block_size = 0 * 65536 = 0
+[DIAG] call_workspace.d_matches base = 0x90ff80000
+[DIAG] call_workspace.d_costs base = 0x910080000
+[DIAG] block_ws.d_matches (after offset) = 0x90ff80000
+[DIAG] block_ws.d_costs (after offset) = 0x910080000
+[DIAG] Pointer delta: d_matches offset = 0 bytes
+[DIAG] recycled_matches = 0x90ff80000 (cast from block_ws.d_matches)
+[DIAG] recycled_costs = 0x910080000 (cast from block_ws.d_costs)
+[DIAG] d_literal_lengths = 0x90ff80000
+[DIAG] d_match_lengths = 0x910000000
+[DIAG] d_offsets = 0x910080000
+[DIAG] d_sequences = 0x910650600
+[DIAG] Expected offset for d_match_lengths: 512KB = 524288 bytes
+[DIAG] Actual offset: match - lit = 524288 bytes
+
+[PHASE2-START] Checking block_seq_ctxs[0] pointers:
+[PHASE2-START] d_literal_lengths = 0x90ff80000
+[PHASE2-START] d_match_lengths = 0x910000000
+[PHASE2-START] Offset: match - lit = 524288 bytes
+[DEBUG] compress: Block 0 has num_sequences=3048
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=3048\n[DEBUG] First 5 sequences: [LL=496,ML=3,OF=16] [LL=12,ML=3,OF=28] [LL=48,ML=3,OF=16] [LL=59,ML=6,OF=198] [LL=9,ML=27,OF=198] 
+[DEBUG] Pointers: d_lit=0x90ff80000, d_match=0x910000000, d_off=0x910080000, d_seq=0x910650600
+[DEBUG] Pointer deltas: match-lit=524288, off-lit=1048576
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_sequence.cu:101 in build_sequences() (CUDA: invalid argument)
+[ERROR] compress: build_sequences failed for block 0 with status 4
+❌ Compression failed: 4
+[BUILD_SEQ] idx=0, seq_idx=0, LL=496, ML=3, OF=16, d_sequences=0x910650600
+[BUILD_SEQ] idx=1, seq_idx=1, LL=12, ML=3, OF=28, d_sequences=0x910650600
+[BUILD_SEQ] idx=2, seq_idx=2, LL=48, ML=3, OF=16, d_sequences=0x910650600
+[BUILD_SEQ] idx=3, seq_idx=3, LL=59, ML=6, OF=198, d_sequences=0x910650600
+[BUILD_SEQ] idx=4, seq_idx=4, LL=9, ML=27, OF=198, d_sequences=0x910650600
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x1482b] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_json_pattern() [0xf19d] in test_compressible_data
+=========         Host Frame: main [0x987c] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x14843] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_json_pattern() [0xf19d] in test_compressible_data
+=========         Host Frame: main [0x987c] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x1485b] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_json_pattern() [0xf19d] in test_compressible_data
+=========         Host Frame: main [0x987c] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x14873] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_json_pattern() [0xf19d] in test_compressible_data
+=========         Host Frame: main [0x987c] in test_compressible_data
+========= 
+========= Program hit cudaErrorInvalidValue (error 1) due to "invalid argument" on CUDA API call to cudaFree.
+=========     Saved host backtrace up to driver entry point at error
+=========         Host Frame: cuda_zstd::DefaultZstdManager::~DefaultZstdManager() [0x148a6] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe484] in test_compressible_data
+=========         Host Frame: test_json_pattern() [0xf19d] in test_compressible_data
+=========         Host Frame: main [0x987c] in test_compressible_data
+========= 
+test_compressible_data: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_compressible_data.cu:246: bool test_json_pattern(): Assertion `result.success && "Compression should succeed"' failed.
+========= Error: process didn't terminate successfully
+========= Target application returned an error
+========= ERROR SUMMARY: 11 errors

@@ -1,0 +1,1555 @@
+========= COMPUTE-SANITIZER
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (32,0,0) in block (0,0,0)
+=========     Address 0x90fa50780 is out of bounds
+=========     and is 304765 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (33,0,0) in block (0,0,0)
+=========     Address 0x90fa5078c is out of bounds
+=========     and is 304777 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (34,0,0) in block (0,0,0)
+=========     Address 0x90fa50798 is out of bounds
+=========     and is 304789 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (35,0,0) in block (0,0,0)
+=========     Address 0x90fa507a4 is out of bounds
+=========     and is 304801 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (36,0,0) in block (0,0,0)
+=========     Address 0x90fa507b0 is out of bounds
+=========     and is 304813 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (37,0,0) in block (0,0,0)
+=========     Address 0x90fa507bc is out of bounds
+=========     and is 304825 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (38,0,0) in block (0,0,0)
+=========     Address 0x90fa507c8 is out of bounds
+=========     and is 304837 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (39,0,0) in block (0,0,0)
+=========     Address 0x90fa507d4 is out of bounds
+=========     and is 304849 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (40,0,0) in block (0,0,0)
+=========     Address 0x90fa507e0 is out of bounds
+=========     and is 304861 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (41,0,0) in block (0,0,0)
+=========     Address 0x90fa507ec is out of bounds
+=========     and is 304873 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (42,0,0) in block (0,0,0)
+=========     Address 0x90fa507f8 is out of bounds
+=========     and is 304885 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (43,0,0) in block (0,0,0)
+=========     Address 0x90fa50804 is out of bounds
+=========     and is 304897 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (44,0,0) in block (0,0,0)
+=========     Address 0x90fa50810 is out of bounds
+=========     and is 304909 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (45,0,0) in block (0,0,0)
+=========     Address 0x90fa5081c is out of bounds
+=========     and is 304921 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (46,0,0) in block (0,0,0)
+=========     Address 0x90fa50828 is out of bounds
+=========     and is 304933 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (47,0,0) in block (0,0,0)
+=========     Address 0x90fa50834 is out of bounds
+=========     and is 304945 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (48,0,0) in block (0,0,0)
+=========     Address 0x90fa50840 is out of bounds
+=========     and is 304957 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (49,0,0) in block (0,0,0)
+=========     Address 0x90fa5084c is out of bounds
+=========     and is 304969 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (50,0,0) in block (0,0,0)
+=========     Address 0x90fa50858 is out of bounds
+=========     and is 304981 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (51,0,0) in block (0,0,0)
+=========     Address 0x90fa50864 is out of bounds
+=========     and is 304993 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (52,0,0) in block (0,0,0)
+=========     Address 0x90fa50870 is out of bounds
+=========     and is 305005 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (53,0,0) in block (0,0,0)
+=========     Address 0x90fa5087c is out of bounds
+=========     and is 305017 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (54,0,0) in block (0,0,0)
+=========     Address 0x90fa50888 is out of bounds
+=========     and is 305029 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (55,0,0) in block (0,0,0)
+=========     Address 0x90fa50894 is out of bounds
+=========     and is 305041 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (56,0,0) in block (0,0,0)
+=========     Address 0x90fa508a0 is out of bounds
+=========     and is 305053 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (57,0,0) in block (0,0,0)
+=========     Address 0x90fa508ac is out of bounds
+=========     and is 305065 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (58,0,0) in block (0,0,0)
+=========     Address 0x90fa508b8 is out of bounds
+=========     and is 305077 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (59,0,0) in block (0,0,0)
+=========     Address 0x90fa508c4 is out of bounds
+=========     and is 305089 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (60,0,0) in block (0,0,0)
+=========     Address 0x90fa508d0 is out of bounds
+=========     and is 305101 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (61,0,0) in block (0,0,0)
+=========     Address 0x90fa508dc is out of bounds
+=========     and is 305113 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (62,0,0) in block (0,0,0)
+=========     Address 0x90fa508e8 is out of bounds
+=========     and is 305125 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (63,0,0) in block (0,0,0)
+=========     Address 0x90fa508f4 is out of bounds
+=========     and is 305137 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (64,0,0) in block (0,0,0)
+=========     Address 0x90fa50900 is out of bounds
+=========     and is 305149 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (65,0,0) in block (0,0,0)
+=========     Address 0x90fa5090c is out of bounds
+=========     and is 305161 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (66,0,0) in block (0,0,0)
+=========     Address 0x90fa50918 is out of bounds
+=========     and is 305173 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (67,0,0) in block (0,0,0)
+=========     Address 0x90fa50924 is out of bounds
+=========     and is 305185 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (68,0,0) in block (0,0,0)
+=========     Address 0x90fa50930 is out of bounds
+=========     and is 305197 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (69,0,0) in block (0,0,0)
+=========     Address 0x90fa5093c is out of bounds
+=========     and is 305209 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (70,0,0) in block (0,0,0)
+=========     Address 0x90fa50948 is out of bounds
+=========     and is 305221 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (71,0,0) in block (0,0,0)
+=========     Address 0x90fa50954 is out of bounds
+=========     and is 305233 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (72,0,0) in block (0,0,0)
+=========     Address 0x90fa50960 is out of bounds
+=========     and is 305245 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (73,0,0) in block (0,0,0)
+=========     Address 0x90fa5096c is out of bounds
+=========     and is 305257 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (74,0,0) in block (0,0,0)
+=========     Address 0x90fa50978 is out of bounds
+=========     and is 305269 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (75,0,0) in block (0,0,0)
+=========     Address 0x90fa50984 is out of bounds
+=========     and is 305281 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (76,0,0) in block (0,0,0)
+=========     Address 0x90fa50990 is out of bounds
+=========     and is 305293 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (77,0,0) in block (0,0,0)
+=========     Address 0x90fa5099c is out of bounds
+=========     and is 305305 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (78,0,0) in block (0,0,0)
+=========     Address 0x90fa509a8 is out of bounds
+=========     and is 305317 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (79,0,0) in block (0,0,0)
+=========     Address 0x90fa509b4 is out of bounds
+=========     and is 305329 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (80,0,0) in block (0,0,0)
+=========     Address 0x90fa509c0 is out of bounds
+=========     and is 305341 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (81,0,0) in block (0,0,0)
+=========     Address 0x90fa509cc is out of bounds
+=========     and is 305353 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (82,0,0) in block (0,0,0)
+=========     Address 0x90fa509d8 is out of bounds
+=========     and is 305365 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (83,0,0) in block (0,0,0)
+=========     Address 0x90fa509e4 is out of bounds
+=========     and is 305377 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (84,0,0) in block (0,0,0)
+=========     Address 0x90fa509f0 is out of bounds
+=========     and is 305389 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (85,0,0) in block (0,0,0)
+=========     Address 0x90fa509fc is out of bounds
+=========     and is 305401 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (86,0,0) in block (0,0,0)
+=========     Address 0x90fa50a08 is out of bounds
+=========     and is 305413 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (87,0,0) in block (0,0,0)
+=========     Address 0x90fa50a14 is out of bounds
+=========     and is 305425 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (88,0,0) in block (0,0,0)
+=========     Address 0x90fa50a20 is out of bounds
+=========     and is 305437 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (89,0,0) in block (0,0,0)
+=========     Address 0x90fa50a2c is out of bounds
+=========     and is 305449 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (90,0,0) in block (0,0,0)
+=========     Address 0x90fa50a38 is out of bounds
+=========     and is 305461 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (91,0,0) in block (0,0,0)
+=========     Address 0x90fa50a44 is out of bounds
+=========     and is 305473 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (92,0,0) in block (0,0,0)
+=========     Address 0x90fa50a50 is out of bounds
+=========     and is 305485 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (93,0,0) in block (0,0,0)
+=========     Address 0x90fa50a5c is out of bounds
+=========     and is 305497 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (94,0,0) in block (0,0,0)
+=========     Address 0x90fa50a68 is out of bounds
+=========     and is 305509 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (95,0,0) in block (0,0,0)
+=========     Address 0x90fa50a74 is out of bounds
+=========     and is 305521 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (96,0,0) in block (0,0,0)
+=========     Address 0x90fa50a80 is out of bounds
+=========     and is 305533 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (97,0,0) in block (0,0,0)
+=========     Address 0x90fa50a8c is out of bounds
+=========     and is 305545 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (98,0,0) in block (0,0,0)
+=========     Address 0x90fa50a98 is out of bounds
+=========     and is 305557 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (99,0,0) in block (0,0,0)
+=========     Address 0x90fa50aa4 is out of bounds
+=========     and is 305569 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (100,0,0) in block (0,0,0)
+=========     Address 0x90fa50ab0 is out of bounds
+=========     and is 305581 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (101,0,0) in block (0,0,0)
+=========     Address 0x90fa50abc is out of bounds
+=========     and is 305593 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (102,0,0) in block (0,0,0)
+=========     Address 0x90fa50ac8 is out of bounds
+=========     and is 305605 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (103,0,0) in block (0,0,0)
+=========     Address 0x90fa50ad4 is out of bounds
+=========     and is 305617 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (104,0,0) in block (0,0,0)
+=========     Address 0x90fa50ae0 is out of bounds
+=========     and is 305629 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (105,0,0) in block (0,0,0)
+=========     Address 0x90fa50aec is out of bounds
+=========     and is 305641 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (106,0,0) in block (0,0,0)
+=========     Address 0x90fa50af8 is out of bounds
+=========     and is 305653 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (107,0,0) in block (0,0,0)
+=========     Address 0x90fa50b04 is out of bounds
+=========     and is 305665 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (108,0,0) in block (0,0,0)
+=========     Address 0x90fa50b10 is out of bounds
+=========     and is 305677 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (109,0,0) in block (0,0,0)
+=========     Address 0x90fa50b1c is out of bounds
+=========     and is 305689 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (110,0,0) in block (0,0,0)
+=========     Address 0x90fa50b28 is out of bounds
+=========     and is 305701 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (111,0,0) in block (0,0,0)
+=========     Address 0x90fa50b34 is out of bounds
+=========     and is 305713 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (112,0,0) in block (0,0,0)
+=========     Address 0x90fa50b40 is out of bounds
+=========     and is 305725 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (113,0,0) in block (0,0,0)
+=========     Address 0x90fa50b4c is out of bounds
+=========     and is 305737 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (114,0,0) in block (0,0,0)
+=========     Address 0x90fa50b58 is out of bounds
+=========     and is 305749 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (115,0,0) in block (0,0,0)
+=========     Address 0x90fa50b64 is out of bounds
+=========     and is 305761 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (116,0,0) in block (0,0,0)
+=========     Address 0x90fa50b70 is out of bounds
+=========     and is 305773 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (117,0,0) in block (0,0,0)
+=========     Address 0x90fa50b7c is out of bounds
+=========     and is 305785 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (118,0,0) in block (0,0,0)
+=========     Address 0x90fa50b88 is out of bounds
+=========     and is 305797 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (119,0,0) in block (0,0,0)
+=========     Address 0x90fa50b94 is out of bounds
+=========     and is 305809 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (120,0,0) in block (0,0,0)
+=========     Address 0x90fa50ba0 is out of bounds
+=========     and is 305821 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (121,0,0) in block (0,0,0)
+=========     Address 0x90fa50bac is out of bounds
+=========     and is 305833 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (122,0,0) in block (0,0,0)
+=========     Address 0x90fa50bb8 is out of bounds
+=========     and is 305845 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (123,0,0) in block (0,0,0)
+=========     Address 0x90fa50bc4 is out of bounds
+=========     and is 305857 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (124,0,0) in block (0,0,0)
+=========     Address 0x90fa50bd0 is out of bounds
+=========     and is 305869 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (125,0,0) in block (0,0,0)
+=========     Address 0x90fa50bdc is out of bounds
+=========     and is 305881 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (126,0,0) in block (0,0,0)
+=========     Address 0x90fa50be8 is out of bounds
+=========     and is 305893 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (127,0,0) in block (0,0,0)
+=========     Address 0x90fa50bf4 is out of bounds
+=========     and is 305905 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (0,0,0) in block (0,0,0)
+=========     Address 0x90fa50600 is out of bounds
+=========     and is 304381 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (1,0,0) in block (0,0,0)
+=========     Address 0x90fa5060c is out of bounds
+=========     and is 304393 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (2,0,0) in block (0,0,0)
+=========     Address 0x90fa50618 is out of bounds
+=========     and is 304405 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========= Invalid __global__ write of size 4 bytes
+=========     at cuda_zstd::sequence::build_sequences_kernel(const unsigned int *, const unsigned int *, const unsigned int *, unsigned int, cuda_zstd::sequence::Sequence *, unsigned int *)+0x140
+=========     by thread (3,0,0) in block (0,0,0)
+=========     Address 0x90fa50624 is out of bounds
+=========     and is 304417 bytes after the nearest allocation at 0x90fa06100 of size 4 bytes
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========         Host Frame: cuLaunchKernel [0x2e6e5f] in libcuda.so.1.1
+=========         Host Frame:  [0x13e88] in libcudart.so.12
+=========         Host Frame: cudaLaunchKernel [0x79f87] in libcudart.so.12
+=========         Host Frame: cuda_zstd::sequence::build_sequences(cuda_zstd::sequence::SequenceContext const&, unsigned int, unsigned int, unsigned int, CUstream_st*) [0x343e0] in test_compressible_data
+=========         Host Frame: cuda_zstd::DefaultZstdManager::compress(void const*, unsigned long, void*, unsigned long*, void*, unsigned long, void const*, unsigned long, CUstream_st*) [0x22786] in test_compressible_data
+=========         Host Frame: test_compression(std::vector<unsigned char, std::allocator<unsigned char> > const&, char const*) [0xe3b2] in test_compressible_data
+=========         Host Frame: test_repeated_text() [0xe79d] in test_compressible_data
+=========         Host Frame: main [0x9877] in test_compressible_data
+========= 
+========================================
+Compressible Data Validation Tests
+========================================
+
+Objective: Prove system DOES compress when given compressible data
+Context: benchmark_lz77 showed 'zero sequences' with random data
+
+
+=== Testing: Repeated Text (64KB) ===
+Input size: 65536 bytes
+[DIAG] sizeof(Match)=16, sizeof(ParseCost)=8
+[DIAG] block_size=65536, num_blocks=1, input_size=65536
+[DIAG] Element offset calculation: block_idx * block_size = 0 * 65536 = 0
+[DIAG] call_workspace.d_matches base = 0x90f380000
+[DIAG] call_workspace.d_costs base = 0x90f480000
+[DIAG] block_ws.d_matches (after offset) = 0x90f380000
+[DIAG] block_ws.d_costs (after offset) = 0x90f480000
+[DIAG] Pointer delta: d_matches offset = 0 bytes
+[DIAG] recycled_matches = 0x90f380000 (cast from block_ws.d_matches)
+[DIAG] recycled_costs = 0x90f480000 (cast from block_ws.d_costs)
+[DIAG] d_literal_lengths = 0x90f380000
+[DIAG] d_match_lengths = 0x90f400000
+[DIAG] d_offsets = 0x90f480000
+[DIAG] Expected offset for d_match_lengths: 512KB = 524288 bytes
+[DIAG] Actual offset: match - lit = 524288 bytes
+
+[PHASE2-START] Checking block_seq_ctxs[0] pointers:
+[PHASE2-START] d_literal_lengths = 0x90f380000
+[PHASE2-START] d_match_lengths = 0x90f400000
+[PHASE2-START] Offset: match - lit = 524288 bytes
+[DEBUG] compress: Block 0 has num_sequences=523
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=523\n[DEBUG] First 5 sequences: [LL=46,ML=3,OF=14] [LL=198,ML=128,OF=135] [LL=359,ML=128,OF=315] [LL=1,ML=128,OF=135] [LL=0,ML=3,OF=14] 
+[DEBUG] Pointers: d_lit=0x90f380000, d_match=0x90f400000, d_off=0x90f480000, d_seq=0x90fa50600
+[DEBUG] Pointer deltas: match-lit=524288, off-lit=1048576
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2912 in compress_literals() (CUDA: unknown error)
+[ERROR] compress: compress_literals failed for block 0 with status 4
+❌ Compression failed: 4
+WARNING: CUDA FREE failed at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/cuda_error_checking.h:129
+  Error: cudaErrorUnknown
+  Description: unknown error
+WARNING: CUDA FREE failed at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/cuda_error_checking.h:129
+  Error: cudaErrorUnknown
+  Description: unknown error
+WARNING: CUDA FREE failed at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/cuda_error_checking.h:129
+  Error: cudaErrorUnknown
+  Description: unknown error
+WARNING: CUDA FREE failed at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/cuda_error_checking.h:129
+  Error: cudaErrorUnknown
+  Description: unknown error
+test_compressible_data: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_compressible_data.cu:236: bool test_repeated_text(): Assertion `result.success && "Compression should succeed"' failed.
+========= Error: process didn't terminate successfully
+========= Target application returned an error
+========= ERROR SUMMARY: 504 errors
+========= ERROR SUMMARY: 404 errors were not printed. Use --print-limit option to adjust the number of printed errors

@@ -1,0 +1,182 @@
+========================================
+Compressible Data Validation Tests
+========================================
+
+Objective: Prove system DOES compress when given compressible data
+Context: benchmark_lz77 showed 'zero sequences' with random data
+
+
+=== Testing: JSON Pattern (64KB) ===
+Input size: 65536 bytes
+[DEBUG] test_compression: d_compressed allocated at 0x90ba10000
+[DIAG] get_compress_temp_size: input=65536, total=11534336
+[DIAG] get_compress_temp_size: input=65536, total=11534336
+[DEBUG] compress: input_ptr=0x90ba00000, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90ba10000, max_size=131072
+[DIAG] compress: temp_size=11534336, total_used=7407104, remaining=4127232
+[DEBUG] compress: d_output probe passed. Stream=0x593c7b5a47c0
+[DIAG] sizeof(Match)=16, sizeof(ParseCost)=8, sizeof(Sequence)=16
+[DIAG] block_size=65536, num_blocks=1, input_size=65536
+[DIAG] Element offset calculation: block_idx * block_size = 0 * 65536 = 0
+[DIAG] call_workspace.d_matches base = 0x90bf80000
+[DIAG] call_workspace.d_costs base = 0x90c080000
+[DIAG] block_ws.d_matches (after offset) = 0x90bf80000
+[DIAG] block_ws.d_costs (after offset) = 0x90c080000
+[DIAG] Pointer delta: d_matches offset = 0 bytes
+[DIAG] recycled_matches = 0x90bf80000 (cast from block_ws.d_matches)
+[DIAG] recycled_costs = 0x90c080000 (cast from block_ws.d_costs)
+[DIAG] d_literal_lengths = 0x90bf80000
+[DIAG] d_match_lengths = 0x90c000000
+[DIAG] d_offsets = 0x90c080000
+[DIAG] d_sequences = 0x90c6d0600
+[DIAG] Expected offset for d_match_lengths: 512KB = 524288 bytes
+[DIAG] Actual offset: match - lit = 524288 bytes
+
+[PHASE2-START] Checking block_seq_ctxs[0] pointers:
+[PHASE2-START] d_literal_lengths = 0x90bf80000
+[PHASE2-START] d_match_lengths = 0x90c000000
+[PHASE2-START] Offset: match - lit = 524288 bytes
+[DEBUG] compress: Block 0 has num_sequences=3069
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=3069\n[DEBUG] First 5 sequences: [LL=298,ML=3,OF=16] [LL=195,ML=3,OF=16] [LL=70,ML=31,OF=528] [LL=72,ML=9,OF=199] [LL=16,ML=3,OF=17] 
+[DEBUG] Pointers: d_lit=0x90bf80000, d_match=0x90c000000, d_off=0x90c080000, d_seq=0x90c6d0600
+[DEBUG] Pointer deltas: match-lit=524288, off-lit=1048576
+[DEBUG] build_sequences: d_sequences=0x90c6d0600, d_num_sequences=0x90c290080
+[DEBUG] build_sequences: d_sequences=0x90c6d0600, d_num_sequences=0x90c290080
+[DEBUG] decompress_literals: d_output allocated at 0x90be0b500
+[DEBUG] build_sequences: d_sequences=0x90be2b500, d_num_sequences=0x90bbe0000
+[DEBUG] build_sequences: d_sequences=0x90be2b500, d_num_sequences=0x90bbe0000
+✅ Compressed: 46177 bytes
+✅ Compression ratio: 1.42:1
+✅ Round-trip verified!
+✅ JSON pattern test PASSED
+
+=== Testing: RLE Pattern (64KB) ===
+Input size: 65536 bytes
+[DEBUG] test_compression: d_compressed allocated at 0x90ba00000
+[DIAG] get_compress_temp_size: input=65536, total=11534336
+[DIAG] get_compress_temp_size: input=65536, total=11534336
+[DEBUG] compress: input_ptr=0x90bbe0000, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90ba00000, max_size=131072
+[DIAG] compress: temp_size=11534336, total_used=7407104, remaining=4127232
+[DEBUG] compress: d_output probe passed. Stream=0x593c7b5a47c0
+[ERROR] compress: write_skippable_header_kernel failed: invalid argument
+[DIAG] sizeof(Match)=16, sizeof(ParseCost)=8, sizeof(Sequence)=16
+[DIAG] block_size=65536, num_blocks=1, input_size=65536
+[DIAG] Element offset calculation: block_idx * block_size = 0 * 65536 = 0
+[DIAG] call_workspace.d_matches base = 0x902d80000
+[DIAG] call_workspace.d_costs base = 0x902e80000
+[DIAG] block_ws.d_matches (after offset) = 0x902d80000
+[DIAG] block_ws.d_costs (after offset) = 0x902e80000
+[DIAG] Pointer delta: d_matches offset = 0 bytes
+[DIAG] recycled_matches = 0x902d80000 (cast from block_ws.d_matches)
+[DIAG] recycled_costs = 0x902e80000 (cast from block_ws.d_costs)
+[DIAG] d_literal_lengths = 0x902d80000
+[DIAG] d_match_lengths = 0x902e00000
+[DIAG] d_offsets = 0x902e80000
+[DIAG] d_sequences = 0x9034d0600
+[DIAG] Expected offset for d_match_lengths: 512KB = 524288 bytes
+[DIAG] Actual offset: match - lit = 524288 bytes
+
+[PHASE2-START] Checking block_seq_ctxs[0] pointers:
+[PHASE2-START] d_literal_lengths = 0x902d80000
+[PHASE2-START] d_match_lengths = 0x902e00000
+[PHASE2-START] Offset: match - lit = 524288 bytes
+[DEBUG] compress: Block 0 has num_sequences=454
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=454\n[DEBUG] First 5 sequences: [LL=803,ML=128,OF=633] [LL=678,ML=128,OF=871] [LL=218,ML=128,OF=1152] [LL=69,ML=128,OF=1] [LL=108,ML=128,OF=1] 
+[DEBUG] Pointers: d_lit=0x902d80000, d_match=0x902e00000, d_off=0x902e80000, d_seq=0x9034d0600
+[DEBUG] Pointer deltas: match-lit=524288, off-lit=1048576
+[DEBUG] build_sequences: d_sequences=0x9034d0600, d_num_sequences=0x903090080
+[DEBUG] build_sequences: d_sequences=0x9034d0600, d_num_sequences=0x903090080
+[DEBUG] decompress_literals: d_output allocated at 0x902c03300
+[DEBUG] build_sequences: d_sequences=0x902c23300, d_num_sequences=0x90bf80000
+[DEBUG] build_sequences: d_sequences=0x902c23300, d_num_sequences=0x90bf80000
+✅ Compressed: 12906 bytes
+✅ Compression ratio: 5.08:1
+✅ Round-trip verified!
+[DEBUG] RLE Result: Size=12906, Ratio=5.08
+[WARN] RLE Compression Ratio too low: 5.08 (Size: 12906)
+✅ RLE pattern test PASSED
+
+=== Testing: Periodic Pattern (64KB) ===
+Input size: 65536 bytes
+[DEBUG] test_compression: d_compressed allocated at 0x90bbe0000
+[DIAG] get_compress_temp_size: input=65536, total=11534336
+[DIAG] get_compress_temp_size: input=65536, total=11534336
+[DEBUG] compress: input_ptr=0x90ba00000, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbe0000, max_size=131072
+[DIAG] compress: temp_size=11534336, total_used=7407104, remaining=4127232
+[DEBUG] compress: d_output probe passed. Stream=0x593c7b5a47c0
+[ERROR] compress: write_skippable_header_kernel failed: invalid argument
+[DIAG] sizeof(Match)=16, sizeof(ParseCost)=8, sizeof(Sequence)=16
+[DIAG] block_size=65536, num_blocks=1, input_size=65536
+[DIAG] Element offset calculation: block_idx * block_size = 0 * 65536 = 0
+[DIAG] call_workspace.d_matches base = 0x902d80000
+[DIAG] call_workspace.d_costs base = 0x902e80000
+[DIAG] block_ws.d_matches (after offset) = 0x902d80000
+[DIAG] block_ws.d_costs (after offset) = 0x902e80000
+[DIAG] Pointer delta: d_matches offset = 0 bytes
+[DIAG] recycled_matches = 0x902d80000 (cast from block_ws.d_matches)
+[DIAG] recycled_costs = 0x902e80000 (cast from block_ws.d_costs)
+[DIAG] d_literal_lengths = 0x902d80000
+[DIAG] d_match_lengths = 0x902e00000
+[DIAG] d_offsets = 0x902e80000
+[DIAG] d_sequences = 0x9034d0600
+[DIAG] Expected offset for d_match_lengths: 512KB = 524288 bytes
+[DIAG] Actual offset: match - lit = 524288 bytes
+
+[PHASE2-START] Checking block_seq_ctxs[0] pointers:
+[PHASE2-START] d_literal_lengths = 0x902d80000
+[PHASE2-START] d_match_lengths = 0x902e00000
+[PHASE2-START] Offset: match - lit = 524288 bytes
+[DEBUG] compress: Block 0 has num_sequences=482
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=482\n[DEBUG] First 5 sequences: [LL=2353,ML=128,OF=2032] [LL=138,ML=128,OF=176] [LL=14,ML=128,OF=1928] [LL=0,ML=128,OF=552] [LL=0,ML=128,OF=1592] 
+[DEBUG] Pointers: d_lit=0x902d80000, d_match=0x902e00000, d_off=0x902e80000, d_seq=0x9034d0600
+[DEBUG] Pointer deltas: match-lit=524288, off-lit=1048576
+[DEBUG] build_sequences: d_sequences=0x9034d0600, d_num_sequences=0x903090080
+[DEBUG] build_sequences: d_sequences=0x9034d0600, d_num_sequences=0x903090080
+[DEBUG] decompress_literals: d_output allocated at 0x902c02680
+[DEBUG] build_sequences: d_sequences=0x902c22680, d_num_sequences=0x90bfa0000
+[DEBUG] build_sequences: d_sequences=0x902c22680, d_num_sequences=0x90bfa0000
+✅ Compressed: 9669 bytes
+✅ Compression ratio: 6.78:1
+✅ Round-trip verified!
+✅ Periodic pattern test PASSED
+
+=== Testing: Zero-Filled (64KB) ===
+Input size: 65536 bytes
+[DEBUG] test_compression: d_compressed allocated at 0x90ba00000
+[DIAG] get_compress_temp_size: input=65536, total=11534336
+[DIAG] get_compress_temp_size: input=65536, total=11534336
+[DEBUG] compress: input_ptr=0x90bbe0000, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90ba00000, max_size=131072
+[DIAG] compress: temp_size=11534336, total_used=7407104, remaining=4127232
+[DEBUG] compress: d_output probe passed. Stream=0x593c7b5a47c0
+[ERROR] compress: write_skippable_header_kernel failed: invalid argument
+[DIAG] sizeof(Match)=16, sizeof(ParseCost)=8, sizeof(Sequence)=16
+[DIAG] block_size=65536, num_blocks=1, input_size=65536
+[DIAG] Element offset calculation: block_idx * block_size = 0 * 65536 = 0
+[DIAG] call_workspace.d_matches base = 0x902d80000
+[DIAG] call_workspace.d_costs base = 0x902e80000
+[DIAG] block_ws.d_matches (after offset) = 0x902d80000
+[DIAG] block_ws.d_costs (after offset) = 0x902e80000
+[DIAG] Pointer delta: d_matches offset = 0 bytes
+[DIAG] recycled_matches = 0x902d80000 (cast from block_ws.d_matches)
+[DIAG] recycled_costs = 0x902e80000 (cast from block_ws.d_costs)
+[DIAG] d_literal_lengths = 0x902d80000
+[DIAG] d_match_lengths = 0x902e00000
+[DIAG] d_offsets = 0x902e80000
+[DIAG] d_sequences = 0x9034d0600
+[DIAG] Expected offset for d_match_lengths: 512KB = 524288 bytes
+[DIAG] Actual offset: match - lit = 524288 bytes
+
+[PHASE2-START] Checking block_seq_ctxs[0] pointers:
+[PHASE2-START] d_literal_lengths = 0x902d80000
+[PHASE2-START] d_match_lengths = 0x902e00000
+[PHASE2-START] Offset: match - lit = 524288 bytes
+[DEBUG] compress: Block 0 has num_sequences=397
+[DEBUG] compress: Calling build_sequences for block 0 with num_sequences=397\n[DEBUG] First 5 sequences: [LL=2180,ML=128,OF=1] [LL=0,ML=128,OF=91] [LL=3643,ML=128,OF=1959] [LL=1568,ML=128,OF=6759] [LL=32,ML=128,OF=6983] 
+[DEBUG] Pointers: d_lit=0x902d80000, d_match=0x902e00000, d_off=0x902e80000, d_seq=0x9034d0600
+[DEBUG] Pointer deltas: match-lit=524288, off-lit=1048576
+[DEBUG] build_sequences: d_sequences=0x9034d0600, d_num_sequences=0x903090080
+[DEBUG] build_sequences: d_sequences=0x9034d0600, d_num_sequences=0x903090080
+test_compressible_data: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_compressible_data.cu:272: bool test_zeros(): Assertion `result.compression_ratio > 10.0f && "Zeros should compress extremely well"' failed.
