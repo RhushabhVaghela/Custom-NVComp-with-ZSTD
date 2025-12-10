@@ -1,72 +1,66 @@
 #pragma once
 
-#include <vector>
-#include <queue>
-#include <mutex>
-#include <condition_variable>
-#include <memory>
-#include <optional>
-#include <cuda_runtime.h>
 #include "cuda_zstd_types.h"
+#include <condition_variable>
+#include <cuda_runtime.h>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <queue>
+#include <vector>
+
 
 namespace cuda_zstd {
 
 class StreamPool {
 public:
-    struct PerStreamResources {
-        cudaStream_t stream;
-    };
+  struct PerStreamResources {
+    cudaStream_t stream;
+  };
 
-    class Guard {
-    public:
-        Guard(StreamPool* pool, int idx);
-        ~Guard();
-        Guard(Guard&&) noexcept = default;
-        Guard& operator=(Guard&&) noexcept = default;
-        Guard(const Guard&) = delete;
-        Guard& operator=(const Guard&) = delete;
-        cudaStream_t get_stream() const { return resources_->stream; }
-    private:
-        StreamPool* pool_;
-        PerStreamResources* resources_;
-        int idx_;
-    };
+  class Guard {
+  public:
+    Guard(StreamPool *pool, int idx);
+    ~Guard();
+    Guard(Guard &&) noexcept = default;
+    Guard &operator=(Guard &&) noexcept = default;
+    Guard(const Guard &) = delete;
+    Guard &operator=(const Guard &) = delete;
+    cudaStream_t get_stream() const { return resources_->stream; }
 
-    explicit StreamPool(size_t pool_size = 8);
-    ~StreamPool();
+  private:
+    StreamPool *pool_;
+    PerStreamResources *resources_;
+    int idx_;
+  };
 
-    // Return the configured size of the pool (number of streams)
-    size_t size() const { return resources_.size(); }
+  explicit StreamPool(size_t pool_size = 8);
+  ~StreamPool();
 
-    // Acquire a stream and its associated resources, blocking if none available
-    Guard acquire();
+  // Return the configured size of the pool (number of streams)
+  size_t size() const { return resources_.size(); }
 
-    // Acquire a stream with a timeout (milliseconds). Returns an empty optional
-    // if no stream could be acquired within the timeout period.
-    std::optional<Guard> acquire_for(size_t timeout_ms);
+  // Acquire a stream and its associated resources, blocking if none available
+  Guard acquire();
 
-    // Non-copyable
-    StreamPool(const StreamPool&) = delete;
-    StreamPool& operator=(const StreamPool&) = delete;
+  // Acquire a stream with a timeout (milliseconds). Returns an empty optional
+  // if no stream could be acquired within the timeout period.
+  std::optional<Guard> acquire_for(size_t timeout_ms);
+
+  // Non-copyable
+  StreamPool(const StreamPool &) = delete;
+  StreamPool &operator=(const StreamPool &) = delete;
 
 private:
-    std::vector<PerStreamResources> resources_;
-    std::queue<int> free_idx_;
-    std::mutex mtx_;
-    std::condition_variable cv_;
+  std::vector<PerStreamResources> resources_;
+  std::queue<int> free_idx_;
+  std::mutex mtx_;
+  std::condition_variable cv_;
 
-    // Internal helpers
-    int acquire_index();
-    int acquire_index_for(size_t timeout_ms);
-    void release_index(int idx);
+  // Internal helpers
+  int acquire_index();
+  int acquire_index_for(size_t timeout_ms);
+  void release_index(int idx);
 };
-
-// Global stream pool accessor: a shared pool usable across managers. The pool
-// is created on first use with the provided size or defaults to environment
-// variable `CUDA_ZSTD_STREAM_POOL_SIZE` (if set) or 8 if not.
-StreamPool* get_global_stream_pool(size_t default_size = 8);
-
-// Debug helper - return the configured pool size (number of streams)
-size_t get_global_stream_pool_size();
 
 } // namespace cuda_zstd

@@ -1,1559 +1,1169 @@
-=== FSE Reference Comparison Test ===
-Generated 262144 bytes of random data
-Running GPU Encoding...
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Encode Chunk 0: total_bits=34585
-GPU Output Size: 276989 bytes
-Running Scalar Reference Encoding...
-Scalar Setup Chunk 4: start_state=606
-Scalar Setup Chunk 3: start_state=610
-Scalar Setup Chunk 2: start_state=571
-Scalar Setup Chunk 1: start_state=573
-Scalar Setup Chunk 0: start_state=795
-Scalar Chunk 0: i=4, sym=187, state_in=949, nbBits=9, bits=437, state_out=767
-Scalar Chunk 0: i=3, sym=46, state_in=767, nbBits=8, bits=255, state_out=631
-Scalar Chunk 0: i=2, sym=243, state_in=631, nbBits=8, bits=119, state_out=519
-Scalar Chunk 0: i=1, sym=203, state_in=519, nbBits=9, bits=7, state_out=839
-Scalar Chunk 0: i=0, sym=95, state_in=839, nbBits=9, bits=327, state_out=981
-Scalar Encode Chunk 0: total_bits=34585
-Scalar Encode Chunk 1: total_bits=34540
-Scalar Encode Chunk 2: total_bits=34602
-Scalar Encode Chunk 3: total_bits=34572
-Scalar Encode Chunk 4: total_bits=34493
-Scalar Output Size: 276465 bytes
-Comparing bitstreams (skipping 524 byte header)...
-✅ Bitstreams Match!
+================================================================
+  CUDA-ZSTD Comprehensive Benchmark
+================================================================
+
+GPU VRAM Limit: 12 GB (safe)
+Compression Level: 3
+Block Sizes Tested: 128 KB → 8 MB
+Input Sizes Tested: 1 KB → 20 GB
+
+Total tests to run: 286 (sizes up to 1 GB, blocks up to 8MB)
+
+------------------------------------------------------------
+>>> Input Size: 1 KB
+------------------------------------------------------------
+Progress: 0/286 (0%)
+Estimated time for this group: (collecting baseline...)
+
+[Test #1] Benchmarking Fixed_128KB (Block 128KB) on 1 KB (Serial)
+   Test #1 runs:
+      Run 1: 0.09 ms
+      Run 2: 0.12 ms
+      Run 3: 0.07 ms
+   Result: OK | Avg: 0.09 ms | Throughput: 10.46 MB/s
+
+[Test #2] Benchmarking Fixed_128KB (Block 128KB) on 1 KB (Parallel)
+[DEBUG] compress: input_ptr=0x90bba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x90bf80000, costs=[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+0x90bf84000, ws_matches=0x90bf80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x90bf84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90c34ea00
+[DEBUG] build_sequences: d_sequences=0x90c34ea00, d_num_sequences=0x90bf8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x90bba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x90bf80000, costs=0x90bf84000, ws_matches=0x90bf80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x90bf84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90c34ea00
+[DEBUG] build_sequences: d_sequences=0x90c34ea00, d_num_sequences=0x90bf8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #2 runs:
+[DEBUG] compress: input_ptr=0x90bba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x90bf80000, costs=0x90bf84000, ws_matches=0x90bf80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x90bf84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90c34ea00
+[DEBUG] build_sequences: d_sequences=0x90c34ea00, d_num_sequences=0x90bf8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 12.22 ms
+[DEBUG] compress: input_ptr=0x90bba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x90bf80000, costs=0x90bf84000, ws_matches=0x90bf80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x90bf84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90c34ea00
+[DEBUG] build_sequences: d_sequences=0x90c34ea00, d_num_sequences=0x90bf8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 10.33 ms
+[DEBUG] compress: input_ptr=0x90bba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x90bf80000, costs=0x90bf84000, ws_matches=0x90bf80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x90bf84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90c34ea00
+[DEBUG] build_sequences: d_sequences=0x90c34ea00, d_num_sequences=0x90bf8c480
+      Run 3: 9.89 ms
+   Result: OK | Avg: 10.81 ms | Throughput: 0.09 MB/s
+
+[Test #3] Benchmarking Sqrt_K400 (Block 12KB) on 1 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #3 runs:
+      Run 1: 0.13 ms
+      Run 2: 0.07 ms
+      Run 3: 0.09 ms
+   Result: OK | Avg: 0.10 ms | Throughput: 10.21 MB/s
+
+[Test #4] Benchmarking Sqrt_K400 (Block 12KB) on 1 KB (Parallel)
+[DEBUG] compress: input_ptr=0x90bbc0a00, input_attr_err=0, type[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x90bbc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #4 runs:
+[DEBUG] compress: input_ptr=0x90bbc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 11.32 ms
+[DEBUG] compress: input_ptr=0x90bbc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 9.82 ms
+[DEBUG] compress: input_ptr=0x90bbc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+      Run 3: 12.51 ms
+   Result: OK | Avg: 11.21 ms | Throughput: 0.09 MB/s
+
+[Test #5] Benchmarking Logarithmic (Block 90KB) on 1 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #5 runs:
+      Run 1: 0.09 ms
+      Run 2: 0.24 ms
+      Run 3: 0.15 ms
+   Result: OK | Avg: 0.16 ms | Throughput: 6.05 MB/s
+
+[Test #6] Benchmarking Logarithmic (Block 90KB) on 1 KB (Parallel)
+[DEBUG] compress: input_ptr=0x90bbe0a00, input_attr_err=0, [HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbe0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x90bbe0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbe0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #6 runs:
+[DEBUG] compress: input_ptr=0x90bbe0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbe0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 10.87 ms
+[DEBUG] compress: input_ptr=0x90bbe0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbe0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 10.33 ms
+[DEBUG] compress: input_ptr=0x90bbe0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x90bbe0e00, max_size=1540
+[DEBUG] Block 0: matches=0x902d80000, costs=0x902d84000, ws_matches=0x902d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x902d84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90314ea00
+[DEBUG] build_sequences: d_sequences=0x90314ea00, d_num_sequences=0x902d8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 11.10 ms
+   Result: OK | Avg: 10.76 ms | Throughput: 0.09 MB/s
+
+[Test #7] Benchmarking Linear_128 (Block 0KB) on 1 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x902c80a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902c80e00, max_size=1540
+[DEBUG] Block 0: matches=0x903180000, costs=0x903184000, ws_matches=0x903180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903184000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90354ea00
+[DEBUG] build_sequences: d_sequences=0x90354ea00, d_num_sequences=0x90318c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x902c80a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902c80e00, max_size=1540
+[DEBUG] Block 0: matches=0x903180000, costs=0x903184000, ws_matches=0x903180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903184000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90354ea00
+[DEBUG] build_sequences: d_sequences=0x90354ea00, d_num_sequences=0x90318c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #7 runs:
+[DEBUG] compress: input_ptr=0x902c80a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902c80e00, max_size=1540
+[DEBUG] Block 0: matches=0x903180000, costs=0x903184000, ws_matches=0x903180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903184000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90354ea00
+[DEBUG] build_sequences: d_sequences=0x90354ea00, d_num_sequences=0x90318c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 9.46 ms
+[DEBUG] compress: input_ptr=0x902c80a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902c80e00, max_size=1540
+[DEBUG] Block 0: matches=0x903180000, costs=0x903184000, ws_matches=0x903180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903184000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90354ea00
+[DEBUG] build_sequences: d_sequences=0x90354ea00, d_num_sequences=0x90318c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 8.98 ms
+[DEBUG] compress: input_ptr=0x902c80a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902c80e00, max_size=1540
+[DEBUG] Block 0: matches=0x903180000, costs=0x903184000, ws_matches=0x903180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903184000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90354ea00
+[DEBUG] build_sequences: d_sequences=0x90354ea00, d_num_sequences=0x90318c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 11.64 ms
+   Result: OK | Avg: 10.03 ms | Throughput: 0.10 MB/s
+
+[Test #8] Benchmarking Linear_128 (Block 0KB) on 1 KB (Parallel)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x902da0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902da0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903580000, costs=0x903584000, ws_matches=0x903580000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903584000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90394ea00
+[DEBUG] build_sequences: d_sequences=0x90394ea00, d_num_sequences=0x90358c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x902da0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902da0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903580000, costs=0x903584000, ws_matches=0x903580000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903584000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90394ea00
+[DEBUG] build_sequences: d_sequences=0x90394ea00, d_num_sequences=0x90358c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #8 runs:
+[DEBUG] compress: input_ptr=0x902da0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902da0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903580000, costs=0x903584000, ws_matches=0x903580000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903584000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90394ea00
+[DEBUG] build_sequences: d_sequences=0x90394ea00, d_num_sequences=0x90358c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 11.95 ms
+[DEBUG] compress: input_ptr=0x902da0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902da0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903580000, costs=0x903584000, ws_matches=0x903580000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903584000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90394ea00
+[DEBUG] build_sequences: d_sequences=0x90394ea00, d_num_sequences=0x90358c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 10.99 ms
+[DEBUG] compress: input_ptr=0x902da0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902da0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903580000, costs=0x903584000, ws_matches=0x903580000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903584000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90394ea00
+[DEBUG] build_sequences: d_sequences=0x90394ea00, d_num_sequences=0x90358c480
+      Run 3: 10.68 ms
+   Result: OK | Avg: 11.21 ms | Throughput: 0.09 MB/s
+
+[Test #9] Benchmarking CubeRoot_K150 (Block 1KB) on 1 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #9 runs:
+      Run 1: 0.10 ms
+      Run 2: 0.10 ms
+      Run 3: 0.12 ms
+   Result: OK | Avg: 0.11 ms | Throughput: 9.27 MB/s
+
+[Test #10] Benchmarking CubeRoot_K150 (Block 1KB) on 1 KB (Parallel)
+[DEBUG] compress: input_ptr=0x902dc0a00, input_attr_err=[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902dc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903780000, costs=0x903784000, ws_matches=0x903780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903784000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903b4ea00
+[DEBUG] build_sequences: d_sequences=0x903b4ea00, d_num_sequences=0x90378c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x902dc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902dc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903780000, costs=0x903784000, ws_matches=0x903780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903784000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903b4ea00
+[DEBUG] build_sequences: d_sequences=0x903b4ea00, d_num_sequences=0x90378c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #10 runs:
+[DEBUG] compress: input_ptr=0x902dc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902dc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903780000, costs=0x903784000, ws_matches=0x903780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903784000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903b4ea00
+[DEBUG] build_sequences: d_sequences=0x903b4ea00, d_num_sequences=0x90378c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 9.98 ms
+[DEBUG] compress: input_ptr=0x902dc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902dc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903780000, costs=0x903784000, ws_matches=0x903780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903784000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903b4ea00
+[DEBUG] build_sequences: d_sequences=0x903b4ea00, d_num_sequences=0x90378c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 9.67 ms
+[DEBUG] compress: input_ptr=0x902dc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902dc0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903780000, costs=0x903784000, ws_matches=0x903780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903784000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903b4ea00
+[DEBUG] build_sequences: d_sequences=0x903b4ea00, d_num_sequences=0x90378c480
+      Run 3: 9.71 ms
+   Result: OK | Avg: 9.78 ms | Throughput: 0.10 MB/s
+
+[Test #11] Benchmarking Piecewise (Block 2MB) on 1 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #11 runs:
+      Run 1: 0.14 ms
+      Run 2: 0.07 ms
+      Run 3: 0.08 ms
+   Result: OK | Avg: 0.10 ms | Throughput: 9.90 MB/s
+
+[Test #12] Benchmarking Piecewise (Block 2MB) on 1 KB (Parallel)
+[DEBUG] compress: input_ptr=0x902de0a00, input_attr_err=0, type=[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+2, input_is_device=1
+[DEBUG] compress: d_output=0x902de0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903b80000, costs=0x903b84000, ws_matches=0x903b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903b84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903f4ea00
+[DEBUG] build_sequences: d_sequences=0x903f4ea00, d_num_sequences=0x903b8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x902de0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902de0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903b80000, costs=0x903b84000, ws_matches=0x903b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903b84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903f4ea00
+[DEBUG] build_sequences: d_sequences=0x903f4ea00, d_num_sequences=0x903b8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #12 runs:
+[DEBUG] compress: input_ptr=0x902de0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902de0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903b80000, costs=0x903b84000, ws_matches=0x903b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903b84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903f4ea00
+[DEBUG] build_sequences: d_sequences=0x903f4ea00, d_num_sequences=0x903b8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 10.34 ms
+[DEBUG] compress: input_ptr=0x902de0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902de0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903b80000, costs=0x903b84000, ws_matches=0x903b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903b84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903f4ea00
+[DEBUG] build_sequences: d_sequences=0x903f4ea00, d_num_sequences=0x903b8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 12.04 ms
+[DEBUG] compress: input_ptr=0x902de0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x902de0e00, max_size=1540
+[DEBUG] Block 0: matches=0x903b80000, costs=0x903b84000, ws_matches=0x903b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903b84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x903f4ea00
+[DEBUG] build_sequences: d_sequences=0x903f4ea00, d_num_sequences=0x903b8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 10.88 ms
+   Result: OK | Avg: 11.08 ms | Throughput: 0.09 MB/s
+
+[Test #13] Benchmarking Hybrid (Block 0KB) on 1 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x903b00a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903b00e00, max_size=1540
+[DEBUG] Block 0: matches=0x903f80000, costs=0x903f84000, ws_matches=0x903f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903f84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90434ea00
+[DEBUG] build_sequences: d_sequences=0x90434ea00, d_num_sequences=0x903f8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x903b00a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903b00e00, max_size=1540
+[DEBUG] Block 0: matches=0x903f80000, costs=0x903f84000, ws_matches=0x903f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903f84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90434ea00
+[DEBUG] build_sequences: d_sequences=0x90434ea00, d_num_sequences=0x903f8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #13 runs:
+[DEBUG] compress: input_ptr=0x903b00a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903b00e00, max_size=1540
+[DEBUG] Block 0: matches=0x903f80000, costs=0x903f84000, ws_matches=0x903f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903f84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90434ea00
+[DEBUG] build_sequences: d_sequences=0x90434ea00, d_num_sequences=0x903f8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 10.83 ms
+[DEBUG] compress: input_ptr=0x903b00a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903b00e00, max_size=1540
+[DEBUG] Block 0: matches=0x903f80000, costs=0x903f84000, ws_matches=0x903f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903f84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90434ea00
+[DEBUG] build_sequences: d_sequences=0x90434ea00, d_num_sequences=0x903f8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 10.43 ms
+[DEBUG] compress: input_ptr=0x903b00a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903b00e00, max_size=1540
+[DEBUG] Block 0: matches=0x903f80000, costs=0x903f84000, ws_matches=0x903f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x903f84000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90434ea00
+[DEBUG] build_sequences: d_sequences=0x90434ea00, d_num_sequences=0x903f8c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 10.67 ms
+   Result: OK | Avg: 10.64 ms | Throughput: 0.09 MB/s
+
+[Test #14] Benchmarking Hybrid (Block 0KB) on 1 KB (Parallel)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x903ba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903ba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x904380000, costs=0x904384000, ws_matches=0x904380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x904384000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90474ea00
+[DEBUG] build_sequences: d_sequences=0x90474ea00, d_num_sequences=0x90438c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x903ba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903ba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x904380000, costs=0x904384000, ws_matches=0x904380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x904384000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90474ea00
+[DEBUG] build_sequences: d_sequences=0x90474ea00, d_num_sequences=0x90438c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #14 runs:
+[DEBUG] compress: input_ptr=0x903ba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903ba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x904380000, costs=0x904384000, ws_matches=0x904380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x904384000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90474ea00
+[DEBUG] build_sequences: d_sequences=0x90474ea00, d_num_sequences=0x90438c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 10.25 ms
+[DEBUG] compress: input_ptr=0x903ba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903ba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x904380000, costs=0x904384000, ws_matches=0x904380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x904384000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90474ea00
+[DEBUG] build_sequences: d_sequences=0x90474ea00, d_num_sequences=0x90438c480
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 9.53 ms
+[DEBUG] compress: input_ptr=0x903ba0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903ba0e00, max_size=1540
+[DEBUG] Block 0: matches=0x904380000, costs=0x904384000, ws_matches=0x904380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1024, d_costs=0x904384000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x90474ea00
+[DEBUG] build_sequences: d_sequences=0x90474ea00, d_num_sequences=0x90438c480
+      Run 3: 11.54 ms
+   Result: OK | Avg: 10.44 ms | Throughput: 0.09 MB/s
+
+------------------------------------------------------------
+>>> Input Size: 4 KB
+------------------------------------------------------------
+Progress: 14/286 (4.9%)
+Estimated time for this group: ~0.2 seconds
+
+[Test #15] Benchmarking Sqrt_K400 (Block 25KB) on 4 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #15 runs:
+      Run 1: 0.11 ms
+      Run [HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+2: 0.14 ms
+      Run 3: 0.20 ms
+   Result: OK | Avg: 0.15 ms | Throughput: 25.76 MB/s
+
+[Test #16] Benchmarking Sqrt_K400 (Block 25KB) on 4 KB (Parallel)
+[DEBUG] compress: input_ptr=0x903bc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903bc1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904780000, costs=0x904790000, ws_matches=0x904780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904790000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904b79600
+[DEBUG] build_sequences: d_sequences=0x904b79600, d_num_sequences=0x9047b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x903bc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903bc1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904780000, costs=0x904790000, ws_matches=0x904780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904790000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904b79600
+[DEBUG] build_sequences: d_sequences=0x904b79600, d_num_sequences=0x9047b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #16 runs:
+[DEBUG] compress: input_ptr=0x903bc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903bc1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904780000, costs=0x904790000, ws_matches=0x904780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904790000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904b79600
+[DEBUG] build_sequences: d_sequences=0x904b79600, d_num_sequences=0x9047b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 31.90 ms
+[DEBUG] compress: input_ptr=0x903bc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903bc1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904780000, costs=0x904790000, ws_matches=0x904780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904790000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904b79600
+[DEBUG] build_sequences: d_sequences=0x904b79600, d_num_sequences=0x9047b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 35.85 ms
+[DEBUG] compress: input_ptr=0x903bc0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903bc1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904780000, costs=0x904790000, ws_matches=0x904780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904790000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904b79600
+[DEBUG] build_sequences: d_sequences=0x904b79600, d_num_sequences=0x9047b1080
+      Run 3: 30.40 ms
+   Result: OK | Avg: 32.72 ms | Throughput: 0.12 MB/s
+
+[Test #17] Benchmarking Logarithmic (Block 128KB) on 4 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #17 runs:
+      Run 1: 0.09 ms
+      Run 2: 0.08 ms
+      Run 3: 0.15 ms
+   Result: OK | Avg: 0.11 ms | Throughput: 37.08 MB/s
+
+[Test #18] Benchmarking Logarithmic (Block 128KB) on 4 KB (Parallel)
+[DEBUG] compress: input_ptr=0x903be0a00, input_attr_e[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+rr=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903be1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904980000, costs=0x904990000, ws_matches=0x904980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904d79600
+[DEBUG] build_sequences: d_sequences=0x904d79600, d_num_sequences=0x9049b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x903be0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903be1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904980000, costs=0x904990000, ws_matches=0x904980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904d79600
+[DEBUG] build_sequences: d_sequences=0x904d79600, d_num_sequences=0x9049b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #18 runs:
+[DEBUG] compress: input_ptr=0x903be0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903be1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904980000, costs=0x904990000, ws_matches=0x904980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904d79600
+[DEBUG] build_sequences: d_sequences=0x904d79600, d_num_sequences=0x9049b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 30.55 ms
+[DEBUG] compress: input_ptr=0x903be0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903be1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904980000, costs=0x904990000, ws_matches=0x904980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904d79600
+[DEBUG] build_sequences: d_sequences=0x904d79600, d_num_sequences=0x9049b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 31.96 ms
+[DEBUG] compress: input_ptr=0x903be0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x903be1a00, max_size=4624
+[DEBUG] Block 0: matches=0x904980000, costs=0x904990000, ws_matches=0x904980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x904d79600
+[DEBUG] build_sequences: d_sequences=0x904d79600, d_num_sequences=0x9049b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 31.48 ms
+   Result: OK | Avg: 31.33 ms | Throughput: 0.12 MB/s
+
+[Test #19] Benchmarking Linear_128 (Block 0KB) on 4 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x904980a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x904981a00, max_size=4624
+[DEBUG] Block 0: matches=0x904d80000, costs=0x904d90000, ws_matches=0x904d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905179600
+[DEBUG] build_sequences: d_sequences=0x905179600, d_num_sequences=0x904db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x904980a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x904981a00, max_size=4624
+[DEBUG] Block 0: matches=0x904d80000, costs=0x904d90000, ws_matches=0x904d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905179600
+[DEBUG] build_sequences: d_sequences=0x905179600, d_num_sequences=0x904db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #19 runs:
+[DEBUG] compress: input_ptr=0x904980a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x904981a00, max_size=4624
+[DEBUG] Block 0: matches=0x904d80000, costs=0x904d90000, ws_matches=0x904d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905179600
+[DEBUG] build_sequences: d_sequences=0x905179600, d_num_sequences=0x904db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 30.98 ms
+[DEBUG] compress: input_ptr=0x904980a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x904981a00, max_size=4624
+[DEBUG] Block 0: matches=0x904d80000, costs=0x904d90000, ws_matches=0x904d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905179600
+[DEBUG] build_sequences: d_sequences=0x905179600, d_num_sequences=0x904db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 35.28 ms
+[DEBUG] compress: input_ptr=0x904980a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x904981a00, max_size=4624
+[DEBUG] Block 0: matches=0x904d80000, costs=0x904d90000, ws_matches=0x904d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x904d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905179600
+[DEBUG] build_sequences: d_sequences=0x905179600, d_num_sequences=0x904db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 31.21 ms
+   Result: OK | Avg: 32.49 ms | Throughput: 0.12 MB/s
+
+[Test #20] Benchmarking Linear_128 (Block 0KB) on 4 KB (Parallel)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x9049a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905180000, costs=0x905190000, ws_matches=0x905180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905190000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905579600
+[DEBUG] build_sequences: d_sequences=0x905579600, d_num_sequences=0x9051b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x9049a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905180000, costs=0x905190000, ws_matches=0x905180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905190000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905579600
+[DEBUG] build_sequences: d_sequences=0x905579600, d_num_sequences=0x9051b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #20 runs:
+[DEBUG] compress: input_ptr=0x9049a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905180000, costs=0x905190000, ws_matches=0x905180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905190000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905579600
+[DEBUG] build_sequences: d_sequences=0x905579600, d_num_sequences=0x9051b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 30.10 ms
+[DEBUG] compress: input_ptr=0x9049a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905180000, costs=0x905190000, ws_matches=0x905180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905190000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905579600
+[DEBUG] build_sequences: d_sequences=0x905579600, d_num_sequences=0x9051b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 30.96 ms
+[DEBUG] compress: input_ptr=0x9049a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905180000, costs=0x905190000, ws_matches=0x905180000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905190000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905579600
+[DEBUG] build_sequences: d_sequences=0x905579600, d_num_sequences=0x9051b1080
+      Run 3: 29.21 ms
+   Result: OK | Avg: 30.09 ms | Throughput: 0.13 MB/s
+
+[Test #21] Benchmarking CubeRoot_K150 (Block 2KB) on 4 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #21 runs:
+      Run 1: 0.10 ms
+      Run 2: 0.07 ms
+      Run 3: 0.09 ms
+   Result: OK | Avg: 0.09 ms | Throughput: 45.60 MB/s
+
+[Test #22] Benchmarking CubeRoot_K150 (Block 2KB) on 4 KB (Parallel)
+[DEBUG] compress: input_ptr=0x9049c0a00, input_attr_e[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+rr=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049c1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905700000, costs=0x905710000, ws_matches=0x905700000
+[DEBUG] Block 1: matches=0x905709600, costs=0x905714b00, ws_matches=0x905700000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1696, d_costs=0x905714b00
+[DEBUG] Backtrack V2: input_size=2400, d_costs=0x905710000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905af9600
+[DEBUG] build_sequences: d_sequences=0x905af9600, d_num_sequences=0x905731080
+[DEBUG] compress: Block 1, num_sequences=1, d_literal_lengths=0x905eb9800
+[DEBUG] build_sequences: d_sequences=0x905eb9800, d_num_sequences=0x90573108c
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x9049c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049c1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905700000, costs=0x905710000, ws_matches=0x905700000
+[DEBUG] Block 1: matches=0x905709600, costs=0x905714b00, ws_matches=0x905700000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1696, d_costs=0x905714b00
+[DEBUG] Backtrack V2: input_size=2400, d_costs=0x905710000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905af9600
+[DEBUG] build_sequences: d_sequences=0x905af9600, d_num_sequences=0x905731080
+[DEBUG] compress: Block 1, num_sequences=1, d_literal_lengths=0x905eb9800
+[DEBUG] build_sequences: d_sequences=0x905eb9800, d_num_sequences=0x90573108c
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #22 runs:
+[DEBUG] compress: input_ptr=0x9049c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049c1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905700000, costs=0x905710000, ws_matches=0x905700000
+[DEBUG] Block 1: matches=0x905709600, costs=0x905714b00, ws_matches=0x905700000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1696, d_costs=0x905714b00
+[DEBUG] Backtrack V2: input_size=2400, d_costs=0x905710000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905af9600
+[DEBUG] build_sequences: d_sequences=0x905af9600, d_num_sequences=0x905731080
+[DEBUG] compress: Block 1, num_sequences=1, d_literal_lengths=0x905eb9800
+[DEBUG] build_sequences: d_sequences=0x905eb9800, d_num_sequences=0x90573108c
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 29.42 ms
+[DEBUG] compress: input_ptr=0x9049c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049c1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905700000, costs=0x905710000, ws_matches=0x905700000
+[DEBUG] Block 1: matches=0x905709600, costs=0x905714b00, ws_matches=0x905700000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1696, d_costs=0x905714b00
+[DEBUG] Backtrack V2: input_size=2400, d_costs=0x905710000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905af9600
+[DEBUG] build_sequences: d_sequences=0x905af9600, d_num_sequences=0x905731080
+[DEBUG] compress: Block 1, num_sequences=1, d_literal_lengths=0x905eb9800
+[DEBUG] build_sequences: d_sequences=0x905eb9800, d_num_sequences=0x90573108c
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 27.27 ms
+[DEBUG] compress: input_ptr=0x9049c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049c1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905700000, costs=0x905710000, ws_matches=0x905700000
+[DEBUG] Block 1: matches=0x905709600, costs=0x905714b00, ws_matches=0x905700000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=1696, d_costs=0x905714b00
+[DEBUG] Backtrack V2: input_size=2400, d_costs=0x905710000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905af9600
+[DEBUG] build_sequences: d_sequences=0x905af9600, d_num_sequences=0x905731080
+[DEBUG] compress: Block 1, num_sequences=1, d_literal_lengths=0x905eb9800
+[DEBUG] build_sequences: d_sequences=0x905eb9800, d_num_sequences=0x90573108c
+      Run 3: 27.93 ms
+   Result: OK | Avg: 28.21 ms | Throughput: 0.14 MB/s
+
+[Test #23] Benchmarking Piecewise (Block 2MB) on 4 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #23 runs:
+      Run 1: 0.08 ms
+      Run 2: 0.09 ms
+      Run 3: 0.09 ms
+   Result: OK | Avg: 0.09 ms | Throughput: 45.42 MB/s
+
+[Test #24] Benchmarking Piecewise (Block 2MB) on 4 KB (Parallel)
+[DEBUG] compress: input_ptr=0x9049e0a00, input_attr_err=0, ty[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+pe=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049e1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905980000, costs=0x905990000, ws_matches=0x905980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905d79600
+[DEBUG] build_sequences: d_sequences=0x905d79600, d_num_sequences=0x9059b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x9049e0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049e1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905980000, costs=0x905990000, ws_matches=0x905980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905d79600
+[DEBUG] build_sequences: d_sequences=0x905d79600, d_num_sequences=0x9059b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #24 runs:
+[DEBUG] compress: input_ptr=0x9049e0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049e1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905980000, costs=0x905990000, ws_matches=0x905980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905d79600
+[DEBUG] build_sequences: d_sequences=0x905d79600, d_num_sequences=0x9059b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 29.63 ms
+[DEBUG] compress: input_ptr=0x9049e0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049e1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905980000, costs=0x905990000, ws_matches=0x905980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905d79600
+[DEBUG] build_sequences: d_sequences=0x905d79600, d_num_sequences=0x9059b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 31.32 ms
+[DEBUG] compress: input_ptr=0x9049e0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9049e1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905980000, costs=0x905990000, ws_matches=0x905980000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905990000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x905d79600
+[DEBUG] build_sequences: d_sequences=0x905d79600, d_num_sequences=0x9059b1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 29.12 ms
+   Result: OK | Avg: 30.02 ms | Throughput: 0.13 MB/s
+
+[Test #25] Benchmarking Hybrid (Block 0KB) on 4 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x905800a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x905801a00, max_size=4624
+[DEBUG] Block 0: matches=0x905d80000, costs=0x905d90000, ws_matches=0x905d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906179600
+[DEBUG] build_sequences: d_sequences=0x906179600, d_num_sequences=0x905db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x905800a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x905801a00, max_size=4624
+[DEBUG] Block 0: matches=0x905d80000, costs=0x905d90000, ws_matches=0x905d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906179600
+[DEBUG] build_sequences: d_sequences=0x906179600, d_num_sequences=0x905db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #25 runs:
+[DEBUG] compress: input_ptr=0x905800a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x905801a00, max_size=4624
+[DEBUG] Block 0: matches=0x905d80000, costs=0x905d90000, ws_matches=0x905d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906179600
+[DEBUG] build_sequences: d_sequences=0x906179600, d_num_sequences=0x905db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 29.58 ms
+[DEBUG] compress: input_ptr=0x905800a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x905801a00, max_size=4624
+[DEBUG] Block 0: matches=0x905d80000, costs=0x905d90000, ws_matches=0x905d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906179600
+[DEBUG] build_sequences: d_sequences=0x906179600, d_num_sequences=0x905db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 28.57 ms
+[DEBUG] compress: input_ptr=0x905800a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x905801a00, max_size=4624
+[DEBUG] Block 0: matches=0x905d80000, costs=0x905d90000, ws_matches=0x905d80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905d90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906179600
+[DEBUG] build_sequences: d_sequences=0x906179600, d_num_sequences=0x905db1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 27.66 ms
+   Result: OK | Avg: 28.60 ms | Throughput: 0.14 MB/s
+
+[Test #26] Benchmarking Hybrid (Block 0KB) on 4 KB (Parallel)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x9059a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905f80000, costs=0x905f90000, ws_matches=0x905f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905f90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906379600
+[DEBUG] build_sequences: d_sequences=0x906379600, d_num_sequences=0x905fb1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x9059a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905f80000, costs=0x905f90000, ws_matches=0x905f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905f90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906379600
+[DEBUG] build_sequences: d_sequences=0x906379600, d_num_sequences=0x905fb1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #26 runs:
+[DEBUG] compress: input_ptr=0x9059a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905f80000, costs=0x905f90000, ws_matches=0x905f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905f90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906379600
+[DEBUG] build_sequences: d_sequences=0x906379600, d_num_sequences=0x905fb1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 32.90 ms
+[DEBUG] compress: input_ptr=0x9059a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905f80000, costs=0x905f90000, ws_matches=0x905f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905f90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906379600
+[DEBUG] build_sequences: d_sequences=0x906379600, d_num_sequences=0x905fb1080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 32.40 ms
+[DEBUG] compress: input_ptr=0x9059a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059a1a00, max_size=4624
+[DEBUG] Block 0: matches=0x905f80000, costs=0x905f90000, ws_matches=0x905f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=4096, d_costs=0x905f90000
+[DEBUG] compress: Block 0, num_sequences=1, d_literal_lengths=0x906379600
+[DEBUG] build_sequences: d_sequences=0x906379600, d_num_sequences=0x905fb1080
+      Run 3: 28.73 ms
+   Result: OK | Avg: 31.34 ms | Throughput: 0.12 MB/s
+
+------------------------------------------------------------
+>>> Input Size: 16 KB
+------------------------------------------------------------
+Progress: 26/286 (9.1%)
+Estimated time for this group: ~0.3 seconds
+
+[Test #27] Benchmarking Sqrt_K400 (Block 50KB) on 16 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #27 runs:
+      Run 1: 0.08 ms
+      Ru[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+n 2: 0.10 ms
+      Run 3: 0.15 ms
+   Result: OK | Avg: 0.11 ms | Throughput: 140.34 MB/s
+
+[Test #28] Benchmarking Sqrt_K400 (Block 50KB) on 16 KB (Parallel)
+[DEBUG] compress: input_ptr=0x9059c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059c4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906380000, costs=0x9063c0000, ws_matches=0x906380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9063c0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x906824600
+[DEBUG] build_sequences: d_sequences=0x906824600, d_num_sequences=0x906444080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x9059c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059c4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906380000, costs=0x9063c0000, ws_matches=0x906380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9063c0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x906824600
+[DEBUG] build_sequences: d_sequences=0x906824600, d_num_sequences=0x906444080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #28 runs:
+[DEBUG] compress: input_ptr=0x9059c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059c4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906380000, costs=0x9063c0000, ws_matches=0x906380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9063c0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x906824600
+[DEBUG] build_sequences: d_sequences=0x906824600, d_num_sequences=0x906444080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 114.82 ms
+[DEBUG] compress: input_ptr=0x9059c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059c4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906380000, costs=0x9063c0000, ws_matches=0x906380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9063c0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x906824600
+[DEBUG] build_sequences: d_sequences=0x906824600, d_num_sequences=0x906444080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 97.85 ms
+[DEBUG] compress: input_ptr=0x9059c0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059c4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906380000, costs=0x9063c0000, ws_matches=0x906380000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9063c0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x906824600
+[DEBUG] build_sequences: d_sequences=0x906824600, d_num_sequences=0x906444080
+      Run 3: 96.28 ms
+   Result: OK | Avg: 102.98 ms | Throughput: 0.15 MB/s
+
+[Test #29] Benchmarking Logarithmic (Block 181KB) on 16 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #29 runs:
+      Run 1: 0.12 ms
+      Run 2: 0.12 ms
+      Run 3: 0.11 ms
+   Result: OK | Avg: 0.12 ms | Throughput: 131.67 MB/s
+
+[Test #30] Benchmarking Logarithmic (Block 181KB) on 16 KB (Parallel)
+[DEBUG] compress: input_ptr=0x9059e0a00, input_at[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+tr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059e4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906780000, costs=0x9067c0000, ws_matches=0x906780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9067c0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x906c24600
+[DEBUG] build_sequences: d_sequences=0x906c24600, d_num_sequences=0x906844080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x9059e0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059e4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906780000, costs=0x9067c0000, ws_matches=0x906780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9067c0000
+[DEBUG] compress: Block 0, num_sequences=2, d_literal_lengths=0x906c24600
+[DEBUG] build_sequences: d_sequences=0x906c24600, d_num_sequences=0x906844080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #30 runs:
+[DEBUG] compress: input_ptr=0x9059e0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059e4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906780000, costs=0x9067c0000, ws_matches=0x906780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9067c0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x906c24600
+[DEBUG] build_sequences: d_sequences=0x906c24600, d_num_sequences=0x906844080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 104.84 ms
+[DEBUG] compress: input_ptr=0x9059e0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059e4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906780000, costs=0x9067c0000, ws_matches=0x906780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9067c0000
+[DEBUG] compress: Block 0, num_sequences=2, d_literal_lengths=0x906c24600
+[DEBUG] build_sequences: d_sequences=0x906c24600, d_num_sequences=0x906844080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 100.84 ms
+[DEBUG] compress: input_ptr=0x9059e0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9059e4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906780000, costs=0x9067c0000, ws_matches=0x906780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x9067c0000
+[DEBUG] compress: Block 0, num_sequences=2, d_literal_lengths=0x906c24600
+[DEBUG] build_sequences: d_sequences=0x906c24600, d_num_sequences=0x906844080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 98.33 ms
+   Result: OK | Avg: 101.34 ms | Throughput: 0.15 MB/s
+
+[Test #31] Benchmarking Linear_128 (Block 0KB) on 16 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x906680a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x906684a00, max_size=16960
+[DEBUG] Block 0: matches=0x906b80000, costs=0x906bc0000, ws_matches=0x906b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906bc0000
+[DEBUG] compress: Block 0, num_sequences=2, d_literal_lengths=0x907024600
+[DEBUG] build_sequences: d_sequences=0x907024600, d_num_sequences=0x906c44080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x906680a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x906684a00, max_size=16960
+[DEBUG] Block 0: matches=0x906b80000, costs=0x906bc0000, ws_matches=0x906b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906bc0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x907024600
+[DEBUG] build_sequences: d_sequences=0x907024600, d_num_sequences=0x906c44080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #31 runs:
+[DEBUG] compress: input_ptr=0x906680a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x906684a00, max_size=16960
+[DEBUG] Block 0: matches=0x906b80000, costs=0x906bc0000, ws_matches=0x906b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906bc0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x907024600
+[DEBUG] build_sequences: d_sequences=0x907024600, d_num_sequences=0x906c44080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 110.84 ms
+[DEBUG] compress: input_ptr=0x906680a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x906684a00, max_size=16960
+[DEBUG] Block 0: matches=0x906b80000, costs=0x906bc0000, ws_matches=0x906b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906bc0000
+[DEBUG] compress: Block 0, num_sequences=2, d_literal_lengths=0x907024600
+[DEBUG] build_sequences: d_sequences=0x907024600, d_num_sequences=0x906c44080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 113.23 ms
+[DEBUG] compress: input_ptr=0x906680a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x906684a00, max_size=16960
+[DEBUG] Block 0: matches=0x906b80000, costs=0x906bc0000, ws_matches=0x906b80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906bc0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x907024600
+[DEBUG] build_sequences: d_sequences=0x907024600, d_num_sequences=0x906c44080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 117.57 ms
+   Result: OK | Avg: 113.88 ms | Throughput: 0.14 MB/s
+
+[Test #32] Benchmarking Linear_128 (Block 0KB) on 16 KB (Parallel)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+[DEBUG] compress: input_ptr=0x9067a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9067a4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906f80000, costs=0x906fc0000, ws_matches=0x906f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906fc0000
+[DEBUG] compress: Block 0, num_sequences=2, d_literal_lengths=0x907424600
+[DEBUG] build_sequences: d_sequences=0x907424600, d_num_sequences=0x907044080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[DEBUG] compress: input_ptr=0x9067a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9067a4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906f80000, costs=0x906fc0000, ws_matches=0x906f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906fc0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x907424600
+[DEBUG] build_sequences: d_sequences=0x907424600, d_num_sequences=0x907044080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #32 runs:
+[DEBUG] compress: input_ptr=0x9067a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9067a4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906f80000, costs=0x906fc0000, ws_matches=0x906f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906fc0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x907424600
+[DEBUG] build_sequences: d_sequences=0x907424600, d_num_sequences=0x907044080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 107.71 ms
+[DEBUG] compress: input_ptr=0x9067a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9067a4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906f80000, costs=0x906fc0000, ws_matches=0x906f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906fc0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x907424600
+[DEBUG] build_sequences: d_sequences=0x907424600, d_num_sequences=0x907044080
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 106.51 ms
+[DEBUG] compress: input_ptr=0x9067a0a00, input_attr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9067a4a00, max_size=16960
+[DEBUG] Block 0: matches=0x906f80000, costs=0x906fc0000, ws_matches=0x906f80000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[DEBUG] Backtrack V2: input_size=16384, d_costs=0x906fc0000
+[DEBUG] compress: Block 0, num_sequences=3, d_literal_lengths=0x907424600
+[DEBUG] build_sequences: d_sequences=0x907424600, d_num_sequences=0x907044080
+      Run 3: 106.85 ms
+   Result: OK | Avg: 107.02 ms | Throughput: 0.15 MB/s
+
+[Test #33] Benchmarking CubeRoot_K150 (Block 3KB) on 16 KB (Serial)
+[CRITICAL] StreamPool: Stream created (Success) BUT context corrupted! Sync: no error, Last: invalid argument
+   Test #33 runs:
+      Run 1: 0.14 ms
+      Run 2: 0.13 ms
+      Run 3: 0.14 ms
+   Result: OK | Avg: 0.14 ms | Throughput: 113.22 MB/s
+
+[Test #34] Benchmarking CubeRoot_K150 (Block 3KB) on 16 KB (Parallel)
+[DEBUG] compress: input_ptr=0x9067c0a00, input_a[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+ttr_err=0, type=2, input_is_device=1
+[DEBUG] compress: d_output=0x9067c4a00, max_size=16960
+[DEBUG] Block 0: matches=0x907780000, costs=0x9077c0000, ws_matches=0x907780000
+[DEBUG] Block 1: matches=0x90778ee10, costs=0x9077c7708, ws_matches=0x907780000
+[DEBUG] Block 2: matches=0x90779dc20, costs=0x9077cee10, ws_matches=0x907780000
+[DEBUG] Block 4: matches=0x9077bb840, costs=0x9077ddc20, ws_matches=0x907780000
+[DEBUG] Block 3: matches=0x9077aca30, costs=0x9077d6518, ws_matches=0x907780000
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18

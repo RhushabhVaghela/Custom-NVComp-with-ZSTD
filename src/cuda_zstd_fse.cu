@@ -1575,8 +1575,9 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   // For backwards encoding, each chunk starts with the initial FSE state
   // For single-chunk case (most common for small inputs), this is simply
   // table_size
-  // TODO: Multi-chunk requires calculating intermediate states by forward
-  // simulation
+  // NOTE: Multi-chunk currently uses independent states.
+  // Dependent chunks would require calculating intermediate states by forward
+  // simulation.
   std::vector<u32> h_chunk_states(num_chunks, table_size);
   CUDA_CHECK(cudaMemcpyAsync(d_chunk_start_states, h_chunk_states.data(),
                              num_chunks * sizeof(u32), cudaMemcpyHostToDevice,

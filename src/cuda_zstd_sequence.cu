@@ -84,8 +84,8 @@ Status build_sequences(const SequenceContext &ctx,
   // Check pre-existing errors
   cudaError_t pre_err = cudaGetLastError();
   if (pre_err != cudaSuccess) {
-    // printf("[ERROR] build_sequences: Pre-existing error: %s\n",
-    // cudaGetErrorString(pre_err));
+    printf("[ERROR] build_sequences: Pre-existing error: %s\n",
+           cudaGetErrorString(pre_err));
   }
 
   cudaError_t err =

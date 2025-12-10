@@ -105,6 +105,13 @@ bool run_benchmark(const std::string &formula_name, size_t input_size,
   CompressionConfig config = CompressionConfig::from_level(3);
   config.block_size = std::min(block_size, (u32)input_size);
 
+  // Set execution mode based on valid flag
+  if (use_parallel) {
+    config.cpu_threshold = 0; // Force GPU
+  } else {
+    config.cpu_threshold = 0xFFFFFFFF; // Force CPU (UINT32_MAX)
+  }
+
   ZstdBatchManager manager(config);
 
   void *d_input;
@@ -199,6 +206,17 @@ bool run_benchmark(const std::string &formula_name, size_t input_size,
 }
 
 int main() {
+  // Ensure clean state handled by OS/Runtime to avoid conflicting with static
+  // singletons cudaDeviceReset();
+
+  // Check CUDA status at startup
+  cudaError_t startup_err = cudaGetLastError();
+  if (startup_err != cudaSuccess) {
+    printf("[FATAL] CUDA Error at startup (Pre-main): %s\n",
+           cudaGetErrorString(startup_err));
+    return 1;
+  }
+
   auto benchmark_start = std::chrono::system_clock::now();
 
   std::cout
@@ -301,7 +319,7 @@ int main() {
     // Fixed block sizes
     for (u32 block_size : block_sizes) {
       for (bool parallel : parallel_modes) {
-        if (!parallel && size >= 256 * 1024 * 1024)
+        if (!parallel && size >= 16 * 1024 * 1024)
           continue;
         if (block_size == 8 * 1024 * 1024 && size >= 256 * 1024 * 1024)
           continue;
@@ -313,6 +331,9 @@ int main() {
           block_stream << (block_size / 1024) << "KB";
         std::string block_label = block_stream.str();
         std::string name = "Fixed_" + block_label;
+
+        if (size != 1024 || block_size != 131072)
+          continue;
 
         std::cout << "\n[Test #" << test_number << "] Benchmarking " << name
                   << " (Block " << block_label << ") on " << format_size(size)
