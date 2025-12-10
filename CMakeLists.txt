@@ -176,8 +176,10 @@ endif()
 
 # Benchmarks
 if(CUDA_ZSTD_BUILD_BENCHMARKS)
-    
-    add_executable(fixed_benchmark tests/fixed_benchmark.cu)
+    # Include tests directory for shared headers if needed
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+    add_executable(fixed_benchmark benchmarks/fixed_benchmark.cu)
     set_target_properties(fixed_benchmark PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
@@ -191,27 +193,28 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     )
     target_link_libraries(debug_single_test cuda_zstd_static)
     
-    add_executable(limited_benchmark tests/limited_benchmark.cu)
+    add_executable(limited_benchmark benchmarks/limited_benchmark.cu)
     set_target_properties(limited_benchmark PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(limited_benchmark cuda_zstd_static)
     
-    add_executable(comprehensive_benchmark tests/comprehensive_benchmark.cu)
+    add_executable(comprehensive_benchmark benchmarks/comprehensive_benchmark.cu)
     set_target_properties(comprehensive_benchmark PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(comprehensive_benchmark cuda_zstd_static)
 
-    add_executable(benchmark_lz77 tests/benchmark_lz77.cu)
+    add_executable(benchmark_lz77 benchmarks/benchmark_lz77.cu)
     set_target_properties(benchmark_lz77 PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_lz77 cuda_zstd_static)
 endif()
+
 
 # Installation
 install(TARGETS cuda_zstd_static cuda_zstd_shared
