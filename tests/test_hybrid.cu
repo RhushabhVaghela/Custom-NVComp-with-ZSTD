@@ -6,7 +6,6 @@
 #include <vector>
 #include <zstd.h>
 
-
 using namespace cuda_zstd;
 
 void check(Status status, const char *msg) {
@@ -87,7 +86,7 @@ int main() {
 
   // Test Size 1 specifically
   std::cout << "Testing Size 1 (GPU Forced)..." << std::endl;
-  size_t size_1 = 1;
+  // size_t size_1 = 1;  // Unused - hardcoded below
   void *d_1;
   void *d_comp_1;
   size_t comp_size_1 = ZSTD_compressBound(1);
@@ -106,8 +105,8 @@ int main() {
   std::cout << "Decompressing Size 1..." << std::endl;
   void *d_out_1;
   cudaMalloc(&d_out_1, 1);
-  size_t decomp_size_1 = 1; // Expected input size
-  size_t actual_decomp_size = 0;
+  // size_t decomp_size_1 = 1;  // Unused
+  // size_t actual_decomp_size = 0;  // Unused
 
   // Note: decompress takes uncompressed_size as pointer to output capacity or
   // expected? Prototype: decompress(const void *src, size_t src_size, void
