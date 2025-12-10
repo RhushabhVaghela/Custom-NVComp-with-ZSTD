@@ -21,7 +21,8 @@
 namespace cuda_zstd {
 namespace utils {
 
-constexpr u32 SCAN_THREADS = 256;
+// Unused constant (reserved for future scan operations)
+// constexpr u32 SCAN_THREADS = 256;
 
 // Functor for DictSegment
 struct GetLength {

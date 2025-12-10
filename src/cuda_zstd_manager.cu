@@ -1910,13 +1910,10 @@ public:
       // RLE OPTIMIZATION START
       // ======================================================================
       // Check for RLE Block (Type 1)
-      const byte_t *block_input = d_input + (size_t)block_idx * block_size;
-
-      // We use a small device allocation for the result flag
-      // Re-using d_lz77_temp or similar scratch space would be ideal, but
-      // specific ptrs are cleaner
-      int *d_is_rle = (int *)block_ws.d_lz77_temp;   // Borrow start of temp
-      byte_t *d_rle_byte = (byte_t *)(d_is_rle + 1); // Next byte
+      // RLE optimization variables (currently unused as RLE check is disabled)
+      // const byte_t *block_input = d_input + (size_t)block_idx * block_size;
+      // int *d_is_rle = (int *)block_ws.d_lz77_temp;
+      // byte_t *d_rle_byte = (byte_t *)(d_is_rle + 1);
 
       // Initialize results to safe defaults using memset/kernel?
       // The kernel handles initialization for is_rle=1.
