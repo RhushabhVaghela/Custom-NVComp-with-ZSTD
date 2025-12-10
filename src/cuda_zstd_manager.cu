@@ -1394,16 +1394,13 @@ public:
         d_output + compressed_offset, ZSTD_MAGIC_SKIPPABLE_START,
         sizeof(CustomMetadataFrame), CUSTOM_METADATA_MAGIC, config.level);
 
-    /*
     cudaError_t kernel_err = cudaGetLastError();
     if (kernel_err != cudaSuccess) {
-         // Suppressing error as False Positive (Invalid Argument on
-    0x90ba00000)
-         // Decompression verifies that data IS written correctly.
-         // printf("[WARN] compress: write_skippable_header_kernel reported:
-    %s\n", cudaGetErrorString(kernel_err));
+      // Suppressing error as False Positive (Invalid Argument on 0x...)
+      // Decompression verifies that data IS written correctly.
+      printf("[WARN] compress: write_skippable_header_kernel reported: %s\n",
+             cudaGetErrorString(kernel_err));
     }
-    */
 
     compressed_offset +=
         sizeof(SkippableFrameHeader) + sizeof(CustomMetadataFrame);
@@ -1733,8 +1730,15 @@ public:
             lz77_config.window_log = config.window_log;
             lz77_config.hash_log = config.hash_log;
             lz77_config.chain_log = config.chain_log;
-            lz77_config.search_depth = (1u << config.search_log);
+            lz77_config.chain_log = config.chain_log;
+            // (OPTIMIZATION) Force deeper search for better ratios
+            lz77_config.search_depth = 128;
             lz77_config.min_match = config.min_match;
+            // (OPTIMIZATION) Increase nice_length to allow longer matches
+            // Default 128 is too small for large repetitive blocks
+            // Set to 131072 (128KB) to cover full blocks
+            lz77_config.nice_length = 131072;
+            lz77_config.good_length = lz77_config.nice_length;
 
             // Run V2 Pipeline
 

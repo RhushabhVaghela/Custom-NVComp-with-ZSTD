@@ -59,22 +59,21 @@ __global__ void find_matches_kernel(const u8 *input, u32 input_size,
     u32 len =
         match_length(input, pos, search_pos, config.nice_length, input_size);
 
-    if (len >= config.min_match) {
-      u32 cost = calculate_match_cost(len, offset);
-      if (cost < best_cost) {
-        best_cost = cost;
-        best_match.offset = offset;
-        best_match.length = len;
-      }
-
-      if (len >= config.good_length)
-        break;
+    u32 cost = calculate_match_cost(len, offset);
+    if (cost < best_cost) {
+      best_cost = cost;
+      best_match.offset = offset;
+      best_match.length = len;
     }
 
-    search_pos = chain_table[search_pos & chain_mask];
+    if (len >= config.good_length)
+      break;
   }
 
-  matches[pos] = best_match;
+  search_pos = chain_table[search_pos & chain_mask];
+}
+
+matches[pos] = best_match;
 }
 
 __global__ void compute_costs_kernel(const u8 *input, u32 input_size,
@@ -676,6 +675,8 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
         // h_matches[parent].length);
         parent = pos - 1;
         len = 1;
+      } else if (len > 128) {
+        printf("[BACKTRACK] Valid Large Match: Len=%u, Offset=%u, Pos=%u\n",
       }
     }
 
