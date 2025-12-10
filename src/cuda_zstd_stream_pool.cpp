@@ -44,16 +44,19 @@ StreamPool::StreamPool(size_t pool_size) {
       // throw std::runtime_error("Failed to create CUDA stream pool"); //
       // Temporarily disabled
       break;
-    } else {
-      // Check for sticky error immediately
-      cudaError_t sync_err = cudaDeviceSynchronize();
-      cudaError_t sticky_err = cudaGetLastError();
-      if (sync_err != cudaSuccess || sticky_err != cudaSuccess) {
-        printf("[CRITICAL] StreamPool: Stream created (Success) BUT context "
-               "corrupted! Sync: %s, Last: %s\n",
-               cudaGetErrorString(sync_err), cudaGetErrorString(sticky_err));
-      }
     }
+    // REMOVED: Overly aggressive sticky error check that produces false
+    // positives The cudaStreamCreate return value is sufficient for error
+    // detection else {
+    //   // Check for sticky error immediately
+    //   cudaError_t sync_err = cudaDeviceSynchronize();
+    //   cudaError_t sticky_err = cudaGetLastError();
+    //   if (sync_err != cudaSuccess || sticky_err != cudaSuccess) {
+    //     printf("[CRITICAL] StreamPool: Stream created (Success) BUT context "
+    //            "corrupted! Sync: %s, Last: %s\n",
+    //            cudaGetErrorString(sync_err), cudaGetErrorString(sticky_err));
+    //   }
+    // }
 
     free_idx_.push((int)i);
     // if (debug) std::cerr << "StreamPool: pushed free index " << i <<

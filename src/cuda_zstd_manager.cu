@@ -1157,11 +1157,6 @@ public:
     bool input_is_device = (input_attr_err == cudaSuccess &&
                             input_attrs.type == cudaMemoryTypeDevice);
 
-    printf("[DEBUG] compress: input_ptr=%p, input_attr_err=%d, type=%d, "
-           "input_is_device=%d\n",
-           uncompressed_data, (int)input_attr_err, (int)input_attrs.type,
-           (int)input_is_device);
-
     byte_t *d_input = nullptr;
     if (input_is_device) {
       // Input is already on device, use it directly
@@ -1179,8 +1174,6 @@ public:
     if (compressed_data != nullptr) {
       d_output = static_cast<byte_t *>(compressed_data);
       d_output_max_size = *compressed_size;
-      printf("[DEBUG] compress: d_output=%p, max_size=%zu\n", d_output,
-             d_output_max_size);
     } else {
       d_output = workspace_ptr;
       d_output_max_size =
@@ -1673,11 +1666,6 @@ public:
                 reinterpret_cast<byte_t *>(call_workspace.d_costs) +
                 block_offset_idx * sizeof(lz77::ParseCost));
 
-            // [DEBUG] Print pointers
-            printf("[DEBUG] Block %u: matches=%p, costs=%p, ws_matches=%p\n",
-                   block_idx, thread_block_ws.d_matches,
-                   thread_block_ws.d_costs, call_workspace.d_matches);
-
             // (FIX) Assign per-block reverse sequence buffers
             thread_block_ws.d_literal_lengths_reverse = reinterpret_cast<u32 *>(
                 reinterpret_cast<byte_t *>(
@@ -2024,9 +2012,6 @@ public:
         }
 
         u32 *d_lit_ptr = block_seq_ctxs[block_idx].d_literal_lengths;
-        printf("[DEBUG] compress: Block %u, num_sequences=%u, "
-               "d_literal_lengths=%p\n",
-               block_idx, num_sequences, d_lit_ptr);
 
         cudaPointerAttributes attr;
         cudaError_t attr_err = cudaPointerGetAttributes(&attr, d_lit_ptr);

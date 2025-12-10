@@ -622,8 +622,6 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
   cuda_zstd::lz77::Match *h_matches = new cuda_zstd::lz77::Match[input_size];
 
   // 2. Copy from device
-  printf("[DEBUG] Backtrack V2: input_size=%u, d_costs=%p\n", input_size,
-         workspace.d_costs);
   cudaError_t err = cudaMemcpyAsync(h_costs, workspace.d_costs,
                                     (input_size + 1) * sizeof(ParseCost),
                                     cudaMemcpyDeviceToHost, stream);

@@ -66,8 +66,7 @@ Status build_sequences(const SequenceContext &ctx,
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  printf("[DEBUG] build_sequences: d_sequences=%p, d_num_sequences=%p\n",
-         ctx.d_sequences, ctx.d_num_sequences);
+  // Debug logging removed
 
   // Validate kernel launch parameters
   if (num_blocks == 0 || num_threads == 0 || num_sequences_to_build == 0) {
