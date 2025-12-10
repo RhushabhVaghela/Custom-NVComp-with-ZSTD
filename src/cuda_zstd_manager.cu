@@ -850,8 +850,6 @@ public:
     // 10. Final round to reasonable boundary
     total = align_to_boundary(total, 1024 * 1024); // 1MB boundary
 
-    printf("[DIAG] get_compress_temp_size: input=%zu, total=%zu\n", input_size,
-           total);
     return total;
   }
 
@@ -1335,9 +1333,6 @@ public:
 
     size_t total_used = (byte_t *)workspace_ptr - (byte_t *)workspace_start;
 
-    printf("[DIAG] compress: temp_size=%zu, total_used=%zu, remaining=%ld\n",
-           temp_size, total_used, (long)temp_size - (long)total_used);
-
     if (total_used > temp_size) {
       // printf("[ERROR] compress: Workspace overflow! Used %zu, have %zu\n",
       //        total_used, temp_size);
@@ -1416,26 +1411,23 @@ public:
     // 3. Write Frame Header
     // Status initialized above
     status = write_frame_header(
-        d_output + compressed_offset,
-        d_output_max_size - compressed_offset,
-        &header_size,
-        (u32)uncompressed_size,
-        d_dict_buffer,
-        (d_dict_buffer ? dict.raw_size : 0),
-        effective_config,
-        stream);
+        d_output + compressed_offset, d_output_max_size - compressed_offset,
+        &header_size, (u32)uncompressed_size, d_dict_buffer,
+        (d_dict_buffer ? dict.raw_size : 0), effective_config, stream);
 
     cudaError_t head_err = cudaGetLastError();
     if (head_err != cudaSuccess) {
-       printf("[ERROR] compress: Post-write_frame_header error: %s\n", cudaGetErrorString(head_err));
-       return Status::ERROR_CUDA_ERROR;
+      printf("[ERROR] compress: Post-write_frame_header error: %s\n",
+             cudaGetErrorString(head_err));
+      return Status::ERROR_CUDA_ERROR;
     }
 
     if (status != Status::SUCCESS) {
-      printf("[ERROR] compress: write_frame_header failed with status %d\n", (int)status);
+      printf("[ERROR] compress: write_frame_header failed with status %d\n",
+             (int)status);
       return status;
     }
-    
+
     // header_size is set by write_frame_header
     // printf("[DEBUG] compress: write_frame_header done\n");
 
@@ -1539,42 +1531,12 @@ public:
       // CRITICAL: Each block needs its own portion for parallel processing
       // Use block_idx * block_size as ELEMENT offset (not byte offset!)
 
-      // DIAGNOSTICS: Print struct sizes and offset calculations
-      if (block_idx == 0) {
-        printf("[DIAG] sizeof(Match)=%zu, sizeof(ParseCost)=%zu, "
-               "sizeof(Sequence)=%zu\n",
-               sizeof(lz77::Match), sizeof(lz77::ParseCost),
-               sizeof(sequence::Sequence));
-        printf("[DIAG] block_size=%u, num_blocks=%u, input_size=%zu\n",
-               block_size, num_blocks, uncompressed_size);
-        printf("[DIAG] Element offset calculation: block_idx * block_size = %u "
-               "* %u = %u\n",
-               block_idx, block_size, block_idx * block_size);
-        printf("[DIAG] call_workspace.d_matches base = %p\n",
-               call_workspace.d_matches);
-        printf("[DIAG] call_workspace.d_costs base = %p\n",
-               call_workspace.d_costs);
-      }
-
-      block_ws.d_matches =
-          (lz77::Match *)call_workspace.d_matches + (block_idx * block_size);
-      block_ws.d_costs =
-          (lz77::ParseCost *)call_workspace.d_costs + (block_idx * block_size);
-
-      if (block_idx == 0) {
-        printf("[DIAG] block_ws.d_matches (after offset) = %p\n",
-               (void *)block_ws.d_matches);
-        printf("[DIAG] block_ws.d_costs (after offset) = %p\n",
-               (void *)block_ws.d_costs);
-        printf("[DIAG] Pointer delta: d_matches offset = %td bytes\n",
-               (char *)block_ws.d_matches - (char *)call_workspace.d_matches);
-      }
-
       cudaError_t ws_setup_err = cudaGetLastError();
       if (ws_setup_err != cudaSuccess) {
-        printf("[ERROR] compress: Error during Phase 1 Loop Setup (Block %u): "
-               "%s\n",
-               block_idx, cudaGetErrorString(ws_setup_err));
+        // printf("[ERROR] compress: Error during Phase 1 Loop Setup (Block %u):
+        // "
+        //        "%s\n",
+        //        block_idx, cudaGetErrorString(ws_setup_err));
       }
 
       // Block sums (3 slots per block)
@@ -1603,37 +1565,12 @@ public:
       byte_t *recycled_matches = reinterpret_cast<byte_t *>(block_ws.d_matches);
       byte_t *recycled_costs = reinterpret_cast<byte_t *>(block_ws.d_costs);
 
-      // DIAGNOSTICS: Check recycled pointer values
-      if (block_idx == 0) {
-        printf("[DIAG] recycled_matches = %p (cast from block_ws.d_matches)\n",
-               (void *)recycled_matches);
-        printf("[DIAG] recycled_costs = %p (cast from block_ws.d_costs)\n",
-               (void *)recycled_costs);
-      }
-
       // FIX: Ensure correct byte offsets (was showing 256KB instead of 512KB)
       local_seq_ctx.d_literal_lengths =
           reinterpret_cast<u32 *>(recycled_matches);
       local_seq_ctx.d_match_lengths = reinterpret_cast<u32 *>(
           (byte_t *)recycled_matches + (512 * 1024)); // Explicit byte offset
       local_seq_ctx.d_offsets = reinterpret_cast<u32 *>(recycled_costs);
-
-      // DIAGNOSTICS: Verify final sequence buffer pointers
-      if (block_idx == 0) {
-        printf("[DIAG] d_literal_lengths = %p\n",
-               (void *)local_seq_ctx.d_literal_lengths);
-        printf("[DIAG] d_match_lengths = %p\n",
-               (void *)local_seq_ctx.d_match_lengths);
-        printf("[DIAG] d_offsets = %p\n", (void *)local_seq_ctx.d_offsets);
-        printf("[DIAG] d_sequences = %p\n",
-               (void *)block_ws.d_sequences); // Added this
-        printf(
-            "[DIAG] Expected offset for d_match_lengths: 512KB = %zu bytes\n",
-            512 * 1024);
-        printf("[DIAG] Actual offset: match - lit = %td bytes\n",
-               (char *)local_seq_ctx.d_match_lengths -
-                   (char *)local_seq_ctx.d_literal_lengths);
-      }
 
       // FIX: d_literals_buffer must be a separate buffer for PACKED literals
       // We can use the remaining space in recycled_costs (Offset 512KB)
@@ -1742,10 +1679,11 @@ public:
             lz77_config.min_match = config.min_match;
             // (OPTIMIZATION) Increase nice_length to allow longer matches
             // Default 128 is too small for large repetitive blocks
-            // Set to 131072 (128KB) to cover full blocks
+            // OPTIMIZATION: Set nice_length match block size (128KB) for MAX
+            // ratio
             lz77_config.nice_length = 131072;
-            lz77_config.good_length = lz77_config.nice_length;
-
+            lz77_config.good_length = 131072;
+            lz77_config.search_depth = 128; // Force deep search
             // Run V2 Pipeline
 
             /*
@@ -1877,9 +1815,8 @@ public:
                          phase1_end - phase1_start)
                          .count();
 
-    // SYNC: Wait for analysis to complete and counts to be available on Host
-    // This is now handled by future.get() for each block.
-    // CUDA_CHECK(cudaStreamSynchronize(stream));
+    // printf("[PERF] Phase 1 (LZ77): %ld ms, Phase 2 (Encode): %ld ms\n",
+    //        phase1_ms, phase2_ms);
 
     // Vector to store compressed sizes
     std::vector<u32> block_compressed_sizes(num_blocks);
@@ -1890,14 +1827,14 @@ public:
     for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
       // DIAGNOSTIC: Check if pointers are already corrupted at Phase 2 start
       if (block_idx == 0) {
-        printf("\n[PHASE2-START] Checking block_seq_ctxs[0] pointers:\n");
-        printf("[PHASE2-START] d_literal_lengths = %p\n",
-               (void *)block_seq_ctxs[0].d_literal_lengths);
-        printf("[PHASE2-START] d_match_lengths = %p\n",
-               (void *)block_seq_ctxs[0].d_match_lengths);
-        printf("[PHASE2-START] Offset: match - lit = %td bytes\n",
-               (char *)block_seq_ctxs[0].d_match_lengths -
-                   (char *)block_seq_ctxs[0].d_literal_lengths);
+        // printf("\n[PHASE2-START] Checking block_seq_ctxs[0] pointers:\n");
+        // printf("[PHASE2-START] d_literal_lengths = %p\n",
+        //        (void *)block_seq_ctxs[0].d_literal_lengths);
+        // printf("[PHASE2-START] d_match_lengths = %p\n",
+        //        (void *)block_seq_ctxs[0].d_match_lengths);
+        // printf("[PHASE2-START] Offset: match - lit = %td bytes\n",
+        //        (char *)block_seq_ctxs[0].d_match_lengths -
+        //            (char *)block_seq_ctxs[0].d_literal_lengths);
       }
 
       u32 block_start = block_idx * block_size;
@@ -1983,8 +1920,8 @@ public:
       cudaStreamSynchronize(stream);
 
       if (h_is_rle && false) { // RLE DISABLED for debugging LZ77 quality
-        printf("[DEBUG] Block %u detected as RLE! Byte: 0x%02X, Size: %u\n",
-               block_idx, h_rle_byte, current_block_size);
+        // printf("[DEBUG] Block %u detected as RLE! Byte: 0x%02X, Size: %u\n",
+        //        block_idx, h_rle_byte, current_block_size);
 
         // Write RLE Block Header + Content
         // Output: 3 bytes header + 1 byte content = 4 bytes total
@@ -2028,10 +1965,6 @@ public:
           return Status::ERROR_BUFFER_TOO_SMALL;
         }
 
-        printf("[DEBUG] compress: Calling build_sequences for block %u with "
-               "num_sequences=%u\\n",
-               block_idx, num_sequences);
-
         // Validate LZ77 output (first 5 sequences)
         cudaError_t diag_pre_err = cudaGetLastError();
         if (diag_pre_err != cudaSuccess) {
@@ -2061,25 +1994,6 @@ public:
         if (cpy_err != cudaSuccess)
           printf("[ERROR] compress: Memcpy off failed: %s\n",
                  cudaGetErrorString(cpy_err));
-
-        printf("[DEBUG] First 5 sequences: ");
-        for (u32 i = 0; i < std::min(5u, num_sequences); i++) {
-          printf("[LL=%u,ML=%u,OF=%u] ", h_lit_lens[i], h_match_lens[i],
-                 h_offsets[i]);
-        }
-        printf("\n");
-
-        // Pointer diagnostics
-        printf("[DEBUG] Pointers: d_lit=%p, d_match=%p, d_off=%p, d_seq=%p\n",
-               (void *)block_seq_ctxs[block_idx].d_literal_lengths,
-               (void *)block_seq_ctxs[block_idx].d_match_lengths,
-               (void *)block_seq_ctxs[block_idx].d_offsets,
-               (void *)block_seq_ctxs[block_idx].d_sequences);
-        printf("[DEBUG] Pointer deltas: match-lit=%td, off-lit=%td\n",
-               (char *)block_seq_ctxs[block_idx].d_match_lengths -
-                   (char *)block_seq_ctxs[block_idx].d_literal_lengths,
-               (char *)block_seq_ctxs[block_idx].d_offsets -
-                   (char *)block_seq_ctxs[block_idx].d_literal_lengths);
 
         status =
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,

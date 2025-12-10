@@ -78,19 +78,14 @@ Status build_sequences(const SequenceContext &ctx,
   }
 
   if (num_threads > 1024) {
-    printf("[ERROR] build_sequences: threads=%u exceeds max 1024\n",
-           num_threads);
     return Status::ERROR_INVALID_PARAMETER;
   }
-
-  printf("[DEBUG] build_sequences: d_sequences=%p, d_num_sequences=%p\n",
-         (void *)ctx.d_sequences, (void *)ctx.d_num_sequences);
 
   // Check pre-existing errors
   cudaError_t pre_err = cudaGetLastError();
   if (pre_err != cudaSuccess) {
-    printf("[ERROR] build_sequences: Pre-existing error: %s\n",
-           cudaGetErrorString(pre_err));
+    // printf("[ERROR] build_sequences: Pre-existing error: %s\n",
+    // cudaGetErrorString(pre_err));
   }
 
   cudaError_t err =

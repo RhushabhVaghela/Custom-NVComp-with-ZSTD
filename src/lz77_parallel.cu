@@ -726,10 +726,6 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
   return Status::SUCCESS;
 }
 
-// LEGACY_PARALLEL_BACKTRACK:
-// LEGACY_PARALLEL_BACKTRACK: // Adaptive backtracking: chooses parallel or CPU
-// based on input size Adaptive backtracking: chooses parallel or CPU based on
-// input size
 Status backtrack_sequences(u32 input_size, CompressionWorkspace &workspace,
                            u32 *h_num_sequences, cudaStream_t stream) {
   // V2: Always use V2 backtracking (CPU for now, but uses new ParseCost format)
