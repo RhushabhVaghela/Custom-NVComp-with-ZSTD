@@ -42,8 +42,10 @@ void generate_test_data(std::vector<uint8_t> &data, size_t size,
   }
 }
 
-// CUDA_CHECK is defined in cuda_zstd_types.h (via lz77_parallel.h)
-#ifndef CUDA_CHECK
+// CUDA_CHECK from cuda_zstd_types.h returns Status, but benchmark functions
+// return void Undefine and redefine with exit-based error handling for
+// benchmarks
+#undef CUDA_CHECK
 #define CUDA_CHECK(call)                                                       \
   do {                                                                         \
     cudaError_t err = call;                                                    \
@@ -54,7 +56,6 @@ void generate_test_data(std::vector<uint8_t> &data, size_t size,
       exit(1);                                                                 \
     }                                                                          \
   } while (0)
-#endif
 
 void run_benchmark(size_t size, int iterations, bool add_noise = true) {
   if (add_noise)
