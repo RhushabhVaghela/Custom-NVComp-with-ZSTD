@@ -68,12 +68,11 @@ __global__ void find_matches_kernel(const u8 *input, u32 input_size,
 
     if (len >= config.good_length)
       break;
+
+    search_pos = chain_table[search_pos & chain_mask];
   }
 
-  search_pos = chain_table[search_pos & chain_mask];
-}
-
-matches[pos] = best_match;
+  matches[pos] = best_match;
 }
 
 __global__ void compute_costs_kernel(const u8 *input, u32 input_size,
@@ -618,8 +617,9 @@ Status backtrack_sequences_cpu(
 Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
                               u32 *h_num_sequences, cudaStream_t stream) {
   // 1. Allocate host memory
-  ParseCost *h_costs = new ParseCost[input_size + 1];
-  Match *h_matches = new Match[input_size];
+  cuda_zstd::lz77::ParseCost *h_costs =
+      new cuda_zstd::lz77::ParseCost[input_size + 1];
+  cuda_zstd::lz77::Match *h_matches = new cuda_zstd::lz77::Match[input_size];
 
   // 2. Copy from device
   cudaError_t err = cudaMemcpyAsync(h_costs, workspace.d_costs,
@@ -675,8 +675,6 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
         // h_matches[parent].length);
         parent = pos - 1;
         len = 1;
-      } else if (len > 128) {
-        printf("[BACKTRACK] Valid Large Match: Len=%u, Offset=%u, Pos=%u\n",
       }
     }
 

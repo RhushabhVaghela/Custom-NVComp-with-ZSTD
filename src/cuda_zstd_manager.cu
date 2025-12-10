@@ -1413,24 +1413,30 @@ public:
     // printf("[DEBUG] compress: Calling write_frame_header...\n");
     Status status = Status::SUCCESS; // Declare status for later use
 
-    // status = write_frame_header(
-    //     d_compressed, available_out_size, &header_size,
-    //     params, // Use params for window size etc
-    //     call_workspace.d_compressed_size,
-    //     stream);
+    // 3. Write Frame Header
+    // Status initialized above
+    status = write_frame_header(
+        d_output + compressed_offset,
+        d_output_max_size - compressed_offset,
+        &header_size,
+        (u32)uncompressed_size,
+        d_dict_buffer,
+        (d_dict_buffer ? dict.raw_size : 0),
+        effective_config,
+        stream);
 
-    // cudaError_t head_err = cudaGetLastError();
-    // if (head_err != cudaSuccess) printf("[ERROR] compress:
-    // Post-write_frame_header error: %s\n", cudaGetErrorString(head_err));
+    cudaError_t head_err = cudaGetLastError();
+    if (head_err != cudaSuccess) {
+       printf("[ERROR] compress: Post-write_frame_header error: %s\n", cudaGetErrorString(head_err));
+       return Status::ERROR_CUDA_ERROR;
+    }
 
-    /*
     if (status != Status::SUCCESS) {
-      printf("[ERROR] compress: write_frame_header failed with status %d\n",
-             (int)status);
+      printf("[ERROR] compress: write_frame_header failed with status %d\n", (int)status);
       return status;
     }
-    */
-    header_size = 14; // Fake size to proceed
+    
+    // header_size is set by write_frame_header
     // printf("[DEBUG] compress: write_frame_header done\n");
 
     compressed_offset += header_size;
@@ -2609,7 +2615,8 @@ private:
   // ==========================================================================
   Status write_frame_header(byte_t *output, size_t max_size, u32 *header_size,
                             u32 content_size, const void *dict_buffer,
-                            size_t dict_size, cudaStream_t stream) {
+                            size_t dict_size, const CompressionConfig &config,
+                            cudaStream_t stream) {
     // //         // fprintf(stderr, "[DEBUG] write_frame_header:
     // max_size=%zu, FRAME_HEADER_SIZE_MIN=%u\n",
     // //                 max_size, FRAME_HEADER_SIZE_MIN);
@@ -2679,10 +2686,9 @@ private:
     offset += 1;
 
     // Write Window Descriptor (Required if !SingleSegment)
-    // Use default window log (e.g. 19 for 512KB).
+    // Use window_log from config
     // WD = (Exponent - 10) << 3.
-    // Exponent 19 -> (19-10) = 9 -> 9 << 3 = 72 (0x48).
-    byte_t wd = (19 - 10) << 3;
+    byte_t wd = (config.window_log - 10) << 3;
     h_header[offset] = wd;
     offset += 1;
 
