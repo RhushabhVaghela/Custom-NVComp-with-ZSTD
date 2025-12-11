@@ -1,2 +1,0 @@
-[ 63%] Built target libzstd_static
-[ 63%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/lz77_parallel.cu.o

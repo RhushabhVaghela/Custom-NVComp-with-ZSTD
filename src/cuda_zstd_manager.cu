@@ -1624,8 +1624,7 @@ public:
 
       // Launch async task for this block
       block_futures.push_back(std::async(
-          std::launch::deferred, // TEMPORARILY DISABLE parallel execution to
-                                 // test for race conditions
+          std::launch::async, // Parallel execution (race condition ruled out)
           [=, &block_seq_ctxs, &block_num_sequences,
            &block_literals_sizes]() -> Status {
             // Create per-block stream for parallel execution
@@ -1717,19 +1716,7 @@ public:
              * find_matches_parallel
              */
 
-            // DEBUG: Print workspace pointers before kernel launch
-            printf("[DEBUG Block %u] Before LZ77 kernel:\n", block_idx);
-            printf("  block_input=%p, current_block_size=%u\n", block_input,
-                   current_block_size);
-            printf("  d_matches=%p, d_costs=%p\n", thread_block_ws.d_matches,
-                   thread_block_ws.d_costs);
-            printf("  d_hash_table=%p (size=%u), d_chain_table=%p (size=%u)\n",
-                   thread_block_ws.d_hash_table,
-                   thread_block_ws.hash_table_size,
-                   thread_block_ws.d_chain_table,
-                   thread_block_ws.chain_table_size);
-            printf("  max_sequences=%u\n", thread_block_ws.max_sequences);
-
+            // LZ77 kernel will be launched below
             // Pass 1: Find Matches
             Status status =
                 static_cast<Status>(cuda_zstd::lz77::find_matches_parallel(
@@ -1953,7 +1940,7 @@ public:
       cudaMemcpyAsync(&h_is_rle, d_is_rle, sizeof(int), cudaMemcpyDeviceToHost,
                       stream);
       cudaMemcpyAsync(&h_rle_byte, d_rle_byte, sizeof(byte_t),
-                      cudaMemcpyDeviceToHost, stream);
+                      cudaMemcpyHostToDevice, stream);
       cudaStreamSynchronize(stream);
 
       // DIAGNOSTIC CHECK: Ensure LZ77/RLE didn't crash before we start Phase 2
@@ -2093,11 +2080,6 @@ public:
       // Compress Literals
       u32 literals_size = 0;
       block_seq_ctxs[block_idx].num_literals = block_literals_sizes[block_idx];
-
-      // DEBUG: Check d_literals_buffer pointer
-      printf("[DEBUG Block %u] d_literals_buffer=%p, num_literals=%u\n",
-             block_idx, block_seq_ctxs[block_idx].d_literals_buffer,
-             block_seq_ctxs[block_idx].num_literals);
 
       status = compress_literals(block_seq_ctxs[block_idx].d_literals_buffer,
                                  block_seq_ctxs[block_idx].num_literals,
@@ -3218,11 +3200,6 @@ private:
       header[2] = (byte_t)((num_literals >> 12) & 0xFF);
       header_len = 3;
     }
-
-    // DEBUG: Print parameters
-    printf("[DEBUG compress_literals] output=%p, header_len=%u, "
-           "num_literals=%u, stream=%p\n",
-           output, header_len, num_literals, stream);
 
     CUDA_CHECK(cudaMemcpyAsync(output, header, header_len,
                                cudaMemcpyHostToDevice, stream));

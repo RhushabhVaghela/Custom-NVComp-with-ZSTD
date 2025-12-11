@@ -1,0 +1,1454 @@
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+================================================================
+  CUDA-ZSTD Comprehensive Benchmark
+================================================================
+
+GPU VRAM Limit: 12 GB (safe)
+Compression Level: 3
+Block Sizes Tested: 128 KB → 8 MB
+Input Sizes Tested: 1 KB → 20 GB
+
+Total tests to run: 286 (sizes up to 1 GB, blocks up to 8MB)
+
+------------------------------------------------------------
+>>> Input Size: 1 KB
+------------------------------------------------------------
+Progress: 0/286 (0%)
+Estimated time for this group: (collecting baseline...)
+
+[Test #1] Benchmarking Fixed_128KB (Block 128KB) on 1 KB (Serial)
+   Test #1 runs:
+      Run 1: 0.24 ms
+      Run 2: 0.08 ms
+      Run 3: 0.06 ms
+   Result: OK | Avg: 0.13 ms | Throughput: 7.65 MB/s
+
+[Test #2] Benchmarking Fixed_128KB (Block 128KB) on 1 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #2 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 10.91 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 10.20 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 10.02 ms
+   Result: OK | Avg: 10.38 ms | Throughput: 0.09 MB/s
+
+[Test #3] Benchmarking Sqrt_K400 (Block 12KB) on 1 KB (Serial)
+   Test #3 runs:
+      Run 1: 0.07 ms
+      Run 2: 0.13 ms
+      Run 3: 0.09 ms
+   Result: OK | Avg: 0.10 ms | Throughput: 9.93 MB/s
+
+[Test #4] Benchmarking Sqrt_K400 (Block 12KB) on 1 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #4 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 8.14 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 8.70 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 9.66 ms
+   Result: OK | Avg: 8.83 ms | Throughput: 0.11 MB/s
+
+[Test #5] Benchmarking Logarithmic (Block 90KB) on 1 KB (Serial)
+   Test #5 runs:
+      Run 1: 0.06 ms
+      Run 2: 0.08 ms
+      Run 3: 0.06 ms
+   Result: OK | Avg: 0.06 ms | Throughput: 15.34 MB/s
+
+[Test #6] Benchmarking Logarithmic (Block 90KB) on 1 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #6 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 10.79 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 9.56 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 8.15 ms
+   Result: OK | Avg: 9.50 ms | Throughput: 0.10 MB/s
+
+[Test #7] Benchmarking Linear_128 (Block 0KB) on 1 KB (Serial)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #7 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 8.76 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 8.28 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 9.66 ms
+   Result: OK | Avg: 8.90 ms | Throughput: 0.11 MB/s
+
+[Test #8] Benchmarking Linear_128 (Block 0KB) on 1 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #8 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 10.06 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 8.74 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 9.20 ms
+   Result: OK | Avg: 9.34 ms | Throughput: 0.10 MB/s
+
+[Test #9] Benchmarking CubeRoot_K150 (Block 1KB) on 1 KB (Serial)
+   Test #9 runs:
+      Run 1: 0.07 ms
+      Run 2: 0.06 ms
+      Run 3: 0.07 ms
+   Result: OK | Avg: 0.07 ms | Throughput: 14.36 MB/s
+
+[Test #10] Benchmarking CubeRoot_K150 (Block 1KB) on 1 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #10 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 8.33 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 8.15 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 7.86 ms
+   Result: OK | Avg: 8.11 ms | Throughput: 0.12 MB/s
+
+[Test #11] Benchmarking Piecewise (Block 2MB) on 1 KB (Serial)
+   Test #11 runs:
+      Run 1: 0.06 ms
+      Run 2: 0.05 ms
+      Run 3: 0.06 ms
+   Result: OK | Avg: 0.05 ms | Throughput: 17.86 MB/s
+
+[Test #12] Benchmarking Piecewise (Block 2MB) on 1 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #12 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 8.00 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 9.12 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 9.35 ms
+   Result: OK | Avg: 8.82 ms | Throughput: 0.11 MB/s
+
+[Test #13] Benchmarking Hybrid (Block 0KB) on 1 KB (Serial)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #13 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 8.31 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 9.37 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 8.19 ms
+   Result: OK | Avg: 8.63 ms | Throughput: 0.11 MB/s
+
+[Test #14] Benchmarking Hybrid (Block 0KB) on 1 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #14 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 9.41 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 9.40 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 8.60 ms
+   Result: OK | Avg: 9.14 ms | Throughput: 0.11 MB/s
+
+------------------------------------------------------------
+>>> Input Size: 4 KB
+------------------------------------------------------------
+Progress: 14/286 (4.9%)
+Estimated time for this group: ~0.2 seconds
+
+[Test #15] Benchmarking Sqrt_K400 (Block 25KB) on 4 KB (Serial)
+   Test #15 runs:
+      Run 1: 0.07 ms
+      Run 2: 0.08 ms
+      Run 3: 0.07 ms
+   Result: OK | Avg: 0.07 ms | Throughput: 52.32 MB/s
+
+[Test #16] Benchmarking Sqrt_K400 (Block 25KB) on 4 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #16 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 26.31 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 32.06 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 28.35 ms
+   Result: OK | Avg: 28.91 ms | Throughput: 0.14 MB/s
+
+[Test #17] Benchmarking Logarithmic (Block 128KB) on 4 KB (Serial)
+   Test #17 runs:
+      Run 1: 0.09 ms
+      Run 2: 0.08 ms
+      Run 3: 0.09 ms
+   Result: OK | Avg: 0.08 ms | Throughput: 47.06 MB/s
+
+[Test #18] Benchmarking Logarithmic (Block 128KB) on 4 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #18 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 31.27 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 30.17 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 28.41 ms
+   Result: OK | Avg: 29.95 ms | Throughput: 0.13 MB/s
+
+[Test #19] Benchmarking Linear_128 (Block 0KB) on 4 KB (Serial)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #19 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 26.51 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 28.32 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 29.48 ms
+   Result: OK | Avg: 28.11 ms | Throughput: 0.14 MB/s
+
+[Test #20] Benchmarking Linear_128 (Block 0KB) on 4 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #20 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 28.13 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 30.49 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 32.63 ms
+   Result: OK | Avg: 30.42 ms | Throughput: 0.13 MB/s
+
+[Test #21] Benchmarking CubeRoot_K150 (Block 2KB) on 4 KB (Serial)
+   Test #21 runs:
+      Run 1: 0.08 ms
+      Run 2: 0.09 ms
+      Run 3: 0.09 ms
+   Result: OK | Avg: 0.08 ms | Throughput: 46.14 MB/s
+
+[Test #22] Benchmarking CubeRoot_K150 (Block 2KB) on 4 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #22 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 21.13 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 20.91 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 21.91 ms
+   Result: OK | Avg: 21.31 ms | Throughput: 0.18 MB/s
+
+[Test #23] Benchmarking Piecewise (Block 2MB) on 4 KB (Serial)
+   Test #23 runs:
+      Run 1: 0.10 ms
+      Run 2: 0.10 ms
+      Run 3: 0.10 ms
+   Result: OK | Avg: 0.10 ms | Throughput: 38.05 MB/s
+
+[Test #24] Benchmarking Piecewise (Block 2MB) on 4 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #24 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 31.36 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 33.06 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 31.51 ms
+   Result: OK | Avg: 31.98 ms | Throughput: 0.12 MB/s
+
+[Test #25] Benchmarking Hybrid (Block 0KB) on 4 KB (Serial)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #25 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 21.65 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 21.20 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 42.53 ms
+   Result: OK | Avg: 28.46 ms | Throughput: 0.14 MB/s
+
+[Test #26] Benchmarking Hybrid (Block 0KB) on 4 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #26 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 21.02 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 46.78 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 21.16 ms
+   Result: OK | Avg: 29.65 ms | Throughput: 0.13 MB/s
+
+------------------------------------------------------------
+>>> Input Size: 16 KB
+------------------------------------------------------------
+Progress: 26/286 (9.1%)
+Estimated time for this group: ~0.3 seconds
+
+[Test #27] Benchmarking Sqrt_K400 (Block 50KB) on 16 KB (Serial)
+   Test #27 runs:
+      Run 1: 0.10 ms
+      Run 2: 0.10 ms
+      Run 3: 0.10 ms
+   Result: OK | Avg: 0.10 ms | Throughput: 158.36 MB/s
+
+[Test #28] Benchmarking Sqrt_K400 (Block 50KB) on 16 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #28 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 116.55 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 124.22 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 176.47 ms
+   Result: OK | Avg: 139.08 ms | Throughput: 0.11 MB/s
+
+[Test #29] Benchmarking Logarithmic (Block 181KB) on 16 KB (Serial)
+   Test #29 runs:
+      Run 1: 0.12 ms
+      Run 2: 0.10 ms
+      Run 3: 0.11 ms
+   Result: OK | Avg: 0.11 ms | Throughput: 146.48 MB/s
+
+[Test #30] Benchmarking Logarithmic (Block 181KB) on 16 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #30 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 98.61 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 98.00 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 111.48 ms
+   Result: OK | Avg: 102.70 ms | Throughput: 0.15 MB/s
+
+[Test #31] Benchmarking Linear_128 (Block 0KB) on 16 KB (Serial)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #31 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 106.08 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 111.75 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 117.16 ms
+   Result: OK | Avg: 111.66 ms | Throughput: 0.14 MB/s
+
+[Test #32] Benchmarking Linear_128 (Block 0KB) on 16 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+   Test #32 runs:
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 1: 102.61 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 2: 103.48 ms
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+      Run 3: 102.62 ms
+   Result: OK | Avg: 102.91 ms | Throughput: 0.15 MB/s
+
+[Test #33] Benchmarking CubeRoot_K150 (Block 3KB) on 16 KB (Serial)
+   Test #33 runs:
+      Run 1: 0.13 ms
+      Run 2: 0.11 ms
+      Run 3: 0.10 ms
+   Result: OK | Avg: 0.11 ms | Throughput: 137.06 MB/s
+
+[Test #34] Benchmarking CubeRoot_K150 (Block 3KB) on 16 KB (Parallel)
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[HOST] Parallel find_matches Config: nice_length=131072, min_match=3, hash_log=18, chain_log=17, search_depth=128
+[KERNEL] Parallel Config Check: nice_length=131072, min_match=3, search_depth=128, hash_log=18
+[ERROR] compress: Memcpy lit failed (ptr=0x907c24600, count=1): an illegal memory access was encountered
+[ERROR] compress: Memcpy match failed: an illegal memory access was encountered
+[ERROR] compress: Memcpy off failed: an illegal memory access was encountered
+[ERROR] compress: Error before build_sequences (Block 0): an illegal memory access was encountered
+[ERROR] build_sequences: cudaMemsetAsync failed: an illegal memory access was encountered
+[ERROR] compress: build_sequences failed for block 0 with status 4
+[ERROR] compress: Stream has pending error at start: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #35] Benchmarking Piecewise (Block 2MB) on 16 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #36] Benchmarking Piecewise (Block 2MB) on 16 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #37] Benchmarking Hybrid (Block 0KB) on 16 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #38] Benchmarking Hybrid (Block 0KB) on 16 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+------------------------------------------------------------
+>>> Input Size: 64 KB
+------------------------------------------------------------
+Progress: 38/286 (13.3%)
+Estimated time for this group: ~0.6 seconds
+
+[Test #39] Benchmarking Sqrt_K400 (Block 100KB) on 64 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #40] Benchmarking Sqrt_K400 (Block 100KB) on 64 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #41] Benchmarking Logarithmic (Block 256KB) on 64 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #42] Benchmarking Logarithmic (Block 256KB) on 64 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #43] Benchmarking Linear_128 (Block 0KB) on 64 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #44] Benchmarking Linear_128 (Block 0KB) on 64 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #45] Benchmarking CubeRoot_K150 (Block 5KB) on 64 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #46] Benchmarking CubeRoot_K150 (Block 5KB) on 64 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #47] Benchmarking Piecewise (Block 2MB) on 64 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #48] Benchmarking Piecewise (Block 2MB) on 64 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #49] Benchmarking Hybrid (Block 1KB) on 64 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #50] Benchmarking Hybrid (Block 1KB) on 64 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+------------------------------------------------------------
+>>> Input Size: 256 KB
+------------------------------------------------------------
+Progress: 50/286 (17.5%)
+Estimated time for this group: ~0.6 seconds
+
+[Test #51] Benchmarking Sqrt_K400 (Block 200KB) on 256 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #52] Benchmarking Sqrt_K400 (Block 200KB) on 256 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #53] Benchmarking Logarithmic (Block 362KB) on 256 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #54] Benchmarking Logarithmic (Block 362KB) on 256 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #55] Benchmarking Linear_128 (Block 2KB) on 256 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #56] Benchmarking Linear_128 (Block 2KB) on 256 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #57] Benchmarking CubeRoot_K150 (Block 9KB) on 256 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #58] Benchmarking CubeRoot_K150 (Block 9KB) on 256 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #59] Benchmarking Piecewise (Block 2MB) on 256 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #60] Benchmarking Piecewise (Block 2MB) on 256 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #61] Benchmarking Hybrid (Block 4KB) on 256 KB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #62] Benchmarking Hybrid (Block 4KB) on 256 KB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+------------------------------------------------------------
+>>> Input Size: 1 MB
+------------------------------------------------------------
+Progress: 62/286 (21.7%)
+Estimated time for this group: ~0.6 seconds
+
+[Test #63] Benchmarking Sqrt_K400 (Block 400KB) on 1 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #64] Benchmarking Sqrt_K400 (Block 400KB) on 1 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #65] Benchmarking Logarithmic (Block 512KB) on 1 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #66] Benchmarking Logarithmic (Block 512KB) on 1 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #67] Benchmarking Linear_128 (Block 8KB) on 1 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #68] Benchmarking Linear_128 (Block 8KB) on 1 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #69] Benchmarking CubeRoot_K150 (Block 14KB) on 1 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #70] Benchmarking CubeRoot_K150 (Block 14KB) on 1 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #71] Benchmarking Piecewise (Block 2MB) on 1 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #72] Benchmarking Piecewise (Block 2MB) on 1 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #73] Benchmarking Hybrid (Block 16KB) on 1 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #74] Benchmarking Hybrid (Block 16KB) on 1 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+------------------------------------------------------------
+>>> Input Size: 4 MB
+------------------------------------------------------------
+Progress: 74/286 (25.9%)
+Estimated time for this group: ~0.6 seconds
+
+[Test #75] Benchmarking Sqrt_K400 (Block 800KB) on 4 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #76] Benchmarking Sqrt_K400 (Block 800KB) on 4 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #77] Benchmarking Logarithmic (Block 724KB) on 4 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #78] Benchmarking Logarithmic (Block 724KB) on 4 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #79] Benchmarking Linear_128 (Block 32KB) on 4 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #80] Benchmarking Linear_128 (Block 32KB) on 4 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #81] Benchmarking CubeRoot_K150 (Block 23KB) on 4 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #82] Benchmarking CubeRoot_K150 (Block 23KB) on 4 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #83] Benchmarking Piecewise (Block 2MB) on 4 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #84] Benchmarking Piecewise (Block 2MB) on 4 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #85] Benchmarking Hybrid (Block 64KB) on 4 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #86] Benchmarking Hybrid (Block 64KB) on 4 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+------------------------------------------------------------
+>>> Input Size: 16 MB
+------------------------------------------------------------
+Progress: 86/286 (30.1%)
+Estimated time for this group: ~0.6 seconds
+
+[Test #87] Benchmarking Sqrt_K400 (Block 1MB) on 16 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #88] Benchmarking Sqrt_K400 (Block 1MB) on 16 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #89] Benchmarking Logarithmic (Block 1MB) on 16 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #90] Benchmarking Logarithmic (Block 1MB) on 16 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #91] Benchmarking Linear_128 (Block 128KB) on 16 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #92] Benchmarking Linear_128 (Block 128KB) on 16 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #93] Benchmarking CubeRoot_K150 (Block 37KB) on 16 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #94] Benchmarking CubeRoot_K150 (Block 37KB) on 16 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #95] Benchmarking Piecewise (Block 4MB) on 16 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #96] Benchmarking Piecewise (Block 4MB) on 16 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #97] Benchmarking Hybrid (Block 256KB) on 16 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #98] Benchmarking Hybrid (Block 256KB) on 16 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+------------------------------------------------------------
+>>> Input Size: 64 MB
+------------------------------------------------------------
+Progress: 98/286 (34.3%)
+Estimated time for this group: ~0.6 seconds
+
+[Test #99] Benchmarking Sqrt_K400 (Block 3MB) on 64 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #100] Benchmarking Sqrt_K400 (Block 3MB) on 64 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #101] Benchmarking Logarithmic (Block 1MB) on 64 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #102] Benchmarking Logarithmic (Block 1MB) on 64 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #103] Benchmarking Linear_128 (Block 512KB) on 64 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #104] Benchmarking Linear_128 (Block 512KB) on 64 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #105] Benchmarking CubeRoot_K150 (Block 59KB) on 64 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #106] Benchmarking CubeRoot_K150 (Block 59KB) on 64 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #107] Benchmarking Piecewise (Block 4MB) on 64 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #108] Benchmarking Piecewise (Block 4MB) on 64 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #109] Benchmarking Hybrid (Block 1MB) on 64 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #110] Benchmarking Hybrid (Block 1MB) on 64 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+------------------------------------------------------------
+>>> Input Size: 256 MB
+------------------------------------------------------------
+Progress: 110/286 (38.5%)
+Estimated time for this group: ~0.6 seconds
+
+[Test #111] Benchmarking Sqrt_K400 (Block 6MB) on 256 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #112] Benchmarking Sqrt_K400 (Block 6MB) on 256 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #113] Benchmarking Logarithmic (Block 2MB) on 256 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #114] Benchmarking Logarithmic (Block 2MB) on 256 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #115] Benchmarking Linear_128 (Block 2MB) on 256 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #116] Benchmarking Linear_128 (Block 2MB) on 256 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #117] Benchmarking CubeRoot_K150 (Block 94KB) on 256 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #118] Benchmarking CubeRoot_K150 (Block 94KB) on 256 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #119] Benchmarking Piecewise (Block 8MB) on 256 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #120] Benchmarking Piecewise (Block 8MB) on 256 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #121] Benchmarking Hybrid (Block 4MB) on 256 MB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #122] Benchmarking Hybrid (Block 4MB) on 256 MB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+------------------------------------------------------------
+>>> Input Size: 1 GB
+------------------------------------------------------------
+Progress: 122/286 (42.7%)
+Estimated time for this group: ~0.6 seconds
+
+[Test #123] Benchmarking Sqrt_K400 (Block 12MB) on 1 GB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #124] Benchmarking Sqrt_K400 (Block 12MB) on 1 GB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #125] Benchmarking Logarithmic (Block 2MB) on 1 GB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #126] Benchmarking Logarithmic (Block 2MB) on 1 GB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #127] Benchmarking Linear_128 (Block 8MB) on 1 GB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #128] Benchmarking Linear_128 (Block 8MB) on 1 GB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #129] Benchmarking CubeRoot_K150 (Block 150KB) on 1 GB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #130] Benchmarking CubeRoot_K150 (Block 150KB) on 1 GB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #131] Benchmarking Piecewise (Block 8MB) on 1 GB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #132] Benchmarking Piecewise (Block 8MB) on 1 GB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #133] Benchmarking Hybrid (Block 16MB) on 1 GB (Serial)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+[Test #134] Benchmarking Hybrid (Block 16MB) on 1 GB (Parallel)
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2559 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:2627 in initialize_context() (CUDA: an illegal memory access was encountered)
+[CRITICAL] ZstdBatchManager: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+   Result: FAILED
+
+================================================================
+  Benchmark Summary
+================================================================
+  Started:         Thu Dec 11 06:22:55 2025
+  Finished:        Thu Dec 11 06:24:08 2025
+  Total Duration:  73 seconds
+  Total Tests Run: 134/286
+  Successful:      33
+  Failed:          101
+  Avg Throughput:  21.01 MB/s
+================================================================
+
+Benchmark completed. Results saved to benchmark_results.csv
+Errors logged to benchmark_errors.log (if any)
