@@ -1532,13 +1532,14 @@ public:
       // Initialize d_matches and d_costs from call_workspace partitions
       // These will be used to set up sequence context (lines 1581-1598)
       // and later assigned to thread_block_ws in the parallel lambda
-      size_t block_offset_bytes = block_idx * block_size;
+      size_t block_offset_elements =
+          block_idx * block_size; // Offset in elements
       block_ws.d_matches = reinterpret_cast<lz77::Match *>(
           reinterpret_cast<byte_t *>(call_workspace.d_matches) +
-          block_offset_bytes * sizeof(lz77::Match));
+          block_offset_elements * sizeof(lz77::Match));
       block_ws.d_costs = reinterpret_cast<lz77::ParseCost *>(
           reinterpret_cast<byte_t *>(call_workspace.d_costs) +
-          block_offset_bytes * sizeof(lz77::ParseCost));
+          block_offset_elements * sizeof(lz77::ParseCost));
 
       // 5. FSE Tables
       block_ws.d_fse_tables = (fse::FSEEncodeTable *)(ws_base + ws_offset);
