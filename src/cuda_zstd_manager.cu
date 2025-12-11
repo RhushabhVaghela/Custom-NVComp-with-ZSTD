@@ -1530,16 +1530,16 @@ public:
       ws_offset += align_to_boundary(seq_storage_size, GPU_MEMORY_ALIGNMENT);
 
       // Initialize d_matches and d_costs from call_workspace partitions
-      // These will be used to set up sequence context (lines 1581-1598)
+      // These will be used to set up sequence context (lines 1587-1604)
       // and later assigned to thread_block_ws in the parallel lambda
-      size_t block_offset_elements =
-          block_idx * block_size; // Offset in elements
+      // Use block_start (actual byte position) as offset, not block_idx *
+      // block_size because the last block may be smaller!
       block_ws.d_matches = reinterpret_cast<lz77::Match *>(
           reinterpret_cast<byte_t *>(call_workspace.d_matches) +
-          block_offset_elements * sizeof(lz77::Match));
+          block_start * sizeof(lz77::Match));
       block_ws.d_costs = reinterpret_cast<lz77::ParseCost *>(
           reinterpret_cast<byte_t *>(call_workspace.d_costs) +
-          block_offset_elements * sizeof(lz77::ParseCost));
+          block_start * sizeof(lz77::ParseCost));
 
       // 5. FSE Tables
       block_ws.d_fse_tables = (fse::FSEEncodeTable *)(ws_base + ws_offset);
@@ -1656,31 +1656,29 @@ public:
                 (1 << effective_config.chain_log);
 
             // (FIX) Assign per-block match/cost buffers
-            size_t block_offset_idx =
-                block_idx * block_size; // Offset by block_size
-
-            // Ensure we don't go out of bounds for last block
-            // But pointers are just base + offset. Bounds are handled by size.
+            // Use block_start (actual position in input) for correct offset
+            // calculation because the last block may be smaller than
+            // block_size!
 
             thread_block_ws.d_matches = reinterpret_cast<lz77::Match *>(
                 reinterpret_cast<byte_t *>(call_workspace.d_matches) +
-                block_offset_idx * sizeof(lz77::Match));
+                block_start * sizeof(lz77::Match));
             thread_block_ws.d_costs = reinterpret_cast<lz77::ParseCost *>(
                 reinterpret_cast<byte_t *>(call_workspace.d_costs) +
-                block_offset_idx * sizeof(lz77::ParseCost));
+                block_start * sizeof(lz77::ParseCost));
 
             // (FIX) Assign per-block reverse sequence buffers
             thread_block_ws.d_literal_lengths_reverse = reinterpret_cast<u32 *>(
                 reinterpret_cast<byte_t *>(
                     call_workspace.d_literal_lengths_reverse) +
-                block_offset_idx * sizeof(u32));
+                block_start * sizeof(u32));
             thread_block_ws.d_match_lengths_reverse = reinterpret_cast<u32 *>(
                 reinterpret_cast<byte_t *>(
                     call_workspace.d_match_lengths_reverse) +
-                block_offset_idx * sizeof(u32));
+                block_start * sizeof(u32));
             thread_block_ws.d_offsets_reverse = reinterpret_cast<u32 *>(
                 reinterpret_cast<byte_t *>(call_workspace.d_offsets_reverse) +
-                block_offset_idx * sizeof(u32));
+                block_start * sizeof(u32));
 
             // REMOVED DUPLICATE ASSIGNMENTS - block_seq_ctxs already set
             // correctly in Phase 1! These duplicate assignments were using
