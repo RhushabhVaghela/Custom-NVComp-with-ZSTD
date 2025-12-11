@@ -1624,7 +1624,8 @@ public:
 
       // Launch async task for this block
       block_futures.push_back(std::async(
-          std::launch::async, // Changed from ::deferred for parallel execution
+          std::launch::deferred, // TEMPORARILY DISABLE parallel execution to
+                                 // test for race conditions
           [=, &block_seq_ctxs, &block_num_sequences,
            &block_literals_sizes]() -> Status {
             // Create per-block stream for parallel execution
