@@ -1592,6 +1592,14 @@ public:
       // out-of-bounds access to recycled buffers!
       size_t seq_array_bytes = current_block_size * sizeof(u32);
 
+      // DEBUG: Log recycled buffer addresses
+      if (block_idx <= 4) {
+        printf("[RECYCLE Block %u] block_ws base: d_matches=%p, d_costs=%p, "
+               "seq_array_bytes=%zu\n",
+               block_idx, block_ws.d_matches, block_ws.d_costs,
+               seq_array_bytes);
+      }
+
       // Match Buffer Reuse: [LitLen (4B) | MatchLen (4B)]
       local_seq_ctx.d_literal_lengths =
           reinterpret_cast<u32 *>(recycled_matches);
@@ -1604,6 +1612,16 @@ public:
       // d_literals_buffer needs current_block_size bytes.
       // d_offsets takes seq_array_bytes.
       local_seq_ctx.d_literals_buffer = recycled_costs + seq_array_bytes;
+
+      // DEBUG: Verify calculated sequence context pointers
+      if (block_idx <= 4) {
+        printf("[RECYCLE Block %u] seq_ctx: d_lit_len=%p, d_match_len=%p, "
+               "d_off=%p, d_lit_buf=%p\n",
+               block_idx, local_seq_ctx.d_literal_lengths,
+               local_seq_ctx.d_match_lengths, local_seq_ctx.d_offsets,
+               local_seq_ctx.d_literals_buffer);
+      }
+
       local_seq_ctx.d_sequences = (sequence::Sequence *)block_ws.d_sequences;
       local_seq_ctx.d_num_sequences =
           block_ws.d_block_sums; // Reuse block sums slot 0
@@ -1724,6 +1742,18 @@ public:
                     reinterpret_cast<cuda_zstd::CompressionWorkspace *>(
                         &thread_block_ws),
                     lz77_config, block_stream));
+
+            // GRANULAR ERROR CHECK: Sync stream first to catch async errors
+            cudaStreamSynchronize(block_stream);
+            cudaError_t find_err = cudaGetLastError();
+            if (find_err != cudaSuccess) {
+              printf("[ERROR] Block %u: find_matches_parallel sticky error "
+                     "after sync: %s\n",
+                     block_idx, cudaGetErrorString(find_err));
+              cudaStreamDestroy(block_stream);
+              return Status::ERROR_CUDA_ERROR;
+            }
+
             if (status != Status::SUCCESS) {
               cudaStreamDestroy(block_stream);
               return status;
@@ -1736,6 +1766,18 @@ public:
                     reinterpret_cast<cuda_zstd::CompressionWorkspace *>(
                         &thread_block_ws),
                     lz77_config, block_stream));
+
+            // GRANULAR ERROR CHECK: Sync stream first
+            cudaStreamSynchronize(block_stream);
+            cudaError_t parse_err = cudaGetLastError();
+            if (parse_err != cudaSuccess) {
+              printf("[ERROR] Block %u: compute_optimal_parse_v2 sticky error "
+                     "after sync: %s\n",
+                     block_idx, cudaGetErrorString(parse_err));
+              cudaStreamDestroy(block_stream);
+              return Status::ERROR_CUDA_ERROR;
+            }
+
             if (status != Status::SUCCESS) {
               cudaStreamDestroy(block_stream);
               return status;
@@ -1755,6 +1797,17 @@ public:
             status = lz77::backtrack_sequences(
                 current_block_size, thread_block_ws,
                 &block_num_sequences[block_idx], block_stream);
+
+            // GRANULAR ERROR CHECK: Sync stream first
+            cudaStreamSynchronize(block_stream);
+            cudaError_t backtrack_err = cudaGetLastError();
+            if (backtrack_err != cudaSuccess) {
+              printf("[ERROR] Block %u: backtrack_sequences sticky error after "
+                     "sync: %s\n",
+                     block_idx, cudaGetErrorString(backtrack_err));
+              cudaStreamDestroy(block_stream);
+              return Status::ERROR_CUDA_ERROR;
+            }
 
             if (status != Status::SUCCESS) {
               cudaStreamDestroy(block_stream);
@@ -2066,9 +2119,32 @@ public:
               block_idx, cudaGetErrorString(pre_build_err));
         }
 
+        // DEBUG: Log build_sequences parameters, especially for Block 4
+        printf("[DEBUG] Block %u: build_sequences params:\n", block_idx);
+        printf("  num_sequences=%u, seq_blocks=%u, threads=%u\n", num_sequences,
+               seq_blocks, threads);
+        printf("  d_literal_lengths=%p\n",
+               block_seq_ctxs[block_idx].d_literal_lengths);
+        printf("  d_match_lengths=%p\n",
+               block_seq_ctxs[block_idx].d_match_lengths);
+        printf("  d_offsets=%p\n", block_seq_ctxs[block_idx].d_offsets);
+        printf("  d_sequences=%p\n", block_seq_ctxs[block_idx].d_sequences);
+        printf("  current_block_size=%u\n", current_block_size);
+
         status =
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,
                                       seq_blocks, threads, stream);
+
+        // ERROR CHECK: Sync and check for async errors in build_sequences
+        cudaStreamSynchronize(stream);
+        cudaError_t seq_err = cudaGetLastError();
+        if (seq_err != cudaSuccess) {
+          printf(
+              "[ERROR] Block %u: build_sequences sticky error after sync: %s\n",
+              block_idx, cudaGetErrorString(seq_err));
+          return Status::ERROR_CUDA_ERROR;
+        }
+
         if (status != Status::SUCCESS) {
           printf("[ERROR] compress: build_sequences failed for block %u with "
                  "status %d\n",
@@ -2085,6 +2161,17 @@ public:
                                  block_seq_ctxs[block_idx].num_literals,
                                  block_outputs[block_idx], &literals_size,
                                  &block_ws, stream);
+
+      // ERROR CHECK: Sync and check for async errors in compress_literals
+      cudaStreamSynchronize(stream);
+      cudaError_t lit_err = cudaGetLastError();
+      if (lit_err != cudaSuccess) {
+        printf(
+            "[ERROR] Block %u: compress_literals sticky error after sync: %s\n",
+            block_idx, cudaGetErrorString(lit_err));
+        return Status::ERROR_CUDA_ERROR;
+      }
+
       if (status != Status::SUCCESS) {
         printf("[ERROR] compress: compress_literals "
                "failed for block %u with status %d\n",
