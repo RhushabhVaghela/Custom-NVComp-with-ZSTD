@@ -1587,8 +1587,10 @@ public:
       byte_t *recycled_matches = reinterpret_cast<byte_t *>(block_ws.d_matches);
       byte_t *recycled_costs = reinterpret_cast<byte_t *>(block_ws.d_costs);
 
-      // Dynamic offsets based on block_size
-      size_t seq_array_bytes = block_size * sizeof(u32);
+      // CRITICAL: Use current_block_size, not block_size!
+      // The last block may be smaller, and using block_size causes
+      // out-of-bounds access to recycled buffers!
+      size_t seq_array_bytes = current_block_size * sizeof(u32);
 
       // Match Buffer Reuse: [LitLen (4B) | MatchLen (4B)]
       local_seq_ctx.d_literal_lengths =
@@ -1599,7 +1601,7 @@ public:
       local_seq_ctx.d_offsets = reinterpret_cast<u32 *>(recycled_costs);
 
       // Cost Buffer Reuse: [Offsets (4B) | Literals (1B) | Unused (3B)]
-      // d_literals_buffer needs block_size bytes.
+      // d_literals_buffer needs current_block_size bytes.
       // d_offsets takes seq_array_bytes.
       local_seq_ctx.d_literals_buffer = recycled_costs + seq_array_bytes;
       local_seq_ctx.d_sequences = (sequence::Sequence *)block_ws.d_sequences;
