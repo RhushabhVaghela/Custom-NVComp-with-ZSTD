@@ -1716,6 +1716,19 @@ public:
              * find_matches_parallel
              */
 
+            // DEBUG: Print workspace pointers before kernel launch
+            printf("[DEBUG Block %u] Before LZ77 kernel:\n", block_idx);
+            printf("  block_input=%p, current_block_size=%u\n", block_input,
+                   current_block_size);
+            printf("  d_matches=%p, d_costs=%p\n", thread_block_ws.d_matches,
+                   thread_block_ws.d_costs);
+            printf("  d_hash_table=%p (size=%u), d_chain_table=%p (size=%u)\n",
+                   thread_block_ws.d_hash_table,
+                   thread_block_ws.hash_table_size,
+                   thread_block_ws.d_chain_table,
+                   thread_block_ws.chain_table_size);
+            printf("  max_sequences=%u\n", thread_block_ws.max_sequences);
+
             // Pass 1: Find Matches
             Status status =
                 static_cast<Status>(cuda_zstd::lz77::find_matches_parallel(
