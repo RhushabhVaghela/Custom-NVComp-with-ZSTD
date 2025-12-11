@@ -1529,14 +1529,11 @@ public:
       block_ws.d_sequences = (sequence::Sequence *)(ws_base + ws_offset);
       ws_offset += align_to_boundary(seq_storage_size, GPU_MEMORY_ALIGNMENT);
 
-      // (FIX) Initialize reuse pointers alias into d_sequences buffer
-      // This memory is shared:
-      // - Phase 1: Uses d_sequences
-      // - Phase 2 (Backtrack): Reuses it for literal_lengths, match_lengths,
-      // offsets, literals
-      size_t _seq_arr_bytes = block_size * sizeof(u32);
-      block_ws.d_matches = block_ws.d_sequences;
-      block_ws.d_costs = (byte_t *)block_ws.d_sequences + (2 * _seq_arr_bytes);
+      // (REMOVED INCORRECT ALIASING)
+      // DO NOT alias d_matches/d_costs to d_sequences!
+      // These are SEPARATE buffers allocated in call_workspace.
+      // d_matches and d_costs will be assigned from call_workspace partitions
+      // in the parallel lambda (lines ~1662-1667)
 
       // 5. FSE Tables
       block_ws.d_fse_tables = (fse::FSEEncodeTable *)(ws_base + ws_offset);
