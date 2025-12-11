@@ -2093,6 +2093,11 @@ public:
       u32 literals_size = 0;
       block_seq_ctxs[block_idx].num_literals = block_literals_sizes[block_idx];
 
+      // DEBUG: Check d_literals_buffer pointer
+      printf("[DEBUG Block %u] d_literals_buffer=%p, num_literals=%u\n",
+             block_idx, block_seq_ctxs[block_idx].d_literals_buffer,
+             block_seq_ctxs[block_idx].num_literals);
+
       status = compress_literals(block_seq_ctxs[block_idx].d_literals_buffer,
                                  block_seq_ctxs[block_idx].num_literals,
                                  block_outputs[block_idx], &literals_size,
@@ -3212,6 +3217,11 @@ private:
       header[2] = (byte_t)((num_literals >> 12) & 0xFF);
       header_len = 3;
     }
+
+    // DEBUG: Print parameters
+    printf("[DEBUG compress_literals] output=%p, header_len=%u, "
+           "num_literals=%u, stream=%p\n",
+           output, header_len, num_literals, stream);
 
     CUDA_CHECK(cudaMemcpyAsync(output, header, header_len,
                                cudaMemcpyHostToDevice, stream));
