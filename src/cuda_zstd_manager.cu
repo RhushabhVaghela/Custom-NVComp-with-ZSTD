@@ -775,6 +775,8 @@ public:
     size_t num_blocks = (input_size + block_size - 1) / block_size;
     if (num_blocks == 0)
       num_blocks = 1;
+    // FIX: Clamp block_size to input_size to prevent edge case
+    if (block_size > input_size) block_size = (u32)input_size;
 
     // Per-block resources
     size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2;
