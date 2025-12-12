@@ -1578,45 +1578,30 @@ public:
       // Construct per-block SequenceContext
       sequence::SequenceContext local_seq_ctx;
 
-      // FIX: Reuse workspace buffers (matches/costs) for forward sequence
-      // arrays These are safe to partial-overwrite after Phase 1 (Backtrack) is
-      // done. d_matches (8 bytes/item) -> Can hold LiteralLengths (4B) +
-      // MatchLengths (4B) d_costs (8 bytes/item) -> Can hold Offsets (4B) +
-      // Literals Buffer (1B)
-
-      byte_t *recycled_matches = reinterpret_cast<byte_t *>(block_ws.d_matches);
-      byte_t *recycled_costs = reinterpret_cast<byte_t *>(block_ws.d_costs);
-
-      // CRITICAL: Use current_block_size, not block_size!
-      // The last block may be smaller, and using block_size causes
-      // out-of-bounds access to recycled buffers!
+      // APPROACH 3: Allocate fresh dedicated buffers (NO RECYCLING)
+      // This eliminates any potential memory corruption from buffer reuse
       size_t seq_array_bytes = current_block_size * sizeof(u32);
 
-      // DEBUG: Log recycled buffer addresses
+      CUDA_CHECK(cudaMalloc((void **)&local_seq_ctx.d_literal_lengths,
+                            seq_array_bytes));
+      CUDA_CHECK(
+          cudaMalloc((void **)&local_seq_ctx.d_match_lengths, seq_array_bytes));
+      CUDA_CHECK(
+          cudaMalloc((void **)&local_seq_ctx.d_offsets, seq_array_bytes));
+      CUDA_CHECK(cudaMalloc((void **)&local_seq_ctx.d_literals_buffer,
+                            current_block_size));
+
+      // Initialize to zero for safety
+      CUDA_CHECK(
+          cudaMemset(local_seq_ctx.d_literal_lengths, 0, seq_array_bytes));
+      CUDA_CHECK(cudaMemset(local_seq_ctx.d_match_lengths, 0, seq_array_bytes));
+      CUDA_CHECK(cudaMemset(local_seq_ctx.d_offsets, 0, seq_array_bytes));
+      CUDA_CHECK(
+          cudaMemset(local_seq_ctx.d_literals_buffer, 0, current_block_size));
+
       if (block_idx <= 4) {
-        printf("[RECYCLE Block %u] block_ws base: d_matches=%p, d_costs=%p, "
-               "seq_array_bytes=%zu\n",
-               block_idx, block_ws.d_matches, block_ws.d_costs,
-               seq_array_bytes);
-      }
-
-      // Match Buffer Reuse: [LitLen (4B) | MatchLen (4B)]
-      local_seq_ctx.d_literal_lengths =
-          reinterpret_cast<u32 *>(recycled_matches);
-      local_seq_ctx.d_match_lengths =
-          reinterpret_cast<u32 *>(recycled_matches + seq_array_bytes);
-
-      local_seq_ctx.d_offsets = reinterpret_cast<u32 *>(recycled_costs);
-
-      // Cost Buffer Reuse: [Offsets (4B) | Literals (1B) | Unused (3B)]
-      // d_literals_buffer needs current_block_size bytes.
-      // d_offsets takes seq_array_bytes.
-      local_seq_ctx.d_literals_buffer = recycled_costs + seq_array_bytes;
-
-      // DEBUG: Verify calculated sequence context pointers
-      if (block_idx <= 4) {
-        printf("[RECYCLE Block %u] seq_ctx: d_lit_len=%p, d_match_len=%p, "
-               "d_off=%p, d_lit_buf=%p\n",
+        printf("[APPROACH3 Block %u] Allocated: d_lit=%p, d_match=%p, "
+               "d_off=%p, d_litbuf=%p\n",
                block_idx, local_seq_ctx.d_literal_lengths,
                local_seq_ctx.d_match_lengths, local_seq_ctx.d_offsets,
                local_seq_ctx.d_literals_buffer);
