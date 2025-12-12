@@ -368,6 +368,18 @@ int main() {
         }
         csv_file.flush();
         error_log.flush();
+
+        // CRITICAL: Check for sticky GPU errors after each test
+        cudaError_t sticky_err = cudaGetLastError();
+        if (sticky_err != cudaSuccess) {
+          std::cout << "   [STICKY ERROR] Test #" << (test_number - 1)
+                    << " left GPU error: " << cudaGetErrorString(sticky_err)
+                    << "\n";
+          error_log << "STICKY ERROR after Test #" << (test_number - 1) << ": "
+                    << cudaGetErrorString(sticky_err) << "\n";
+          error_log.flush();
+        }
+
         test_number++;
       }
     }
