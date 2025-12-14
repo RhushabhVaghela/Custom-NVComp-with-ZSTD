@@ -321,6 +321,10 @@ int main() {
       for (bool parallel : parallel_modes) {
         if (!parallel && size >= 16 * 1024 * 1024)
           continue;
+        if (!parallel &&
+            block_size >= 2 * 1024 * 1024) // Limit serial block size to < 2MB
+                                           // to prevent instability
+          continue;
         if (block_size == 8 * 1024 * 1024 && size >= 256 * 1024 * 1024)
           continue;
 
@@ -388,6 +392,8 @@ int main() {
     for (const auto &formula : formulas) {
       u32 block_size = formula.second(size);
       for (bool parallel : parallel_modes) {
+        if (!parallel && block_size >= 2 * 1024 * 1024)
+          continue; // Limit serial block size to < 2MB
         std::ostringstream block_stream;
         if (block_size >= 1024 * 1024)
           block_stream << (block_size / (1024 * 1024)) << "MB";

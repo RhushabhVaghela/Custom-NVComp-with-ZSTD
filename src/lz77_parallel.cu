@@ -36,12 +36,6 @@ __global__ void find_matches_kernel(const u8 *input, u32 input_size,
   u32 hash = compute_hash(input, pos, hash_log);
   u32 hash_idx = hash % (1 << hash_log);
 
-  if (blockIdx.x == 0 && threadIdx.x == 0) {
-    printf("[KERNEL] Parallel Config Check: nice_length=%u, min_match=%u, "
-           "search_depth=%u, hash_log=%u\n",
-           config.nice_length, config.min_match, config.search_depth, hash_log);
-  }
-
   u32 chain_mask = (1 << config.chain_log) - 1;
   u32 prev_pos = atomicExch(&hash_table[hash_idx], pos);
   chain_table[pos & chain_mask] = prev_pos;
@@ -218,13 +212,6 @@ Status find_matches_parallel(const u8 *d_input, u32 input_size,
   const u32 init_threads = 256;
   const u32 init_blocks =
       (std::max(hash_size, chain_size) + init_threads - 1) / init_threads;
-
-  fprintf(stderr,
-          "[HOST] Parallel find_matches Config: nice_length=%u, min_match=%u, "
-          "hash_log=%u, chain_log=%u, search_depth=%u\n",
-          config.nice_length, config.min_match, config.hash_log,
-          config.chain_log, config.search_depth);
-  fflush(stderr);
 
   init_hash_table_kernel<<<init_blocks, init_threads, 0, stream>>>(
       workspace->d_hash_table, workspace->d_chain_table, hash_size, chain_size);

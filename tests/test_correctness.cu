@@ -786,6 +786,10 @@ bool test_special_patterns() {
       {"Sequential", [](auto &d, size_t s) { generate_sequence_data(d, s); }},
       {"Random", [](auto &d, size_t s) { generate_random_data(d, s, 42); }}};
 
+  /*
+   * Default size 8KB.
+   * Note: To stress GPU path, use > 1MB (e.g. 2MB).
+   */
   const size_t data_size = 8192;
   auto manager = create_manager(5);
 

@@ -773,6 +773,50 @@ Status allocate_compression_workspace(CompressionWorkspace &workspace,
     }
   }
 
+  // Allocate d_lz77_temp (Needed for RLE check)
+  // Allocate modest size (e.g. 1024 bytes) as it's just for small flags
+  workspace.d_lz77_temp = static_cast<u32 *>(pool.allocate(1024));
+  if (!workspace.d_lz77_temp) {
+    pool.deallocate(workspace.d_hash_table);
+    pool.deallocate(workspace.d_chain_table);
+    pool.deallocate(workspace.d_matches);
+    pool.deallocate(workspace.d_costs);
+    pool.deallocate(workspace.d_literal_lengths_reverse);
+    pool.deallocate(workspace.d_match_lengths_reverse);
+    pool.deallocate(workspace.d_offsets_reverse);
+    pool.deallocate(workspace.d_frequencies);
+    pool.deallocate(workspace.d_code_lengths);
+    pool.deallocate(workspace.d_bit_offsets);
+    pool.deallocate(workspace.d_block_sums);
+    pool.deallocate(workspace.d_scanned_block_sums);
+    return Status::ERROR_OUT_OF_MEMORY;
+  }
+  if (!pool.is_device_pointer(workspace.d_lz77_temp)) {
+    void *migrated =
+        pool.migrate_pool_host_entry_to_device(workspace.d_lz77_temp, 1024);
+    if (!migrated)
+      migrated = pool.migrate_host_to_device(workspace.d_lz77_temp, 1024);
+    if (migrated) {
+      workspace.d_lz77_temp = static_cast<u32 *>(migrated);
+    } else {
+      // Deallocate all and return error
+      pool.deallocate(workspace.d_hash_table);
+      pool.deallocate(workspace.d_chain_table);
+      pool.deallocate(workspace.d_matches);
+      pool.deallocate(workspace.d_costs);
+      pool.deallocate(workspace.d_literal_lengths_reverse);
+      pool.deallocate(workspace.d_match_lengths_reverse);
+      pool.deallocate(workspace.d_offsets_reverse);
+      pool.deallocate(workspace.d_frequencies);
+      pool.deallocate(workspace.d_code_lengths);
+      pool.deallocate(workspace.d_bit_offsets);
+      pool.deallocate(workspace.d_block_sums);
+      pool.deallocate(workspace.d_scanned_block_sums);
+      pool.deallocate(workspace.d_lz77_temp);
+      return Status::ERROR_OUT_OF_MEMORY;
+    }
+  }
+
   // Calculate total size
   workspace.total_size_bytes = workspace.hash_table_size * sizeof(u32) +
                                workspace.chain_table_size * sizeof(u32) +

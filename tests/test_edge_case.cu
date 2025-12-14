@@ -24,8 +24,8 @@ int main() {
   cudaMalloc(&d_output, input_size * 2);
 
   // Create manager
-  DefaultZstdManager manager;
-  size_t temp_size = manager.get_compress_temp_size(input_size);
+  auto manager = create_manager();
+  size_t temp_size = manager->get_compress_temp_size(input_size);
   cudaMalloc(&d_temp, temp_size);
 
   std::cout << "Workspace size: " << temp_size << " bytes\n\n";
@@ -42,8 +42,8 @@ int main() {
 
   std::cout << "Calling compress...\n";
   Status status =
-      manager.compress(d_input, input_size, d_output, &compressed_size, d_temp,
-                       temp_size, &config, 0, 0);
+      manager->compress(d_input, input_size, d_output, &compressed_size, d_temp,
+                        temp_size, &config, 0, 0);
 
   cudaError_t err = cudaGetLastError();
   std::cout << "Compress status: " << (int)status << "\n";
