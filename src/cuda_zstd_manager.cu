@@ -173,7 +173,6 @@ __global__ void check_rle_kernel(const byte_t *input, size_t size,
   // Race condition on write is fine (all write 0).
   if (local_mismatch) {
     *d_is_rle = 0;
-    printf("K Mismatch: tid=%d\n", tid);
   } else {
     // printf("K Match: tid=%d\n", tid);
   }
@@ -458,6 +457,8 @@ Status parse_zstd_frame_header(const byte_t *compressed_data,
                                size_t compressed_size,
                                ZstdFrameMetadata *metadata) {
   if (!compressed_data || !metadata || compressed_size < 6) {
+    fprintf(stderr,
+            "[DEBUG] parse_zstd_frame_header: Invalid input/size < 6\n");
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -472,6 +473,8 @@ Status parse_zstd_frame_header(const byte_t *compressed_data,
     if ((metadata->magic_number & 0xFFFFFFF0) == ZSTD_MAGIC_SKIPPABLE_START) {
       // This is a skippable frame - parse and skip it
       if (compressed_size < offset + 4) {
+        fprintf(stderr,
+                "[DEBUG] parse_zstd_frame_header: Skippable frame truncated\n");
         return Status::ERROR_CORRUPT_DATA;
       }
       u32 frame_size = read_u32_le(compressed_data + offset);
@@ -480,6 +483,8 @@ Status parse_zstd_frame_header(const byte_t *compressed_data,
 
       // Check for next frame
       if (offset >= compressed_size) {
+        fprintf(stderr,
+                "[DEBUG] parse_zstd_frame_header: Skippable frame past end\n");
         return Status::ERROR_CORRUPT_DATA;
       }
 
@@ -492,6 +497,7 @@ Status parse_zstd_frame_header(const byte_t *compressed_data,
 
   // 2. Read Frame Header Descriptor (1 byte)
   if (offset >= compressed_size) {
+    fprintf(stderr, "[DEBUG] parse_zstd_frame_header: FHD read past end\n");
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -785,6 +791,8 @@ public:
 
     // Per-block resources
     size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2;
+    size_t output_buffer_size =
+        CUDA_ZSTD_BLOCKSIZE_MAX * 2; // NEW: Separate output buffer
     size_t hash_table_size = (1ull << config.hash_log) * sizeof(u32);
     size_t chain_table_size = (1ull << config.chain_log) * sizeof(u32);
     size_t seq_storage_size =
@@ -794,6 +802,8 @@ public:
 
     size_t per_block_size = 0;
     per_block_size += align_to_boundary(lz77_temp_size, GPU_MEMORY_ALIGNMENT);
+    per_block_size += align_to_boundary(
+        output_buffer_size, GPU_MEMORY_ALIGNMENT); // Add separate buffer
     per_block_size += align_to_boundary(hash_table_size, GPU_MEMORY_ALIGNMENT);
     per_block_size += align_to_boundary(chain_table_size, GPU_MEMORY_ALIGNMENT);
     per_block_size += align_to_boundary(seq_storage_size, GPU_MEMORY_ALIGNMENT);
@@ -918,8 +928,13 @@ public:
   // Configuration
   virtual Status configure(const CompressionConfig &new_config) override {
     auto status = validate_config(new_config);
-    if (status != Status::SUCCESS)
+    if (status != Status::SUCCESS) {
+      fprintf(stderr,
+              "[DEBUG] decompress_sequences: LL decompress_sequence_stream "
+              "failed with status %d\n",
+              (int)status);
       return status;
+    }
 
     config = new_config;
 
@@ -958,9 +973,6 @@ public:
     // (DEBUG) Force Stream 0 to avoid invalid argument errors if stream is
     // corrupted
     stream = 0;
-
-    volatile int *p = nullptr;
-    // *p = 0; // CRASH HERE (REMOVED)
 
     // fprintf(stderr, "[DEBUG] compress: ENTERED FUNCTION.\n");
     // fflush(stderr);
@@ -1077,6 +1089,39 @@ public:
                                    uncompressed_size, cudaMemcpyDefault,
                                    stream));
       }
+      // Check for RLE (heuristics)
+      // bool h_is_rle = false;
+      // byte_t h_rle_byte = 0;
+
+      // DISABLE RLE KERNEL FOR DEBUGGING
+      bool h_is_rle = false;
+      byte_t h_rle_byte = 0;
+      /*
+      check_rle_kernel<<<blocks, threads, 0, stream>>>(
+          d_input + block_idx * block_size, // Input
+          current_block_size,               // Size
+          (int *)block_ws.d_lz77_temp       // Use temp for result
+      );
+      */
+
+      /*
+      // Copy result back (4 bytes int + 1 byte char)
+      // The first int is the "is_rle" flag
+      // The next byte is the repeated value if flag is set
+      int is_rle_val = 0;
+      CUDA_CHECK(cudaMemcpyAsync(&is_rle_val, block_ws.d_lz77_temp,
+                                 sizeof(int), cudaMemcpyDeviceToHost,
+                                 stream));
+      CUDA_CHECK(cudaStreamSynchronize(stream));
+      h_is_rle = (is_rle_val != 0);
+
+      if (h_is_rle) {
+           CUDA_CHECK(cudaMemcpyAsync(&h_rle_byte,
+                                     (int *)block_ws.d_lz77_temp + 1, 1,
+                                     cudaMemcpyDeviceToHost, stream));
+           CUDA_CHECK(cudaStreamSynchronize(stream));
+      }
+      */
       CUDA_CHECK(cudaStreamSynchronize(stream)); // Wait for input copy
 
       // 3. Compress on CPU
@@ -1465,7 +1510,10 @@ public:
     u32 num_blocks = (uncompressed_size + block_size - 1) / block_size;
 
     // Calculate per-block workspace size (Must match get_compress_temp_size)
+    // Calculate per-block workspace size (Must match get_compress_temp_size)
     size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2;
+    size_t output_buffer_size =
+        CUDA_ZSTD_BLOCKSIZE_MAX * 2; // NEW: Separate output buffer
     size_t hash_table_size = (1ull << config.hash_log) * sizeof(u32);
     size_t chain_table_size = (1ull << config.chain_log) * sizeof(u32);
     size_t seq_storage_size =
@@ -1475,6 +1523,8 @@ public:
 
     size_t per_block_size = 0;
     per_block_size += align_to_boundary(lz77_temp_size, GPU_MEMORY_ALIGNMENT);
+    per_block_size += align_to_boundary(
+        output_buffer_size, GPU_MEMORY_ALIGNMENT); // Add separate buffer
     per_block_size += align_to_boundary(hash_table_size, GPU_MEMORY_ALIGNMENT);
     per_block_size += align_to_boundary(chain_table_size, GPU_MEMORY_ALIGNMENT);
     per_block_size += align_to_boundary(seq_storage_size, GPU_MEMORY_ALIGNMENT);
@@ -1934,15 +1984,40 @@ public:
       // d_lz77_temp is at the beginning of the per-block workspace
       byte_t *ws_base_ptr =
           (byte_t *)call_workspace.d_workspace + (block_idx * per_block_size);
-      block_outputs[block_idx] = ws_base_ptr;
 
-      // Re-construct block_ws (pointers are same)
-      byte_t *ws_base =
-          (byte_t *)call_workspace.d_workspace + (block_idx * per_block_size);
-      size_t ws_offset = 0;
+      // Declare local workspace structure to prevent race conditions
       CompressionWorkspace block_ws;
+
+      size_t aligned_lz77 =
+          align_to_boundary(lz77_temp_size, GPU_MEMORY_ALIGNMENT);
+
+      block_outputs[block_idx] =
+          ws_base_ptr + aligned_lz77; // Use distinct buffer
+      block_literals_ptrs[block_idx] =
+          ws_base_ptr; // Points to lz77_temp (literals) (offset 0)
+
+      // Initialize buffer to 0 to prevent garbage data bugs
+      CUDA_CHECK(cudaMemsetAsync(block_outputs[block_idx], 0,
+                                 output_buffer_size, stream));
+
+      // Re-construct block_ws (pointers are same base for calculation, but we
+      // assign specific members) d_lz77_temp is used by LZ77 kernels.
+      // block_ws.d_lz77_temp = ws_base_ptr; // This is set below based on
+      // ws_base
+
+      // Calculate sizes for this block (Host)
+      // Need to follow layout logic strictly
+      byte_t *ws_base = ws_base_ptr;
+      size_t ws_offset = 0;
+
+      // 1. LZ77 Temp (Literals Buffer)
       block_ws.d_lz77_temp = (u32 *)(ws_base + ws_offset);
       ws_offset += align_to_boundary(lz77_temp_size, GPU_MEMORY_ALIGNMENT);
+
+      // 2. Output Buffer (Skip - already assigned to block_outputs above)
+      ws_offset += align_to_boundary(output_buffer_size, GPU_MEMORY_ALIGNMENT);
+
+      // 3. Hash Table
       block_ws.d_hash_table = (u32 *)(ws_base + ws_offset);
       ws_offset += align_to_boundary(hash_table_size, GPU_MEMORY_ALIGNMENT);
       block_ws.d_chain_table = (u32 *)(ws_base + ws_offset);
@@ -1998,8 +2073,7 @@ public:
                       cudaMemcpyDeviceToHost, stream);
       cudaStreamSynchronize(stream);
 
-      volatile int *p = nullptr;
-      *p = 0; // CRASH HERE
+      // (Crash removed)
 
       // DIAGNOSTIC CHECK
       cudaError_t phase1_err = cudaGetLastError();
@@ -2008,7 +2082,7 @@ public:
                cudaGetErrorString(phase1_err));
       }
 
-      if (h_is_rle) {
+      if (false && h_is_rle) {
         // printf("[DEBUG] Block %u detected as RLE! Byte: 0x%02X, Size: %u\n",
         //        block_idx, rle_byte, rle_size);
 
@@ -2122,17 +2196,7 @@ public:
               block_idx, cudaGetErrorString(pre_build_err));
         }
 
-        // DEBUG: Log build_sequences parameters, especially for Block 4
-        printf("[DEBUG] Block %u: build_sequences params:\n", block_idx);
-        printf("  num_sequences=%u, seq_blocks=%u, threads=%u\n", num_sequences,
-               seq_blocks, threads);
-        printf("  d_literal_lengths=%p\n",
-               block_seq_ctxs[block_idx].d_literal_lengths);
-        printf("  d_match_lengths=%p\n",
-               block_seq_ctxs[block_idx].d_match_lengths);
-        printf("  d_offsets=%p\n", block_seq_ctxs[block_idx].d_offsets);
-        printf("  d_sequences=%p\n", block_seq_ctxs[block_idx].d_sequences);
-        printf("  current_block_size=%u\n", current_block_size);
+        // (Debug logs removed)
 
         status =
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,
@@ -3093,6 +3157,8 @@ private:
                     u32 *header_size     // Output: header size (always 3 bytes)
   ) {
     if (input_size < 3) {
+      fprintf(stderr, "[DEBUG] read_block_header: input_size < 3 (%u)\n",
+              input_size);
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -3163,8 +3229,17 @@ private:
     auto status = decompress_literals(
         input, input_size, d_decompressed_literals, &literals_header_size,
         &literals_compressed_size, &literals_decompressed_size, stream);
-    if (status != Status::SUCCESS)
+    if (status != Status::SUCCESS) {
+      fprintf(stderr, "[DEBUG] decompress_literals failed with status %d\n",
+              (int)status);
       return status;
+    }
+
+    fprintf(stderr,
+            "[DEBUG] decompress_block: LitHdr=%u, LitComp=%u, LitDecomp=%u, "
+            "InSize=%u\n",
+            literals_header_size, literals_compressed_size,
+            literals_decompressed_size, input_size);
 
     // Sync after literals
     cudaError_t lit_sync_err = cudaStreamSynchronize(stream);
@@ -3184,6 +3259,9 @@ private:
     u32 sequences_offset = literals_header_size + literals_compressed_size;
 
     if (sequences_offset > input_size) {
+      fprintf(stderr,
+              "[DEBUG] decompress_block: Invalid sequences offset (%u > %u)\n",
+              sequences_offset, input_size);
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -3195,8 +3273,8 @@ private:
                                   input_size - sequences_offset, ctx.seq_ctx,
                                   stream);
     if (status != Status::SUCCESS) {
-      //             fprintf(stderr, "[ERROR] decompress_sequences failed with
-      //             status %d\n", (int)status);
+      fprintf(stderr, "[DEBUG] decompress_sequences failed with status %d\n",
+              (int)status);
       return status;
     }
 
@@ -3302,28 +3380,34 @@ private:
     // bits 2-3: Size Format (00, 01, 10)
     // bits X+: Size content
 
-    if (num_literals < 32) {
+    if (num_literals < 32 && (num_literals & 1) == 0) {
       // Format 0 (00): 1 byte header. Size uses 5 bits (bits 3-7).
       // Header = (Size << 3) | (Format << 2) | Type
       // Format=0, Type=0 => Header = Size << 3
       header[0] = (byte_t)(num_literals << 3);
       header_len = 1;
-    } else if (num_literals < 4096) {
-      // Format 1 (01): 2 bytes. Size uses 12 bits.
-      // Header[0] uses bits 4-7 for lowest 4 bits of size.
-      // Header[0] = ((Size & 0xF) << 4) | (1 << 2) | 0
-      header[0] = (byte_t)(((num_literals & 0x0F) << 4) | (1 << 2));
-      header[1] = (byte_t)(num_literals >> 4);
-      header_len = 2;
     } else {
-      // Format 2 (10): 3 bytes. Size uses 20 bits.
-      // Header[0] uses bits 4-7 for lowest 4 bits of size.
-      // Header[0] = ((Size & 0xF) << 4) | (2 << 2) | 0
-      header[0] = (byte_t)(((num_literals & 0x0F) << 4) | (2 << 2));
-      header[1] = (byte_t)((num_literals >> 4) & 0xFF);
-      header[2] = (byte_t)((num_literals >> 12) & 0xFF);
-      header_len = 3;
+      // Format 1 (01): 2 bytes. Size uses 12 bits.
+      if (num_literals <= 4095) {
+        header_len = 2;
+        // Format 1 (01):
+        // Header[0]: (SizeLow4 << 4) | (1 << 2) | Type(0)
+        // Header[1]: SizeHigh8
+        header[0] = (byte_t)(((num_literals & 0x0F) << 4) | (1 << 2));
+        header[1] = (byte_t)((num_literals >> 4) & 0xFF);
+      } else {
+        header_len = 3;
+        // Format 2 (10): 3 bytes. Size uses 20 bits.
+        // H[0]: (Size[0..3] << 4) | (2 << 2)
+        // H[1]: Size[4..11]
+        // H[2]: Size[12..19]
+        header[0] = (byte_t)(((num_literals & 0x0F) << 4) | (2 << 2));
+        header[1] = (byte_t)((num_literals >> 4) & 0xFF);
+        header[2] = (byte_t)((num_literals >> 12) & 0xFF);
+      }
     }
+
+    // (Debug prints removed)
 
     CUDA_CHECK(cudaMemcpyAsync(output, header, header_len,
                                cudaMemcpyHostToDevice, stream));
@@ -3585,6 +3669,11 @@ private:
     // Bits 2-3: Size Format
     // Bits 4-7: Size (part of)
 
+    fprintf(
+        stderr,
+        "[DEBUG] decompress_literals: H[0]=0x%02X, H[1]=0x%02X, H[2]=0x%02X\n",
+        h_header[0], h_header[1], h_header[2]);
+
     u32 literals_type = h_header[0] & 0x03;
 
     if (literals_type == 0 || literals_type == 1) {
@@ -3734,20 +3823,30 @@ private:
       num_sequences = h_header[0];
       offset = 1;
     } else if (h_header[0] < 255) {
-      if (input_size < 2)
+      if (input_size < 2) {
+        fprintf(stderr, "[DEBUG] decompress_sequences: input_size < 2 for "
+                        "header 128-254\n");
         return Status::ERROR_CORRUPT_DATA;
+      }
       num_sequences = ((h_header[0] - 128) << 8) + h_header[1];
       offset = 2;
     } else {
-      if (input_size < 3)
+      if (input_size < 3) {
+        fprintf(
+            stderr,
+            "[DEBUG] decompress_sequences: input_size < 3 for header >= 255\n");
         return Status::ERROR_CORRUPT_DATA;
+      }
       num_sequences = (h_header[1] << 8) + h_header[2] + 0x7F00;
       offset = 3;
     }
 
     seq_ctx->num_sequences = num_sequences;
-    if (offset >= input_size)
+    if (offset >= input_size) {
+      fprintf(stderr, "[DEBUG] decompress_sequences: Offset >= input_size "
+                      "after header parse\n");
       return Status::ERROR_CORRUPT_DATA;
+    }
 
     byte_t fse_modes = h_header[offset];
     offset += 1;
@@ -3759,8 +3858,11 @@ private:
       // full u32 arrays
       u32 array_size = num_sequences * sizeof(u32);
 
-      if (offset + array_size * 3 > input_size)
+      if (offset + array_size * 3 > input_size) {
+        fprintf(stderr,
+                "[DEBUG] decompress_sequences: Raw u32 mode out of bounds\n");
         return Status::ERROR_CORRUPT_DATA;
+      }
 
       // Copy literal_lengths
       CUDA_CHECK(cudaMemcpyAsync(seq_ctx->d_literal_lengths, input + offset,
@@ -3789,22 +3891,37 @@ private:
     u32 of_mode = (fse_modes >> 4) & 0x03;
     u32 ml_mode = (fse_modes >> 2) & 0x03;
 
+    fprintf(stderr,
+            "[DEBUG] decompress_sequences: num_seq=%u, offset=%u, modes=%u "
+            "(LL=%u, OF=%u, ML=%u)\n",
+            num_sequences, offset, fse_modes, ll_mode, of_mode, ml_mode);
+
     u32 ll_size = 0;
     u32 of_size = 0;
     u32 ml_size = 0;
 
     if (ll_mode == 2 || of_mode == 2 || ml_mode == 2) {
-      if (offset >= input_size)
+      if (offset >= input_size) {
+        fprintf(stderr, "[DEBUG] decompress_sequences: offset >= input_size "
+                        "while reading modes\n");
         return Status::ERROR_CORRUPT_DATA;
+      }
 
-      if (offset + 2 > input_size)
+      if (offset + 2 > input_size) {
+        fprintf(stderr,
+                "[DEBUG] decompress_sequences: LL header size check failed\n");
         return Status::ERROR_CORRUPT_DATA;
+      }
       ll_size = h_header[offset] | (h_header[offset + 1] << 8);
       offset += 2;
 
       if (of_mode == 2) {
-        if (offset + 2 > input_size)
+        if (offset + 2 > input_size) {
+          fprintf(
+              stderr,
+              "[DEBUG] decompress_sequences: OF header size check failed\n");
           return Status::ERROR_CORRUPT_DATA;
+        }
         of_size = h_header[offset] | (h_header[offset + 1] << 8);
         offset += 2;
       } else {
@@ -3812,8 +3929,12 @@ private:
       }
 
       if (ml_mode == 2) {
-        if (offset + 2 > input_size)
+        if (offset + 2 > input_size) {
+          fprintf(
+              stderr,
+              "[DEBUG] decompress_sequences: ML header size check failed\n");
           return Status::ERROR_CORRUPT_DATA;
+        }
         ml_size = h_header[offset] | (h_header[offset + 1] << 8);
         offset += 2;
       } else {
@@ -3826,18 +3947,34 @@ private:
     status = decompress_sequence_stream(
         input, input_size, &offset, ll_mode, num_sequences, ll_size,
         fse::TableType::LITERALS, seq_ctx->d_literal_lengths, stream);
-    if (status != Status::SUCCESS)
+    if (status != Status::SUCCESS) {
+      fprintf(stderr,
+              "[DEBUG] decompress_sequences: LL decompress_sequence_stream "
+              "failed with status %d\n",
+              (int)status);
       return status;
+    }
 
     status = decompress_sequence_stream(
         input, input_size, &offset, of_mode, num_sequences, of_size,
         fse::TableType::OFFSETS, seq_ctx->d_offsets, stream);
-    if (status != Status::SUCCESS)
+    if (status != Status::SUCCESS) {
+      fprintf(stderr,
+              "[DEBUG] decompress_sequences: LL decompress_sequence_stream "
+              "failed with status %d\n",
+              (int)status);
       return status;
+    }
 
     status = decompress_sequence_stream(
         input, input_size, &offset, ml_mode, num_sequences, ml_size,
         fse::TableType::MATCH_LENGTHS, seq_ctx->d_match_lengths, stream);
+    if (status != Status::SUCCESS) {
+      fprintf(stderr,
+              "[DEBUG] decompress_sequences: ML decompress_sequence_stream "
+              "failed with status %d\n",
+              (int)status);
+    }
     return status;
   }
 
@@ -3852,8 +3989,11 @@ private:
     switch (mode) {
     case 0: { // Raw
       u32 raw_size_bytes = num_sequences;
-      if (*offset + raw_size_bytes > input_size)
+      if (*offset + raw_size_bytes > input_size) {
+        fprintf(stderr,
+                "[DEBUG] decompress_sequence_stream: Raw mode out of bounds\n");
         return Status::ERROR_CORRUPT_DATA;
+      }
 
       expand_bytes_to_u32_kernel<<<blocks, threads, 0, stream>>>(
           input + *offset, d_out_buffer, num_sequences);
@@ -3862,8 +4002,11 @@ private:
       return Status::SUCCESS;
     }
     case 1: { // RLE
-      if (*offset + 1 > input_size)
+      if (*offset + 1 > input_size) {
+        fprintf(stderr,
+                "[DEBUG] decompress_sequence_stream: RLE mode out of bounds\n");
         return Status::ERROR_CORRUPT_DATA;
+      }
       byte_t rle_value;
       CUDA_CHECK(
           cudaMemcpy(&rle_value, input + *offset, 1, cudaMemcpyDeviceToHost));
@@ -3874,8 +4017,11 @@ private:
       return Status::SUCCESS;
     }
     case 2: { // FSE Compressed
-      if (*offset + stream_size > input_size)
+      if (*offset + stream_size > input_size) {
+        fprintf(stderr,
+                "[DEBUG] decompress_sequence_stream: FSE mode out of bounds\n");
         return Status::ERROR_CORRUPT_DATA;
+      }
 
       Status status =
           fse::decode_fse(input + *offset, stream_size, (byte_t *)d_out_buffer,

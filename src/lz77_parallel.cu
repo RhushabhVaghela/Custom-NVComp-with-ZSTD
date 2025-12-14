@@ -5,6 +5,7 @@
 #include "cuda_zstd_lz77.h" // For V2 kernel
 #include "lz77_parallel.h"
 #include <algorithm>
+#include <cstdio>
 #include <iostream>
 #include <vector>
 
@@ -459,23 +460,7 @@ Status backtrack_sequences_cpu(
 // LEGACY_PARALLEL_BACKTRACK:         delete[] h_sequence_counts;
 // LEGACY_PARALLEL_BACKTRACK:         return Status::ERROR_INVALID_PARAMETER;
 // LEGACY_PARALLEL_BACKTRACK:     }
-// LEGACY_PARALLEL_BACKTRACK:
-// LEGACY_PARALLEL_BACKTRACK:     // Launch parallel backtracking kernel (one
-// block per segment) LEGACY_PARALLEL_BACKTRACK:     // Use 32 threads per block
-// (warp size) even though only first thread does work
-// LEGACY_PARALLEL_BACKTRACK:     printf("[DEBUG] Launching kernel with %u
-// blocks, 32 threads/block...\n", num_segments); LEGACY_PARALLEL_BACKTRACK:
-// backtrack_segments_parallel_kernel<<<num_segments, 32>>>(
-// LEGACY_PARALLEL_BACKTRACK:         d_costs,
-// LEGACY_PARALLEL_BACKTRACK:         d_segments,
-// LEGACY_PARALLEL_BACKTRACK:         d_literal_lengths_temp,
-// LEGACY_PARALLEL_BACKTRACK:         d_match_lengths_temp,
-// LEGACY_PARALLEL_BACKTRACK:         d_offsets_temp,
-// LEGACY_PARALLEL_BACKTRACK:         d_sequence_counts,
-// LEGACY_PARALLEL_BACKTRACK:         num_segments,
-// LEGACY_PARALLEL_BACKTRACK:         max_seq_per_segment
-// LEGACY_PARALLEL_BACKTRACK:     );
-// LEGACY_PARALLEL_BACKTRACK:
+
 // LEGACY_PARALLEL_BACKTRACK:     err = cudaGetLastError();
 // LEGACY_PARALLEL_BACKTRACK:     if (err != cudaSuccess) {
 // LEGACY_PARALLEL_BACKTRACK:         printf("[ERROR] Kernel launch failed:
@@ -613,17 +598,18 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
                                     (input_size + 1) * sizeof(ParseCost),
                                     cudaMemcpyDeviceToHost, stream);
   if (err != cudaSuccess) {
-    printf("[BACKTRACK] Error copying d_costs: %s (ptr=%p, size=%lu)\n",
-           cudaGetErrorString(err), workspace.d_costs,
-           (input_size + 1) * sizeof(ParseCost));
+    fprintf(stderr,
+            "[BACKTRACK] Error copying d_costs: %s (ptr=%p, size=%zu)\n",
+            cudaGetErrorString(err), (void *)workspace.d_costs,
+            (input_size + 1) * sizeof(ParseCost));
     return Status::ERROR_CUDA_ERROR;
   }
   err = cudaMemcpyAsync(h_matches, workspace.d_matches,
                         input_size * sizeof(Match), cudaMemcpyDeviceToHost,
                         stream);
   if (err != cudaSuccess) {
-    printf("[BACKTRACK] Error copying d_matches: %s\n",
-           cudaGetErrorString(err));
+    fprintf(stderr, "[BACKTRACK] Error copying d_matches: %s\n",
+            cudaGetErrorString(err));
     return Status::ERROR_CUDA_ERROR;
   }
   cudaStreamSynchronize(stream);

@@ -29,8 +29,7 @@ __global__ void build_sequences_kernel(const u32 *d_literals_buffer,
                                        const u32 *d_match_lengths,
                                        const u32 *d_offsets,
                                        u32 num_sequences_to_build, // (RENAMED)
-                                       Sequence *d_sequences,
-                                       u32 *d_num_sequences) {
+                                       Sequence *d_sequences) {
 
   const u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
   /* Unconditional write test removed */
@@ -56,58 +55,50 @@ __global__ void build_sequences_kernel(const u32 *d_literals_buffer,
 }
 
 // Host-side function implementation
-Status build_sequences(const SequenceContext &ctx,
-                       u32 num_sequences_to_build, // (RENAMED)
+Status build_sequences(const SequenceContext &ctx, u32 num_sequences,
                        u32 num_blocks, u32 num_threads, cudaStream_t stream) {
-
-  // Clear the sequence count
-  if (!ctx.d_num_sequences || !ctx.d_sequences || !ctx.d_literal_lengths) {
-    printf("[ERROR] build_sequences: Null pointer detected\n");
+  if (ctx.d_literal_lengths == nullptr || ctx.d_offsets == nullptr ||
+      ctx.d_match_lengths == nullptr || ctx.d_sequences == nullptr) {
+    fprintf(stderr, "[ERROR] build_sequences: Null pointer detected\n");
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  // Debug logging removed
-
-  // Validate kernel launch parameters
-  if (num_blocks == 0 || num_threads == 0 || num_sequences_to_build == 0) {
-    printf("[ERROR] build_sequences: Invalid dimensions - blocks=%u, "
-           "threads=%u, seqs=%u\n",
-           num_blocks, num_threads, num_sequences_to_build);
+  if (num_blocks == 0 || num_threads == 0) {
+    fprintf(stderr,
+            "[ERROR] build_sequences: Invalid dimensions - blocks=%u, "
+            "threads=%u\n",
+            num_blocks, num_threads);
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  if (num_threads > 1024) {
-    return Status::ERROR_INVALID_PARAMETER;
-  }
-
-  // Check pre-existing errors
-  cudaError_t pre_err = cudaGetLastError();
-  if (pre_err != cudaSuccess) {
-    printf("[ERROR] build_sequences: Pre-existing error: %s\n",
-           cudaGetErrorString(pre_err));
-  }
-
-  cudaError_t err =
-      cudaMemsetAsync(ctx.d_num_sequences, 0, sizeof(u32), stream);
+  // Pre-check stream status
+  cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    printf("[ERROR] build_sequences: cudaMemsetAsync failed: %s\n",
-           cudaGetErrorString(err));
+    fprintf(stderr, "[ERROR] build_sequences: Pre-existing error: %s\n",
+            cudaGetErrorString(err));
     return Status::ERROR_CUDA_ERROR;
   }
 
-  CUDA_CHECK(cudaStreamSynchronize(stream)); // Isolate memset
+  // Initialize output array
+  err = cudaMemsetAsync(ctx.d_sequences, 0,
+                        num_sequences * sizeof(sequence::Sequence), stream);
+  if (err != cudaSuccess) {
+    fprintf(stderr, "[ERROR] build_sequences: cudaMemsetAsync failed: %s\n",
+            cudaGetErrorString(err));
+    return Status::ERROR_CUDA_ERROR;
+  }
 
-  // Launch kernel
   build_sequences_kernel<<<num_blocks, num_threads, 0, stream>>>(
-      ctx.d_literal_lengths, ctx.d_match_lengths, ctx.d_offsets,
-      num_sequences_to_build, ctx.d_sequences, ctx.d_num_sequences);
+      ctx.d_literal_lengths, ctx.d_match_lengths, ctx.d_offsets, num_sequences,
+      ctx.d_sequences);
 
   err = cudaGetLastError();
   if (err != cudaSuccess) {
-    printf("[ERROR] build_sequences: Kernel launch failed: %s\n",
-           cudaGetErrorString(err));
+    fprintf(stderr, "[ERROR] build_sequences: Kernel launch failed: %s\n",
+            cudaGetErrorString(err));
     return Status::ERROR_CUDA_ERROR;
   }
+
   return Status::SUCCESS;
 }
 
