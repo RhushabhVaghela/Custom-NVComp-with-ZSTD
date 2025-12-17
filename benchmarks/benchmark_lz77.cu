@@ -124,7 +124,9 @@ void run_benchmark(size_t size, int iterations, bool add_noise = true) {
     exit(1);
   }
 
-  s = lz77::backtrack_sequences(size, workspace, &h_num_sequences, stream);
+  bool has_dummy = false;
+  s = lz77::backtrack_sequences(size, workspace, &h_num_sequences, &has_dummy,
+                                stream);
   if (s != Status::SUCCESS) {
     std::cerr << "Warmup backtrack_sequences failed: " << (int)s << std::endl;
     exit(1);
@@ -151,7 +153,9 @@ void run_benchmark(size_t size, int iterations, bool add_noise = true) {
 
     // Pass 3: Backtrack sequences
     Timer t3;
-    lz77::backtrack_sequences(size, workspace, &h_num_sequences, stream);
+    bool has_dummy = false;
+    lz77::backtrack_sequences(size, workspace, &h_num_sequences, &has_dummy,
+                              stream);
     CUDA_CHECK(cudaStreamSynchronize(stream));
     backtrack_ms += t3.elapsed_ms();
   }

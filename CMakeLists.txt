@@ -90,7 +90,6 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_utils.cpp
     src/cuda_zstd_memory_pool_complex.cu
     src/cuda_zstd_stacktrace.cpp
-    src/cuda_zstd_debug.cu
     src/cuda_zstd_adaptive.cu
     src/cuda_zstd_stream_pool.cpp
 
@@ -186,12 +185,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     )
     target_link_libraries(fixed_benchmark cuda_zstd_static)
     
-    add_executable(debug_single_test tests/debug_single_test.cu)
-    set_target_properties(debug_single_test PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON
-        CUDA_RESOLVE_DEVICE_SYMBOLS ON
-    )
-    target_link_libraries(debug_single_test cuda_zstd_static)
+
     
     add_executable(limited_benchmark benchmarks/limited_benchmark.cu)
     set_target_properties(limited_benchmark PROPERTIES

@@ -19,9 +19,6 @@
 #include <cstdint>
 #include <cstring> // For memset
 #include <vector>  // For CPU backtracking buffers
-#if !defined(CUDA_ZSTD_DEBUG_BOUNDS)
-#define CUDA_ZSTD_DEBUG_BOUNDS 1
-#endif
 
 namespace cuda_zstd {
 namespace lz77 {
@@ -185,7 +182,8 @@ __global__ void build_hash_chains_kernel(const byte_t *input, u32 input_size,
           u32 prev_pos = atomicExch(&hash_table.table[h], pos);
 #if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
           if (h >= hash_table.size) {
-            if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+            if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
+                         // g_debug_print_limit) {
               //                             printf("[DEBUG]
               //                             build_hash_chains_kernel OOB
               //                             hash=%u hash_size=%u pos=%u
@@ -195,7 +193,8 @@ __global__ void build_hash_chains_kernel(const byte_t *input, u32 input_size,
             }
           }
           if (pos >= chain_table.size) {
-            if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+            if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
+                         // g_debug_print_limit) {
               //                             printf("[DEBUG]
               //                             build_hash_chains_kernel OOB pos=%u
               //                             chain_size=%u block=%d
@@ -212,7 +211,8 @@ __global__ void build_hash_chains_kernel(const byte_t *input, u32 input_size,
             chain_table.prev[pos] = prev_pos;
           } else {
 #if defined(__CUDACC__)
-            if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+            if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
+                         // g_debug_print_limit) {
               //                             printf("[SAFEGUARD]
               //                             build_hash_chains_kernel: OOB write
               //                             pos=%u chain_size=%u\n",
@@ -336,7 +336,8 @@ __global__ void build_hash_chains_kernel(const byte_t *input, u32 input_size,
           chain_table.prev[pos] = prev_pos;
         } else {
 #if defined(__CUDACC__)
-          if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+          if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
+                       // g_debug_print_limit) {
             //                         printf("[SAFEGUARD]
             //                         build_hash_chains_kernel (input): OOB
             //                         write pos=%u chain_size=%u\n", pos,
@@ -400,7 +401,8 @@ find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
   if (config.chain_log > 0 && match_candidate_pos != 0xFFFFFFFF &&
       match_candidate_pos >= chain_table.size) {
 #if defined(__CUDACC__)
-    if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+    if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
+                 // g_debug_print_limit) {
       //             printf("[SAFEGUARD] find_best_match_parallel: Invalid
       //             match_candidate_pos=%u chain_size=%u\n",
       //                    match_candidate_pos, chain_table.size);
@@ -550,7 +552,8 @@ find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
 
 #if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
     if (match_candidate_pos >= chain_table.size) {
-      if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+      if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
+                   // g_debug_print_limit) {
         //                 printf("[DEBUG] find_best_match_parallel OOB
         //                 match_candidate_pos=%u chain_size=%u idx=%u
         //                 current_global_pos=%u\n",
@@ -599,7 +602,8 @@ find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
     if (next_candidate != 0xFFFFFFFF && next_candidate >= chain_table.size) {
 // If the chain points outside of bounds then stop chain traversal
 #if defined(__CUDACC__)
-      if (atomicAdd(&g_debug_print_counter, 1u) < g_debug_print_limit) {
+      if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
+                   // g_debug_print_limit) {
         //                 printf("[SAFEGUARD] find_best_match_parallel: Invalid
         //                 chain next_candidate=%u chain_size=%u\n",
         //                        next_candidate, chain_table.size);

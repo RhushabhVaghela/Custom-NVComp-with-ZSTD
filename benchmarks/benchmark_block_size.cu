@@ -91,6 +91,12 @@ bool benchmark_block_size(size_t input_size, u32 block_size, BenchmarkResult& re
         total_time += duration.count() / 1000.0; // Convert to ms
     }
     
+    // Check for safe limits on this hardware (32GB system)
+    if (block_size > 2 * 1024 * 1024) {
+        // Skip large blocks to prevent system crash
+        return false;
+    }
+
     result.compress_time_ms = total_time / NUM_RUNS;
     result.throughput_mbps = (input_size / (1024.0 * 1024.0)) / (result.compress_time_ms / 1000.0);
     result.success = true;

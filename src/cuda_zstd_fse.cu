@@ -1106,11 +1106,12 @@ __global__ void fse_parallel_encode_setup_kernel(
     const FSEEncodeTable::FSEEncodeSymbol &stateInfo = d_symbol_table[symbol];
 
     // Zstandard encoding logic
-    u32 old_state = state;
+    // u32 old_state = state;
     u32 nbBitsOut = (state + stateInfo.deltaNbBits) >> 16;
     u32 nextStateIndex = (state >> nbBitsOut) + stateInfo.deltaFindState;
     state = d_next_state[nextStateIndex];
 
+    /*
     if (i < 12) {
       printf(
           "GPU Setup i=%u: sym=%u, state_in=%u, deltaNbBits=%u, "
@@ -1118,6 +1119,7 @@ __global__ void fse_parallel_encode_setup_kernel(
           i, symbol, old_state, (u32)(stateInfo.deltaNbBits),
           (u32)(stateInfo.deltaFindState), nbBitsOut, nextStateIndex, state);
     }
+    */
   }
 }
 
@@ -1337,6 +1339,7 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
     return Status::ERROR_OUT_OF_MEMORY;
   }
 
+  /*
   // DEBUG: Verify h_normalized in CTable
   printf("DTable: total_freq=%u, table_size=%u\n", (1u << table_log),
          (1u << table_log));
@@ -1346,6 +1349,7 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
   }
   printf("\n");
   fflush(stdout);
+  */
   // AND Build d_next_state (maps cumulative_position -> state)
   // This must match encoder's FSE_buildCTable_Host exactly.
 
@@ -1857,9 +1861,11 @@ __host__ Status encode_fse_batch(const byte_t **d_inputs,
       CUDA_CHECK(cudaMemcpyAsync(d_outputs[i], h_header.data(), header_size,
                                  cudaMemcpyHostToDevice, stream));
 
+      /*
       printf("DEBUG: encode_fse_batch RLE: block %u, size %u, symbol %u, "
              "header_size %u\n",
              i, input_size, rle_symbol, header_size);
+      */
 
       // Set output size
       // We need to update d_output_sizes[i] on device.
@@ -2186,12 +2192,6 @@ find_chunk_boundaries_cpu(const byte_t *d_bitstream, u32 bitstream_size,
     // chunk)
     chunks.push_back({start_seq, count, state, bit_pos});
 
-    if (true) {
-      printf("CPU Chunk Finder: Chunk %u start_seq=%u, count=%u, state=%u, "
-             "bit_pos=%u\n",
-             chunk_idx, start_seq, count, state, bit_pos);
-    }
-
     // Simulate decoding this chunk
     for (u32 i = 0; i < count; i++) {
       // Safety check
@@ -2206,14 +2206,10 @@ find_chunk_boundaries_cpu(const byte_t *d_bitstream, u32 bitstream_size,
       bit_pos -= nbBits;
       u32 bits = read_bits_host(buffer.data(), bit_pos, nbBits, bitstream_size);
 
-      u32 old_state = state;
+      // u32 old_state = state;
       state = nextStateBase + bits;
 
-      if (chunk_idx == 0) {
-        printf("CPU Chunk 0: i=%u, bit_pos=%u, nbBits=%u, bits=%u, "
-               "state_in=%u, state_out=%u\n",
-               i, bit_pos, nbBits, bits, old_state, state);
-      }
+      // Removed debug print
     }
   }
 end_loop:
@@ -2558,6 +2554,31 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
   u32 max_symbol = *reinterpret_cast<u32 *>(h_header.data() + 8);
 
   *d_output_size = output_size_expected; // Set host output size
+
+  // Validations for correctness / safety against random data
+  if (table_log > FSE_MAX_TABLELOG) {
+    if (max_symbol == 0 && table_log == 0) {
+      // This is potentially RLE
+    } else {
+      return Status::ERROR_CORRUPT_DATA;
+    }
+  }
+
+  // Validate max_symbol (Zstd FSE usually limited to 255)
+  if (max_symbol > FSE_MAX_SYMBOL_VALUE) {
+    return Status::ERROR_CORRUPT_DATA;
+  }
+
+  // Calculate expected header size for validation
+  if (table_log > 0) {
+    u32 header_table_size = (max_symbol + 1) * sizeof(u16);
+    u32 header_size = (sizeof(u32) * 3) + header_table_size;
+
+    // Check if header fits in input
+    if (header_size > input_size) {
+      return Status::ERROR_CORRUPT_DATA;
+    }
+  }
 
   // === RLE/Raw Check ===
   if (table_log == 0) {

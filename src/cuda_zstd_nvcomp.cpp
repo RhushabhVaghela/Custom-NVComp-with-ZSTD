@@ -3,11 +3,10 @@
 //
 // This file provides the "glue" layer that implements the C-API and C++
 // batching API defined in 'cuda_zstd_nvcomp.h'. It translates
-// NVcomp-style calls into calls to the 'ZstdManager' and 'ZstdBatchManager'.
 //
-// (NEW) NOTE: This file is patched to update batch workspace calculations
-//             and correctly bridge device-array inputs to the parallel
-//             batch manager.
+// This file provides the "glue" layer that implements the C-API and C++
+// batching API defined in 'cuda_zstd_nvcomp.h'. It translates
+// NVcomp-style calls into calls to the 'ZstdManager' and 'ZstdBatchManager'.
 // ============================================================================
 
 #include "cuda_zstd_nvcomp.h"
