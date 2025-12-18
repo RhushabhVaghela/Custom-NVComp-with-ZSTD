@@ -207,6 +207,21 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_lz77 cuda_zstd_static)
+
+
+    add_executable(benchmark_parallel_throughput benchmarks/benchmark_parallel_throughput.cu)
+    set_target_properties(benchmark_parallel_throughput PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_parallel_throughput cuda_zstd_static)
+
+    add_executable(benchmark_memory_alloc benchmarks/benchmark_memory_alloc.cu)
+    set_target_properties(benchmark_memory_alloc PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_memory_alloc cuda_zstd_static)
 endif()
 
 

@@ -80,6 +80,7 @@ Status build_sequences(const SequenceContext &ctx, u32 num_sequences,
   }
 
   // Initialize output array
+  // (DEBUG PRINTS REMOVED)
   err = cudaMemsetAsync(ctx.d_sequences, 0,
                         num_sequences * sizeof(sequence::Sequence), stream);
   if (err != cudaSuccess) {
