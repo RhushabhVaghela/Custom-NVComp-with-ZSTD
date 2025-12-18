@@ -61,9 +61,6 @@ __host__ void write_bits_to_buffer_verified(byte_t *buffer, u32 &bit_position,
   if (num_bits == 0)
     return;
   if (num_bits > 64) {
-    //         fprintf(stderr, "ERROR: Cannot write more than 64 bits at
-    //         position %u\n",
-    //                 bit_position);
     return;
   }
 
@@ -73,9 +70,6 @@ __host__ void write_bits_to_buffer_verified(byte_t *buffer, u32 &bit_position,
   // ✅ VERIFY: Value fits in num_bits
   u64 max_value = (1ULL << num_bits) - 1;
   if (value > max_value) {
-    //         fprintf(stderr, "ERROR: Value 0x%016lx exceeds %u bits (max
-    //         0x%016lx)\n",
-    //                 value, num_bits, max_value);
     return;
   }
 
@@ -143,9 +137,6 @@ __host__ u64 read_bits_from_buffer_verified(const byte_t *buffer,
   if (num_bits == 0)
     return 0;
   if (num_bits > 64) {
-    //         fprintf(stderr, "ERROR: Cannot read more than 64 bits at position
-    //         %u\n",
-    //                 bit_position);
     return 0;
   }
 
@@ -209,16 +200,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
                                        const u8 *original_data,
                                        u32 original_size, u32 max_symbol,
                                        u32 table_log) {
-  //     printf("\n=== FSE Round-Trip Validation ===\n");
-  //     printf("Encoded: %u bytes, Original: %u bytes\n", encoded_size_bytes,
-  //     original_size); printf("Table: log=%u (size=%u), Max symbol: %u\n\n",
-  //            table_log, 1u << table_log, max_symbol);
-
   // ===== STEP 1: Parse Header =====
   if (encoded_size_bytes < 12) {
-    //         fprintf(stderr, "❌ ERROR: Encoded data too short for header (%u
-    //         < 12)\n",
-    //                 encoded_size_bytes);
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -230,28 +213,16 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   memcpy(&hdr_input_size, encoded_data + 4, 4);
   memcpy(&hdr_max_symbol, encoded_data + 8, 4);
 
-  //     printf("Header: table_log=%u, input_size=%u, max_symbol=%u\n",
-  //            hdr_table_log, hdr_input_size, hdr_max_symbol);
-
   // ✅ VERIFY: Headers match expectations
   if (hdr_table_log != table_log) {
-    //         fprintf(stderr, "❌ ERROR: Table log mismatch: hdr=%u !=
-    //         param=%u\n",
-    //                 hdr_table_log, table_log);
     return Status::ERROR_CORRUPT_DATA;
   }
 
   if (hdr_input_size != original_size) {
-    //         fprintf(stderr, "❌ ERROR: Input size mismatch: hdr=%u !=
-    //         param=%u\n",
-    //                 hdr_input_size, original_size);
     return Status::ERROR_CORRUPT_DATA;
   }
 
   if (hdr_max_symbol != max_symbol) {
-    //         fprintf(stderr, "❌ ERROR: Max symbol mismatch: hdr=%u !=
-    //         param=%u\n",
-    //                 hdr_max_symbol, max_symbol);
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -260,9 +231,6 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   u32 header_size = 12 + (max_symbol + 1) * 2;
 
   if (encoded_size_bytes < header_size) {
-    //         fprintf(stderr, "❌ ERROR: Encoded data too short for frequency
-    //         table "
-    //                 "(%u < %u)\n", encoded_size_bytes, header_size);
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -276,9 +244,6 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   }
 
   if (norm_sum != table_size) {
-    //         fprintf(stderr, "❌ ERROR: Normalized freq sum %u != table_size
-    //         %u\n",
-    //                 norm_sum, table_size);
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -291,7 +256,6 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   h_dtable.newState = new u16[table_size];
 
   if (!h_dtable.symbol || !h_dtable.nbBits || !h_dtable.newState) {
-    //         fprintf(stderr, "❌ ERROR: Failed to allocate decode table\n");
     delete[] h_dtable.symbol;
     delete[] h_dtable.nbBits;
     delete[] h_dtable.newState;
@@ -302,14 +266,11 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
                                        table_size, h_dtable);
 
   if (status != Status::SUCCESS) {
-    //         fprintf(stderr, "❌ ERROR: Failed to build decode table\n");
     delete[] h_dtable.symbol;
     delete[] h_dtable.nbBits;
     delete[] h_dtable.newState;
     return status;
   }
-
-  //     printf("✅ Decode table built\n");
 
   // ===== STEP 4: Decode FSE Stream =====
   std::vector<u8> decoded_data(original_size);
@@ -321,12 +282,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   u64 state =
       read_bits_from_buffer_verified(encoded_data, bit_position, table_log);
 
-  //     printf("Initial state: %lu\n", (unsigned long)state);
-
   // ✅ VERIFY: Initial state in valid range
   if (state < table_size) {
-    //         fprintf(stderr, "❌ ERROR: Initial state %lu < table_size %u\n",
-    //                 (unsigned long)state, table_size);
     delete[] h_dtable.symbol;
     delete[] h_dtable.nbBits;
     delete[] h_dtable.newState;
@@ -336,9 +293,6 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   // Decode symbols in reverse order
   for (int i = (int)original_size - 1; i >= 0; i--) {
     if (state >= table_size) {
-      //             fprintf(stderr, "❌ ERROR: State %lu >= table_size %u at
-      //             position %d\n",
-      //                     (unsigned long)state, table_size, i);
       delete[] h_dtable.symbol;
       delete[] h_dtable.nbBits;
       delete[] h_dtable.newState;
@@ -360,8 +314,6 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
     }
   }
 
-  //     printf("✅ FSE decoding complete\n");
-
   // ===== STEP 5: Compare Decoded vs Original =====
   bool mismatch = false;
   u32 mismatch_count = 0;
@@ -369,10 +321,6 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   for (u32 i = 0; i < original_size; i++) {
     if (decoded_data[i] != original_data[i]) {
       if (!mismatch) {
-        //                 fprintf(stderr, "❌ Decoded data mismatch at byte
-        //                 %u:\n", i); fprintf(stderr, "   Decoded: 0x%02x,
-        //                 Expected: 0x%02x\n",
-        //                         decoded_data[i], original_data[i]);
         mismatch = true;
       }
       mismatch_count++;
@@ -385,13 +333,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   delete[] h_dtable.newState;
 
   if (mismatch) {
-    //         fprintf(stderr, "❌ ERROR: %u byte(s) mismatch in %u total\n",
-    //                 mismatch_count, original_size);
     return Status::ERROR_CORRUPT_DATA;
   }
-
-  //     printf("✅ Round-trip validation PASSED: %u bytes identical\n\n",
-  //     original_size);
 
   return Status::SUCCESS;
 }
@@ -449,8 +392,6 @@ __host__ Status encode_fse_advanced_fixed(
     norm_sum += h_normalized[i];
   }
   if (norm_sum != table_size) {
-    //         fprintf(stderr, "ERROR: Normalization sum mismatch: %u != %u\n",
-    //                 norm_sum, table_size);
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -504,8 +445,6 @@ __host__ Status encode_fse_advanced_fixed(
 
     // ✅ VERIFY: Symbol in valid range
     if (symbol > stats.max_symbol) {
-      //             fprintf(stderr, "ERROR: Symbol %u exceeds max %u\n",
-      //                     symbol, stats.max_symbol);
       delete[] h_ctable.d_symbol_table;
       delete[] h_ctable.d_next_state;
       delete[] h_ctable.d_state_to_symbol;
@@ -556,7 +495,6 @@ __host__ Status encode_fse_advanced_fixed(
                                input_size, stats.max_symbol, table_log);
 
     if (status != Status::SUCCESS) {
-      //             fprintf(stderr, "ERROR: Round-trip validation failed\n");
       delete[] h_ctable.d_symbol_table;
       delete[] h_ctable.d_next_state;
       delete[] h_ctable.d_state_to_symbol;

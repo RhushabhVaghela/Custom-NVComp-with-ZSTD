@@ -31,7 +31,8 @@ StreamPool::StreamPool(size_t pool_size) {
     // (int)err << std::endl;
 
     if (err != cudaSuccess) {
-      printf(
+      fprintf(
+          stderr,
           "[CRITICAL] StreamPool: cudaStreamCreate failed at index %zu: %s\n",
           i, cudaGetErrorString(err));
       // Cleanup any resources created so far

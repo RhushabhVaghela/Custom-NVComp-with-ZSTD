@@ -59,33 +59,24 @@ Status build_sequences(const SequenceContext &ctx, u32 num_sequences,
                        u32 num_blocks, u32 num_threads, cudaStream_t stream) {
   if (ctx.d_literal_lengths == nullptr || ctx.d_offsets == nullptr ||
       ctx.d_match_lengths == nullptr || ctx.d_sequences == nullptr) {
-    fprintf(stderr, "[ERROR] build_sequences: Null pointer detected\n");
     return Status::ERROR_INVALID_PARAMETER;
   }
 
   if (num_blocks == 0 || num_threads == 0) {
-    fprintf(stderr,
-            "[ERROR] build_sequences: Invalid dimensions - blocks=%u, "
-            "threads=%u\n",
-            num_blocks, num_threads);
     return Status::ERROR_INVALID_PARAMETER;
   }
 
   // Pre-check stream status
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf(stderr, "[ERROR] build_sequences: Pre-existing error: %s\n",
-            cudaGetErrorString(err));
     return Status::ERROR_CUDA_ERROR;
   }
 
   // Initialize output array
-  // (DEBUG PRINTS REMOVED)
+  // Initialize output array
   err = cudaMemsetAsync(ctx.d_sequences, 0,
                         num_sequences * sizeof(sequence::Sequence), stream);
   if (err != cudaSuccess) {
-    fprintf(stderr, "[ERROR] build_sequences: cudaMemsetAsync failed: %s\n",
-            cudaGetErrorString(err));
     return Status::ERROR_CUDA_ERROR;
   }
 
@@ -95,8 +86,6 @@ Status build_sequences(const SequenceContext &ctx, u32 num_sequences,
 
   err = cudaGetLastError();
   if (err != cudaSuccess) {
-    fprintf(stderr, "[ERROR] build_sequences: Kernel launch failed: %s\n",
-            cudaGetErrorString(err));
     return Status::ERROR_CUDA_ERROR;
   }
 
@@ -466,9 +455,6 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   if (h_error_flag != 0) {
-    printf("[ERROR] execute_sequences: Invalid sequence data detected "
-           "(error=%u, literal_count=%u, num_sequences=%u)\n",
-           h_error_flag, literal_count, num_sequences);
     cudaFree(d_actual_offsets);
     cudaFree(d_literals_lengths);
     cudaFree(d_match_lengths);
