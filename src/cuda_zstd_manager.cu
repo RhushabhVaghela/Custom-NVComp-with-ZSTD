@@ -878,15 +878,19 @@ public:
     per_block_size += align_to_boundary(seq_storage_size, GPU_MEMORY_ALIGNMENT);
     per_block_size += align_to_boundary(fse_table_size, GPU_MEMORY_ALIGNMENT);
     per_block_size += align_to_boundary(huff_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size +=
-        align_to_boundary(output_buffer_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size += align_to_boundary(hash_table_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size += align_to_boundary(chain_table_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size += align_to_boundary(seq_storage_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size += align_to_boundary(fse_table_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size += align_to_boundary(huff_size, GPU_MEMORY_ALIGNMENT);
+    // (OPTIMIZATION) Streaming Mode: We only need enough workspace for ONE
+    // block plus persistent storage for block sums (O(num_blocks)). The
+    // previous logic allocated per_block_size * num_blocks which is O(N).
 
-    total += num_blocks * per_block_size;
+    // 1 block workspace (Heavy)
+    total += per_block_size;
+
+    // Persistent small buffers (Block Sums + Scanned Sums)
+    // 3 u32s per block * 2 buffers
+    total += align_to_boundary(num_blocks * 3 * sizeof(u32) * 2,
+                               GPU_MEMORY_ALIGNMENT);
+
+    // (FIX) Duplicated additions removed (lines 883-887 were duplicates)
 
     // Global resources (sized by input_size)
     // All major intermediate buffers are now accounted for in per_block_size
@@ -1317,8 +1321,9 @@ public:
     // Partition hash/chain tables from workspace
     call_workspace.d_hash_table = reinterpret_cast<u32 *>(workspace_ptr);
     call_workspace.hash_table_size = (1 << effective_config.hash_log);
+    // (OPTIMIZATION) Reuse Hash/Chain for O(1) memory
     size_t per_block_hash_bytes = call_workspace.hash_table_size * sizeof(u32);
-    size_t total_hash_bytes = call_workspace.num_blocks * per_block_hash_bytes;
+    size_t total_hash_bytes = per_block_hash_bytes; // Allocate only 1 block!
 
     // Initialize hash table to -1 (0xFFFFFFFF)
     CUDA_CHECK(cudaMemsetAsync(call_workspace.d_hash_table, 0xFF,
@@ -1331,8 +1336,7 @@ public:
     call_workspace.chain_table_size = (1 << effective_config.chain_log);
     size_t per_block_chain_bytes =
         call_workspace.chain_table_size * sizeof(u32);
-    size_t total_chain_bytes =
-        call_workspace.num_blocks * per_block_chain_bytes;
+    size_t total_chain_bytes = per_block_chain_bytes; // Allocate only 1 block!
 
     // Initialize chain table to -1 (0xFFFFFFFF)
     CUDA_CHECK(cudaMemsetAsync(call_workspace.d_chain_table, 0xFF,
@@ -1343,8 +1347,9 @@ public:
 
     // Partition d_matches and d_costs from workspace
     call_workspace.d_matches = reinterpret_cast<void *>(workspace_ptr);
-    call_workspace.max_matches = uncompressed_size;
-    size_t matches_bytes = uncompressed_size * sizeof(lz77::Match);
+    // (OPTIMIZATION) Reuse buffers for O(1) memory
+    call_workspace.max_matches = ZSTD_BLOCKSIZE_MAX;
+    size_t matches_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(lz77::Match);
     // (FIX) Initialize matches to 0 to avoid garbage if kernels are skipped
     CUDA_CHECK(
         cudaMemsetAsync(call_workspace.d_matches, 0, matches_bytes, stream));
@@ -1352,41 +1357,41 @@ public:
     workspace_ptr = align_ptr(workspace_ptr + matches_bytes, alignment);
 
     call_workspace.d_costs = reinterpret_cast<void *>(workspace_ptr);
-    call_workspace.max_costs = uncompressed_size + 1;
-    size_t costs_bytes = (uncompressed_size + 1) * sizeof(lz77::ParseCost);
+    call_workspace.max_costs = ZSTD_BLOCKSIZE_MAX + 1;
+    size_t costs_bytes = (ZSTD_BLOCKSIZE_MAX + 1) * sizeof(lz77::ParseCost);
 
     workspace_ptr = align_ptr(workspace_ptr + costs_bytes, alignment);
 
     // Partition reverse sequence buffers for backtracking
     call_workspace.d_literal_lengths_reverse =
         reinterpret_cast<u32 *>(workspace_ptr);
-    size_t reverse_lit_bytes = uncompressed_size * sizeof(u32);
+    size_t reverse_lit_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + reverse_lit_bytes, alignment);
 
     call_workspace.d_match_lengths_reverse =
         reinterpret_cast<u32 *>(workspace_ptr);
-    size_t reverse_match_bytes = uncompressed_size * sizeof(u32);
+    size_t reverse_match_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + reverse_match_bytes, alignment);
 
     call_workspace.d_offsets_reverse = reinterpret_cast<u32 *>(workspace_ptr);
-    size_t reverse_offset_bytes = uncompressed_size * sizeof(u32);
+    size_t reverse_offset_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + reverse_offset_bytes, alignment);
 
     // Partition forward sequence buffers
     ctx.seq_ctx->d_literal_lengths = reinterpret_cast<u32 *>(workspace_ptr);
-    size_t forward_lit_bytes = uncompressed_size * sizeof(u32);
+    size_t forward_lit_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + forward_lit_bytes, alignment);
 
     ctx.seq_ctx->d_match_lengths = reinterpret_cast<u32 *>(workspace_ptr);
-    size_t forward_match_bytes = uncompressed_size * sizeof(u32);
+    size_t forward_match_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + forward_match_bytes, alignment);
 
     ctx.seq_ctx->d_offsets = reinterpret_cast<u32 *>(workspace_ptr);
-    size_t forward_offset_bytes = uncompressed_size * sizeof(u32);
+    size_t forward_offset_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + forward_offset_bytes, alignment);
 
     ctx.seq_ctx->d_literals_buffer = reinterpret_cast<byte_t *>(workspace_ptr);
-    size_t literals_buffer_bytes = uncompressed_size * sizeof(byte_t);
+    size_t literals_buffer_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(byte_t);
     workspace_ptr = align_ptr(workspace_ptr + literals_buffer_bytes, alignment);
 
     // (NEW) Partition per-block sums (3 slots per block)
@@ -1438,8 +1443,11 @@ public:
     // (FIX) Allocate sequences for ALL blocks (SoA layout simulation)
     // Previously allocated only 1 block size, causing race conditions and
     // overflow!
-    size_t sequences_bytes = call_workspace.num_blocks * ZSTD_BLOCKSIZE_MAX *
-                             sizeof(sequence::Sequence);
+    // (OPTIMIZATION) Allocate sequences for only ONE block
+    // Since we stream blocks, we reuse this buffer. (O(1) memory usage)
+    size_t sequences_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence);
+    // call_workspace.num_blocks * ZSTD_BLOCKSIZE_MAX *
+    // sizeof(sequence::Sequence);
     workspace_ptr = align_ptr(workspace_ptr + sequences_bytes, alignment);
 
     // (NEW) Set base pointer for block-partitioned workspace
@@ -1599,6 +1607,23 @@ public:
       printf("[ERROR] compress: Post-SafetyNet error: %s\n",
              cudaGetErrorString(post_sync_err));
 
+    // (STREAMING) Track offset for immediate block writes
+    // Initialize with existing compressed_offset (Frame Header size)
+    size_t streaming_compressed_offset = compressed_offset;
+
+    // (OPTIMIZATION) Allocate reusable temp buffers for Phase 1 (O(1) memory)
+    // Allocating for max block size to handle all blocks
+    size_t max_seq_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
+    u32 *d_lit_len_reuse = nullptr;
+    u32 *d_match_len_reuse = nullptr;
+    u32 *d_off_reuse = nullptr;
+    byte_t *d_lit_buf_reuse = nullptr;
+
+    CUDA_CHECK(cudaMalloc((void **)&d_lit_len_reuse, max_seq_bytes));
+    CUDA_CHECK(cudaMalloc((void **)&d_match_len_reuse, max_seq_bytes));
+    CUDA_CHECK(cudaMalloc((void **)&d_off_reuse, max_seq_bytes));
+    CUDA_CHECK(cudaMalloc((void **)&d_lit_buf_reuse, ZSTD_BLOCKSIZE_MAX));
+
     for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
       cudaError_t loop_start_err = cudaGetLastError();
       if (loop_start_err != cudaSuccess)
@@ -1618,8 +1643,9 @@ public:
       const byte_t *block_input = d_input + block_start;
 
       // Setup per-block workspace
-      byte_t *ws_base =
-          (byte_t *)call_workspace.d_workspace + (block_idx * per_block_size);
+      // (FIX) Reuse workspace base for all blocks (O(1))
+      byte_t *ws_base = (byte_t *)call_workspace.d_workspace;
+      // (byte_t *)call_workspace.d_workspace + (block_idx * per_block_size);
       size_t ws_offset = 0;
 
       CompressionWorkspace block_ws;
@@ -1640,11 +1666,11 @@ public:
       // Use block_start (actual byte position) as offset, not block_idx *
       // block_size because the last block may be smaller!
       block_ws.d_matches = reinterpret_cast<lz77::Match *>(
-          reinterpret_cast<byte_t *>(call_workspace.d_matches) +
-          block_start * sizeof(lz77::Match));
+          reinterpret_cast<byte_t *>(call_workspace.d_matches));
+      // + block_start * sizeof(lz77::Match));
       block_ws.d_costs = reinterpret_cast<lz77::ParseCost *>(
-          reinterpret_cast<byte_t *>(call_workspace.d_costs) +
-          block_start * sizeof(lz77::ParseCost));
+          reinterpret_cast<byte_t *>(call_workspace.d_costs));
+      // + block_start * sizeof(lz77::ParseCost));
 
       // 5. FSE Tables
       block_ws.d_fse_tables = (fse::FSEEncodeTable *)(ws_base + ws_offset);
@@ -1657,8 +1683,12 @@ public:
       // 7. Hash and Chain Tables (Partitioned)
       // Each block gets its own hash/chain table to allow parallel execution
       // without collisions
-      block_ws.d_hash_table = call_workspace.d_hash_table +
-                              (block_idx * call_workspace.hash_table_size);
+      block_ws.d_hash_table = call_workspace.d_hash_table;
+      // + (block_idx * call_workspace.hash_table_size);
+
+      // (FIX) Reset Hash Table for reuse (O(1))
+      size_t hash_reset_bytes = call_workspace.hash_table_size * sizeof(u32);
+      CUDA_CHECK(cudaMemset(block_ws.d_hash_table, 0xFF, hash_reset_bytes));
       // Assuming d_chain_table logic is similar, but simpler to use
       // hash_table_size logic if they are parallel Actually
       // call_workspace.d_chain_table needs to be allocated and partitioned too.
@@ -1668,8 +1698,12 @@ public:
       // Assuming d_chain_table follows d_hash_table logic.
       if (call_workspace.d_chain_table) {
         u32 chain_table_size = (1 << effective_config.chain_log);
-        block_ws.d_chain_table =
-            call_workspace.d_chain_table + (block_idx * chain_table_size);
+        block_ws.d_chain_table = call_workspace.d_chain_table;
+        // + (block_idx * chain_table_size);
+
+        // (FIX) Reset Chain Table for reuse (O(1))
+        size_t chain_reset_bytes = chain_table_size * sizeof(u32);
+        CUDA_CHECK(cudaMemset(block_ws.d_chain_table, 0xFF, chain_reset_bytes));
       }
 
       // Global buffers (shared/partitioned logically)
@@ -1691,41 +1725,47 @@ public:
 
       // Reverse buffers (partitioned by block_start)
       block_ws.d_literal_lengths_reverse =
-          call_workspace.d_literal_lengths_reverse + block_start;
+          call_workspace.d_literal_lengths_reverse; // + block_start;
       block_ws.d_match_lengths_reverse =
-          call_workspace.d_match_lengths_reverse + block_start;
+          call_workspace.d_match_lengths_reverse; // + block_start;
       block_ws.d_offsets_reverse =
-          call_workspace.d_offsets_reverse + block_start;
+          call_workspace.d_offsets_reverse; // + block_start;
       block_ws.max_sequences = current_block_size;
 
+      // usage of seq_array_bytes removed
       // Construct per-block SequenceContext
       sequence::SequenceContext local_seq_ctx;
 
-      // APPROACH 3: Allocate fresh dedicated buffers (NO RECYCLING)
-      // This eliminates any potential memory corruption from buffer reuse
-      size_t seq_array_bytes = current_block_size * sizeof(u32);
+      // (OPTIMIZATION) Reuse pre-allocated buffers
+      local_seq_ctx.d_literal_lengths = d_lit_len_reuse;
+      local_seq_ctx.d_match_lengths = d_match_len_reuse;
+      local_seq_ctx.d_offsets = d_off_reuse;
+      local_seq_ctx.d_literals_buffer = d_lit_buf_reuse;
 
-      CUDA_CHECK(cudaMalloc((void **)&local_seq_ctx.d_literal_lengths,
-                            seq_array_bytes));
+      // Initialize to zero for safety (reuse requires clear)
+      // Initialize to zero for safety (reuse requires clear)
+      // (DEBUG) Use Synchronous Memset and hardcoded size to fix Invalid
+      // Argument
+      CUDA_CHECK(cudaMemset(local_seq_ctx.d_literal_lengths, 0, 512 * 1024));
+      // Initialize to zero for safety (reuse requires clear)
+      // Use Synchronous Memset to ensure strict ordering and avoid
+      // InvalidArgument (async issues) Use FULL buffer size (max_seq_bytes) to
+      // match allocation and ensure robustness
+      CUDA_CHECK(cudaMemset(local_seq_ctx.d_literal_lengths, 0, max_seq_bytes));
+      CUDA_CHECK(cudaMemset(local_seq_ctx.d_match_lengths, 0, max_seq_bytes));
+      CUDA_CHECK(cudaMemset(local_seq_ctx.d_offsets, 0, max_seq_bytes));
       CUDA_CHECK(
-          cudaMalloc((void **)&local_seq_ctx.d_match_lengths, seq_array_bytes));
-      CUDA_CHECK(
-          cudaMalloc((void **)&local_seq_ctx.d_offsets, seq_array_bytes));
-      CUDA_CHECK(cudaMalloc((void **)&local_seq_ctx.d_literals_buffer,
-                            current_block_size));
+          cudaMemset(local_seq_ctx.d_literals_buffer, 0, ZSTD_BLOCKSIZE_MAX));
 
-      // Initialize to zero for safety
-      CUDA_CHECK(
-          cudaMemset(local_seq_ctx.d_literal_lengths, 0, seq_array_bytes));
-      CUDA_CHECK(cudaMemset(local_seq_ctx.d_match_lengths, 0, seq_array_bytes));
-      CUDA_CHECK(cudaMemset(local_seq_ctx.d_offsets, 0, seq_array_bytes));
-      CUDA_CHECK(
-          cudaMemset(local_seq_ctx.d_literals_buffer, 0, current_block_size));
-
-      // (FIX) Assign per-block sequences from Global Buffer
+      // (FIX) Assign per-block sequences from Global Buffer (Reuse single
+      // buffer)
       local_seq_ctx.d_sequences = reinterpret_cast<sequence::Sequence *>(
-          reinterpret_cast<byte_t *>(call_workspace.d_sequences) +
-          block_idx * ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence));
+          reinterpret_cast<byte_t *>(call_workspace.d_sequences));
+      // + block_idx * ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence));
+
+      // Ensure strict ordering: Wait for previous block's usage to finish?
+      // Since we use the same stream, operations are serialized automatically.
+      // write_block (async) -> Memset (async next loop). Correct.
       local_seq_ctx.d_num_sequences =
           block_ws.d_block_sums; // Reuse block sums slot 0
       local_seq_ctx.num_sequences = 0;
@@ -1774,10 +1814,12 @@ public:
             // (FIX) Partition d_sequences per block
             // d_sequences is allocated as a large contiguous array in
             // call_workspace
+            // (OPTIMIZATION) Reuse the single sequence buffer (O(1))
+            // No offset needed as we process blocks sequentially/reuse buffer
             thread_block_ws.d_sequences =
                 reinterpret_cast<void *>(reinterpret_cast<sequence::Sequence *>(
-                                             call_workspace.d_sequences) +
-                                         block_idx * ZSTD_BLOCKSIZE_MAX);
+                    call_workspace
+                        .d_sequences)); // + block_idx * ZSTD_BLOCKSIZE_MAX);
 
             // (FIX) Assign per-block match/cost buffers
             // Use block_start (actual position in input) for correct offset
@@ -2297,6 +2339,27 @@ public:
 
       block_compressed_sizes[block_idx] = writer.get_offset();
 
+      // (STREAMING OPTIMIZATION) Write block immediately instead of batching
+      // This enables O(1) memory and requires no separate block storage
+      bool is_last_block = (block_idx == num_blocks - 1);
+
+      status = write_block(d_output,          // output (Global buffer)
+                           d_output_max_size, // max_size (Global buffer size)
+                           block_outputs[block_idx],          // compressed_data
+                           d_input + block_idx * block_size,  // original_data
+                           block_compressed_sizes[block_idx], // compressed_size
+                           current_block_size,                // original_size
+                           is_last_block,                     // is_last
+                           &streaming_compressed_offset, // Update offset inline
+                           stream                        // stream
+      );
+
+      if (status != Status::SUCCESS) {
+        printf("[ERROR] Block %u: write_block failed with status %d\n",
+               block_idx, (int)status);
+        return status;
+      }
+
       /* continue; */ // End of block logic
 
       // if (block_idx == 0) {
@@ -2325,29 +2388,8 @@ public:
     // printf("[PERF] Phase 1 (LZ77): %ld ms, Phase 2 (Encode): %ld ms\n",
     //        phase1_ms, phase2_ms);
 
-    // Final Checksum (if enabled)
-    // === PHASE 3: Finalize & Concatenate ===
-    size_t current_offset = compressed_offset;
-
-    for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
-      bool is_last_block = (block_idx == num_blocks - 1);
-      u32 current_block_size =
-          is_last_block ? (uncompressed_size - block_idx * block_size)
-                        : block_size;
-
-      status = write_block(d_output,          // output (Global buffer)
-                           d_output_max_size, // max_size (Global buffer size)
-                           block_outputs[block_idx],          // compressed_data
-                           d_input + block_idx * block_size,  // original_data
-                           block_compressed_sizes[block_idx], // compressed_size
-                           current_block_size,                // original_size
-                           is_last_block,                     // is_last
-                           &current_offset, // compressed_offset
-                           stream           // stream
-      );
-      if (status != Status::SUCCESS)
-        return status;
-    }
+    // (STREAMING) Phase 3 removed - blocks written immediately in main loop
+    // This eliminates need to preserve all block outputs sequentially
 
     if (config.checksum != ChecksumPolicy::NO_COMPUTE_NO_VERIFY) {
       u64 *d_checksum_result = (u64 *)((byte_t *)call_workspace.d_workspace +
@@ -2356,9 +2398,10 @@ public:
                                stream);
 
       // Copy to output
-      CUDA_CHECK(cudaMemcpyAsync(d_output + current_offset, d_checksum_result,
-                                 4, cudaMemcpyDeviceToDevice, stream));
-      current_offset += 4;
+      CUDA_CHECK(cudaMemcpyAsync(d_output + streaming_compressed_offset,
+                                 d_checksum_result, 4, cudaMemcpyDeviceToDevice,
+                                 stream));
+      streaming_compressed_offset += 4;
 
       cudaError_t chk_sync_err =
           cudaStreamSynchronize(stream); // Synchronize after memcpy
@@ -2369,7 +2412,7 @@ public:
       }
     }
 
-    *compressed_size = current_offset;
+    *compressed_size = streaming_compressed_offset;
 
     // Final synchronization to ensure all async operations complete
     // before the caller accesses the output buffer
