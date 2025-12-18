@@ -1463,6 +1463,7 @@ public:
     if (total_used > temp_size) {
       // printf("[ERROR] compress: Workspace overflow! Used %zu, have %zu\n",
       //        total_used, temp_size);
+      if (device_workspace) cudaFree(device_workspace);
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
@@ -1471,10 +1472,12 @@ public:
     if (call_workspace.d_hash_table == nullptr) {
       printf("[ERROR] compress: d_hash_table is NULL!\n");
       return Status::ERROR_INVALID_PARAMETER;
+      if (device_workspace) cudaFree(device_workspace);
     }
     if (call_workspace.d_chain_table == nullptr) {
       printf("[ERROR] compress: d_chain_table is NULL!\n");
       return Status::ERROR_INVALID_PARAMETER;
+      if (device_workspace) cudaFree(device_workspace);
     }
 
     // Hash/chain tables already initialized during allocation
@@ -1487,6 +1490,8 @@ public:
     if (pre_compress_err != cudaSuccess) {
       printf("[ERROR] compress: CUDA error BEFORE compression pipeline: %s\n",
              cudaGetErrorString(pre_compress_err));
+      if (device_workspace)
+        cudaFree(device_workspace);
       return Status::ERROR_CUDA_ERROR;
     }
     // std::cerr << "Pre-compression sync: OK" << std::endl;
@@ -1537,6 +1542,7 @@ public:
         (d_dict_buffer ? dict.raw_size : 0), effective_config, stream);
 
     if (status != Status::SUCCESS) {
+      if (device_workspace) cudaFree(device_workspace);
       return status;
     }
 
