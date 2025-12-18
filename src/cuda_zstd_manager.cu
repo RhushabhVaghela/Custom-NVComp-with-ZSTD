@@ -694,7 +694,9 @@ public:
 
     reset_stats();
     memset(&ctx, 0, sizeof(CompressionContext));
-    initialize_context();
+    // LAZY INITIALIZATION: Don't allocate GPU memory in constructor
+    // initialize_context() will be called on first compress() at line 1065-1074
+    // initialize_context();
     //         // std::cerr << "DefaultZstdManager ctor end" << std::endl;
   }
 
@@ -1463,7 +1465,8 @@ public:
     if (total_used > temp_size) {
       // printf("[ERROR] compress: Workspace overflow! Used %zu, have %zu\n",
       //        total_used, temp_size);
-      if (device_workspace) cudaFree(device_workspace);
+      if (device_workspace)
+        cudaFree(device_workspace);
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
@@ -1472,12 +1475,14 @@ public:
     if (call_workspace.d_hash_table == nullptr) {
       printf("[ERROR] compress: d_hash_table is NULL!\n");
       return Status::ERROR_INVALID_PARAMETER;
-      if (device_workspace) cudaFree(device_workspace);
+      if (device_workspace)
+        cudaFree(device_workspace);
     }
     if (call_workspace.d_chain_table == nullptr) {
       printf("[ERROR] compress: d_chain_table is NULL!\n");
       return Status::ERROR_INVALID_PARAMETER;
-      if (device_workspace) cudaFree(device_workspace);
+      if (device_workspace)
+        cudaFree(device_workspace);
     }
 
     // Hash/chain tables already initialized during allocation
@@ -1542,7 +1547,8 @@ public:
         (d_dict_buffer ? dict.raw_size : 0), effective_config, stream);
 
     if (status != Status::SUCCESS) {
-      if (device_workspace) cudaFree(device_workspace);
+      if (device_workspace)
+        cudaFree(device_workspace);
       return status;
     }
 
