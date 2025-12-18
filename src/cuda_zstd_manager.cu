@@ -3504,82 +3504,178 @@ private:
   Status encode_sequences_raw(const sequence::SequenceContext *seq_ctx,
                               u32 num_sequences, BlockBufferWriter &writer,
                               cudaStream_t stream) {
+    // Early return if no sequences
     if (num_sequences == 0) {
-      // ZSTD format for 0 sequences:
-      // If sequences_section_header doesn't exist, we must be careful.
-      // But usually if num_sequences=0, we shouldn't be here or we write
-      // nothing if valid? Actually Zstd block header has "Content_Size" and
-      // "Literals_Section". Sequences_Section is optional. If missing,
-      // num_sequences=0. But if we are IN compress_sequences, we probably want
-      // to write SOMETHING if explicit 0? Or just write nothing? "If the
-      // Sequences_Section is missing, it implies there are no sequences." So
-      // writing nothing is valid for 0 sequences. HOWEVER, if we entered this
-      // function, we probably intend to write a Sequences Section.
-
-      // Let's explicitly write a "0 sequences" byte if that's valid?
-      // "Number_of_Sequences" is the first byte.
-      // If byte=0, then 0 sequences.
-      byte_t zero = 0;
-      if (!writer.write_byte(zero, stream))
-        return Status::ERROR_BUFFER_TOO_SMALL;
       return Status::SUCCESS;
     }
 
-    // Write num_sequences header (ZSTD format)
-    // 1-3 bytes depending on value.
+    // Step 1: Copy sequences to host for validation
+    u32 *h_offsets = new u32[num_sequences];
+    u32 *h_literal_lengths = new u32[num_sequences];
+    u32 *h_match_lengths = new u32[num_sequences];
+
+    CUDA_CHECK(cudaMemcpy(h_offsets, seq_ctx->d_offsets,
+                          num_sequences * sizeof(u32), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(h_literal_lengths, seq_ctx->d_literal_lengths,
+                          num_sequences * sizeof(u32), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(h_match_lengths, seq_ctx->d_match_lengths,
+                          num_sequences * sizeof(u32), cudaMemcpyDeviceToHost));
+
+    // Step 2: Count valid sequences (filter out offset=0 with match_length>0)
+    u32 valid_count = 0;
+    u32 offset_zero_count = 0;
+    for (u32 i = 0; i < num_sequences; i++) {
+      if (h_match_lengths[i] > 0 && h_offsets[i] == 0) {
+        offset_zero_count++; // Invalid: match with zero offset
+      } else {
+        valid_count++;
+      }
+    }
+
+    printf("[DEBUG] encode_sequences_raw: total=%u, valid=%u, offset_zero=%u\n",
+           num_sequences, valid_count, offset_zero_count);
+
+    // Step 3: If ALL sequences are invalid, skip sequences section entirely
+    if (valid_count == 0) {
+      printf("[DEBUG] encode_sequences_raw: All sequences invalid, skipping "
+             "section\n");
+      delete[] h_offsets;
+      delete[] h_literal_lengths;
+      delete[] h_match_lengths;
+      return Status::SUCCESS; // Omit sequences section per ZSTD spec
+    }
+
+    // Step 4: Write header with FILTERED count
     byte_t header_buf[3];
     u32 header_len = 0;
-
-    if (num_sequences < 128) {
-      header_buf[0] = (byte_t)num_sequences;
+    if (valid_count < 128) {
+      header_buf[0] = (byte_t)valid_count;
       header_len = 1;
-    } else if (num_sequences < 0x7F00) {
-      header_buf[0] = (byte_t)((num_sequences >> 8) + 0x80);
-      header_buf[1] = (byte_t)(num_sequences & 0xFF);
+    } else if (valid_count < 0x7F00) {
+      header_buf[0] = (byte_t)((valid_count >> 8) + 0x80);
+      header_buf[1] = (byte_t)(valid_count & 0xFF);
       header_len = 2;
     } else {
       header_buf[0] = (byte_t)0xFF;
-      header_buf[1] = (byte_t)((num_sequences - 0x7F00) >> 8);
-      header_buf[2] = (byte_t)((num_sequences - 0x7F00) & 0xFF);
+      header_buf[1] = (byte_t)((valid_count - 0x7F00) >> 8);
+      header_buf[2] = (byte_t)((valid_count - 0x7F00) & 0xFF);
       header_len = 3;
     }
 
-    if (!writer.write_bytes(header_buf, header_len, stream))
+    if (!writer.write_bytes(header_buf, header_len, stream)) {
+      delete[] h_offsets;
+      delete[] h_literal_lengths;
+      delete[] h_match_lengths;
       return Status::ERROR_BUFFER_TOO_SMALL;
+    }
 
-    // fse_modes byte: 0xFF signals custom raw u32 mode (Tier 4)
-    if (!writer.write_byte(0xFF, stream))
+    // Step 5: Write FSE mode byte (0xFF = Tier 4 raw u32)
+    if (!writer.write_byte(0xFF, stream)) {
+      delete[] h_offsets;
+      delete[] h_literal_lengths;
+      delete[] h_match_lengths;
       return Status::ERROR_BUFFER_TOO_SMALL;
+    }
 
-    // Copy full u32 arrays (no truncation!)
-    // Order: LL, OF, ML (ZSTD standard order)
-    u32 array_size = num_sequences * sizeof(u32);
+    // Step 6: Write sequence data (filtered or unfiltered)
+    if (valid_count < num_sequences) {
+      // Some sequences are invalid - filter them out
+      printf("[DEBUG] encode_sequences_raw: Filtering %u invalid, keeping %u "
+             "valid\n",
+             num_sequences - valid_count, valid_count);
 
-    if (!writer.write_bytes(seq_ctx->d_literal_lengths, array_size, stream,
-                            true))
-      return Status::ERROR_BUFFER_TOO_SMALL;
-    if (!writer.write_bytes(seq_ctx->d_offsets, array_size, stream, true))
-      return Status::ERROR_BUFFER_TOO_SMALL;
-    if (!writer.write_bytes(seq_ctx->d_match_lengths, array_size, stream, true))
-      return Status::ERROR_BUFFER_TOO_SMALL;
+      // Create filtered arrays
+      u32 *h_valid_ll = new u32[valid_count];
+      u32 *h_valid_of = new u32[valid_count];
+      u32 *h_valid_ml = new u32[valid_count];
 
-    return Status::SUCCESS;
+      u32 valid_idx = 0;
+      for (u32 i = 0; i < num_sequences; i++) {
+        // Keep sequences with (match_length == 0) OR (offset != 0)
+        if (!(h_match_lengths[i] > 0 && h_offsets[i] == 0)) {
+          h_valid_ll[valid_idx] = h_literal_lengths[i];
+          h_valid_of[valid_idx] = h_offsets[i];
+          h_valid_ml[valid_idx] = h_match_lengths[i];
+          valid_idx++;
+        }
+      }
+
+      // Allocate device memory and copy filtered data
+      u32 *d_valid_ll, *d_valid_of, *d_valid_ml;
+      CUDA_CHECK(cudaMalloc(&d_valid_ll, valid_count * sizeof(u32)));
+      CUDA_CHECK(cudaMalloc(&d_valid_of, valid_count * sizeof(u32)));
+      CUDA_CHECK(cudaMalloc(&d_valid_ml, valid_count * sizeof(u32)));
+
+      CUDA_CHECK(cudaMemcpy(d_valid_ll, h_valid_ll, valid_count * sizeof(u32),
+                            cudaMemcpyHostToDevice));
+      CUDA_CHECK(cudaMemcpy(d_valid_of, h_valid_of, valid_count * sizeof(u32),
+                            cudaMemcpyHostToDevice));
+      CUDA_CHECK(cudaMemcpy(d_valid_ml, h_valid_ml, valid_count * sizeof(u32),
+                            cudaMemcpyHostToDevice));
+
+      delete[] h_valid_ll;
+      delete[] h_valid_of;
+      delete[] h_valid_ml;
+      delete[] h_offsets;
+      delete[] h_literal_lengths;
+      delete[] h_match_lengths;
+
+      // Write filtered arrays (LL, OF, ML order)
+      u32 array_size = valid_count * sizeof(u32);
+      if (!writer.write_bytes(d_valid_ll, array_size, stream, true)) {
+        cudaFree(d_valid_ll);
+        cudaFree(d_valid_of);
+        cudaFree(d_valid_ml);
+        return Status::ERROR_BUFFER_TOO_SMALL;
+      }
+      if (!writer.write_bytes(d_valid_of, array_size, stream, true)) {
+        cudaFree(d_valid_ll);
+        cudaFree(d_valid_of);
+        cudaFree(d_valid_ml);
+        return Status::ERROR_BUFFER_TOO_SMALL;
+      }
+      if (!writer.write_bytes(d_valid_ml, array_size, stream, true)) {
+        cudaFree(d_valid_ll);
+        cudaFree(d_valid_of);
+        cudaFree(d_valid_ml);
+        return Status::ERROR_BUFFER_TOO_SMALL;
+      }
+
+      cudaFree(d_valid_ll);
+      cudaFree(d_valid_of);
+      cudaFree(d_valid_ml);
+
+      return Status::SUCCESS;
+    } else {
+      // All sequences valid - write unfiltered
+      printf(
+          "[DEBUG] encode_sequences_raw: All %u sequences valid, unfiltered\n",
+          num_sequences);
+
+      delete[] h_offsets;
+      delete[] h_literal_lengths;
+      delete[] h_match_lengths;
+
+      u32 array_size = num_sequences * sizeof(u32);
+      if (!writer.write_bytes(seq_ctx->d_literal_lengths, array_size, stream,
+                              true))
+        return Status::ERROR_BUFFER_TOO_SMALL;
+      if (!writer.write_bytes(seq_ctx->d_offsets, array_size, stream, true))
+        return Status::ERROR_BUFFER_TOO_SMALL;
+      if (!writer.write_bytes(seq_ctx->d_match_lengths, array_size, stream,
+                              true))
+        return Status::ERROR_BUFFER_TOO_SMALL;
+
+      return Status::SUCCESS;
+    }
   }
 
   Status compress_sequences(const sequence::SequenceContext *seq_ctx,
                             u32 num_sequences, BlockBufferWriter &writer,
                             cudaStream_t stream) {
-
-    // Nothing to emit
     if (num_sequences == 0) {
-      // Technically, we should check if we need to emit a "0 sequences" byte.
-      // Zstd spec: if Valid Sequences Section present, it starts with
-      // Number_of_Sequences. If we skip it entirely, the Decompressor assumes 0
-      // sequences. So doing nothing is correct.
       return Status::SUCCESS;
     }
-
-    // Tier 4: Raw encoding (guaranteed fallback for now)
     return encode_sequences_raw(seq_ctx, num_sequences, writer, stream);
   }
 
@@ -3603,10 +3699,10 @@ private:
     // Bits 2-3: Size Format
     // Bits 4-7: Size (part of)
 
-    fprintf(
-        stderr,
-        "[DEBUG] decompress_literals: H[0]=0x%02X, H[1]=0x%02X, H[2]=0x%02X\n",
-        h_header[0], h_header[1], h_header[2]);
+    fprintf(stderr,
+            "[DEBUG] decompress_literals: H[0]=0x%02X, H[1]=0x%02X, "
+            "H[2]=0x%02X\n",
+            h_header[0], h_header[1], h_header[2]);
 
     u32 literals_type = h_header[0] & 0x03;
 
@@ -3616,10 +3712,10 @@ private:
 
       switch (size_format) {
       case 0:
-      case 2: // RFC: "10 and 11 are the same" (Wait, RFC 8878 says 10 and 11
-              // same? Check) RFC says: 00: Size uses 5 bits. (Size = H[0] >>
-              // 3) 01: Size uses 12 bits. 10: Size uses 20 bits. 11: Size
-              // uses 20 bits.
+      case 2: // RFC: "10 and 11 are the same" (Wait, RFC 8878 says 10 and
+              // 11 same? Check) RFC says: 00: Size uses 5 bits. (Size =
+              // H[0] >> 3) 01: Size uses 12 bits. 10: Size uses 20 bits.
+              // 11: Size uses 20 bits.
         // My switch handles 0,1,2,3.
         break;
       }
@@ -3767,9 +3863,8 @@ private:
       offset = 2;
     } else {
       if (input_size < 3) {
-        fprintf(
-            stderr,
-            "[DEBUG] decompress_sequences: input_size < 3 for header >= 255\n");
+        fprintf(stderr, "[DEBUG] decompress_sequences: input_size < 3 for "
+                        "header >= 255\n");
         return Status::ERROR_CORRUPT_DATA;
       }
       num_sequences = (h_header[1] << 8) + h_header[2] + 0x7F00;
@@ -3857,9 +3952,8 @@ private:
 
       if (of_mode == 2) {
         if (offset + 2 > input_size) {
-          fprintf(
-              stderr,
-              "[DEBUG] decompress_sequences: OF header size check failed\n");
+          fprintf(stderr, "[DEBUG] decompress_sequences: OF header size "
+                          "check failed\n");
           return Status::ERROR_CORRUPT_DATA;
         }
         of_size = h_header[offset] | (h_header[offset + 1] << 8);
@@ -3870,9 +3964,8 @@ private:
 
       if (ml_mode == 2) {
         if (offset + 2 > input_size) {
-          fprintf(
-              stderr,
-              "[DEBUG] decompress_sequences: ML header size check failed\n");
+          fprintf(stderr, "[DEBUG] decompress_sequences: ML header size "
+                          "check failed\n");
           return Status::ERROR_CORRUPT_DATA;
         }
         ml_size = h_header[offset] | (h_header[offset + 1] << 8);
@@ -4047,7 +4140,8 @@ ZstdBatchManager::ZstdBatchManager(const CompressionConfig &config) {
 
 ZstdBatchManager::~ZstdBatchManager() {
   // Ensure all pending CUDA operations complete before destruction
-  // This is critical when the manager is destroyed and immediately recreated
+  // This is critical when the manager is destroyed and immediately
+  // recreated
   cudaDeviceSynchronize();
   // Clear any sticky CUDA errors from this compression session
   cudaGetLastError();

@@ -229,7 +229,19 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
 
       u32 len = curr_pos - parent;
 
-      if (len >= 3) { // Match
+      // (FIX) Check if this is a valid match (len >= min_match AND offset > 0)
+      // Matches with offset=0 indicate "no match found" during LZ77 matching
+      bool is_valid_match = (len >= 3); // len >= min_match
+      if (is_valid_match) {
+        u32 match_offset = h_matches[parent].offset;
+        if (match_offset == 0) {
+          // Invalid match - offset=0 means no match was found
+          // Treat this as literals instead
+          is_valid_match = false;
+        }
+      }
+
+      if (is_valid_match) { // Valid match
         // Push pending sequence (which is the Next Match in file order)
         // using accumulated literals as its LL
         ll_buf.push_back(literal_run);
@@ -242,7 +254,7 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
 
         literal_run = 0;
       } else {
-        // Literal
+        // Literal (or invalid match treated as literal)
         literal_run += len;
       }
       curr_pos = parent;

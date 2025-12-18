@@ -466,8 +466,9 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   if (h_error_flag != 0) {
-    //         fprintf(stderr, "[ERROR] execute_sequences: Invalid sequence data
-    //         detected (error code %u)\n", h_error_flag);
+    printf("[ERROR] execute_sequences: Invalid sequence data detected "
+           "(error=%u, literal_count=%u, num_sequences=%u)\n",
+           h_error_flag, literal_count, num_sequences);
     cudaFree(d_actual_offsets);
     cudaFree(d_literals_lengths);
     cudaFree(d_match_lengths);
