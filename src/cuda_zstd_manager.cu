@@ -786,6 +786,10 @@ public:
   }
 
   virtual ~DefaultZstdManager() {
+    // Prevent dict destructor from freeing memory we don't own
+    // (we only have a shallow copy of the pointer)
+    dict.raw_content = nullptr;
+
     // Cleanup any device-side checksum buffer allocated lazily
     if (d_checksum_buffer != nullptr) {
       cudaFree(d_checksum_buffer);
@@ -2714,8 +2718,16 @@ public:
       return Status::ERROR_INVALID_PARAMETER;
     }
 
-    // Store dictionary
-    dict = new_dict;
+    // CRITICAL FIX: Manually copy fields to avoid double-free issue
+    // The Dictionary copy assignment does deep copy with malloc,
+    // but we don't want to own the memory - just reference it
+    dict.header = new_dict.header;
+    dict.raw_size = new_dict.raw_size;
+
+    // Shallow copy the pointer - we DON'T own this memory
+    // The caller (test) owns it and will free it
+    dict.raw_content = new_dict.raw_content;
+
     has_dictionary = true;
 
     return Status::SUCCESS;
