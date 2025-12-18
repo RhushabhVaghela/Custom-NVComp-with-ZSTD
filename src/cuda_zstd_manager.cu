@@ -2685,17 +2685,22 @@ public:
   // ==========================================================================
   virtual Status
   set_dictionary(const dictionary::Dictionary &new_dict) override {
-    // if (new_dict.size > config.dict_size) {
-    //     return Status::ERROR_BUFFER_TOO_SMALL;
-    // }
+    // Ensure context is initialized before setting dictionary
+    if (!ctx_initialized) {
+      Status init_status = initialize_context();
+      if (init_status != Status::SUCCESS) {
+        return init_status;
+      }
+    }
+
+    // Validate dictionary
+    if (!new_dict.raw_content || new_dict.raw_size == 0) {
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+
+    // Store dictionary
     dict = new_dict;
     has_dictionary = true;
-
-    // Copy dictionary to pre-allocated device buffer
-    // CUDA_CHECK(cudaMemcpy(ctx.dict.d_buffer, dict.d_buffer, dict.size,
-    // cudaMemcpyHostToDevice)); ctx.dict.size = dict.size; ctx.dict.dict_id =
-    // xxhash::xxhash_32_cpu(static_cast<const byte_t*>(dict.d_buffer),
-    // dict.size, 0);
 
     return Status::SUCCESS;
   }
