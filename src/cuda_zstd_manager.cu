@@ -1239,9 +1239,25 @@ public:
       d_dict_buffer = workspace_ptr;
       workspace_ptr = align_ptr(workspace_ptr + dict.raw_size, alignment);
 
-      // Copy dictionary to device
-      CUDA_CHECK(cudaMemcpyAsync(d_dict_buffer, dict.raw_content, dict.raw_size,
-                                 cudaMemcpyHostToDevice, stream));
+      // Check if dictionary is already on device
+      cudaPointerAttributes dict_attrs;
+      cudaError_t dict_attr_err =
+          cudaPointerGetAttributes(&dict_attrs, dict.raw_content);
+      if (dict_attr_err != cudaSuccess)
+        cudaGetLastError(); // Clear error
+
+      if (dict_attr_err == cudaSuccess &&
+          dict_attrs.type == cudaMemoryTypeDevice) {
+        // Dictionary already on device, use device-to-device copy
+        CUDA_CHECK(cudaMemcpyAsync(d_dict_buffer, dict.raw_content,
+                                   dict.raw_size, cudaMemcpyDeviceToDevice,
+                                   stream));
+      } else {
+        // Dictionary on host, use host-to-device copy
+        CUDA_CHECK(cudaMemcpyAsync(d_dict_buffer, dict.raw_content,
+                                   dict.raw_size, cudaMemcpyHostToDevice,
+                                   stream));
+      }
 
       // Set up DictionaryContent structure
       DictionaryContent h_dict_content;
