@@ -98,9 +98,6 @@ constexpr u32 FRAME_HEADER_SIZE_MIN = 2;
 // (NEW) CUSTOM METADATA DEFINITIONS
 // ==============================================================================
 
-// This is our application-specific magic number to identify our own metadata
-constexpr u32 CUSTOM_METADATA_MAGIC = 0x184D2A5E; // ZSTD Magic Number
-
 // Defines the standard Zstd Skippable Frame Header
 struct SkippableFrameHeader {
   u32 magic_number;
@@ -1625,10 +1622,7 @@ public:
     size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2;
     size_t output_buffer_size =
         CUDA_ZSTD_BLOCKSIZE_MAX * 2; // NEW: Separate output buffer
-    size_t hash_table_size = (1ull << config.hash_log) * sizeof(u32);
-    size_t chain_table_size = (1ull << config.chain_log) * sizeof(u32);
-    size_t seq_storage_size =
-        CUDA_ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence);
+
     size_t fse_table_size = 3 * sizeof(fse::FSEEncodeTable);
     size_t huff_size = sizeof(huffman::HuffmanTable);
 
@@ -2184,7 +2178,6 @@ public:
 
         // Write RLE Block Header + Content
         // Output: 3 bytes header + 1 byte content = 4 bytes total
-        int last_block = (block_idx == num_blocks - 1) ? 1 : 0;
 
         // Write Header Only (3 bytes)
         if (!writer.write_byte(h_rle_byte, stream)) { // Use writer for byte
@@ -2436,11 +2429,6 @@ public:
       cudaFree(device_workspace);
     return Status::SUCCESS;
 
-  cleanup_and_fail:
-    if (memset_done_event)
-      cudaEventDestroy(memset_done_event);
-    if (device_workspace)
-      cudaFree(device_workspace);
     return Status::ERROR_CUDA_ERROR; // Or specific status? Problem: multiple
                                      // statuses.
     // Better to use RAII helper class for device_workspace and event.
