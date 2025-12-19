@@ -15,15 +15,11 @@ namespace lz77 {
 __global__ void init_hash_table_kernel(u32 *hash_table, u32 *chain_table,
                                        u32 hash_size, u32 chain_size) {
   u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
-  u32 stride = blockDim.x * gridDim.x;
 
-  for (u32 i = idx; i < hash_size; i += stride) {
-    hash_table[i] = 0xFFFFFFFF;
-  }
-
-  for (u32 i = idx; i < chain_size; i += stride) {
-    chain_table[i] = 0xFFFFFFFF;
-  }
+  if (idx < hash_size)
+    hash_table[idx] = 0xFFFFFFFF;
+  if (idx < chain_size)
+    chain_table[idx] = 0xFFFFFFFF;
 }
 
 __global__ void find_matches_kernel(const u8 *input, u32 input_size,

@@ -97,6 +97,7 @@ set(CUDA_ZSTD_SOURCES
     src/workspace_manager.cu
     src/error_context.cpp
     src/lz77_parallel.cu
+    src/pipeline_manager.cu
 )
 
 # Static library
@@ -222,6 +223,13 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_memory_alloc cuda_zstd_static)
+
+    add_executable(benchmark_pipeline tests/benchmark_pipeline.cu)
+    set_target_properties(benchmark_pipeline PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_pipeline cuda_zstd_static)
 endif()
 
 
