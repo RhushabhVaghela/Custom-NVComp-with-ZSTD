@@ -688,7 +688,13 @@ public:
     //         get_global_stream_pool(1)" << std::endl;
     d_checksum_buffer = nullptr;
     config.min_match = 3;
+    config.min_match = 3;
     config.strategy = Strategy::GREEDY;
+    // Default LZ77 config (Moved from initialize_context to ensure
+    // get_compress_temp_size is correct)
+    config.window_log = 22; // 4MB window
+    config.chain_log = 17;  // 128K entries
+    config.hash_log = 18;   // 256K entries
     config.cpu_threshold =
         0; // Usage of GPU is enforced for debugging/correctness verification
 
@@ -779,17 +785,43 @@ public:
     ctx.ml_fse_table = nullptr;
     delete ctx.of_fse_table;
     ctx.of_fse_table = nullptr;
-    delete ctx.lz77_ctx;
-    ctx.lz77_ctx = nullptr;
+
+    if (ctx.lz77_ctx) {
+      if (ctx.lz77_ctx->d_window) {
+        cudaFree(ctx.lz77_ctx->d_window);
+        ctx.lz77_ctx->d_window = nullptr;
+      }
+
+      // Free potential internal allocations from init_lz77_context
+      if (ctx.lz77_ctx->hash_table.table) {
+        cudaFree(ctx.lz77_ctx->hash_table.table);
+        ctx.lz77_ctx->hash_table.table = nullptr;
+      }
+      if (ctx.lz77_ctx->chain_table.prev) {
+        cudaFree(ctx.lz77_ctx->chain_table.prev);
+        ctx.lz77_ctx->chain_table.prev = nullptr;
+      }
+      if (ctx.lz77_ctx->d_matches) {
+        cudaFree(ctx.lz77_ctx->d_matches);
+        ctx.lz77_ctx->d_matches = nullptr;
+      }
+      if (ctx.lz77_ctx->d_costs) {
+        cudaFree(ctx.lz77_ctx->d_costs);
+        ctx.lz77_ctx->d_costs = nullptr;
+      }
+
+      // Note: h_matches_dict_trainer is a host buffer, usually managed by
+      // std::vector or new[] Assuming it's simple usage or not allocated on
+      // GPU. Focus on d_window which is GPU.
+
+      delete ctx.lz77_ctx;
+      ctx.lz77_ctx = nullptr;
+    }
 
     ctx_initialized = false;
   }
 
   virtual ~DefaultZstdManager() {
-    // Prevent dict destructor from freeing memory we don't own
-    // (we only have a shallow copy of the pointer)
-    dict.raw_content = nullptr;
-
     // Cleanup any device-side checksum buffer allocated lazily
     if (d_checksum_buffer != nullptr) {
       cudaFree(d_checksum_buffer);
@@ -1577,6 +1609,13 @@ public:
 
     compressed_offset += header_size;
 
+    // Fix: Cap block size to max supported by internal buffers (128KB)
+    // efficient_config.block_size might suggest 256KB+ for high levels, but
+    // our O(1) buffers (d_matches, etc.) are fixed at CUDA_ZSTD_BLOCKSIZE_MAX.
+    block_size = std::min(effective_config.block_size, CUDA_ZSTD_BLOCKSIZE_MAX);
+    if (block_size == 0)
+      block_size = CUDA_ZSTD_BLOCKSIZE_MAX;
+
     // Block size already calculated during workspace partitioning
     // (see line ~1082, stored in effective_config.block_size)
     u32 num_blocks = (uncompressed_size + block_size - 1) / block_size;
@@ -1714,10 +1753,14 @@ public:
 
       // 5. FSE Tables
       block_ws.d_fse_tables = (fse::FSEEncodeTable *)(ws_base + ws_offset);
+      // CLEAR FSE TABLE
+      cudaMemsetAsync(block_ws.d_fse_tables, 0, fse_table_size, stream);
       ws_offset += align_to_boundary(fse_table_size, GPU_MEMORY_ALIGNMENT);
 
       // 6. Huffman Table
       block_ws.d_huffman_table = (huffman::HuffmanTable *)(ws_base + ws_offset);
+      // CLEAR HUFFMAN TABLE
+      cudaMemsetAsync(block_ws.d_huffman_table, 0, huff_size, stream);
       ws_offset += align_to_boundary(huff_size, GPU_MEMORY_ALIGNMENT);
 
       // 7. Hash and Chain Tables (Partitioned)
@@ -1728,7 +1771,7 @@ public:
 
       // (FIX) Reset Hash Table for reuse (O(1))
       size_t hash_reset_bytes = call_workspace.hash_table_size * sizeof(u32);
-      CUDA_CHECK(cudaMemset(block_ws.d_hash_table, 0xFF, hash_reset_bytes));
+      CUDA_CHECK(cudaMemset(block_ws.d_hash_table, 0, hash_reset_bytes));
       // Assuming d_chain_table logic is similar, but simpler to use
       // hash_table_size logic if they are parallel Actually
       // call_workspace.d_chain_table needs to be allocated and partitioned too.
@@ -1743,7 +1786,7 @@ public:
 
         // (FIX) Reset Chain Table for reuse (O(1))
         size_t chain_reset_bytes = chain_table_size * sizeof(u32);
-        CUDA_CHECK(cudaMemset(block_ws.d_chain_table, 0xFF, chain_reset_bytes));
+        CUDA_CHECK(cudaMemset(block_ws.d_chain_table, 0, chain_reset_bytes));
       }
 
       // Global buffers (shared/partitioned logically)
@@ -1995,7 +2038,6 @@ public:
                           num_seq * sizeof(u32), cudaMemcpyDeviceToHost,
                           block_stream);
           cudaStreamSynchronize(block_stream);
-
           u32 total_literals = 0;
           for (u32 len : h_literal_lengths) {
             total_literals += len;
@@ -2015,7 +2057,13 @@ public:
           }
 
         } else {
-          block_literals_sizes[block_idx] = 0;
+          // FIX: If no sequences, the entire block is literals
+          block_literals_sizes[block_idx] = current_block_size;
+
+          // Copy input directly to literals buffer
+          CUDA_CHECK(cudaMemcpyAsync(
+              block_seq_ctxs[block_idx].d_literals_buffer, block_input,
+              current_block_size, cudaMemcpyDeviceToDevice, block_stream));
         }
         if (status != Status::SUCCESS) {
           // cudaStreamSynchronize(block_stream); // Sync already done
@@ -2762,10 +2810,9 @@ private:
   Status initialize_context() {
     // CRITICAL FIX: Use pointer to avoid static initialization heap
     // corruption
-    static std::mutex *init_mutex = nullptr;
-    if (!init_mutex) {
-      init_mutex = new std::mutex();
-    }
+    // CRITICAL FIX: Use pointer to avoid static initialization heap corruption
+    // C++11 guarantees thread-safe initialization for local statics
+    static std::mutex *init_mutex = new std::mutex();
     std::unique_lock<std::mutex> init_lock(*init_mutex);
     //         // std::cerr << "initialize_context() entered (guarded)" <<
     //         std::endl;
@@ -2780,11 +2827,11 @@ private:
     // Initialize LZ77 context
     if (!ctx.lz77_ctx) {
       ctx.lz77_ctx = new lz77::LZ77Context();
-      // Default LZ77 config
-      config.window_log = 22; // 4MB window
-      config.chain_log = 17;  // 128K entries
-      config.hash_log = 18;   // 256K entries
-      config.min_match = 3;
+      // Default LZ77 config (Moved to constructor)
+      // config.window_log = 22;
+      // config.chain_log = 17;
+      // config.hash_log = 18;
+      // config.min_match = 3; // Already set in ctor
       lz77::LZ77Config lz77_config;
       lz77_config.hash_log = config.hash_log;
       lz77_config.chain_log = config.chain_log; // Use config.chain_log
@@ -3732,10 +3779,10 @@ private:
     // Bits 2-3: Size Format
     // Bits 4-7: Size (part of)
 
-    fprintf(stderr,
-            "[DEBUG] decompress_literals: H[0]=0x%02X, H[1]=0x%02X, "
-            "H[2]=0x%02X\n",
-            h_header[0], h_header[1], h_header[2]);
+    // fprintf(stderr,
+    //       "[DEBUG] decompress_literals: H[0]=0x%02X, H[1]=0x%02X, "
+    //       "H[2]=0x%02X\n",
+    //       h_header[0], h_header[1], h_header[2]);
 
     u32 literals_type = h_header[0] & 0x03;
 
