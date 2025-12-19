@@ -9,7 +9,6 @@
 #include <random>
 #include <vector>
 
-
 using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
 
@@ -170,9 +169,15 @@ bool test_exact_256kb_input() {
   u32 input_sizes_arr[] = {data_size};
   byte_t *d_outputs_arr[] = {d_output};
 
-  Status status =
-      encode_fse_batch((const byte_t **)d_inputs_arr, input_sizes_arr,
-                       (byte_t **)d_outputs_arr, d_output_sizes, 1, 0);
+  // Use encode_fse_advanced (single buffer) to match decode_fse (single buffer)
+  // This ensures header format compatibility.
+  u32 h_output_size_val = 0;
+  Status status = encode_fse_advanced(d_input, data_size, d_output,
+                                      &h_output_size_val, true, 0);
+
+  // Update device output size for verification logic consistency
+  CUDA_CHECK(cudaMemcpy(d_output_sizes, &h_output_size_val, sizeof(u32),
+                        cudaMemcpyHostToDevice));
 
   if (status != Status::SUCCESS) {
     printf("❌ Encoding failed for 256KB: %d\n", (int)status);
@@ -186,6 +191,20 @@ bool test_exact_256kb_input() {
   u32 output_size = 0;
   CUDA_CHECK(cudaMemcpy(&output_size, d_output_sizes, sizeof(u32),
                         cudaMemcpyDeviceToHost));
+
+  // DEBUG: Print encoded data
+  printf("Encoded size: %u bytes\\n", output_size);
+  std::vector<byte_t> h_encoded(output_size);
+  CUDA_CHECK(cudaMemcpy(h_encoded.data(), d_output, output_size,
+                        cudaMemcpyDeviceToHost));
+  printf("Encoded data (first 20 bytes): ");
+  for (int i = 0; i < 20 && i < output_size; i++)
+    printf("%02x ", h_encoded[i]);
+  printf("\\n");
+  printf("Decoder Input Tail: ");
+  for (int i = output_size - 10; i < output_size && i >= 0; i++)
+    printf("%02x ", h_encoded[i]);
+  printf("\\n");
 
   status = decode_fse(d_output, output_size, d_decoded, &decoded_size, 0);
 

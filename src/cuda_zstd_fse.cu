@@ -2470,8 +2470,11 @@ __global__ void fse_parallel_decode_kernel_v2(
     // Update state
     state = nextStateBase + bits;
 
-    // Output in correct forward order (FIFO)
-    u32 output_idx = info.start_seq + i;
+    // FSE DECODER MUST OUTPUT BACKWARDS (LIFO) to match encoder
+    // Encoder processes chunk[0..N] backwards: encodes chunk[N-1], ...,
+    // chunk[0] Decoder must output backwards: output[N-1] = first_symbol, ...,
+    // output[0] = last_symbol This ensures correct symbol order after decoding
+    u32 output_idx = info.start_seq + (info.num_symbols - 1 - i);
     d_output[output_idx] = symbol;
   }
 }
