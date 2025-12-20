@@ -1,9 +1,8 @@
 // ==============================================================================
-// NEW: ZSTANDARD-COMPATIBLE DUAL-STATE FSE ENCODER
+// NEW: ZSTANDARD-COMPATIBLE SINGLE-STATE FSE ENCODER
 // ==============================================================================
-// This encoder matches Zstandard's fse_compress.c exactly.
-// Verified working for 10B-4KB inputs with byte-perfect output.
-// Use this for sequential encoding (num_chunks=1) to ensure compatibility.
+// This encoder matches Zstandard's FSE logic for Single State streams.
+// Implemented as Single State Forward to match Parallel Decoder Reverse Read.
 // ==============================================================================
 
 #ifndef CUDA_ZSTD_FSE_ZSTD_ENCODER_CUH
@@ -123,16 +122,13 @@ __device__ inline void gpu_fse_flush_state(GPU_BitStream *bitC,
 }
 
 /**
- * @brief Zstandard-compatible dual-state FSE encoder kernel
+ * @brief Zstandard-compatible Single-State FSE encoder kernel
  * @param d_input Input data
  * @param input_size Size of input in bytes
  * @param d_ctable_u16 FSE compression table (as u16* for easy access)
  * @param d_output Output buffer
+ * @param max_output_size Maximum output capacity
  * @param d_output_size Output size in bytes
- *
- * This kernel implements the exact dual-state algorithm from Zstandard's
- * fse_compress.c (lines 568-606). Verified to produce byte-perfect output
- * for inputs from 10 bytes to 4KB.
  */
 __global__ void fse_encode_zstd_compat_kernel(
     const byte_t *d_input, u32 input_size,
@@ -151,44 +147,25 @@ __global__ void fse_encode_zstd_compat_kernel(
     return;
   }
 
-  // Dual-state encoding (matches Zstandard fse_compress.c)
-  GPU_FSE_CState CState1, CState2;
+  // Single-state Forward Encoding
+  // Matches Parallel Decoder expectations (LIFO from End)
+  GPU_FSE_CState CState;
   const byte_t *ip = d_input;
   const byte_t *const iend = d_input + input_size;
 
-  // Initialize states based on even/odd size
-  // FORWARD ENCODING (Start -> End)
-  // This matches Zstandard Decoder which reads from End (Last Written) -> Back
-  // to Start (First Written)
-  if (input_size & 1) {
-    // Odd size
-    gpu_fse_init_state(&CState1, d_ctable_u16, *ip++);
-    gpu_fse_init_state(&CState2, d_ctable_u16, *ip++);
-    gpu_fse_encode_symbol(&bitC, &CState1, *ip++);
-    gpu_bit_flush_bits(&bitC);
-  } else {
-    // Even size
-    gpu_fse_init_state(&CState2, d_ctable_u16, *ip++);
-    gpu_fse_init_state(&CState1, d_ctable_u16, *ip++);
-  }
+  // Initialize with first byte
+  if (input_size > 0) {
+    gpu_fse_init_state(&CState, d_ctable_u16, *ip++);
 
-  // Main encoding loop - interleave CState2 and CState1
-  while (ip < iend) {
-    gpu_fse_encode_symbol(&bitC, &CState2, *ip++);
-    if ((iend - ip) &
-        1) // Flush condition might need tuning? Or just flush always safely?
+    // Encode remaining bytes forwards
+    while (ip < iend) {
+      gpu_fse_encode_symbol(&bitC, &CState, *ip++);
       gpu_bit_flush_bits(&bitC);
+    }
 
-    if (ip >= iend)
-      break;
-
-    gpu_fse_encode_symbol(&bitC, &CState1, *ip++);
-    gpu_bit_flush_bits(&bitC);
+    // Flush state (writes bits for the last symbol processed, transitively)
+    gpu_fse_flush_state(&bitC, &CState);
   }
-
-  // Flush both states (order: CState2 then CState1)
-  gpu_fse_flush_state(&bitC, &CState2);
-  gpu_fse_flush_state(&bitC, &CState1);
 
   *d_output_size = gpu_bit_close_stream(&bitC);
 }
