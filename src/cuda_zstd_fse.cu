@@ -1685,47 +1685,10 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
 
   printf("[FSE_ENTRY] encode_fse_advanced_debug: input_size=%u\n", input_size);
 
-  // NEW: Use Zstandard-compatible dual-state encoder (VERIFIED working 10B-4KB)
-  // This replaces the entire FSE encoding pipeline with byte-perfect Zstandard
-  // implementation
-  if (input_size >= 3) {
-    printf("[FSE_GPU] Using Zstandard-compatible dual-state encoder\n");
+  // NOTE: New Zstandard-compatible encoder will be called after CTable is built
+  // (see below after table construction completes)
 
-    // Analyze for CTable building
-    FSEStats stats;
-    auto status = analyze_block_statistics(d_input, input_size, &stats, stream);
-    if (status != Status::SUCCESS)
-      return status;
-
-    u32 table_log =
-        select_optimal_table_log(stats.frequencies, stats.total_count,
-                                 stats.max_symbol, stats.unique_symbols);
-    while ((1u << table_log) <= stats.unique_symbols &&
-           table_log < FSE_MAX_TABLELOG) {
-      table_log++;
-    }
-    if (table_log > FSE_MAX_TABLELOG)
-      table_log = FSE_MAX_TABLELOG;
-
-    // Normalize
-    std::vector<u16> h_normalized(stats.max_symbol + 1);
-    status = normalize_frequencies_accurate(
-        stats.frequencies, input_size, 1u << table_log, h_normalized.data(),
-        stats.max_symbol, nullptr);
-    if (status != Status::SUCCESS)
-      return status;
-
-    // Build CTable on host using existing GPU table builder
-    // For now, skip CTable - encoder will use raw data
-    // TODO: Build proper CTable format for encoder
-    printf("[FSE_GPU] WARNING: CTable building not yet implemented, skipping "
-           "encoder\n");
-
-    // FALLBACK to existing path for now
-    return Status::ERROR_NOT_IMPLEMENTED;
-  }
-
-  // FALLBACK: Original path (should not reach here for normal inputs)
+  // Original path continues - builds CTable and tables
   // printf("\n[DEBUG] >>> ENCODE_FSE_ADVANCED_DEBUG ENTRY <<< input_size=%u\n",
   //        input_size);
 
@@ -1866,6 +1829,75 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
 
   // printf("[DEBUG] Point E: Table Copy Done\n");
   // fflush(stdout);
+
+  // NEW: Use Zstandard-compatible dual-state encoder (VERIFIED 10B-4KB)
+  // Use existing GPU-built CTable (d_dev_next_state) for encoder
+  printf("[FSE_GPU] Using Zstandard-compatible dual-state encoder\n");
+
+  // Build CTable in format encoder expects: [tableLog(u16), unused(u16),
+  // stateTable(u16[...]), symbolTT(...)]
+  u16 *d_ctable_for_encoder;
+  size_t ctable_encoder_size =
+      (2 + table_size +
+       256 * sizeof(FSEEncodeTable::FSEEncodeSymbol) / sizeof(u16)) *
+      sizeof(u16);
+  CUDA_CHECK(cudaMalloc(&d_ctable_for_encoder, ctable_encoder_size));
+
+  // Copy table_log
+  u16 table_log_u16 = (u16)table_log;
+  CUDA_CHECK(cudaMemcpy(d_ctable_for_encoder, &table_log_u16, sizeof(u16),
+                        cudaMemcpyHostToDevice));
+
+  // Copy state table at offset +2
+  CUDA_CHECK(cudaMemcpy(d_ctable_for_encoder + 2, d_dev_next_state,
+                        table_size * sizeof(u16), cudaMemcpyDeviceToDevice));
+
+  // Copy symbol table after state table
+  u32 symbol_offset = 1 + (table_log ? (1 << (table_log - 1)) : 1);
+  CUDA_CHECK(cudaMemcpy(
+      (u32 *)(d_ctable_for_encoder) + symbol_offset, d_dev_symbol_table,
+      256 * sizeof(FSEEncodeTable::FSEEncodeSymbol), cudaMemcpyDeviceToDevice));
+
+  // Call Zstandard encoder
+  u32 *d_payload_size;
+  CUDA_CHECK(cudaMalloc(&d_payload_size, sizeof(u32)));
+
+  fse_encode_zstd_compat_kernel<<<1, 1, 0, stream>>>(
+      d_input, input_size, d_ctable_for_encoder, d_output + header_size,
+      d_payload_size);
+
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+
+  u32 payload_size;
+  CUDA_CHECK(cudaMemcpy(&payload_size, d_payload_size, sizeof(u32),
+                        cudaMemcpyDeviceToHost));
+
+  *d_output_size = header_size + payload_size;
+
+  printf("[FSE_GPU] Zstandard encoder SUCCESS: %u bytes -> %u bytes (header=%u "
+         "payload=%u)\n",
+         input_size, *d_output_size, header_size, payload_size);
+
+  // Cleanup encoder-specific allocations
+  cudaFree(d_ctable_for_encoder);
+  cudaFree(d_payload_size);
+
+  // Cleanup existing allocations
+  cudaFree(d_dev_symbol_table);
+  cudaFree(d_dev_next_state);
+  cudaFree(d_dev_nbBits_table);
+  cudaFree(d_dev_next_state_vals);
+  cudaFree(d_dev_initial_states);
+
+  delete[] h_ctable.d_symbol_table;
+  delete[] h_ctable.d_next_state;
+  delete[] h_ctable.d_state_to_symbol;
+  delete[] h_ctable.d_nbBits_table;
+  delete[] h_ctable.d_next_state_vals;
+
+  return Status::SUCCESS;
+
+  // ORIGINAL PARALLEL ENCODING LOGIC BELOW (skipped when using new encoder)
 
   // Step 7: Run encoding kernel
   // Allocation for temporary buffers
