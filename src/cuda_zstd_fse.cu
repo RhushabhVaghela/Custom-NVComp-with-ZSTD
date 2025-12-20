@@ -1839,6 +1839,8 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   // DEBUG: Verify the copy actually wrote to d_output
+  // DISABLED: Hardcoded offset assumes 256KB+ buffer, fails on small inputs
+  /*
   std::vector<byte_t> h_verify_tail(30);
   u32 verify_offset = header_size + 270400; // Near the end
   CUDA_CHECK(cudaMemcpy(h_verify_tail.data(), d_output + verify_offset, 30,
@@ -1847,6 +1849,7 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   for (int i = 0; i < 30; i++)
     printf("%02X ", h_verify_tail[i]);
   printf("\n");
+  */
 
   // Step 8: Finalize Output Size
   // Copy counts and offsets to host to compute total
