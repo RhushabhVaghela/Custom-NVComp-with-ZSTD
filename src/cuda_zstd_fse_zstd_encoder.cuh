@@ -153,29 +153,36 @@ __global__ void fse_encode_zstd_compat_kernel(
 
   // Dual-state encoding (matches Zstandard fse_compress.c)
   GPU_FSE_CState CState1, CState2;
-  const byte_t *ip = d_input + input_size;
+  const byte_t *ip = d_input;
+  const byte_t *const iend = d_input + input_size;
 
   // Initialize states based on even/odd size
+  // FORWARD ENCODING (Start -> End)
+  // This matches Zstandard Decoder which reads from End (Last Written) -> Back
+  // to Start (First Written)
   if (input_size & 1) {
     // Odd size
-    gpu_fse_init_state(&CState1, d_ctable_u16, *--ip);
-    gpu_fse_init_state(&CState2, d_ctable_u16, *--ip);
-    gpu_fse_encode_symbol(&bitC, &CState1, *--ip);
+    gpu_fse_init_state(&CState1, d_ctable_u16, *ip++);
+    gpu_fse_init_state(&CState2, d_ctable_u16, *ip++);
+    gpu_fse_encode_symbol(&bitC, &CState1, *ip++);
     gpu_bit_flush_bits(&bitC);
   } else {
     // Even size
-    gpu_fse_init_state(&CState2, d_ctable_u16, *--ip);
-    gpu_fse_init_state(&CState1, d_ctable_u16, *--ip);
+    gpu_fse_init_state(&CState2, d_ctable_u16, *ip++);
+    gpu_fse_init_state(&CState1, d_ctable_u16, *ip++);
   }
 
   // Main encoding loop - interleave CState2 and CState1
-  while (ip > d_input) {
-    gpu_fse_encode_symbol(&bitC, &CState2, *--ip);
-    if ((ip - d_input) & 1)
+  while (ip < iend) {
+    gpu_fse_encode_symbol(&bitC, &CState2, *ip++);
+    if ((iend - ip) &
+        1) // Flush condition might need tuning? Or just flush always safely?
       gpu_bit_flush_bits(&bitC);
-    if (ip <= d_input)
+
+    if (ip >= iend)
       break;
-    gpu_fse_encode_symbol(&bitC, &CState1, *--ip);
+
+    gpu_fse_encode_symbol(&bitC, &CState1, *ip++);
     gpu_bit_flush_bits(&bitC);
   }
 

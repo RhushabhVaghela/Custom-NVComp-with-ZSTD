@@ -1834,29 +1834,22 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   // Use existing GPU-built CTable (d_dev_next_state) for encoder
   printf("[FSE_GPU] Using Zstandard-compatible dual-state encoder\n");
 
-  // Build CTable in format encoder expects: [tableLog(u16), unused(u16),
-  // stateTable(u16[...]), symbolTT(...)]
-  u16 *d_ctable_for_encoder;
-  size_t ctable_encoder_size =
-      (2 + table_size +
-       256 * sizeof(FSEEncodeTable::FSEEncodeSymbol) / sizeof(u16)) *
-      sizeof(u16);
-  CUDA_CHECK(cudaMalloc(&d_ctable_for_encoder, ctable_encoder_size));
+  // HOST BUILD BLOCK - Zstandard Reference CTable
+  extern "C" size_t FSE_buildCTable(void* dst, const short* normalizedCounter, unsigned maxSymbolValue, unsigned tableLog);
+  extern "C" unsigned FSE_isError(size_t code);
+  extern "C" const char* FSE_getErrorName(size_t code);
 
-  // Copy table_log
-  u16 table_log_u16 = (u16)table_log;
-  CUDA_CHECK(cudaMemcpy(d_ctable_for_encoder, &table_log_u16, sizeof(u16),
-                        cudaMemcpyHostToDevice));
+  std::vector<u8> h_ctable_byte_buf(16384); // 16KB Safe Buffer
+  size_t build_err = FSE_buildCTable(h_ctable_byte_buf.data(), (short*)h_normalized.data(), stats.max_symbol, table_log);
 
-  // Copy state table at offset +2
-  CUDA_CHECK(cudaMemcpy(d_ctable_for_encoder + 2, d_dev_next_state,
-                        table_size * sizeof(u16), cudaMemcpyDeviceToDevice));
+  if (FSE_isError(build_err)) {
+     printf("[FSE_GPU] CTable Build Failed: %s\n", FSE_getErrorName(build_err));
+     return Status::ERROR_UNKNOWN;
+  }
 
-  // Copy symbol table after state table
-  u32 symbol_offset = 1 + (table_log ? (1 << (table_log - 1)) : 1);
-  CUDA_CHECK(cudaMemcpy(
-      (u32 *)(d_ctable_for_encoder) + symbol_offset, d_dev_symbol_table,
-      256 * sizeof(FSEEncodeTable::FSEEncodeSymbol), cudaMemcpyDeviceToDevice));
+  u16* d_ctable_for_encoder;
+  CUDA_CHECK(cudaMalloc(&d_ctable_for_encoder, 16384));
+  CUDA_CHECK(cudaMemcpy(d_ctable_for_encoder, h_ctable_byte_buf.data(), 16384, cudaMemcpyHostToDevice));
 
   // Call Zstandard encoder
   u32 *d_payload_size;
@@ -1878,20 +1871,6 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
          "payload=%u)\n",
          input_size, *d_output_size, header_size, payload_size);
 
-  // Cleanup encoder-specific allocations
-  cudaFree(d_ctable_for_encoder);
-  cudaFree(d_payload_size);
-
-  // Cleanup existing allocations
-  cudaFree(d_dev_symbol_table);
-  cudaFree(d_dev_next_state);
-  cudaFree(d_dev_nbBits_table);
-  cudaFree(d_dev_next_state_vals);
-  cudaFree(d_dev_initial_states);
-
-  delete[] h_ctable.d_symbol_table;
-  delete[] h_ctable.d_next_state;
-  delete[] h_ctable.d_state_to_symbol;
   delete[] h_ctable.d_nbBits_table;
   delete[] h_ctable.d_next_state_vals;
 
