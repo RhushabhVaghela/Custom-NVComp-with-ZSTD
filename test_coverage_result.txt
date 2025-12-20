@@ -1,0 +1,34 @@
+=== Testing RLE Roundtrip ===
+Encoding RLE data...
+✅ Output size indicates RLE compression.
+Decoding RLE data...
+✅ RLE Roundtrip Passed!
+
+=== Testing Exact 256KB Input ===
+Encoded size: 270954 bytes\nEncoded data (first 20 bytes): 09 00 00 00 00 00 04 00 ff 00 00 00 7b 00 01 00 02 00 02 00 \nDecoder Input Tail: 00 00 00 00 00 00 00 00 49 01 \nDecoder Input Tail: 00 00 00 00 00 00 00 00 49 01 
+[CPU_SIM] Chunk0 i=0 bit_pos=312172 nbBits=8 bits=16 state=16
+[CPU_SIM] Chunk0 i=1 bit_pos=312164 nbBits=8 bits=4 state=4
+[CPU_SIM] Chunk0 i=2 bit_pos=312155 nbBits=9 bits=24 state=24
+[CPU_SIM] Chunk0 i=3 bit_pos=312153 nbBits=2 bits=0 state=4
+[CPU_SIM] Chunk0 i=4 bit_pos=312144 nbBits=9 bits=192 state=192
+[CPU_SIM] Chunk0 i=5 bit_pos=312142 nbBits=2 bits=3 state=167
+[CPU_SIM] Chunk0 i=6 bit_pos=312133 nbBits=9 bits=6 state=6
+[CPU_SIM] Chunk0 i=7 bit_pos=312124 nbBits=9 bits=8 state=8
+[CPU_SIM] Chunk0 i=8 bit_pos=312116 nbBits=8 bits=2 state=2
+[CPU_SIM] Chunk0 i=9 bit_pos=312108 nbBits=8 bits=1 state=1
+[GPU_KER] Chunk0 i=0 bit_pos=312172 nbBits=8 bits=16 state=16 (Old=16)
+[GPU_KER] Chunk0 i=1 bit_pos=312164 nbBits=8 bits=4 state=4 (Old=16)
+[GPU_KER] Chunk0 i=2 bit_pos=312155 nbBits=9 bits=24 state=24 (Old=4)
+[GPU_KER] Chunk0 i=3 bit_pos=312153 nbBits=2 bits=0 state=4 (Old=24)
+[GPU_KER] Chunk0 i=4 bit_pos=312144 nbBits=9 bits=192 state=192 (Old=4)
+[GPU_KER] Chunk0 i=5 bit_pos=312142 nbBits=2 bits=3 state=167 (Old=192)
+[GPU_KER] Chunk0 i=6 bit_pos=312133 nbBits=9 bits=6 state=6 (Old=167)
+[GPU_KER] Chunk0 i=7 bit_pos=312124 nbBits=9 bits=8 state=8 (Old=6)
+[GPU_KER] Chunk0 i=8 bit_pos=312116 nbBits=8 bits=2 state=2 (Old=8)
+[GPU_KER] Chunk0 i=9 bit_pos=312108 nbBits=8 bits=1 state=1 (Old=2)
+❌ Content mismatch for 256KB!
+Decoded size: 262144
+Expected size: 262144
+First 20 bytes expected: 5f cb f3 2e bb c7 99 98 27 72 27 19 0e 75 dd 55 99 24 b5 a6 
+First 20 bytes actual:   00 a0 40 ca 40 05 40 94 05 40 94 5d 5d 94 94 5d 5d 94 94 5d 
+First mismatch at index 0: expected 5f, got 00

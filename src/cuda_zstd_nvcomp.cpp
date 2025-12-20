@@ -525,6 +525,31 @@ Status NvcompV5BatchManager::decompress_async(
            num_chunks * sizeof(void *));
   }
 
+  // 4. Output Capacities (Initialize from d_uncompressed_sizes)
+  // Although nvcomp usually treats this as OUT, some tests (and ZSTD) treat it
+  // as IN/OUT (Capacity/Result)
+  std::vector<size_t> h_capacities(num_chunks);
+  attr_err = cudaPointerGetAttributes(&patts, d_uncompressed_sizes);
+  if (attr_err != cudaSuccess)
+    cudaGetLastError();
+
+  is_device_ptr = false;
+  if (attr_err == cudaSuccess) {
+#if CUDART_VERSION >= 10000
+    is_device_ptr = (patts.type == cudaMemoryTypeDevice);
+#else
+    is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
+#endif
+  }
+
+  if (is_device_ptr) {
+    CUDA_CHECK(cudaMemcpy(h_capacities.data(), d_uncompressed_sizes,
+                          num_chunks * sizeof(size_t), cudaMemcpyDeviceToHost));
+  } else {
+    memcpy(h_capacities.data(), d_uncompressed_sizes,
+           num_chunks * sizeof(size_t));
+  }
+
   // === FIX: CRITICAL - Synchronize before using host arrays ===
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -533,6 +558,7 @@ Status NvcompV5BatchManager::decompress_async(
     items[i].input_ptr = const_cast<void *>(h_compressed_ptrs[i]);
     items[i].input_size = h_compressed_sizes[i];
     items[i].output_ptr = h_uncompressed_ptrs[i];
+    items[i].output_size = h_capacities[i]; // Set capacity
   }
 
   // Call batch decompression

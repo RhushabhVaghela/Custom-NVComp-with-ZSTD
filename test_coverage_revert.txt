@@ -1,0 +1,14 @@
+=== Testing RLE Roundtrip ===
+Encoding RLE data...
+✅ Output size indicates RLE compression.
+Decoding RLE data...
+✅ RLE Roundtrip Passed!
+
+=== Testing Exact 256KB Input ===
+Encoded size: 270954 bytes\nEncoded data (first 20 bytes): 09 00 00 00 00 00 04 00 ff 00 00 00 7b 00 01 00 02 00 02 00 \nDecoder Input Tail: 00 00 00 00 00 00 00 00 49 01 \nDecoder Input Tail: 00 00 00 00 00 00 00 00 49 01 
+❌ Content mismatch for 256KB!
+Decoded size: 262144
+Expected size: 262144
+First 20 bytes expected: 5f cb f3 2e bb c7 99 98 27 72 27 19 0e 75 dd 55 99 24 b5 a6 
+First 20 bytes actual:   00 a0 40 ca 40 05 40 94 05 40 94 5d 5d 94 94 5d 5d 94 94 5d 
+First mismatch at index 0: expected 5f, got 00

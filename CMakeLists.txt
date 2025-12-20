@@ -156,6 +156,9 @@ if(CUDA_ZSTD_BUILD_TESTS)
         set_tests_properties(${test_name} PROPERTIES TIMEOUT 300)
     endforeach()
 
+
+
+
     # C-API test
     add_executable(test_c_api tests/test_c_api.c)
     set_source_files_properties(tests/test_c_api.c PROPERTIES LANGUAGE CXX)

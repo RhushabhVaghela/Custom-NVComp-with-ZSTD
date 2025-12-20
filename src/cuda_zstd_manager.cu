@@ -4398,6 +4398,8 @@ Status ZstdBatchManager::decompress_batch(const std::vector<BatchItem> &items,
         item_workspace, max_item_temp_size, item_stream);
     if (item.status != Status::SUCCESS) {
       all_success = false;
+      printf("[DEBUG] Batch Item %zu decompress failed with status %d\n", i,
+             (int)item.status);
     }
   }
 
