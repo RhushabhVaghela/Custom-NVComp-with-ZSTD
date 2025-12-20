@@ -1834,22 +1834,35 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   // Use existing GPU-built CTable (d_dev_next_state) for encoder
   printf("[FSE_GPU] Using Zstandard-compatible dual-state encoder\n");
 
-  // HOST BUILD BLOCK - Zstandard Reference CTable
-  extern "C" size_t FSE_buildCTable(void* dst, const short* normalizedCounter, unsigned maxSymbolValue, unsigned tableLog);
-  extern "C" unsigned FSE_isError(size_t code);
-  extern "C" const char* FSE_getErrorName(size_t code);
-
-  std::vector<u8> h_ctable_byte_buf(16384); // 16KB Safe Buffer
-  size_t build_err = FSE_buildCTable(h_ctable_byte_buf.data(), (short*)h_normalized.data(), stats.max_symbol, table_log);
-
-  if (FSE_isError(build_err)) {
-     printf("[FSE_GPU] CTable Build Failed: %s\n", FSE_getErrorName(build_err));
-     return Status::ERROR_UNKNOWN;
+  // MANUAL HOST BUILD BLOCK (Encoding Table Only)
+  
+  std::vector<u8> h_ctable_byte_buf(16384, 0);
+  u16* stateTable = (u16*)(h_ctable_byte_buf.data() + 4); 
+  ((u16*)h_ctable_byte_buf.data())[0] = (u16)table_log;
+  
+  struct FSEEncodeSymbol { int deltaFindState; unsigned deltaNbBits; };
+  FSEEncodeSymbol* symbolTT = (FSEEncodeSymbol*)(stateTable + (1 << table_log));
+  
+  unsigned tableSize = 1 << table_log;
+  for (int s=0; s<=stats.max_symbol; s++) {
+      int freq = h_normalized[s];
+      if (freq == 0) continue;
+      
+      unsigned maxBitsOut = table_log - 1;
+      unsigned minStatePlus = freq << maxBitsOut;
+      while (minStatePlus > tableSize) {
+         maxBitsOut--;
+         minStatePlus = freq << maxBitsOut;
+      }
+      symbolTT[s].deltaNbBits = (maxBitsOut << 16) - minStatePlus;
+      symbolTT[s].deltaFindState = (int)(minStatePlus - tableSize);
   }
 
   u16* d_ctable_for_encoder;
-  CUDA_CHECK(cudaMalloc(&d_ctable_for_encoder, 16384));
-  CUDA_CHECK(cudaMemcpy(d_ctable_for_encoder, h_ctable_byte_buf.data(), 16384, cudaMemcpyHostToDevice));
+  cudaMalloc(&d_ctable_for_encoder, 16384);
+  cudaMemcpy(d_ctable_for_encoder, h_ctable_byte_buf.data(), 16384, cudaMemcpyHostToDevice);
+
+
 
   // Call Zstandard encoder
   u32 *d_payload_size;
