@@ -6,9 +6,13 @@
 // Use this for sequential encoding (num_chunks=1) to ensure compatibility.
 // ==============================================================================
 
+#ifndef CUDA_ZSTD_FSE_ZSTD_ENCODER_CUH
+#define CUDA_ZSTD_FSE_ZSTD_ENCODER_CUH
+
+#include "cuda_zstd_types.h"
+
 namespace cuda_zstd {
 namespace fse {
-namespace zstd_compat {
 
 // GPU Bitstream (verified implementation)
 struct GPU_BitStream {
@@ -182,8 +186,7 @@ __global__ void fse_encode_zstd_compat_kernel(
   *d_output_size = gpu_bit_close_stream(&bitC);
 }
 
-} // namespace zstd_compat
 } // namespace fse
 } // namespace cuda_zstd
 
-// Insert above existing fse_parallel_encode_setup_kernel at line 1193
+#endif // CUDA_ZSTD_FSE_ZSTD_ENCODER_CUH
