@@ -11,6 +11,7 @@
 // ==============================================================================
 
 #include "cuda_zstd_fse.h"
+#include "cuda_zstd_fse_zstd_encoder.cuh" // <-- NEW: Zstandard-compatible dual-state encoder
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_utils.h" // <-- 1. ADDED INCLUDE
 #include "cuda_zstd_xxhash.h"
