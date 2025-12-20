@@ -1862,15 +1862,15 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   cudaMalloc(&d_ctable_for_encoder, 16384);
   cudaMemcpy(d_ctable_for_encoder, h_ctable_byte_buf.data(), 16384, cudaMemcpyHostToDevice);
 
-
-
-  // Call Zstandard encoder
+  // Call Zstandard encoder (Updated Signature with Capacity)
   u32 *d_payload_size;
-  CUDA_CHECK(cudaMalloc(&d_payload_size, sizeof(u32)));
+  cudaMalloc(&d_payload_size, sizeof(u32));
 
   fse_encode_zstd_compat_kernel<<<1, 1, 0, stream>>>(
       d_input, input_size, d_ctable_for_encoder, d_output + header_size,
+      input_size * 2, // Capacity
       d_payload_size);
+
 
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -2441,7 +2441,7 @@ __host__ Status encode_fse_batch(const byte_t **d_inputs,
 
       // Call Zstandard-compatible encoder
       fse_encode_zstd_compat_kernel<<<1, 1, 0, stream>>>(
-          d_inputs[i], input_size, d_ctable_u16, d_outputs[i] + header_size,
+          d_inputs[i], input_size, d_ctable_u16, d_outputs[i] + header_size, input_size * 2,
           d_output_size);
 
       // Copy output size (add header size)

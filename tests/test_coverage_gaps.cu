@@ -165,6 +165,20 @@ bool test_exact_256kb_input() {
   CUDA_CHECK(
       cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
 
+  // DEBUG: Verify d_input
+  std::vector<byte_t> h_verify(data_size);
+  cudaMemcpy(h_verify.data(), d_input, data_size, cudaMemcpyDeviceToHost);
+  if (h_verify != h_input) {
+    printf("Test FATAL: d_input mismatch! Copy failed?\n");
+    int zeros = 0;
+    for (size_t i = 0; i < data_size; i++)
+      if (h_verify[i] == 0)
+        zeros++;
+    printf("Zeros: %d / %u\n", zeros, data_size);
+    exit(1);
+  }
+  printf("Test: d_input verified. Random data present.\n");
+
   const byte_t *d_inputs_arr[] = {d_input};
   u32 input_sizes_arr[] = {data_size};
   byte_t *d_outputs_arr[] = {d_output};

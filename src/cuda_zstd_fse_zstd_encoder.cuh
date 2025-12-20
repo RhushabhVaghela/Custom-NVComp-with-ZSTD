@@ -137,7 +137,7 @@ __device__ inline void gpu_fse_flush_state(GPU_BitStream *bitC,
 __global__ void fse_encode_zstd_compat_kernel(
     const byte_t *d_input, u32 input_size,
     const u16 *d_ctable_u16, // FSE_CTable as u16 array
-    byte_t *d_output, u32 *d_output_size) {
+    byte_t *d_output, u32 max_output_size, u32 *d_output_size) {
   if (threadIdx.x != 0 || blockIdx.x != 0)
     return;
   if (input_size <= 2) {
@@ -146,7 +146,7 @@ __global__ void fse_encode_zstd_compat_kernel(
   }
 
   GPU_BitStream bitC;
-  if (gpu_bit_init_stream(&bitC, d_output, 65536) != 0) {
+  if (gpu_bit_init_stream(&bitC, d_output, max_output_size) != 0) {
     *d_output_size = 0;
     return;
   }
