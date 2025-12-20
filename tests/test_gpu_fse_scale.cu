@@ -1,17 +1,20 @@
-// GPU FSE Encoder Kernel - Zstandard Compatible (Single State Version)
-// Purpose: Match Zstandard FSE output for small inputs
+// Test GPU FSE Encoder at Multiple Sizes
+// Purpose: Verify encoder works for 100B, 1KB, 4KB inputs
 
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <cuda_runtime.h>
+#include <random>
+#include <vector>
 
-// CPU Zstandard FSE for reference
+
 #define FSE_STATIC_LINKING_ONLY
 #include "../build/_deps/zstd-src/lib/common/bitstream.h"
 #include "../build/_deps/zstd-src/lib/common/error_private.h"
 #include "../build/_deps/zstd-src/lib/common/fse.h"
 #include "../build/_deps/zstd-src/lib/compress/hist.h"
+
 
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -19,9 +22,12 @@ using u32 = uint32_t;
 using u64 = uint64_t;
 using i32 = int32_t;
 
-#define TABLE_LOG 6
+#define TABLE_LOG 9
 
-// === GPU Bitstream (verified) ===
+// Include GPU encoder from test_gpu_fse_encoder.cu (just the kernel part)
+// We'll compile this with the same utilities
+
+// Copy GPU bitstream and FSE utilities here for simplicity
 struct GPU_BitStream {
   u64 bitContainer;
   u32 bitPos;
@@ -65,7 +71,7 @@ __device__ inline void gpu_bit_flush_bits(GPU_BitStream *bitC) {
 }
 
 __device__ inline u32 gpu_bit_close_stream(GPU_BitStream *bitC) {
-  gpu_bit_add_bits(bitC, 1, 1); // Terminator
+  gpu_bit_add_bits(bitC, 1, 1);
   gpu_bit_flush_bits(bitC);
 
   if (bitC->bitPos > 0) {
@@ -78,44 +84,32 @@ __device__ inline u32 gpu_bit_close_stream(GPU_BitStream *bitC) {
   return (u32)(bitC->ptr - bitC->startPtr);
 }
 
-// === GPU FSE State ===
 struct GPU_FSE_SymbolTransform {
   i32 deltaFindState;
   u32 deltaNbBits;
 };
 
 struct GPU_FSE_CState {
-  u64 value; // Using u64 to match ptrdiff_t on 64-bit
+  u64 value;
   const u16 *stateTable;
   const GPU_FSE_SymbolTransform *symbolTT;
   u32 stateLog;
 };
 
-// Initialize FSE state (matches FSE_initCState2)
-__device__ inline void
-gpu_fse_init_state(GPU_FSE_CState *statePtr,
-                   const u16 *ctable, // Points to FSE_CTable
-                   u32 symbol) {
-  // Read table log from first u16
+__device__ inline void gpu_fse_init_state(GPU_FSE_CState *statePtr,
+                                          const u16 *ctable, u32 symbol) {
   u32 const tableLog = ctable[0];
-
-  // State table starts at offset +2 u16s
   const u16 *stateTable = ctable + 2;
-
-  // Symbol transform table starts after: ct + 1 + (1 << (tableLog-1))
-  // Since ct is u32*, offset in u32 units
   const u32 *ct_u32 = (const u32 *)ctable;
   const GPU_FSE_SymbolTransform *symbolTT =
       (const GPU_FSE_SymbolTransform *)(ct_u32 + 1 +
                                         (tableLog ? (1 << (tableLog - 1)) : 1));
 
-  // Initialize state
   statePtr->value = (u64)1 << tableLog;
   statePtr->stateTable = stateTable;
   statePtr->symbolTT = symbolTT;
   statePtr->stateLog = tableLog;
 
-  // Apply symbol-specific initialization (FSE_initCState2 logic)
   GPU_FSE_SymbolTransform const symbolTransform = symbolTT[symbol];
   u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
   statePtr->value = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
@@ -123,114 +117,83 @@ gpu_fse_init_state(GPU_FSE_CState *statePtr,
                                symbolTransform.deltaFindState];
 }
 
-// Encode one symbol (matches FSE_encodeSymbol)
 __device__ inline void gpu_fse_encode_symbol(GPU_BitStream *bitC,
                                              GPU_FSE_CState *statePtr,
                                              u32 symbol) {
   GPU_FSE_SymbolTransform const symbolTT = statePtr->symbolTT[symbol];
   u32 const nbBitsOut = (u32)((statePtr->value + symbolTT.deltaNbBits) >> 16);
 
-  // Output low bits
   gpu_bit_add_bits(bitC, statePtr->value, nbBitsOut);
-
-  // Update state
   statePtr->value = statePtr->stateTable[(statePtr->value >> nbBitsOut) +
                                          symbolTT.deltaFindState];
 }
 
-// Flush final state (matches FSE_flushCState)
 __device__ inline void gpu_fse_flush_state(GPU_BitStream *bitC,
                                            const GPU_FSE_CState *statePtr) {
   gpu_bit_add_bits(bitC, statePtr->value, statePtr->stateLog);
   gpu_bit_flush_bits(bitC);
 }
 
-// === GPU FSE Encoder Kernel (DUAL-STATE like Zstandard) ===
-__global__ void
-gpu_fse_encode_kernel(const u8 *d_input, u32 input_size,
-                      const u16 *d_ctable, // FSE_CTable uploaded to GPU
-                      u8 *d_output, u32 *d_output_size) {
+// Dual-state encoder kernel
+__global__ void gpu_fse_encode_kernel(const u8 *d_input, u32 input_size,
+                                      const u16 *d_ctable, u8 *d_output,
+                                      u32 *d_output_size) {
   if (threadIdx.x != 0 || blockIdx.x != 0)
     return;
-
   if (input_size <= 2) {
     *d_output_size = 0;
     return;
   }
 
-  // Initialize bitstream
   GPU_BitStream bitC;
-  if (gpu_bit_init_stream(&bitC, d_output, 256) != 0) {
+  if (gpu_bit_init_stream(&bitC, d_output, 65536) != 0) {
     *d_output_size = 0;
     return;
   }
 
-  // Dual-state encoding (matches Zstandard fse_compress.c lines 568-606)
   GPU_FSE_CState CState1, CState2;
-  const u8 *ip = d_input + input_size; // Start at end
+  const u8 *ip = d_input + input_size;
 
-  // Initialize states based on even/odd size
   if (input_size & 1) {
-    // Odd size
-    gpu_fse_init_state(&CState1, d_ctable, *--ip); // Last symbol
-    gpu_fse_init_state(&CState2, d_ctable, *--ip); // Second-to-last
-    gpu_fse_encode_symbol(&bitC, &CState1, *--ip); // Third-to-last
+    gpu_fse_init_state(&CState1, d_ctable, *--ip);
+    gpu_fse_init_state(&CState2, d_ctable, *--ip);
+    gpu_fse_encode_symbol(&bitC, &CState1, *--ip);
     gpu_bit_flush_bits(&bitC);
   } else {
-    // Even size (our test case: 10 bytes)
-    gpu_fse_init_state(&CState2, d_ctable, *--ip); // Last symbol [9]
-    gpu_fse_init_state(&CState1, d_ctable, *--ip); // Second-to-last [8]
+    gpu_fse_init_state(&CState2, d_ctable, *--ip);
+    gpu_fse_init_state(&CState1, d_ctable, *--ip);
   }
 
-  // Main encoding loop - interleave CState2 and CState1
   while (ip > d_input) {
     gpu_fse_encode_symbol(&bitC, &CState2, *--ip);
-
-    // Flush bits periodically (simplified - would check bitContainer size in
-    // real impl)
-    if ((ip - d_input) & 1) {
+    if ((ip - d_input) & 1)
       gpu_bit_flush_bits(&bitC);
-    }
-
     if (ip <= d_input)
       break;
-
     gpu_fse_encode_symbol(&bitC, &CState1, *--ip);
-
-    // Flush after both states
     gpu_bit_flush_bits(&bitC);
   }
 
-  // Flush both states (order matters: CState2 then CState1)
   gpu_fse_flush_state(&bitC, &CState2);
   gpu_fse_flush_state(&bitC, &CState1);
-
-  // Close bitstream
   *d_output_size = gpu_bit_close_stream(&bitC);
-
-  printf("[GPU] Encoded %u bytes -> %u bytes (dual-state)\n", input_size,
-         *d_output_size);
 }
 
-// === Main Test ===
-int main() {
-  printf("=== GPU FSE Encoder Test ===\n\n");
+bool test_size(size_t size) {
+  printf("\n=== Testing %zu bytes ===\n", size);
 
-  // Test input
-  u8 cpu_input[] = {0x41, 0x41, 0x42, 0x41, 0x43, 0x41, 0x41, 0x42, 0x41, 0x44};
-  size_t input_size = sizeof(cpu_input);
+  // Generate random data
+  std::mt19937 rng(42);
+  std::uniform_int_distribution<int> dist(0, 255);
+  std::vector<u8> input(size);
+  for (size_t i = 0; i < size; i++) {
+    input[i] = (u8)dist(rng);
+  }
 
-  printf("Input: %zu bytes: ", input_size);
-  for (size_t i = 0; i < input_size; i++)
-    printf("%02x ", cpu_input[i]);
-  printf("\n\n");
-
-  // === Build CPU Reference ===
-  printf("=== CPU Reference ===\n");
-
+  // CPU reference
   unsigned count[256] = {0};
-  for (size_t i = 0; i < input_size; i++)
-    count[cpu_input[i]]++;
+  for (size_t i = 0; i < size; i++)
+    count[input[i]]++;
 
   unsigned maxSymbol = 0;
   for (int i = 255; i >= 0; i--) {
@@ -241,86 +204,99 @@ int main() {
   }
 
   short normalized[256];
-  size_t tableLog = FSE_normalizeCount(normalized, TABLE_LOG, count, input_size,
-                                       maxSymbol, 1);
+  size_t tableLog =
+      FSE_normalizeCount(normalized, TABLE_LOG, count, size, maxSymbol, 1);
+
+  if (tableLog == 0) {
+    printf("RLE mode (skipping)\n");
+    return true;
+  }
 
   size_t workspaceSize = FSE_BUILD_CTABLE_WORKSPACE_SIZE(maxSymbol, tableLog);
   void *workspace = malloc(workspaceSize);
-
   size_t ctableSize = FSE_CTABLE_SIZE(tableLog, maxSymbol);
   FSE_CTable *ctable = (FSE_CTable *)malloc(ctableSize);
 
   FSE_buildCTable_wksp(ctable, normalized, maxSymbol, tableLog, workspace,
                        workspaceSize);
 
-  u8 cpu_output[256];
-  size_t cpu_size =
-      FSE_compress_usingCTable(cpu_output, 256, cpu_input, input_size, ctable);
+  std::vector<u8> cpu_output(size * 2);
+  size_t cpu_size = FSE_compress_usingCTable(
+      cpu_output.data(), cpu_output.size(), input.data(), size, ctable);
 
-  printf("CPU output (%zu bytes): ", cpu_size);
-  for (size_t i = 0; i < cpu_size; i++)
-    printf("%02x ", cpu_output[i]);
-  printf("\n\n");
+  printf("CPU: %zu -> %zu bytes (%.1f%%)\n", size, cpu_size,
+         100.0 * cpu_size / size);
 
-  // === Upload CTable to GPU ===
+  // GPU test
+  u8 *d_input, *d_output;
   u16 *d_ctable;
+  u32 *d_output_size;
+
+  cudaMalloc(&d_input, size);
+  cudaMalloc(&d_output, size * 2);
   cudaMalloc(&d_ctable, ctableSize);
+  cudaMalloc(&d_output_size, sizeof(u32));
+
+  cudaMemcpy(d_input, input.data(), size, cudaMemcpyHostToDevice);
   cudaMemcpy(d_ctable, ctable, ctableSize, cudaMemcpyHostToDevice);
 
-  // === Upload input ===
-  u8 *d_input;
-  u8 *d_output;
-  u32 *d_output_size;
-  cudaMalloc(&d_input, input_size);
-  cudaMalloc(&d_output, 256);
-  cudaMalloc(&d_output_size, sizeof(u32));
-  cudaMemcpy(d_input, cpu_input, input_size, cudaMemcpyHostToDevice);
-
-  // === Run GPU encoder ===
-  printf("=== GPU Encoder ===\n");
-  gpu_fse_encode_kernel<<<1, 1>>>(d_input, input_size, d_ctable, d_output,
+  gpu_fse_encode_kernel<<<1, 1>>>(d_input, size, d_ctable, d_output,
                                   d_output_size);
   cudaDeviceSynchronize();
 
   u32 gpu_size;
-  u8 gpu_output[256];
+  std::vector<u8> gpu_output(size * 2);
   cudaMemcpy(&gpu_size, d_output_size, sizeof(u32), cudaMemcpyDeviceToHost);
-  cudaMemcpy(gpu_output, d_output, gpu_size, cudaMemcpyDeviceToHost);
+  cudaMemcpy(gpu_output.data(), d_output, gpu_size, cudaMemcpyDeviceToHost);
 
-  printf("GPU output (%u bytes): ", gpu_size);
-  for (u32 i = 0; i < gpu_size; i++)
-    printf("%02x ", gpu_output[i]);
-  printf("\n\n");
+  printf("GPU: %zu -> %u bytes (%.1f%%)\n", size, gpu_size,
+         100.0 * gpu_size / size);
 
-  // === Compare ===
-  printf("=== Comparison ===\n");
+  // Compare
   bool match = (cpu_size == gpu_size);
   if (match) {
     for (size_t i = 0; i < cpu_size; i++) {
       if (cpu_output[i] != gpu_output[i]) {
-        printf("✗ Byte %zu: CPU=%02x GPU=%02x\n", i, cpu_output[i],
+        printf("❌ Mismatch at byte %zu: CPU=%02x GPU=%02x\n", i, cpu_output[i],
                gpu_output[i]);
         match = false;
         break;
       }
     }
   } else {
-    printf("✗ Size mismatch: CPU=%zu GPU=%u\n", cpu_size, gpu_size);
+    printf("❌ Size mismatch: CPU=%zu GPU=%u\n", cpu_size, gpu_size);
   }
 
   if (match) {
-    printf("✅ PERFECT MATCH! GPU encoder produces Zstandard-compatible "
-           "output!\n");
-  } else {
-    printf("❌ Mismatch - debugging needed\n");
+    printf("✅ PASS\n");
   }
 
   free(workspace);
   free(ctable);
-  cudaFree(d_ctable);
   cudaFree(d_input);
   cudaFree(d_output);
+  cudaFree(d_ctable);
   cudaFree(d_output_size);
 
-  return match ? 0 : 1;
+  return match;
+}
+
+int main() {
+  printf("=== GPU FSE Encoder Scale Test ===\n");
+
+  bool all_pass = true;
+  all_pass &= test_size(10);   // Already tested
+  all_pass &= test_size(100);  // Small
+  all_pass &= test_size(1024); // 1KB
+  all_pass &= test_size(4096); // 4KB (original test case)
+
+  printf("\n=== Final Result ===\n");
+  if (all_pass) {
+    printf("✅ ALL TESTS PASSED!\n");
+    printf("GPU FSE encoder is Zstandard-compatible at all tested sizes!\n");
+  } else {
+    printf("❌ Some tests failed\n");
+  }
+
+  return all_pass ? 0 : 1;
 }
