@@ -3336,10 +3336,10 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
         bit_idx--;
       }
       bit_position = byte_idx * 8 + bit_idx;
-      printf("[DECODE] Found terminator at bit %u (byte %d, bit %d)\n",
-             bit_position, byte_idx, bit_idx);
+      // printf("[DECODE] Found terminator at bit %u (byte %d, bit %d)\n",
+      //        bit_position, byte_idx, bit_idx);
     } else {
-      printf("[DECODE] ERROR: No terminator bit found!\n");
+      // printf("[DECODE] ERROR: No terminator bit found!\n");
       // Fallback to end (or error)
       bit_position = bitstream_size * 8;
     }
@@ -3347,75 +3347,22 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     bit_position -= table_log;
 
     // Read initial state
-    // [INSTRUMENT] Log bit position
-    // printf("[DECODE] Reading Initial State from bit_pos=%u (table_log=%u)\n",
-    //        bit_position, table_log);
-
-    u32 read_pos = bit_position; // Use temp to avoid modifying bit_position
+    u32 read_pos = bit_position;
     u32 state = read_bits_from_buffer(bitstream, read_pos, table_log);
-    printf("[DECODE] Initial state read: %u\n", state);
-    fflush(stdout);
-    printf("[DECODE_START] About to start decode loop for %u symbols\n",
-           output_size_expected);
-    fflush(stdout);
+    // printf("[DECODE] Initial state read: %u\n", state);
 
     for (int i = 0; i < (int)output_size_expected; i++) {
-      // u32 old_state = state; // Save for logging
-      if (i == 0) {
-        printf("[LOOP_START] i=0 state=%u\n", state);
-        fflush(stdout);
-      }
       u8 symbol = h_table.symbol[state];
-      if (i == 0) {
-        printf("[LOOP_SYMBOL] symbol=%u\n", symbol);
-        fflush(stdout);
-        printf("[BEFORE_NBBITS] About to read nbBits[%u]\n", state);
-        fflush(stdout);
-      }
       u8 num_bits = h_table.nbBits[state];
-      if (i == 0) {
-        printf("[AFTER_NBBITS] nbBits=%u\n", num_bits);
-        fflush(stdout);
-        printf("[BEFORE_NEWSTATE] About to read newState[%u]\n", state);
-        printf("[NEWSTATE_PTR] h_table.newState = %p\n",
-               (void *)h_table.newState);
-        printf("[TABLE_SIZE] h_table.table_size = %u\n", h_table.table_size);
-        printf("[STATE_CHECK] state=%u is %s bounds\n", state,
-               (state < h_table.table_size) ? "within" : "OUT OF");
-
-        // Try safe read
-        if (state < h_table.table_size && h_table.newState != nullptr) {
-          u16 test_val = h_table.newState[state];
-          printf("[SAFE_READ] newState[%u] = %u\n", state, test_val);
-        }
-        fflush(stdout);
-      }
       u16 next_state_base = h_table.newState[state];
 
-      // DIAGNOSTIC: Check initial iteration
-      if (i == 0) {
-        printf("[AFTER_NEWSTATE_READ] Successfully read next_state_base=%u\n",
-               next_state_base);
-        fflush(stdout);
-        printf(
-            "[DECODE_FIRST] i=0 state=%u symbol=%u nbBits=%u newStateBase=%u\n",
-            state, symbol, num_bits, next_state_base);
-        fflush(stdout);
-      }
-
-      // (FIX) Write symbol immediately!
-      // We must write the symbol derived from 'state' BEFORE checking if we can
-      // transition to next state. This handles the last symbol correctly (where
-      // stream might be exhausted).
+      // Write symbol immediately
       h_output[i] = symbol;
 
       if (bit_position < num_bits) {
-        // Last symbol might naturally exhaust the stream.
-        // If we are at the last index, this is expected.
+        // Last symbol might naturally exhaust the stream
         if (i < output_size_expected - 1) {
-          printf("[DECODE] WARNING: Bitstream underflow at intermediate symbol "
-                 "i=%u bit_pos=%u num_bits=%u\n",
-                 i, bit_position, num_bits);
+          // printf("[DECODE] WARNING: Bitstream underflow at i=%u\n", i);
         }
         break;
       }
