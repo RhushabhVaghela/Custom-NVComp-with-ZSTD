@@ -233,6 +233,13 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_pipeline cuda_zstd_static)
+
+    add_executable(benchmark_fse_parallel tests/benchmark_fse_parallel.cu)
+    set_target_properties(benchmark_fse_parallel PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_fse_parallel cuda_zstd_static)
 endif()
 
 
