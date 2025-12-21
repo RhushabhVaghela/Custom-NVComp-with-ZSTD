@@ -268,7 +268,7 @@ int main() {
 
   std::vector<bool> parallel_modes = {false, true}; // Serial, Parallel
 
-  std::ofstream csv_file("benchmark_results.csv");
+  std::ofstream csv_file("benchmark_results.csv", std::ios::app);
   csv_file
       << "Formula,InputSize,BlockSize,Parallel,TimeMS,ThroughputMBps,Success\n";
 

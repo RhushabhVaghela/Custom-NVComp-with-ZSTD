@@ -13,6 +13,8 @@
 using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
 
+#include "benchmark_results.h"
+
 // =============================================================================
 // HELPERS
 // =============================================================================
@@ -99,7 +101,7 @@ BenchmarkResult run_batch_benchmark(u32 num_blocks, u32 block_size,
 // BENCHMARKS
 // =============================================================================
 
-void benchmark_scaling() {
+void benchmark_scaling(const char *gpu_name) {
   printf("\n=== Benchmark: Scaling with Batch Size ===\n");
   printf("%-12s %-12s %-12s %-12s %-12s\n", "Blocks", "Block Size", "Total",
          "Time(ms)", "Throughput");
@@ -140,10 +142,14 @@ void benchmark_scaling() {
 
     printf("%-12u %-12s %-12s %-12.2f %.2f GB/s\n", r.num_blocks, block_str,
            size_str, r.encode_ms, r.throughput_gbps);
+
+    log_benchmark_result("Batch_FSE_Scaling", gpu_name, r.block_size,
+                         r.num_blocks, (double)r.total_bytes, r.encode_ms,
+                         r.throughput_gbps);
   }
 }
 
-void benchmark_block_size() {
+void benchmark_block_size(const char *gpu_name) {
   printf("\n=== Benchmark: Block Size Sweep (Fixed 256MB total) ===\n");
   printf("%-12s %-12s %-12s %-12s\n", "Block Size", "Blocks", "Time(ms)",
          "Throughput");
@@ -164,10 +170,14 @@ void benchmark_block_size() {
 
     printf("%-12s %-12u %-12.2f %.2f GB/s\n", block_str, num_blocks,
            r.encode_ms, r.throughput_gbps);
+
+    log_benchmark_result("Batch_FSE_BlockSize", gpu_name, r.block_size,
+                         r.num_blocks, (double)num_blocks * bs, r.encode_ms,
+                         r.throughput_gbps);
   }
 }
 
-void benchmark_large_scale() {
+void benchmark_large_scale(const char *gpu_name) {
   printf("\n=== Benchmark: Large Scale (Production Simulation) ===\n");
 
   // Simulate 1GB workload
@@ -176,6 +186,10 @@ void benchmark_large_scale() {
   printf("  Result: %.2f ms, %.2f GB/s\n", r1gb.encode_ms,
          r1gb.throughput_gbps);
   printf("  Projected 20GB ETA: %.2f seconds\n", (20.0 / r1gb.throughput_gbps));
+
+  log_benchmark_result("Batch_FSE_LargeScale_1GB", gpu_name, 1024 * 1024, 1024,
+                       (1024.0 * 1024 * 1024), r1gb.encode_ms,
+                       r1gb.throughput_gbps);
 }
 
 // =============================================================================
@@ -194,9 +208,9 @@ int main() {
   printf("Compute: %d.%d\n", prop.major, prop.minor);
   printf("Memory: %.1f GB\n\n", prop.totalGlobalMem / 1e9);
 
-  benchmark_scaling();
-  benchmark_block_size();
-  benchmark_large_scale();
+  benchmark_scaling(prop.name);
+  benchmark_block_size(prop.name);
+  benchmark_large_scale(prop.name);
 
   printf("\n========================================\n");
   printf("  Benchmarks Complete\n");

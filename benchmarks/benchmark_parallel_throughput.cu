@@ -5,6 +5,7 @@
 // vs single stream serialization using NVCOMP API.
 // ============================================================================
 
+#include "../include/benchmark_results.h"
 #include "cuda_error_checking.h"
 #include "cuda_zstd_nvcomp.h"
 #include <chrono>
@@ -16,10 +17,12 @@
 #include <random>
 #include <vector>
 
+
 using namespace cuda_zstd;
 using namespace cuda_zstd::nvcomp_v5;
 
-void benchmark_throughput(size_t data_size, int num_streams, bool use_streams) {
+void benchmark_throughput(size_t data_size, int num_streams, bool use_streams,
+                          const char *gpu_name) {
   std::cout << "Benchmarking: " << (data_size / 1024 / 1024) << " MB, "
             << num_streams << " streams, "
             << (use_streams ? "Concurrent" : "Serialized") << "\n";
@@ -113,6 +116,10 @@ void benchmark_throughput(size_t data_size, int num_streams, bool use_streams) {
   std::cout << "  Throughput: " << std::fixed << std::setprecision(2)
             << throughput << " GB/s\n\n";
 
+  log_benchmark_result("Parallel_Throughput", gpu_name, 65536,
+                       data_size / 65536, data_size,
+                       elapsed_s * 1000.0 / iterations, throughput);
+
   // Cleanup
   cudaFree(d_input);
   cudaFree(d_output);
@@ -125,8 +132,12 @@ void benchmark_throughput(size_t data_size, int num_streams, bool use_streams) {
 int main() {
   try {
     // Run benchmarks
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, 0);
+    const char *gpu_name = prop.name;
+
     printf("Benchmarking: 16 MB, 1 streams, Serialized\n");
-    benchmark_throughput(16 * 1024 * 1024, 1, false);
+    benchmark_throughput(16 * 1024 * 1024, 1, false, gpu_name);
   } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << "\n";
     return 1;
