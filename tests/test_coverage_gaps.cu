@@ -168,16 +168,27 @@ bool test_exact_256kb_input() {
   // DEBUG: Verify d_input
   std::vector<byte_t> h_verify(data_size);
   cudaMemcpy(h_verify.data(), d_input, data_size, cudaMemcpyDeviceToHost);
+
+  // Calculate Histogram of Input
+  long long sum = 0;
+  int counts[256] = {0};
+  for (auto b : h_verify) {
+    sum += b;
+    counts[b]++;
+  }
+  double avg = (double)sum / data_size;
+  printf("Test: d_input Avg Value: %.2f (Expected ~127.5)\n", avg);
+  printf("Test: d_input Zero Count: %d\n", counts[0]);
+  printf("Test: d_input 0xFF Count: %d\n", counts[255]);
+
   if (h_verify != h_input) {
     printf("Test FATAL: d_input mismatch! Copy failed?\n");
-    int zeros = 0;
-    for (size_t i = 0; i < data_size; i++)
-      if (h_verify[i] == 0)
-        zeros++;
-    printf("Zeros: %d / %u\n", zeros, data_size);
+    printf("d_input[0]=%02x, h_input[0]=%02x\n", h_verify[0], h_input[0]);
+    fflush(stdout);
     exit(1);
   }
-  printf("Test: d_input verified. Random data present.\n");
+  printf("Test: d_input verified. Random data matches.\n");
+  fflush(stdout);
 
   const byte_t *d_inputs_arr[] = {d_input};
   u32 input_sizes_arr[] = {data_size};
@@ -207,18 +218,23 @@ bool test_exact_256kb_input() {
                         cudaMemcpyDeviceToHost));
 
   // DEBUG: Print encoded data
-  printf("Encoded size: %u bytes\\n", output_size);
+  printf("Encoded size: %u bytes\n", output_size);
+  fflush(stdout);
+
   std::vector<byte_t> h_encoded(output_size);
   CUDA_CHECK(cudaMemcpy(h_encoded.data(), d_output, output_size,
                         cudaMemcpyDeviceToHost));
+
   printf("Encoded data (first 20 bytes): ");
   for (int i = 0; i < 20 && i < output_size; i++)
     printf("%02x ", h_encoded[i]);
-  printf("\\n");
+  printf("\n");
+
   printf("Decoder Input Tail: ");
   for (int i = output_size - 10; i < output_size && i >= 0; i++)
     printf("%02x ", h_encoded[i]);
-  printf("\\n");
+  printf("\n");
+  fflush(stdout);
 
   status = decode_fse(d_output, output_size, d_decoded, &decoded_size, 0);
 

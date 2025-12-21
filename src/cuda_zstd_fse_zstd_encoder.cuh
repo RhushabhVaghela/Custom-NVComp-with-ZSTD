@@ -92,16 +92,21 @@ __device__ inline void gpu_fse_init_state(GPU_FSE_CState *statePtr,
       (const GPU_FSE_SymbolTransform *)(ct_u32 + 1 +
                                         (tableLog ? (1 << (tableLog - 1)) : 1));
 
+  // Simple initialization to base state (Zstandard FSE_initCState)
   statePtr->value = (u64)1 << tableLog;
   statePtr->stateTable = stateTable;
   statePtr->symbolTT = symbolTT;
   statePtr->stateLog = tableLog;
 
+  // Apply symbol-specific transformation (exact Zstandard FSE_initCState2)
   GPU_FSE_SymbolTransform const symbolTransform = symbolTT[symbol];
   u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
-  statePtr->value = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
-  statePtr->value = stateTable[(statePtr->value >> nbBitsOut) +
-                               symbolTransform.deltaFindState];
+  u64 tempValue = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
+  u32 tableIndex = (tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
+  statePtr->value = stateTable[tableIndex];
+
+  printf("[INIT_DEBUG] Sym=%u nbBits=%u tempVal=%llu idx=%u -> State=%llu\n",
+         symbol, nbBitsOut, tempValue, tableIndex, statePtr->value);
 }
 
 __device__ inline void gpu_fse_encode_symbol(GPU_BitStream *bitC,
@@ -110,6 +115,7 @@ __device__ inline void gpu_fse_encode_symbol(GPU_BitStream *bitC,
   GPU_FSE_SymbolTransform const symbolTT = statePtr->symbolTT[symbol];
   u32 const nbBitsOut = (u32)((statePtr->value + symbolTT.deltaNbBits) >> 16);
 
+  // Write state value directly (stateTable now contains raw states 0-511)
   gpu_bit_add_bits(bitC, statePtr->value, nbBitsOut);
   statePtr->value = statePtr->stateTable[(statePtr->value >> nbBitsOut) +
                                          symbolTT.deltaFindState];
@@ -117,6 +123,9 @@ __device__ inline void gpu_fse_encode_symbol(GPU_BitStream *bitC,
 
 __device__ inline void gpu_fse_flush_state(GPU_BitStream *bitC,
                                            const GPU_FSE_CState *statePtr) {
+  // Write state value directly (state now contains raw value 0-511)
+  printf("[FLUSH_DEBUG] State=%llu nbBits=%u\n", statePtr->value,
+         statePtr->stateLog);
   gpu_bit_add_bits(bitC, statePtr->value, statePtr->stateLog);
   gpu_bit_flush_bits(bitC);
 }
@@ -147,23 +156,22 @@ __global__ void fse_encode_zstd_compat_kernel(
     return;
   }
 
-  // Single-state Forward Encoding
-  // Matches Parallel Decoder expectations (LIFO from End)
+  // Backward Encoding (Standard Zstd / LIFO)
   GPU_FSE_CState CState;
-  const byte_t *ip = d_input;
-  const byte_t *const iend = d_input + input_size;
+  const byte_t *ip = d_input + input_size - 1; // Last byte
+  const byte_t *const ibegin = d_input;
 
-  // Initialize with first byte
+  // Initialize with first byte (which is last in sequence)
   if (input_size > 0) {
-    gpu_fse_init_state(&CState, d_ctable_u16, *ip++);
+    gpu_fse_init_state(&CState, d_ctable_u16, *ip--);
 
-    // Encode remaining bytes forwards
-    while (ip < iend) {
-      gpu_fse_encode_symbol(&bitC, &CState, *ip++);
+    // Encode remaining bytes backwards
+    while (ip >= ibegin) {
+      gpu_fse_encode_symbol(&bitC, &CState, *ip--);
       gpu_bit_flush_bits(&bitC);
     }
 
-    // Flush state (writes bits for the last symbol processed, transitively)
+    // Flush state (writes bits for the first symbol processed, transitively)
     gpu_fse_flush_state(&bitC, &CState);
   }
 
