@@ -1029,6 +1029,11 @@ __host__ Status FSE_buildCTable_Host(
   }
 
   // === STEP 2b: SPREAD SYMBOLS (Match Zstd Decoder) ===
+  u32 check_sum = 0;
+  for (int i = 0; i <= max_symbol; i++)
+    check_sum += h_normalized[i] * (i + 1);
+  printf("[CTABLE_NORM] Hash: %u Sym 94: %u, Sym 95: %u MaxSym: %u TSize: %u\n",
+         check_sum, h_normalized[94], h_normalized[95], max_symbol, table_size);
   const u32 SPREAD_STEP = (table_size >> 1) + (table_size >> 3) + 3;
   const u32 table_mask = table_size - 1;
   u32 position = 0;
@@ -1043,17 +1048,11 @@ __host__ Status FSE_buildCTable_Host(
       continue;
 
     for (u32 i = 0; i < freq; i++) {
+
       state_to_symbol[position] = (u16)s;
       h_table->d_state_to_symbol[position] = (u8)s; // Update device copy
       position = (position + SPREAD_STEP) & table_mask;
     }
-  }
-
-  // DIAGNOSTIC: Check what symbol state 119 maps to (decoder reads this)
-  if (table_size > 119) {
-    printf("[STATE_MAP] State 119 -> Symbol %u (Expected symbol for first "
-           "decode)\n",
-           h_table->d_state_to_symbol[119]);
   }
 
   // === STEP 3: Build d_next_state (Match Zstd Decoder) ===
@@ -1076,9 +1075,9 @@ __host__ Status FSE_buildCTable_Host(
     u32 freq = h_normalized[symbol];
     u32 cumul_idx = cumul[symbol] + (nextState - freq);
 
-    // Store next state for Encoder (RAW state, not offset!)
-    // Zstandard stores raw state values (0-511), NOT offset values (512+)
-    h_table->d_next_state[cumul_idx] = (u16)state;
+    // Store next state for Encoder (OFFSET state, standard Zstd)
+    // Zstandard stores offset state values (table_size + raw)
+    h_table->d_next_state[cumul_idx] = (u16)(state + table_size);
 
     // (FIX) Populate explicit nbBits table
     // nbBits is determined by nextState magnitude relative to frequency ranges
@@ -1160,17 +1159,6 @@ __host__ Status FSE_buildCTable_Host(
     h_table->d_symbol_table[s].deltaFindState = (i32)(total - freq);
     // (u16)total; // (REMOVED) Used side-channel array instead
 
-    // [DEBUG] Verify CTable construction (critical for debugging)
-    if (s == 65 || (1u << table_log) <= 2048) {
-      // Only print a few symbols to avoid spam (e.g. symbol 65 or if table is
-      // small)
-      printf("[CTABLE_DBG] Sym=%u Freq=%u dNbB=%d dFS=%d maxBitsOut=%u "
-             "minStatePlus=%u total=%u\n",
-             s, freq, h_table->d_symbol_table[s].deltaNbBits >> 16,
-             h_table->d_symbol_table[s].deltaFindState, maxBitsOut,
-             minStatePlus, total);
-    }
-
     total += freq;
   }
 
@@ -1202,8 +1190,9 @@ __global__ void fse_parallel_encode_setup_kernel(
     const byte_t *d_input, u32 input_size,
     const unsigned short *d_init_val_table, // Simplification
     const FSEEncodeTable::FSEEncodeSymbol *d_symbol_table,
-    const u8 *d_nbBits_table, const u16 *d_next_state_vals, u32 table_log,
-    u32 num_chunks, u32 *d_chunk_start_states) {
+    const u8 *d_nbBits_table, const u16 *d_next_state_vals,
+    const u16 *d_next_state, u32 table_log, u32 num_chunks,
+    u32 *d_chunk_start_states) {
   if (threadIdx.x != 0 || blockIdx.x != 0)
     return;
   if (input_size == 0 || num_chunks == 0)
@@ -1214,9 +1203,9 @@ __global__ void fse_parallel_encode_setup_kernel(
   u32 table_size = 1u << table_log;
 
   // DEBUG: Print initial parameters
-  printf("[SETUP_DBG] input_size=%u num_chunks=%u symbols_per_chunk=%u "
-         "table_log=%u table_size=%u\n",
-         input_size, num_chunks, symbols_per_chunk, table_log, table_size);
+  // printf("[SETUP_DBG] input_size=%u num_chunks=%u symbols_per_chunk=%u "
+  //        "table_log=%u table_size=%u\n",
+  //        input_size, num_chunks, symbols_per_chunk, table_log, table_size);
 
   // Initialize start state for the LAST chunk (logical start of encoding)
   if (num_chunks > 0) {
@@ -1228,7 +1217,8 @@ __global__ void fse_parallel_encode_setup_kernel(
     // (FIX) Use the explicitly computed initial state from side-channel array
     // This state corresponds to 'cumul[symbol]', which is the start of the
     // range for this symbol.
-    u32 state = (u32)d_init_val_table[symbol];
+    u32 idx = (u32)d_init_val_table[symbol];
+    u32 state = (u32)d_next_state[idx]; // LOOKUP ACTUAL STATE!
 
     d_chunk_start_states[num_chunks - 1] = state;
     // printf("[SETUP_DBG] Set chunk[%u] start_state=%u (init from sym=%u)\n",
@@ -1419,7 +1409,9 @@ __global__ void fse_parallel_encode_kernel(
     }
 
     // Update state
-    u32 nextStateIndex = (nextState >> nbBitsOut) + stateInfo.deltaFindState;
+    // d_next_state_vals already contains the normalized sub-state (frequency
+    // domain value) So we don't need to shift by nbBitsOut again.
+    u32 nextStateIndex = nextState + stateInfo.deltaFindState;
     if (nextStateIndex >= table_size) {
       nextStateIndex = 0;
     }
@@ -1628,10 +1620,13 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
   cumulative_freq[max_symbol + 1] = total_freq;
 
   // === DECODER: ZSTD SPREAD ALGORITHM ===
+  u32 check_sum = 0;
+
   // Spread symbols sequentially (matches official Zstd)
   u32 position = 0;
   for (u32 s = 0; s <= max_symbol; s++) {
     for (u32 i = 0; i < (u32)h_normalized[s]; i++) {
+
       spread_symbol[position] = (u8)s;
       position = (position + SPREAD_STEP) & table_mask;
     }
@@ -1642,17 +1637,11 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
     h_table.symbol[state] = spread_symbol[state];
   }
 
-  // DIAGNOSTIC: Check decoder symbol table matches encoder
-  if (table_size > 119) {
-    printf("[DECODER_TABLE] h_table.symbol[119] = %u (Should match encoder's "
-           "d_state_to_symbol)\n",
-           h_table.symbol[119]);
-  }
-
   // Initialize symbolNext counters (Zstd approach)
+  // symbolNext tracks the "next state number" for each symbol, starting at 1
   std::vector<u32> symbolNext(max_symbol + 1);
   for (u32 s = 0; s <= max_symbol; s++) {
-    symbolNext[s] = h_normalized[s];
+    symbolNext[s] = h_normalized[s]; // Start at frequency (Zstd standard)
   }
 
   // Build DTable using official Zstd formula
@@ -1671,6 +1660,7 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
     }
     u32 nbBits = table_log - highBit;
 
+    // Zstd formula: newState = (nextState << nbBits) - tableSize
     // Zstd formula: newState = (nextState << nbBits) - tableSize
     h_table.nbBits[state] = (u8)nbBits;
     h_table.newState[state] = (u16)((nextState << nbBits) - table_size);
@@ -1743,21 +1733,13 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   // Step 3: Normalize frequencies
   std::vector<u16> h_normalized(stats.max_symbol + 1);
 
-  printf(
-      "[DEBUG] Normalize Input Freqs: 0=%u 1=%u input_size=%u table_size=%u\n",
-      stats.frequencies[0], stats.frequencies[1], input_size, 1u << table_log);
-
   status = normalize_frequencies_accurate(stats.frequencies, input_size,
                                           1u << table_log, // table_size
                                           h_normalized.data(),
                                           stats.max_symbol, // max_symbol
                                           nullptr);
 
-  printf("[DEBUG] Normalize Output: 0=%u 1=%u\n", h_normalized[0],
-         h_normalized[1]);
-
   if (status != cuda_zstd::Status::SUCCESS) {
-    printf("[DEBUG] normalize_frequencies_accurate failed: %d\n", (int)status);
     return status;
   }
 
@@ -1854,7 +1836,6 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
 
   // NEW: Use Zstandard-compatible dual-state encoder (VERIFIED 10B-4KB)
   // Use existing GPU-built CTable (d_dev_next_state) for encoder
-  printf("[FSE_GPU] Using Zstandard-compatible dual-state encoder\n");
 
   // MANUAL HOST BUILD BLOCK (Encoding Table Only)
 
@@ -1887,61 +1868,7 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   memcpy(dst_state_table, h_ctable.d_next_state,
          (1 << table_log) * sizeof(u16));
 
-  // No manual offset needed; d_next_state already contains (TableSize +
   // SpreadIndex).
-
-  // DEBUG: Verify Copy
-  if (1 << table_log >= 2) {
-    printf("[DEBUG] Copied StateTable: [0]=%u [1]=%u\n", dst_state_table[0],
-           dst_state_table[1]);
-    printf("[DEBUG] Copied SymbolTT[0]: DeltaFindState=%d DeltaNbBits=%u\n",
-           symbolTT[0].deltaFindState, symbolTT[0].deltaNbBits);
-    if (h_ctable.d_state_to_symbol) {
-      printf("[DEBUG] Host StateToSymbol[2]: %u\n",
-             h_ctable.d_state_to_symbol[2]);
-    }
-
-    // DIAGNOSTIC SIMULATION Attempt 2 (Using >>16)
-    {
-      using namespace cuda_zstd::fse;
-      u32 symIdx = 0x5f; // 95
-      FSEEncodeTable::FSEEncodeSymbol sym = h_ctable.d_symbol_table[symIdx];
-      u32 freq = h_normalized[symIdx];
-      printf("[DIAGNOSTIC] Sym 95 Stats: Freq=%u DeltaFind=%d DeltaNb=%u\n",
-             freq, sym.deltaFindState, sym.deltaNbBits);
-
-      u32 log = h_ctable.table_log;
-      u64 val =
-          ((u64)(1 << log) << 16) - sym.deltaNbBits; // Corrected log reference
-      u32 nbBits = (sym.deltaNbBits + (1 << 15)) >>
-                   16; // Not used in idx attempt 2 but kept for ref
-      u32 idx = (u32)((val >> 16) + (int)sym.deltaFindState); // Inserted
-
-      if (idx < (1 << log)) {
-        u16 state = h_ctable.d_next_state[idx];
-        u16 slot = state - (1 << log);
-        u8 targetSym = h_ctable.d_state_to_symbol
-                           ? h_ctable.d_state_to_symbol[slot]
-                           : 0xFF;
-        printf("[DIAGNOSTIC] Init(>>16) Sym %u -> Val=%llu Idx=%u -> State=%u "
-               "Slot=%u -> DecodesToSym %u\n",
-               symIdx, val, idx, state, slot, targetSym);
-      } else {
-        u32 idx_std =
-            (u32)((val >> 8) + (int)sym.deltaFindState); // Compare against std
-        printf("[DIAGNOSTIC] Init(>>16) OOB: %u. (Std >>8 was %u)\n", idx,
-               idx_std);
-
-        // MASK CHECK
-        u32 idx_mask = idx & ((1 << log) - 1);
-        u8 targetSymMask = h_ctable.d_state_to_symbol
-                               ? h_ctable.d_state_to_symbol[idx_mask]
-                               : 0xFF;
-        printf("[DIAGNOSTIC] Init Masked %u -> Sym %u\n", idx_mask,
-               targetSymMask);
-      }
-    }
-  }
 
   u16 *d_ctable_for_encoder;
   cudaMalloc(&d_ctable_for_encoder, 16384);
@@ -2008,8 +1935,8 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   fse_parallel_encode_setup_kernel<<<1, 1, 0, stream>>>(
       d_input, input_size,
       d_dev_initial_states, // (Argument: d_init_val_table)
-      d_dev_symbol_table, d_dev_nbBits_table, d_dev_next_state_vals, table_log,
-      num_chunks, d_chunk_start_states);
+      d_dev_symbol_table, d_dev_nbBits_table, d_dev_next_state_vals,
+      d_dev_next_state, table_log, num_chunks, d_chunk_start_states);
 
   // Sync to ensure kernel completes and catch any errors immediately
   CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -2479,16 +2406,10 @@ __host__ Status encode_fse_batch(const byte_t **d_inputs,
     // Launch Kernels
     u32 num_chunks = chunks_per_block; // Fixed for now
 
-    printf("[FSE_DEBUG] Block %u: num_chunks=%u input_size=%u "
-           "chunks_per_block=%u\n",
-           i, num_chunks, input_size, chunks_per_block);
-
     // NEW: Use Zstandard-compatible dual-state encoder for sequential path
     // This encoder is verified to produce byte-perfect Zstandard output
     // (10B-4KB tested)
     if (num_chunks == 1 && input_size >= 3) {
-      printf("[FSE_GPU] Using Zstandard-compatible dual-state encoder "
-             "(sequential path)\n");
 
       // Build CTable in correct format for new encoder
       // The CTable needs to be in the format: [tableLog(u16), unused(u16),
@@ -2563,7 +2484,7 @@ __host__ Status encode_fse_batch(const byte_t **d_inputs,
 
     fse_parallel_encode_setup_kernel<<<1, 1, 0, stream>>>(
         d_inputs[i], input_size, d_block_init_states, d_table, d_nbBits_table,
-        d_next_state_vals, table_log, num_chunks, d_block_states);
+        d_next_state_vals, d_next_state, table_log, num_chunks, d_block_states);
 
     fse_parallel_encode_kernel<<<num_chunks, 256, 0, stream>>>(
         d_inputs[i], input_size, d_table, d_next_state, d_nbBits_table,
@@ -2627,15 +2548,17 @@ __host__ Status analyze_block_statistics(const byte_t *d_input, u32 input_size,
                   cudaMemcpyDeviceToHost, stream);
   cudaStreamSynchronize(stream);
 
-  // DEBUG: Print First Frequencies
   u32 *freqs = stats->frequencies;
-  printf("[DEBUG] Raw Frequencies Host: 0=%u 1=%u 2=%u 3=%u 255=%u\n", freqs[0],
-         freqs[1], freqs[2], freqs[3], freqs[255]);
+  // printf("[DEBUG] Raw Frequencies Host: 0=%u 1=%u 2=%u 3=%u 255=%u\n",
+  // freqs[0],
+  //        freqs[1], freqs[2], freqs[3], freqs[255]);
 
+  /*
   u32 sum = 0;
   for (int i = 0; i < 256; i++)
     sum += freqs[i];
   printf("[DEBUG] Raw Frequency Sum: %u (Input Size: %u)\n", sum, input_size);
+  */
 
   stats->total_count = input_size;
   stats->max_symbol = 0;
@@ -3345,37 +3268,82 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     u32 read_pos = bit_position; // Use temp to avoid modifying bit_position
     u32 state = read_bits_from_buffer(bitstream, read_pos, table_log);
     printf("[DECODE] Initial state read: %u\n", state);
+    fflush(stdout);
+    printf("[DECODE_START] About to start decode loop for %u symbols\n",
+           output_size_expected);
+    fflush(stdout);
 
-    for (int i = (int)output_size_expected - 1; i >= 0; i--) {
+    for (int i = 0; i < (int)output_size_expected; i++) {
       // u32 old_state = state; // Save for logging
+      if (i == 0) {
+        printf("[LOOP_START] i=0 state=%u\n", state);
+        fflush(stdout);
+      }
       u8 symbol = h_table.symbol[state];
+      if (i == 0) {
+        printf("[LOOP_SYMBOL] symbol=%u\n", symbol);
+        fflush(stdout);
+        printf("[BEFORE_NBBITS] About to read nbBits[%u]\n", state);
+        fflush(stdout);
+      }
       u8 num_bits = h_table.nbBits[state];
+      if (i == 0) {
+        printf("[AFTER_NBBITS] nbBits=%u\n", num_bits);
+        fflush(stdout);
+        printf("[BEFORE_NEWSTATE] About to read newState[%u]\n", state);
+        printf("[NEWSTATE_PTR] h_table.newState = %p\n",
+               (void *)h_table.newState);
+        printf("[TABLE_SIZE] h_table.table_size = %u\n", h_table.table_size);
+        printf("[STATE_CHECK] state=%u is %s bounds\n", state,
+               (state < h_table.table_size) ? "within" : "OUT OF");
+
+        // Try safe read
+        if (state < h_table.table_size && h_table.newState != nullptr) {
+          u16 test_val = h_table.newState[state];
+          printf("[SAFE_READ] newState[%u] = %u\n", state, test_val);
+        }
+        fflush(stdout);
+      }
       u16 next_state_base = h_table.newState[state];
 
-      bit_position -= num_bits;
-      u32 read_pos = bit_position; // Local copy for read_bits_from_buffer
-
-      // [INSTRUMENT] Log bit position
-      // printf("[DECODE] i=%d sym=%u reading %u bits from pos %u (OldState=%u
-      // -> "
-      //        "NextBase=%u)\n",
-      //        i, symbol, num_bits, read_pos, old_state, next_state_base);
-
-      if (read_pos > 1000000) {
-        printf("[DECODE] FATAL: bit_position underflow! %u\n", read_pos);
-        break;
+      // DIAGNOSTIC: Check initial iteration
+      if (i == 0) {
+        printf("[AFTER_NEWSTATE_READ] Successfully read next_state_base=%u\n",
+               next_state_base);
+        fflush(stdout);
+        printf(
+            "[DECODE_FIRST] i=0 state=%u symbol=%u nbBits=%u newStateBase=%u\n",
+            state, symbol, num_bits, next_state_base);
+        fflush(stdout);
       }
 
-      u32 new_bits = read_bits_from_buffer(bitstream, read_pos, num_bits);
-
-      state = next_state_base + new_bits;
+      // (FIX) Write symbol immediately!
+      // We must write the symbol derived from 'state' BEFORE checking if we can
+      // transition to next state. This handles the last symbol correctly (where
+      // stream might be exhausted).
       h_output[i] = symbol;
 
-      // Log all symbols for small data (<=20 bytes)
-      if (output_size_expected <= 20) {
-        // printf("[DEC] i=%d sym=%u st_in=%u bits=%u new=%u st_out=%u\n", i,
-        //        symbol, old_state, num_bits, new_bits, state);
+      if (bit_position < num_bits) {
+        // Last symbol might naturally exhaust the stream.
+        // If we are at the last index, this is expected.
+        if (i < output_size_expected - 1) {
+          printf("[DECODE] WARNING: Bitstream underflow at intermediate symbol "
+                 "i=%u bit_pos=%u num_bits=%u\n",
+                 i, bit_position, num_bits);
+        }
+        break;
       }
+      bit_position -= num_bits;
+
+      u32 read_pos = bit_position; // Local copy for read_bits_from_buffer
+      u32 new_bits = read_bits_from_buffer(bitstream, read_pos, num_bits);
+      state = next_state_base + new_bits;
+    }
+
+    // Log all symbols for small data (<=20 bytes)
+    if (output_size_expected <= 20) {
+      // printf("[DEC] i=%d sym=%u st_in=%u bits=%u new=%u st_out=%u\n", i,
+      //        symbol, old_state, num_bits, new_bits, state);
     }
 
     // 5. Copy output to device
@@ -3385,7 +3353,6 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
-
   } else {
     // === GPU PARALLEL PATH ===
 

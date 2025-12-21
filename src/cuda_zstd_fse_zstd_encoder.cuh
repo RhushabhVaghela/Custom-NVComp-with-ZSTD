@@ -104,9 +104,6 @@ __device__ inline void gpu_fse_init_state(GPU_FSE_CState *statePtr,
   u64 tempValue = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
   u32 tableIndex = (tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
   statePtr->value = stateTable[tableIndex];
-
-  printf("[INIT_DEBUG] Sym=%u nbBits=%u tempVal=%llu idx=%u -> State=%llu\n",
-         symbol, nbBitsOut, tempValue, tableIndex, statePtr->value);
 }
 
 __device__ inline void gpu_fse_encode_symbol(GPU_BitStream *bitC,
@@ -124,8 +121,7 @@ __device__ inline void gpu_fse_encode_symbol(GPU_BitStream *bitC,
 __device__ inline void gpu_fse_flush_state(GPU_BitStream *bitC,
                                            const GPU_FSE_CState *statePtr) {
   // Write state value directly (state now contains raw value 0-511)
-  printf("[FLUSH_DEBUG] State=%llu nbBits=%u\n", statePtr->value,
-         statePtr->stateLog);
+
   gpu_bit_add_bits(bitC, statePtr->value, statePtr->stateLog);
   gpu_bit_flush_bits(bitC);
 }
