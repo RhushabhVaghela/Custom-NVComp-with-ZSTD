@@ -286,9 +286,8 @@ int main() {
 
   int passed = 0;
   int failed = 0;
-  int skipped = 0;
 
-  // Unit Tests - Sequential Path (Working)
+  // Unit Tests - Sequential Path (≤256KB)
   if (test_parallel_single_chunk())
     passed++;
   else
@@ -298,24 +297,24 @@ int main() {
   else
     failed++;
 
-  // NOTE: Multi-chunk tests are temporarily disabled due to known bugs
-  // in fse_parallel_encode_kernel. These will be re-enabled after
-  // implementing the new parallel encoder with verified Zstd logic.
-  printf("=== Test: Parallel Many Chunks (1MB) ===\n");
-  printf("  ⏭️ SKIPPED: Multi-chunk parallel encoder not yet implemented\n\n");
-  skipped++;
+  // Unit Tests - Parallel Path (>256KB)
+  if (test_parallel_many_chunks())
+    passed++;
+  else
+    failed++;
 
-  printf("=== Integration Test: 10MB Roundtrip ===\n");
-  printf("  ⏭️ SKIPPED: Multi-chunk parallel encoder not yet implemented\n\n");
-  skipped++;
-
-  printf("=== Test: Compressible Data (1MB) ===\n");
-  printf("  ⏭️ SKIPPED: Multi-chunk parallel encoder not yet implemented\n\n");
-  skipped++;
+  // Integration Tests
+  if (test_integration_10MB_roundtrip())
+    passed++;
+  else
+    failed++;
+  if (test_compressible_data())
+    passed++;
+  else
+    failed++;
 
   printf("========================================\n");
-  printf("  Results: %d passed, %d failed, %d skipped\n", passed, failed,
-         skipped);
+  printf("  Results: %d passed, %d failed\n", passed, failed);
   printf("========================================\n");
 
   return failed > 0 ? 1 : 0;

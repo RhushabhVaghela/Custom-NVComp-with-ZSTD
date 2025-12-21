@@ -1032,8 +1032,10 @@ __host__ Status FSE_buildCTable_Host(
   u32 check_sum = 0;
   for (int i = 0; i <= max_symbol; i++)
     check_sum += h_normalized[i] * (i + 1);
-  printf("[CTABLE_NORM] Hash: %u Sym 94: %u, Sym 95: %u MaxSym: %u TSize: %u\n",
-         check_sum, h_normalized[94], h_normalized[95], max_symbol, table_size);
+  // printf("[CTABLE_NORM] Hash: %u Sym 94: %u, Sym 95: %u MaxSym: %u TSize:
+  // %u\n",
+  //        check_sum, h_normalized[94], h_normalized[95], max_symbol,
+  //        table_size);
   const u32 SPREAD_STEP = (table_size >> 1) + (table_size >> 3) + 3;
   const u32 table_mask = table_size - 1;
   u32 position = 0;
@@ -1320,6 +1322,69 @@ __global__ void fse_parallel_encode_setup_kernel(
   printf("[SETUP_DBG] Setup kernel completed successfully\n");
 }
 
+// =============================================================================
+// NEW: ZSTD-COMPATIBLE SETUP KERNEL (Using verified logic)
+// =============================================================================
+
+/**
+ * @brief NEW Pass 1: Setup kernel for Zstd-compatible parallel encoding.
+ * Simulates encoding in reverse to find start state for each chunk.
+ * Uses same FSE state logic as verified sequential encoder.
+ */
+__global__ void fse_parallel_encode_setup_zstd_kernel(
+    const byte_t *d_input, u32 input_size,
+    const u16
+        *d_ctable_u16, // FSE_CTable as u16 array (same format as sequential)
+    u32 num_chunks, u32 *d_chunk_start_states) {
+
+  if (threadIdx.x != 0 || blockIdx.x != 0)
+    return;
+  if (input_size == 0 || num_chunks == 0)
+    return;
+
+  // Parse CTable structure (same as sequential encoder)
+  u32 const tableLog = d_ctable_u16[0];
+  const u16 *stateTable = d_ctable_u16 + 2;
+  const u32 *ct_u32 = (const u32 *)d_ctable_u16;
+
+  struct SymbolTT {
+    i32 deltaFindState;
+    u32 deltaNbBits;
+  };
+  const SymbolTT *symbolTT =
+      (const SymbolTT *)(ct_u32 + 1 + (tableLog ? (1 << (tableLog - 1)) : 1));
+
+  u32 symbols_per_chunk = (input_size + num_chunks - 1) / num_chunks;
+
+  // Initialize state from last symbol (same as sequential encoder)
+  u32 symbol = d_input[input_size - 1];
+  SymbolTT const st_init = symbolTT[symbol];
+  u32 nbBitsOut_init = (st_init.deltaNbBits + (1u << 15)) >> 16;
+  u64 tempValue = (nbBitsOut_init << 16) - st_init.deltaNbBits;
+  u32 tableIndex = (tempValue >> nbBitsOut_init) + st_init.deltaFindState;
+  u64 state = stateTable[tableIndex];
+
+  // Store start state for last chunk
+  d_chunk_start_states[num_chunks - 1] = (u32)state;
+
+  // Process input backwards, recording state at chunk boundaries
+  for (int i = input_size - 2; i >= 0; --i) {
+    u32 symbol = d_input[i];
+    SymbolTT const st = symbolTT[symbol];
+    u32 const nbBitsOut = (u32)((state + st.deltaNbBits) >> 16);
+
+    // State transition (same as encode kernel)
+    state = stateTable[(state >> nbBitsOut) + st.deltaFindState];
+
+    // Check if we're at a chunk boundary
+    u32 chunk_id = i / symbols_per_chunk;
+    if (i == chunk_id * symbols_per_chunk && chunk_id > 0) {
+      // Save state for previous chunk
+      d_chunk_start_states[chunk_id - 1] = (u32)state;
+    }
+  }
+}
+
 /**
  * @brief (REPLACEMENT) Parallel FSE encoding kernel.
  * Each block encodes one chunk *in reverse* using its pre-calculated
@@ -1475,6 +1540,134 @@ __global__ void fse_parallel_encode_kernel(
   }
 
   d_chunk_bit_counts[chunk_id] = total_bits;
+}
+
+// =============================================================================
+// NEW: ZSTD-COMPATIBLE PARALLEL ENCODE KERNEL (Using verified logic)
+// =============================================================================
+
+/**
+ * @brief NEW Pass 2: Zstd-compatible parallel FSE encoding kernel.
+ * Each block encodes one chunk using verified bitstream logic.
+ * Uses the same GPU_BitStream and FSE state logic as the working sequential
+ * encoder.
+ */
+__global__ void fse_parallel_encode_zstd_kernel(
+    const byte_t *d_input, u32 input_size,
+    const u16
+        *d_ctable_u16, // FSE_CTable as u16 array (same format as sequential)
+    u32 num_chunks,
+    const u32 *d_chunk_start_states, // Pre-computed start state for each chunk
+    byte_t *d_parallel_bitstreams,   // Output [num_chunks * max_chunk_bytes]
+    u32 *d_chunk_bit_counts,         // Output bit count for each chunk
+    u32 max_chunk_bitstream_size_bytes) {
+
+  u32 chunk_id = blockIdx.x;
+  if (chunk_id >= num_chunks)
+    return;
+  if (threadIdx.x != 0)
+    return; // Single thread per chunk
+
+  u32 symbols_per_chunk = (input_size + num_chunks - 1) / num_chunks;
+  u32 chunk_start = chunk_id * symbols_per_chunk;
+  u32 chunk_end = min((chunk_id + 1) * symbols_per_chunk, input_size);
+
+  if (chunk_start >= chunk_end) {
+    d_chunk_bit_counts[chunk_id] = 0;
+    return;
+  }
+
+  u32 chunk_size = chunk_end - chunk_start;
+  byte_t *d_chunk_output =
+      d_parallel_bitstreams + (chunk_id * max_chunk_bitstream_size_bytes);
+
+  // Parse CTable structure (same as sequential encoder)
+  u32 const tableLog = d_ctable_u16[0];
+  const u16 *stateTable = d_ctable_u16 + 2;
+  const u32 *ct_u32 = (const u32 *)d_ctable_u16;
+
+  struct SymbolTT {
+    i32 deltaFindState;
+    u32 deltaNbBits;
+  };
+  const SymbolTT *symbolTT =
+      (const SymbolTT *)(ct_u32 + 1 + (tableLog ? (1 << (tableLog - 1)) : 1));
+
+  // Initialize bitstream
+  u64 bitContainer = 0;
+  u32 bitPos = 0;
+  byte_t *ptr = d_chunk_output;
+  byte_t *endPtr = d_chunk_output + max_chunk_bitstream_size_bytes;
+
+  // Get pre-computed start state for this chunk
+  u64 state = d_chunk_start_states[chunk_id];
+
+  // Encode symbols backwards within chunk (chunk_end-1 down to chunk_start)
+  const byte_t *ip = d_input + chunk_end - 1;
+  const byte_t *const ibegin = d_input + chunk_start;
+
+  // For the LAST chunk (chunk_id == num_chunks-1), initialize state from last
+  // symbol For other chunks, state is pre-computed from setup pass
+  if (chunk_id == num_chunks - 1) {
+    // Initialize with last symbol of input
+    u32 symbol = *ip--;
+    SymbolTT const st = symbolTT[symbol];
+    u32 nbBitsOut = (st.deltaNbBits + (1u << 15)) >> 16;
+    u64 tempValue = (nbBitsOut << 16) - st.deltaNbBits;
+    u32 tableIndex = (tempValue >> nbBitsOut) + st.deltaFindState;
+    state = stateTable[tableIndex];
+  }
+
+  // Encode remaining symbols in chunk
+  while (ip >= ibegin) {
+    u32 symbol = *ip--;
+    SymbolTT const st = symbolTT[symbol];
+    u32 const nbBitsOut = (u32)((state + st.deltaNbBits) >> 16);
+
+    // Add bits to container
+    u64 const mask = ((u64)1 << nbBitsOut) - 1;
+    bitContainer |= (state & mask) << bitPos;
+    bitPos += nbBitsOut;
+
+    // State transition
+    state = stateTable[(state >> nbBitsOut) + st.deltaFindState];
+
+    // Flush bytes when buffer is full
+    while (bitPos >= 8 && ptr < endPtr) {
+      *ptr++ = (byte_t)(bitContainer & 0xFF);
+      bitContainer >>= 8;
+      bitPos -= 8;
+    }
+  }
+
+  // For FIRST chunk (chunk_id == 0), write final state + terminator
+  if (chunk_id == 0) {
+    // Write final state (tableLog bits)
+    u64 const mask = ((u64)1 << tableLog) - 1;
+    bitContainer |= (state & mask) << bitPos;
+    bitPos += tableLog;
+
+    // Add terminator bit
+    bitContainer |= (u64)1 << bitPos;
+    bitPos++;
+
+    // Flush remaining
+    while (bitPos >= 8 && ptr < endPtr) {
+      *ptr++ = (byte_t)(bitContainer & 0xFF);
+      bitContainer >>= 8;
+      bitPos -= 8;
+    }
+  }
+
+  // Write any remaining partial byte
+  if (bitPos > 0 && ptr < endPtr) {
+    *ptr++ = (byte_t)bitContainer;
+    bitPos = 0;
+  }
+
+  u32 bytes_written = (u32)(ptr - d_chunk_output);
+  d_chunk_bit_counts[chunk_id] =
+      bytes_written * 8; // Store in bits for compatibility
 }
 
 /**
@@ -1875,219 +2068,113 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   cudaMemcpy(d_ctable_for_encoder, h_ctable_byte_buf.data(), 16384,
              cudaMemcpyHostToDevice);
 
-  // Call Zstandard encoder (Updated Signature with Capacity)
-  u32 *d_payload_size;
-  cudaMalloc(&d_payload_size, sizeof(u32));
+  // PARALLEL ENCODING THRESHOLD
+  // For small inputs, use sequential encoder (simpler, verified)
+  // For large inputs, use parallel encoder with new Zstd-compatible kernels
+  const u32 PARALLEL_THRESHOLD = 256 * 1024; // 256KB
 
-  fse_encode_zstd_compat_kernel<<<1, 1, 0, stream>>>(
-      d_input, input_size, d_ctable_for_encoder, d_output + header_size,
-      input_size * 2, // Capacity
-      d_payload_size);
+  if (input_size <= PARALLEL_THRESHOLD) {
+    // === SEQUENTIAL PATH (for small inputs) ===
+    u32 *d_payload_size;
+    cudaMalloc(&d_payload_size, sizeof(u32));
 
-  CUDA_CHECK(cudaStreamSynchronize(stream));
+    fse_encode_zstd_compat_kernel<<<1, 1, 0, stream>>>(
+        d_input, input_size, d_ctable_for_encoder, d_output + header_size,
+        input_size * 2, // Capacity
+        d_payload_size);
 
-  u32 payload_size;
-  CUDA_CHECK(cudaMemcpy(&payload_size, d_payload_size, sizeof(u32),
-                        cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaStreamSynchronize(stream));
 
-  *d_output_size = header_size + payload_size;
+    u32 payload_size;
+    CUDA_CHECK(cudaMemcpy(&payload_size, d_payload_size, sizeof(u32),
+                          cudaMemcpyDeviceToHost));
 
-  printf("[FSE_GPU] Zstandard encoder SUCCESS: %u bytes -> %u bytes (header=%u "
-         "payload=%u)\n",
-         input_size, *d_output_size, header_size, payload_size);
+    *d_output_size = header_size + payload_size;
 
-  delete[] h_ctable.d_nbBits_table;
-  delete[] h_ctable.d_next_state_vals;
+    // printf("[FSE_GPU] Sequential encoder: %u bytes -> %u bytes (header=%u "
+    //        "payload=%u)\n",
+    //        input_size, *d_output_size, header_size, payload_size);
 
-  return Status::SUCCESS;
+    cudaFree(d_payload_size);
+    cudaFree(d_ctable_for_encoder);
+    delete[] h_ctable.d_nbBits_table;
+    delete[] h_ctable.d_next_state_vals;
 
-  // ORIGINAL PARALLEL ENCODING LOGIC BELOW (skipped when using new encoder)
+    return Status::SUCCESS;
+  }
 
-  // Step 7: Run encoding kernel
-  // Allocation for temporary buffers
-  const u32 chunk_size = 256 * 1024; // 256KB chunks
+  // === PARALLEL PATH (for large inputs) ===
+  // Use new Zstd-compatible parallel kernels
+
+  const u32 chunk_size = 64 * 1024; // 64KB chunks (tunable)
   u32 num_chunks = (input_size + chunk_size - 1) / chunk_size;
   if (num_chunks == 0)
     num_chunks = 1;
 
+  u32 max_chunk_stream_size = chunk_size + (chunk_size >> 4) + 1024;
+
   u32 *d_chunk_start_states;
   byte_t *d_bitstreams;
   u32 *d_chunk_bit_counts;
-  u32 *d_chunk_offsets;
-
-  // Conservative max size per chunk bitstream
-  // FSE worst-case: slightly larger than input due to encoding overhead
-  // Formula: input + 5% margin + header overhead (12KB for safety)
-  u32 max_chunk_stream_size = chunk_size + (chunk_size >> 4) + 12288;
-  if (input_size < chunk_size)
-    max_chunk_stream_size = input_size + (input_size >> 4) + 12288;
 
   CUDA_CHECK(cudaMalloc(&d_chunk_start_states, num_chunks * sizeof(u32)));
   CUDA_CHECK(cudaMalloc(&d_bitstreams, num_chunks * max_chunk_stream_size));
   CUDA_CHECK(cudaMalloc(&d_chunk_bit_counts, num_chunks * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_chunk_offsets, num_chunks * sizeof(u32)));
 
-  // 7a: Calculate chunk start states using setup kernel
-  // The setup kernel simulates backward encoding to find the correct
-  // start state for each chunk, ensuring dependent state propagation.
-  // Updated to use double lookup tables (d_symbol_table + d_nbBits_table +
-  // d_next_state_vals)
-  fse_parallel_encode_setup_kernel<<<1, 1, 0, stream>>>(
-      d_input, input_size,
-      d_dev_initial_states, // (Argument: d_init_val_table)
-      d_dev_symbol_table, d_dev_nbBits_table, d_dev_next_state_vals,
-      d_dev_next_state, table_log, num_chunks, d_chunk_start_states);
-
-  // Sync to ensure kernel completes and catch any errors immediately
+  // Pass 1: Setup - compute chunk start states
+  fse_parallel_encode_setup_zstd_kernel<<<1, 1, 0, stream>>>(
+      d_input, input_size, d_ctable_for_encoder, num_chunks,
+      d_chunk_start_states);
   CUDA_CHECK(cudaStreamSynchronize(stream));
-  CUDA_CHECK(cudaGetLastError());
 
-  // 7b: Encode Kernel
-  // Use 256 threads per chunk if enough data, or
-  // fewer
-  const u32 encode_threads = 256;
-  // printf("[DEBUG] Point G: Launch Encode\n");
-  // fflush(stdout);
-  fse_parallel_encode_kernel<<<num_chunks, encode_threads, 0, stream>>>(
-      d_input, input_size, d_dev_symbol_table, d_dev_next_state,
-      d_dev_nbBits_table,
-      d_dev_next_state_vals, // (FIX)
-      table_log, num_chunks, d_chunk_start_states, d_bitstreams,
-      d_chunk_bit_counts, max_chunk_stream_size);
-  // printf("[DEBUG] Point H: Encode Launched\n");
-  // fflush(stdout);
+  // Pass 2: Encode - each block encodes one chunk
+  fse_parallel_encode_zstd_kernel<<<num_chunks, 1, 0, stream>>>(
+      d_input, input_size, d_ctable_for_encoder, num_chunks,
+      d_chunk_start_states, d_bitstreams, d_chunk_bit_counts,
+      max_chunk_stream_size);
+  CUDA_CHECK(cudaStreamSynchronize(stream));
 
-  // 7c: Scan (prefix sum of bit counts)
-  // 7c: Scan (prefix sum of bit counts)
-  if (num_chunks == 1) {
-    // Optimization/Fix for single chunk: Scan is
-    // trivial (offset 0) Also avoids parallel_scan
-    // implementation issues for n=1
-    u32 zero = 0;
-    CUDA_CHECK(cudaMemcpyAsync(d_chunk_offsets, &zero, sizeof(u32),
-                               cudaMemcpyHostToDevice, stream));
-  } else {
-    utils::parallel_scan(d_chunk_bit_counts, d_chunk_offsets, num_chunks,
-                         stream);
+  // Pass 3: Merge bitstreams (simplified - sequential merge on host for now)
+  // TODO: Use parallel copy kernel for better performance
+  std::vector<u32> h_bit_counts(num_chunks);
+  CUDA_CHECK(cudaMemcpy(h_bit_counts.data(), d_chunk_bit_counts,
+                        num_chunks * sizeof(u32), cudaMemcpyDeviceToHost));
+
+  u32 total_payload_bytes = 0;
+  for (u32 i = 0; i < num_chunks; i++) {
+    total_payload_bytes += (h_bit_counts[i] + 7) / 8;
   }
 
-  // 7d: Copy Bitstreams
-  // Output starts AFTER header
-  // byte_t *d_payload = d_output + header_size;
+  std::vector<byte_t> h_merged(total_payload_bytes);
+  u32 offset = 0;
 
-  // We need to calculate total size on host to set
-  // *d_output_size But first launch the copy
-  fse_parallel_bitstream_copy_kernel<<<num_chunks, 256, 0, stream>>>(
-      d_output, header_size, d_bitstreams, d_chunk_bit_counts, d_chunk_offsets,
-      num_chunks, max_chunk_stream_size);
-  // printf("[DEBUG] Point J: Copy Launched\n");
-  fflush(stdout);
+  // Chunks are stored in reverse order (chunk N-1 first, chunk 0 last)
+  for (int i = num_chunks - 1; i >= 0; i--) {
+    u32 chunk_bytes = (h_bit_counts[i] + 7) / 8;
+    std::vector<byte_t> chunk_data(chunk_bytes);
+    CUDA_CHECK(cudaMemcpy(chunk_data.data(),
+                          d_bitstreams + i * max_chunk_stream_size, chunk_bytes,
+                          cudaMemcpyDeviceToHost));
+    memcpy(h_merged.data() + offset, chunk_data.data(), chunk_bytes);
+    offset += chunk_bytes;
+  }
 
-  // CRITICAL: Sync to ensure copy completes before reading
-  CUDA_CHECK(cudaStreamSynchronize(stream));
+  // Write merged payload to output
+  CUDA_CHECK(cudaMemcpy(d_output + header_size, h_merged.data(),
+                        total_payload_bytes, cudaMemcpyHostToDevice));
 
-  // DEBUG: Verify the copy actually wrote to d_output
-  // DISABLED: Hardcoded offset assumes 256KB+ buffer, fails on small inputs
-  /*
-  std::vector<byte_t> h_verify_tail(30);
-  u32 verify_offset = header_size + 270400; // Near the end
-  CUDA_CHECK(cudaMemcpy(h_verify_tail.data(), d_output + verify_offset, 30,
-                        cudaMemcpyDeviceToHost));
-  printf("[VERIFY_COPY] Bytes at offset %u (near end): ", verify_offset);
-  for (int i = 0; i < 30; i++)
-    printf("%02X ", h_verify_tail[i]);
-  printf("\n");
-  */
-
-  // Step 8: Finalize Output Size
-  // Copy counts and offsets to host to compute total
-  // size
-  std::vector<u32> h_chunk_counts(num_chunks);
-  CUDA_CHECK(cudaMemcpyAsync(h_chunk_counts.data(), d_chunk_bit_counts,
-                             num_chunks * sizeof(u32), cudaMemcpyDeviceToHost,
-                             stream));
-  CUDA_CHECK(cudaStreamSynchronize(stream));
-
-  // DEBUG: Verify data was written to output
-  std::vector<byte_t> h_verify(20);
-  CUDA_CHECK(cudaMemcpy(h_verify.data(), d_output + header_size, 20,
-                        cudaMemcpyDeviceToHost));
-  printf("[AFTER_COPY] Data at offset %u (first 20 bytes): ", header_size);
-  for (int i = 0; i < 20; i++)
-    printf("%02X ", h_verify[i]);
-  printf("\n");
-
-  u32 total_bits = 0;
-  for (u32 c = 0; c < num_chunks; c++)
-    total_bits += h_chunk_counts[c];
-
-  u32 total_payload_bytes = (total_bits + 7) / 8;
   *d_output_size = header_size + total_payload_bytes;
 
-  printf("[SIZE_DEBUG] header=%u total_bits=%u total_payload_bytes=%u "
-         "final_size=%u num_chunks=%u\n",
-         header_size, total_bits, total_payload_bytes, *d_output_size,
-         num_chunks);
-
-  // DEBUG: Show chunk offsets
-  if (num_chunks <= 10) {
-    std::vector<u32> h_offsets(num_chunks);
-    CUDA_CHECK(cudaMemcpy(h_offsets.data(), d_chunk_offsets,
-                          num_chunks * sizeof(u32), cudaMemcpyDeviceToHost));
-    printf("[CHUNK_OFFSETS] ");
-    for (u32 i = 0; i < num_chunks; i++) {
-      printf("C%u:offset=%u,bits=%u ", i, h_offsets[i], h_chunk_counts[i]);
-    }
-    printf("\n");
-  }
-
-  // DEBUG: Check what's at the END of the buffer
-  std::vector<byte_t> h_tail(20);
-  u32 tail_offset = (*d_output_size > 20) ? (*d_output_size - 20) : 0;
-
-  // CRITICAL FIX: FSE bitstreams must be read BACKWARDS (RFC 8878 Section 4.1)
-  // "all FSE bitstreams are read from end to beginning"
-  // Solution: Reverse the byte order of the PAYLOAD (not the header)
-  // printf("[REVERSE] Reversing %u payload bytes (header stays at
-  // beginning)\n",
-  //        total_payload_bytes);
-
-  // Copy payload to host, reverse, copy back
-  // std::vector<byte_t> h_payload(total_payload_bytes);
-  // CUDA_CHECK(cudaMemcpy(h_payload.data(), d_output + header_size,
-  //                       total_payload_bytes, cudaMemcpyDeviceToHost));
-
-  // Reverse byte order
-  // std::reverse(h_payload.begin(), h_payload.end());
-
-  // Copy reversed payload back
-  // CUDA_CHECK(cudaMemcpy(d_output + header_size, h_payload.data(),
-  //                       total_payload_bytes, cudaMemcpyHostToDevice));
-
-  // DEBUG: Verify reversed data
-  // std::vector<byte_t> h_verify_reversed(20);
-  // CUDA_CHECK(cudaMemcpy(h_verify_reversed.data(), d_output + header_size, 20,
-  //                       cudaMemcpyDeviceToHost));
-  // printf("[AFTER_REVERSE] Data at offset %u (first 20 bytes): ",
-  // header_size); for (int i = 0; i < 20; i++)
-  //   printf("%02X ", h_verify_reversed[i]);
-  // printf("\n");
+  // printf("[FSE_GPU] Parallel encoder (%u chunks): %u bytes -> %u bytes\n",
+  //        num_chunks, input_size, *d_output_size);
 
   // Cleanup
-  cudaFree(d_dev_symbol_table);
-  cudaFree(d_dev_next_state);
-  cudaFree(d_dev_nbBits_table);    // (FIX)
-  cudaFree(d_dev_next_state_vals); // (FIX)
   cudaFree(d_chunk_start_states);
   cudaFree(d_bitstreams);
   cudaFree(d_chunk_bit_counts);
-  cudaFree(d_chunk_offsets);
-
-  delete[] h_ctable.d_symbol_table;
-  delete[] h_ctable.d_next_state;
-  delete[] h_ctable.d_state_to_symbol;
-  delete[] h_ctable.d_nbBits_table;    // (FIX)
-  delete[] h_ctable.d_next_state_vals; // (FIX)
+  cudaFree(d_ctable_for_encoder);
+  delete[] h_ctable.d_nbBits_table;
+  delete[] h_ctable.d_next_state_vals;
 
   return Status::SUCCESS;
 }
@@ -2451,18 +2538,17 @@ __host__ Status encode_fse_batch(const byte_t **d_inputs,
           input_size * 2, d_output_size);
 
       // Copy output size (add header size)
-      // Kernel: d_output_sizes[i] = header_size + compressed_size
+      // d_output_sizes is a HOST array, updated directly
       cudaMemcpyAsync(&d_output_sizes[i], d_output_size, sizeof(u32),
                       cudaMemcpyDeviceToHost, stream);
       CUDA_CHECK(cudaStreamSynchronize(stream));
 
       u32 compressed_size = d_output_sizes[i];
       d_output_sizes[i] = header_size + compressed_size;
-      CUDA_CHECK(cudaMemcpyAsync(&d_output_sizes[i], &d_output_sizes[i],
-                                 sizeof(u32), cudaMemcpyHostToDevice, stream));
 
-      printf("[FSE_GPU] Zstandard encoder: %u bytes -> %u bytes (payload=%u)\n",
-             input_size, header_size + compressed_size, compressed_size);
+      // printf("[FSE_GPU] Zstandard encoder: %u bytes -> %u bytes
+      // (payload=%u)\n",
+      //        input_size, header_size + compressed_size, compressed_size);
 
       cudaFree(d_ctable_u16);
       cudaFree(d_output_size);

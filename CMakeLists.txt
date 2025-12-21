@@ -240,6 +240,14 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_fse_parallel cuda_zstd_static)
+
+    # Batch encoding benchmark (test_batch_fse is auto-discovered via glob)
+    add_executable(benchmark_batch_fse tests/benchmark_batch_fse.cu)
+    set_target_properties(benchmark_batch_fse PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_batch_fse cuda_zstd_static)
 endif()
 
 
