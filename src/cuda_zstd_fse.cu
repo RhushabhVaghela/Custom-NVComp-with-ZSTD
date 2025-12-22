@@ -3035,17 +3035,8 @@ __global__ void fse_parallel_decode_kernel_v2(
       }
     }
 
-    u32 old_state = state;
     // Update state
     state = nextStateBase + bits;
-
-    if (chunk_id == 0 && i < 10) {
-      printf("[GPU_KER] Chunk0 i=%u "
-             "bit_pos=%u nbBits=%u "
-             "bits=%u state=%u "
-             "(Old=%u)\n",
-             i, bit_pos, nbBits, bits, state, old_state);
-    }
 
     // FSE DECODER MUST OUTPUT
     // BACKWARDS (LIFO) to match
@@ -3312,20 +3303,6 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
 
     const byte_t *d_bitstream = d_input + header_size;
     u32 bitstream_size_bytes = input_size - header_size;
-
-    // DEBUG: Print last 10 bytes of
-    // bitstream
-    if (true) {
-      std::vector<byte_t> tail(10);
-      u32 copy_size = std::min(10u, bitstream_size_bytes);
-      CUDA_CHECK(cudaMemcpy(tail.data(),
-                            d_bitstream + bitstream_size_bytes - copy_size,
-                            copy_size, cudaMemcpyDeviceToHost));
-      printf("Decoder Input Tail: ");
-      for (u32 i = 0; i < copy_size; i++)
-        printf("%02x ", tail[i]);
-      printf("\n");
-    }
 
     // Step 5: Parallel Decode
     u32 num_chunks = (output_size_expected + FSE_DECODE_SYMBOLS_PER_CHUNK - 1) /
