@@ -4,7 +4,6 @@
 #include <iostream>
 #include <vector>
 
-
 using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
 
@@ -134,7 +133,84 @@ void verification_test() {
   CHECK(cudaFree(d_chunk_offsets));
 }
 
+// Mock/Forward declare if not linking against full library yet,
+// OR include header if we plan to link.
+// We will build this test by linking fse.cu, so include header.
+#include "../include/cuda_zstd_fse.h"
+
+void test_context_reuse() {
+  std::cout << "Running FSEContext Reuse Verification..." << std::endl;
+
+  cuda_zstd::FSEContext ctx;
+  memset(&ctx, 0, sizeof(ctx));
+
+  // Create dummy input
+  int size = 1000;
+  byte_t *d_in;
+  byte_t *d_out;
+  u32 *d_out_size;
+  CHECK(cudaMalloc(&d_in, size));
+  CHECK(cudaMalloc(&d_out, size * 2));
+  CHECK(cudaMalloc(&d_out_size, 4));
+  CHECK(cudaMemset(d_in, 0, size)); // All zeros
+
+  cudaStream_t stream;
+  cudaStreamCreate(&stream);
+
+  // First Call (Allocation)
+  Status s1 = cuda_zstd::fse::encode_fse_advanced(d_in, size, d_out, d_out_size,
+                                                  true, stream, &ctx);
+  if (s1 != Status::SUCCESS) {
+    std::cerr << "FAILED: encode_fse_advanced (1) returned " << (int)s1
+              << std::endl;
+    exit(1);
+  }
+  CHECK(cudaStreamSynchronize(stream));
+
+  // Verify Pointers Allocated
+  if (!ctx.d_dev_symbol_table) {
+    std::cerr << "FAILED: Context d_dev_symbol_table is NULL after first call."
+              << std::endl;
+    exit(1);
+  }
+  void *ptr1 = ctx.d_dev_symbol_table;
+
+  // Second Call (Reuse)
+  cuda_zstd::fse::encode_fse_advanced(d_in, size, d_out, d_out_size, true,
+                                      stream, &ctx);
+  CHECK(cudaStreamSynchronize(stream));
+
+  // Verify Reuse
+  if (ctx.d_dev_symbol_table != ptr1) {
+    std::cerr << "FAILED: Context pointer changed (No Reuse)!" << std::endl;
+    exit(1);
+  }
+
+  std::cout << "Context Reuse PASSED!" << std::endl;
+
+  // Cleanup
+  cudaFree(ctx.d_dev_symbol_table);
+  // ... (Free others if needed, or rely on test exit)
+  // For completeness:
+  if (ctx.d_dev_next_state)
+    cudaFree(ctx.d_dev_next_state);
+  if (ctx.d_dev_nbBits_table)
+    cudaFree(ctx.d_dev_nbBits_table);
+  if (ctx.d_dev_next_state_vals)
+    cudaFree(ctx.d_dev_next_state_vals);
+  if (ctx.d_dev_initial_states)
+    cudaFree(ctx.d_dev_initial_states);
+  if (ctx.d_ctable_for_encoder)
+    cudaFree(ctx.d_ctable_for_encoder);
+
+  cudaFree(d_in);
+  cudaFree(d_out);
+  cudaFree(d_out_size);
+  cudaStreamDestroy(stream);
+}
+
 int main() {
   verification_test();
+  test_context_reuse();
   return 0;
 }

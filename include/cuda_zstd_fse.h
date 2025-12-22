@@ -10,7 +10,6 @@
 #ifndef CUDA_ZSTD_FSE_H_
 #define CUDA_ZSTD_FSE_H_
 
-
 #include "cuda_zstd_types.h"
 #include <cuda_runtime.h>
 #ifdef __cplusplus
@@ -257,13 +256,15 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
 __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
                                           byte_t *d_output, u32 *d_output_size,
                                           bool gpu_optimize = true,
-                                          cudaStream_t stream = 0);
+                                          cudaStream_t stream = 0,
+                                          FSEContext *ctx = nullptr);
 
 // Production version (wrapper)
 __host__ Status encode_fse_advanced(const byte_t *d_input, u32 input_size,
                                     byte_t *d_output, u32 *d_output_size,
                                     bool gpu_optimize = true,
-                                    cudaStream_t stream = 0);
+                                    cudaStream_t stream = 0,
+                                    FSEContext *ctx = nullptr);
 
 /**
  * @brief Decodes a stream using a predefined Zstd table.

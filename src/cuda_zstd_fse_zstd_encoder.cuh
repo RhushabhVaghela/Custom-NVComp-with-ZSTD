@@ -187,7 +187,7 @@ __device__ inline void fse_encode_block_device(
 }
 
 // Wrapper for backward compatibility (Expects flat ctable)
-__global__ void
+static __global__ void
 fse_encode_zstd_compat_kernel(const byte_t *d_input, u32 input_size,
                               const u16 *d_ctable_u16, byte_t *d_output,
                               u32 max_output_size, u32 *d_output_size) {
@@ -209,7 +209,7 @@ fse_encode_zstd_compat_kernel(const byte_t *d_input, u32 input_size,
 // NEW: Batch Parallel Kernel
 // Processes multiple blocks in parallel (one thread per block)
 // Uses arrays of pointers for maximum flexibility (mixed batches)
-__global__ void fse_batch_encode_kernel(
+static __global__ void fse_batch_encode_kernel(
     const byte_t *const *d_inputs, const u32 *d_input_sizes, byte_t **d_outputs,
     u32 *d_output_sizes,
     const u16 *const *d_state_tables,                      // Array of pointers

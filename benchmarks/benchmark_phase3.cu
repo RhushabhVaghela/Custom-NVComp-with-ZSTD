@@ -10,20 +10,22 @@
 #include <vector>
 
 #include "../include/benchmark_results.h"
+#include "../include/cuda_zstd_fse.h"
 #include "../include/cuda_zstd_manager.h"
 
 // INTERNAL: We need access to the internal FSE encoder to benchmark it directly
 // skipping the LZ77 stage which currently limits block sizes.
-namespace cuda_zstd {
-namespace fse {
-// using byte_t = uint8_t; // Rely on header
-// using u32 = uint32_t; // Rely on header
-// enum class Status; // Already defined in headers
-Status encode_fse_advanced(const byte_t *d_input, u32 input_size,
-                           byte_t *d_output, u32 *d_output_size,
-                           bool gpu_optimize, cudaStream_t stream);
-} // namespace fse
-} // namespace cuda_zstd
+// namespace cuda_zstd {
+// namespace fse {
+// // using byte_t = uint8_t; // Rely on header
+// // using u32 = uint32_t; // Rely on header
+// // enum class Status; // Already defined in headers
+// Status encode_fse_advanced(const byte_t *d_input, u32 input_size,
+//                            byte_t *d_output, u32 *d_output_size,
+//                            bool gpu_optimize, cudaStream_t stream,
+//                            FSEContext *ctx = nullptr);
+// } // namespace fse
+// } // namespace cuda_zstd
 
 // Function to generate synthetic data with specific entropy
 void generate_data(std::vector<uint8_t> &data, size_t size,
@@ -55,6 +57,7 @@ void benchmark_phase3_fse(const std::string &gpu_name) {
             << std::endl;
   std::cout << "   Phase 3 Benchmark: Intra-Block Parallel FSE Throughput"
             << std::endl;
+  std::cout << "   (Memory Optimized: Context Reuse Enabled)" << std::endl;
   std::cout << "============================================================"
             << std::endl;
 
@@ -76,26 +79,41 @@ void benchmark_phase3_fse(const std::string &gpu_name) {
   cudaStream_t stream;
   cudaStreamCreate(&stream);
 
-  // Warmup
+  // Create Reuse Context
+  cuda_zstd::FSEContext context;
+  // Initialize to nulls (constructor does this, but being explicit is safe)
+  memset(&context, 0, sizeof(context));
+
+  // Warmup (Allocates persistent memory in context)
   std::cout << "Warming up..." << std::endl;
-  cuda_zstd::fse::encode_fse_advanced(
+  cudaGetLastError(); // Clear any prior errors
+  auto warmup_status = cuda_zstd::fse::encode_fse_advanced(
       (const uint8_t *)d_input, (uint32_t)input_size, (uint8_t *)d_output,
-      d_output_size, true,
-      stream // gpu_optimize=true implies parallel usage if size sufficient
+      d_output_size, true, stream,
+      &context // Pass context to allocate
   );
   cudaStreamSynchronize(stream);
+  auto cuda_err = cudaGetLastError();
+  if (cuda_err != cudaSuccess || warmup_status != cuda_zstd::Status::SUCCESS) {
+    std::cerr << "Warmup failed! Status=" << (int)warmup_status
+              << " CUDA=" << cudaGetErrorString(cuda_err) << std::endl;
+    // Continue anyway to see iteration behavior
+  }
 
-  // Measure
+  // Measure (Reuses memory in context)
   int iterations = 10;
   std::cout << "Running " << iterations << " iterations for "
             << (input_size / (1024.0 * 1024.0)) << " MB..." << std::endl;
+
+  // NOTE: Measurements here include Kernel Launch overhead and ANY remaining
+  // host work but explicitly EXCLUDE cudaMalloc overhead now.
 
   auto start_time = std::chrono::high_resolution_clock::now();
 
   for (int i = 0; i < iterations; i++) {
     cuda_zstd::fse::encode_fse_advanced(
         (const uint8_t *)d_input, (uint32_t)input_size, (uint8_t *)d_output,
-        d_output_size, true, stream);
+        d_output_size, true, stream, &context);
   }
   cudaStreamSynchronize(stream);
 
@@ -103,26 +121,39 @@ void benchmark_phase3_fse(const std::string &gpu_name) {
   std::chrono::duration<double> elapsed = end_time - start_time;
 
   double total_bytes = (double)input_size * iterations;
-  double total_gb = total_bytes / (1024.0 * 1024.0 * 1024.0);
-  double throughput = total_gb / elapsed.count();
+  double throughput_gbps = (total_bytes / 1e9) / elapsed.count();
+  double time_ms = (elapsed.count() * 1000.0) / iterations;
 
   std::cout << "Total Time: " << elapsed.count() << " s" << std::endl;
-  std::cout << "Throughput: " << std::fixed << std::setprecision(2)
-            << throughput << " GB/s" << std::endl;
+  std::cout << "Throughput: " << throughput_gbps << " GB/s" << std::endl;
 
-  // Log to CSV
-  // Log to CSV
-  // Signature: name, gpu, block_size, num_blocks, total_bytes, time_ms,
-  // throughput
-  log_benchmark_result("Phase3_ChunkFSE_64MB", gpu_name.c_str(),
-                       (unsigned int)input_size, 1, total_bytes,
-                       elapsed.count() * 1000.0, throughput);
+  log_benchmark_result("Phase3_Parallel_FSE_Optimized", gpu_name.c_str(), 0, 0,
+                       total_bytes, time_ms, throughput_gbps);
 
-  // Cleanup
-  cudaStreamDestroy(stream);
+  // Cleanup Context
+  if (context.d_dev_symbol_table)
+    cudaFree(context.d_dev_symbol_table);
+  if (context.d_dev_next_state)
+    cudaFree(context.d_dev_next_state);
+  if (context.d_dev_nbBits_table)
+    cudaFree(context.d_dev_nbBits_table);
+  if (context.d_dev_next_state_vals)
+    cudaFree(context.d_dev_next_state_vals);
+  if (context.d_dev_initial_states)
+    cudaFree(context.d_dev_initial_states);
+  if (context.d_ctable_for_encoder)
+    cudaFree(context.d_ctable_for_encoder);
+  if (context.d_chunk_start_states)
+    cudaFree(context.d_chunk_start_states);
+  if (context.d_bitstreams)
+    cudaFree(context.d_bitstreams);
+  if (context.d_chunk_bit_counts)
+    cudaFree(context.d_chunk_bit_counts);
+
   cudaFree(d_input);
   cudaFree(d_output);
   cudaFree(d_output_size);
+  cudaStreamDestroy(stream);
 }
 
 int main() {
