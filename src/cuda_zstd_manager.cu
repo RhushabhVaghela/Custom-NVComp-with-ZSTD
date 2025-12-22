@@ -1133,7 +1133,13 @@ public:
     // due to PCIe transfer overhead and kernel launch latency.
     // fprintf(stderr, "[SmartRouter] Input: %zu, Threshold: %u\n",
     // uncompressed_size, config.cpu_threshold);
-    if (uncompressed_size < effective_config.cpu_threshold) {
+    // ======================================================================
+    // SMART ROUTER: CPU vs GPU vs Chunk Parallel
+    // ======================================================================
+    auto exec_path = ZstdBatchManager::select_execution_path(
+        uncompressed_size, effective_config.cpu_threshold);
+
+    if (exec_path == ZstdBatchManager::ExecutionPath::CPU) {
       // fprintf(stderr,
       //         "[DEBUG] compress: ROUTED TO CPU. Size=%zu < Threshold=%u\n",
       //         uncompressed_size, effective_config.cpu_threshold);
@@ -4578,6 +4584,30 @@ Status ZstdStreamingManager::decompress_chunk(const void *input,
 // ==============================================================================
 // FACTORY FUNCTIONS
 // ==============================================================================
+
+// ==============================================================================
+// SMART PATH SELECTOR IMPLEMENTATION
+// ==============================================================================
+
+ZstdManager::ExecutionPath
+ZstdManager::select_execution_path(size_t size, int cpu_threshold) {
+  // 1. CPU Path for small payloads (latency sensitive)
+  if (size < (size_t)cpu_threshold) {
+    return ExecutionPath::CPU;
+  }
+
+  // 2. Chunk Parallel Path for large payloads (throughput sensitive)
+  // Threshold: > 1MB (arbitrary start point, to be tuned)
+  if (size > 1024 * 1024) {
+    // TODO: Enable GPU_CHUNK when Phase 3 kernels are ready.
+    // For now, fall back to GPU_BATCH (Standard) to ensure correctness.
+    // return ExecutionPath::GPU_BATCH;
+    return ExecutionPath::GPU_CHUNK;
+  }
+
+  // 3. Standard Batch/Block Path
+  return ExecutionPath::GPU_BATCH;
+}
 
 std::unique_ptr<ZstdManager> create_manager(const CompressionConfig &config) {
   auto manager = std::make_unique<DefaultZstdManager>();

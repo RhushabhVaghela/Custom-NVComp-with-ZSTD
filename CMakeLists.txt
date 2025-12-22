@@ -248,6 +248,12 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_batch_fse cuda_zstd_static)
+
+    # Phase 3 Benchmark
+    # Compile dependencies directly to access internal functions (encode_fse_advanced)
+    add_executable(benchmark_phase3 benchmarks/benchmark_phase3.cu src/cuda_zstd_fse.cu src/cuda_zstd_utils.cu src/cuda_zstd_manager.cu)
+    target_link_libraries(benchmark_phase3 PRIVATE libzstd_static ${CUDA_LIBRARIES})
+    set_target_properties(benchmark_phase3 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
 
