@@ -100,7 +100,7 @@ void verification_test() {
   CHECK(cudaMalloc(&d_output_buffer, num_chunks * stride));
   CHECK(cudaMalloc(&d_chunk_offsets, num_chunks * sizeof(u32)));
 
-  fse_encode_chunk_kernel<<<1, num_chunks>>>(
+  fse_encode_chunk_kernel<<<num_chunks, 1>>>(
       d_symbols, NUM_SYMBOLS, d_stateTable, d_symbolTT, 1, d_out_states,
       CHUNK_SIZE, d_output_buffer, d_chunk_offsets, stride);
   CHECK(cudaDeviceSynchronize());

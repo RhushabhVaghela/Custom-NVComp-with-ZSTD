@@ -172,7 +172,7 @@ static __global__ void fse_encode_chunk_kernel(
     CState.value = (u64)1 << tableLog;
     u32 symbol = *ip--;
     GPU_FSE_SymbolTransform const symbolTransform = symbolTT[symbol];
-    u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
+    u32 nbBitsOut = ((u32)CState.value + symbolTransform.deltaNbBits) >> 16;
     u64 tempValue = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
     u32 tableIndex = (tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
     CState.value = stateTable[tableIndex];

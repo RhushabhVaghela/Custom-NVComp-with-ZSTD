@@ -63,6 +63,11 @@ void benchmark_phase3_fse(const std::string &gpu_name) {
 
   // Use a large file size to ensure we trigger the Chunk Parallel path (>256KB)
   // 64MB implies 64MB / 64KB = 1024 chunks
+
+  // Clear any prior CUDA context errors
+  cudaDeviceReset();
+  cudaSetDevice(0);
+
   const size_t input_size = 64 * 1024 * 1024;
   std::vector<uint8_t> h_input;
   generate_data(h_input, input_size, 4.0); // Moderate entropy
