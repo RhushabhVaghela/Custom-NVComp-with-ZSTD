@@ -3957,6 +3957,15 @@ private:
       // Custom raw u32 mode: data is stored as full u32 arrays
       u32 array_size = num_sequences * sizeof(u32);
 
+      // Bounds check: seq_ctx buffers are allocated for ZSTD_BLOCKSIZE_MAX
+      // elements
+      if (num_sequences > ZSTD_BLOCKSIZE_MAX) {
+        printf("[ERROR] decompress_sequences: num_sequences (%u) exceeds "
+               "buffer capacity (%u)\n",
+               num_sequences, ZSTD_BLOCKSIZE_MAX);
+        return Status::ERROR_BUFFER_TOO_SMALL;
+      }
+
       if (offset + array_size * 3 > input_size) {
         return Status::ERROR_CORRUPT_DATA;
       }
@@ -4022,6 +4031,15 @@ private:
       } else {
         ml_size = 0;
       }
+    }
+
+    // Bounds check: seq_ctx buffers are allocated for ZSTD_BLOCKSIZE_MAX
+    // elements
+    if (num_sequences > ZSTD_BLOCKSIZE_MAX) {
+      printf("[ERROR] decompress_sequences: num_sequences (%u) exceeds buffer "
+             "capacity (%u)\n",
+             num_sequences, ZSTD_BLOCKSIZE_MAX);
+      return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
     Status status;
