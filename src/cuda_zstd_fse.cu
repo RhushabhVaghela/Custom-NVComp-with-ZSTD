@@ -2683,6 +2683,105 @@ end_loop:
 }
 
 // ==============================================================================
+// NEW: GPU Kernel for Chunk Boundary Finding
+// Eliminates D2H copy by running sequential simulation on GPU
+// ==============================================================================
+
+/**
+ * @brief GPU kernel to find FSE chunk boundaries
+ * Runs on single thread but avoids D2H copy of bitstream
+ */
+__global__ void fse_find_chunk_boundaries_gpu(
+    const byte_t *d_bitstream, u32 bitstream_size_bytes, const u16 *d_newState,
+    const u8 *d_nbBits, u32 table_log, u32 total_symbols, u32 chunk_size,
+    FSEChunkInfo *d_chunk_infos, u32 *d_num_chunks) {
+
+  // Single thread execution
+  if (threadIdx.x != 0 || blockIdx.x != 0)
+    return;
+
+  u32 num_chunks = (total_symbols + chunk_size - 1) / chunk_size;
+  *d_num_chunks = num_chunks;
+
+  if (total_symbols == 0 || num_chunks == 0)
+    return;
+
+  // Find initial bit position (scan from end for marker)
+  u32 bit_pos = 0;
+  if (bitstream_size_bytes > 0) {
+    u32 byte_idx = bitstream_size_bytes - 1;
+    while (byte_idx < bitstream_size_bytes) {
+      if (d_bitstream[byte_idx] != 0) {
+        u32 byte_val = d_bitstream[byte_idx];
+        int highest_bit = 31 - __clz(byte_val);
+        bit_pos = byte_idx * 8 + highest_bit;
+        break;
+      }
+      if (byte_idx == 0)
+        break;
+      byte_idx--;
+    }
+  }
+
+  // Read initial state
+  u32 table_size = 1u << table_log;
+  bit_pos -= table_log;
+
+  u32 state = 0;
+  {
+    u32 byte_offset = bit_pos / 8;
+    u32 bit_offset = bit_pos % 8;
+    if (byte_offset < bitstream_size_bytes) {
+      u32 bytes_available = min(4u, bitstream_size_bytes - byte_offset);
+      u32 data = 0;
+      for (u32 j = 0; j < bytes_available; j++) {
+        data |= ((u32)d_bitstream[byte_offset + j]) << (j * 8);
+      }
+      u32 mask = (1u << table_log) - 1;
+      state = (data >> bit_offset) & mask;
+    }
+  }
+
+  // Decode chunks in forward order
+  for (u32 chunk_idx = 0; chunk_idx < num_chunks; chunk_idx++) {
+    u32 start_seq = chunk_idx * chunk_size;
+    u32 count = min(chunk_size, total_symbols - start_seq);
+
+    // Record chunk info
+    d_chunk_infos[chunk_idx].start_seq = start_seq;
+    d_chunk_infos[chunk_idx].num_symbols = count;
+    d_chunk_infos[chunk_idx].state = state;
+    d_chunk_infos[chunk_idx].bit_position = bit_pos;
+
+    // Simulate decoding this chunk to find next chunk's start state
+    for (u32 i = 0; i < count; i++) {
+      if (state >= table_size)
+        break;
+
+      u8 nbBits = d_nbBits[state];
+      u16 nextStateBase = d_newState[state];
+
+      bit_pos -= nbBits;
+      u32 bits = 0;
+      if (nbBits > 0) {
+        u32 byte_offset = bit_pos / 8;
+        u32 bit_offset = bit_pos % 8;
+        if (byte_offset < bitstream_size_bytes) {
+          u32 bytes_available = min(4u, bitstream_size_bytes - byte_offset);
+          u32 data = 0;
+          for (u32 j = 0; j < bytes_available; j++) {
+            data |= ((u32)d_bitstream[byte_offset + j]) << (j * 8);
+          }
+          u32 mask = (1u << nbBits) - 1;
+          bits = (data >> bit_offset) & mask;
+        }
+      }
+      state = nextStateBase + bits;
+    }
+  }
+}
+
+// ==============================================================================
 // OLD GPU SETUP KERNEL (DEPRECATED -
 // using CPU approach instead)
 // ==============================================================================
@@ -3309,31 +3408,33 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
                      FSE_DECODE_SYMBOLS_PER_CHUNK;
 
     // ==============================================================================
-    // NEW APPROACH: Find chunk
-    // boundaries on CPU (reliable &
-    // optimized)
+    // OPTIMIZED: Find chunk boundaries on GPU (eliminates D2H copy)
     // ==============================================================================
 
-    // Step 4.1: Find chunk boundaries
-    // using CPU (no GPU setup kernel
-    // needed!)
-    auto chunk_infos = find_chunk_boundaries_cpu(
-        d_bitstream, bitstream_size_bytes, h_table, output_size_expected,
-        FSE_DECODE_SYMBOLS_PER_CHUNK, table_log);
+    // Allocate device memory for chunk infos
+    FSEChunkInfo *d_chunk_infos;
+    u32 *d_num_chunks;
+    CUDA_CHECK(cudaMalloc(&d_chunk_infos, num_chunks * sizeof(FSEChunkInfo)));
+    CUDA_CHECK(cudaMalloc(&d_num_chunks, sizeof(u32)));
 
-    num_chunks = chunk_infos.size();
+    // Launch GPU kernel to find chunk boundaries (single thread, but no D2H
+    // copy!)
+    fse_find_chunk_boundaries_gpu<<<1, 1, 0, stream>>>(
+        d_bitstream, bitstream_size_bytes, d_table.newState, d_table.nbBits,
+        table_log, output_size_expected, FSE_DECODE_SYMBOLS_PER_CHUNK,
+        d_chunk_infos, d_num_chunks);
 
+    // Copy num_chunks back to host (small, only 4 bytes)
+    CUDA_CHECK(cudaMemcpyAsync(&num_chunks, d_num_chunks, sizeof(u32),
+                               cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+
+    cudaFree(d_num_chunks);
+
+    // Clean up host table (no longer needed after GPU kernel launch)
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
-
-    // Step 4.2: Upload chunk metadata
-    // to GPU
-    FSEChunkInfo *d_chunk_infos;
-    CUDA_CHECK(cudaMalloc(&d_chunk_infos, num_chunks * sizeof(FSEChunkInfo)));
-    CUDA_CHECK(cudaMemcpy(d_chunk_infos, chunk_infos.data(),
-                          num_chunks * sizeof(FSEChunkInfo),
-                          cudaMemcpyHostToDevice));
 
     // Step 4.3: Launch simplified
     // parallel decode kernel
