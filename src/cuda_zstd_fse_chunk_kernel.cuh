@@ -18,7 +18,7 @@ namespace fse {
 // 1. STATE PRE-PASS KERNEL
 // ==============================================================================
 
-static __global__ void fse_compute_states_kernel(
+static __global__ void fse_compute_states_kernel_sequential(
     const byte_t *symbols, u32 num_symbols, const u16 *stateTable,
     const GPU_FSE_SymbolTransform *symbolTT, u16 tableLog, u32 chunk_size,
     u16 *out_states, // Array of start states for chunks
@@ -38,11 +38,21 @@ static __global__ void fse_compute_states_kernel(
   u32 symbol = *ip--;
   current_idx--;
 
-  u64 state = 1ULL << tableLog; // Base state
   GPU_FSE_SymbolTransform const symbolTransform = symbolTT[symbol];
-  u32 nbBitsOut = ((u32)state + symbolTransform.deltaNbBits) >> 16;
+  // Fix: Use correct init formula (match fse_encode_chunk_kernel / Zstd
+  // FSE_initCState2)
+  u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
   u64 tempValue = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
   u32 tableIndex = (tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
+
+  // Bounds check for first access
+  u32 table_size = 1u << tableLog;
+  if (tableIndex >= table_size) {
+    printf("[CRASH] fse_compute_states: tableIndex=%u >= table_size=%u at "
+           "symbol=%u\n",
+           tableIndex, table_size, symbol);
+    return;
+  }
   state_value = stateTable[tableIndex];
 
   // Last Symbol bits belong to the LAST chunk
@@ -111,7 +121,15 @@ static __global__ void fse_compute_states_kernel(
     // Transition
     GPU_FSE_SymbolTransform const sTT = symbolTT[symbol];
     u32 const nbBits = ((u32)state_value + sTT.deltaNbBits) >> 16;
-    state_value = stateTable[(state_value >> nbBits) + sTT.deltaFindState];
+    u32 loop_index = (state_value >> nbBits) + sTT.deltaFindState;
+    if (loop_index >= table_size) {
+      printf("[CRASH] Loop: index=%u >= table_size=%u at symbol=%u state=%llu "
+             "nbBits=%u\n",
+             loop_index, table_size, symbol, (unsigned long long)state_value,
+             nbBits);
+      return;
+    }
+    state_value = stateTable[loop_index];
     chunk_current_bits += nbBits;
 
     // Check termination
@@ -124,6 +142,349 @@ static __global__ void fse_compute_states_kernel(
   if (bit_counts != nullptr) {
     bit_counts[0] =
         chunk_current_bits + tableLog; // Add Flush bits (tableLog) to Chunk 0
+  }
+}
+
+// O(1) Parallel Setup Kernel (Independent Chunks)
+static __global__ void fse_compute_states_kernel_parallel(
+    const byte_t *symbols, u32 num_symbols, const u16 *stateTable,
+    const GPU_FSE_SymbolTransform *symbolTT, u16 tableLog, u32 chunk_size,
+    u16 *out_states, // Array of start states for chunks
+    u32 *bit_counts  // Output: Exact bit size of each chunk
+) {
+  u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  u32 total_chunks = (num_symbols + chunk_size - 1) / chunk_size;
+
+  if (chunk_idx >= total_chunks)
+    return;
+
+  // Identify chunk boundaries
+  u32 start_idx = chunk_idx * chunk_size;
+  u32 end_idx = min(start_idx + chunk_size, num_symbols);
+
+  // Each chunk is treated as an independent FSE stream.
+  // The "Start State" for encoding a stream is determined by its LAST symbol
+  // (since encoding is backwards).
+  // We behave as if we are at the end of the chunk, initializing the state.
+
+  if (end_idx == 0)
+    return; // Empty?
+
+  const byte_t *chunk_end = symbols + end_idx - 1;
+  u32 symbol = *chunk_end;
+
+  // FSE_initCState logic
+  // val = FSE_initCState2(stateTable, symbolTT, symbol)
+  GPU_FSE_SymbolTransform const symbolTransform = symbolTT[symbol];
+  u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
+  u64 tempValue = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
+  u32 tableIndex = (tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
+
+  u32 table_size = 1u << tableLog;
+  if (tableIndex >= table_size) {
+    // Sanity check (should not happen with valid tables)
+    out_states[chunk_idx] = 0;
+    return;
+  }
+
+  u16 state_value = stateTable[tableIndex];
+  out_states[chunk_idx] = state_value;
+
+  // Initialize bit count with the bits from this first (last) symbol?
+  // In sequential kernel, `bit_counts` accumulated total bits.
+  // In parallel encoding `fse_encode_chunk_kernel`, we compute bits as we go.
+  // Do we need `bit_counts` here?
+  // Yes, for the `fse_merge_bitstreams_kernel` which uses prefix sum of bit
+  // counts. BUT computing exact bit count requires scanning the whole chunk. If
+  // we only do O(1) init, we don't know the bit count!
+  //
+  // CRITICAL: We need the bit count for the Merge Kernel.
+  // We CANNOT skip the scan if we need the exact size.
+  // So each thread MUST scan its chunk.
+  // But local chunk scan is fast! (64KB is small for one thread? No, sizeable).
+  // 64000 steps.
+  // Is it faster than sequential?
+  // Sequential: 1 thread does 64MB.
+  // Parallel: 1024 threads each do 64KB.
+  // Speedup = 1024x.
+  //
+  // So we DO the scan.
+
+  // Init is already done (state_value).
+  // Bits from init symbol:
+  u32 chunk_bits = nbBitsOut;
+
+  // We scan backwards from end_idx-1 down to start_idx.
+  // BUT we already processed end_idx-1 (init).
+  // So loop from end_idx-2 down to start_idx.
+
+  const byte_t *ip = chunk_end - 1; // Next symbol to encode (backwards)
+
+  // Iterate
+  // Note: chunk_begin is symbols + start_idx.
+  const byte_t *chunk_begin = symbols + start_idx;
+
+  while (ip >= chunk_begin) {
+    symbol = *ip--;
+
+    GPU_FSE_SymbolTransform const sTT = symbolTT[symbol];
+    u32 const nbBits = ((u32)state_value + sTT.deltaNbBits) >> 16;
+    u32 loop_index = (state_value >> nbBits) + sTT.deltaFindState;
+
+    state_value = stateTable[loop_index];
+    chunk_bits += nbBits;
+  }
+
+  // Flush bits?
+  // Independent stream: Flush state at end.
+  // `fse_encode_chunk_kernel` does `gpu_fse_flush_state` which adds `tableLog`
+  // bits.
+  chunk_bits += tableLog;
+
+  if (bit_counts) {
+    bit_counts[chunk_idx] = chunk_bits;
+  }
+
+  // Update state again?
+  // `out_states` should hold the state used to START encoding `start_idx`.
+  // Wait. `fse_encode_chunk_kernel` uses `start_states[chunk_idx]` to INIT the
+  // state. Logic in Encode Kernel: If Last Chunk: Init from symbol (Standard).
+  // Else: Use `start_states[chunk_idx]`.
+  //
+  // Using `start_states` implies we pass a state from somewhere.
+  // If we are independent, `fse_encode_chunk_kernel` should behave like "Last
+  // Chunk" (Init from symbol).
+  //
+  // REFACTOR:
+  // We should modify `fse_encode_chunk_kernel` to ALWAYS init from symbol
+  // (Independent Mode). Then `setup_kernel` ONLY needs to compute `bit_counts`.
+  //
+  // However, to minimize changes to Encode Kernel, we can just compute the Init
+  // State here and pass it. The Init State is the result of `FSE_initCState` on
+  // the last symbol. We computed that above into `state_value` (initial).
+  //
+  // Wait. `state_value` changes during the loop.
+  // We need to store the *Initial* state (from `end_idx-1`) into `out_states`.
+  // The loop is just for bit counting.
+
+  // Re-calculate Init State to be sure/clean or store it before loop.
+  // Let's store it before loop.
+}
+
+// ==============================================================================
+// 1c. BUFFERED (INT4) SHARED MEMORY PARALLEL SETUP KERNEL
+// ==============================================================================
+static __global__ void fse_compute_states_kernel_parallel_shmem_int4(
+    const byte_t *symbols, u32 num_symbols, const u16 *stateTable,
+    const GPU_FSE_SymbolTransform *symbolTT, u16 tableLog, u32 chunk_size,
+    u16 *out_states, // Array of start states for chunks
+    u32 *bit_counts  // Output: Exact bit size of each chunk
+) {
+  extern __shared__ char s_mem_buffer[];
+  u16 *s_stateTable = (u16 *)s_mem_buffer;
+
+  u32 table_size = 1u << tableLog;
+
+  // Align symbol table offset to 8 bytes
+  u32 state_bytes = table_size * sizeof(u16);
+  u32 state_bytes_aligned = (state_bytes + 7) & ~7;
+  GPU_FSE_SymbolTransform *s_symbolTT =
+      (GPU_FSE_SymbolTransform *)(s_mem_buffer + state_bytes_aligned);
+
+  // Cooperative Load: State Table
+  for (u32 i = threadIdx.x; i < table_size; i += blockDim.x) {
+    s_stateTable[i] = stateTable[i];
+  }
+
+  // Cooperative Load: Symbol Table
+  for (u32 i = threadIdx.x; i < 256; i += blockDim.x) {
+    s_symbolTT[i] = symbolTT[i];
+  }
+
+  __syncthreads();
+
+  // Compute Chunk
+  u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  u32 total_chunks = (num_symbols + chunk_size - 1) / chunk_size;
+
+  if (chunk_idx >= total_chunks)
+    return;
+
+  u32 start_idx = chunk_idx * chunk_size;
+  u32 end_idx = min(start_idx + chunk_size, num_symbols);
+
+  if (end_idx == 0)
+    return;
+
+  const byte_t *chunk_end = symbols + end_idx - 1;
+  u32 symbol = *chunk_end;
+
+  // FSE_initCState logic using SHARED MEMORY tables
+  GPU_FSE_SymbolTransform const symbolTransform = s_symbolTT[symbol];
+  u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
+  u64 tempValue = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
+  u32 tableIndex = (tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
+
+  if (tableIndex >= table_size) {
+    out_states[chunk_idx] = 0;
+    return;
+  }
+
+  u16 state_value = s_stateTable[tableIndex];
+  out_states[chunk_idx] = state_value;
+
+  // Bit counting loop with INT4 Loading
+  u32 chunk_bits = nbBitsOut;
+
+  // We scan backwards from end_idx-1 down to start_idx.
+  // We already processed end_idx-1.
+
+  // Use aligned 16-byte loads if possible.
+  // The pointers are arbitrary, so we need to handle alignment.
+  // Actually, random access backward scan is hard to vectorize perfectly?
+  // No, we scan SEQUENTIALLY BACKWARDS.
+  // We can load a block of 16 bytes, put it in registers, and process it.
+
+  // Current position to read:
+  const byte_t *current_ptr =
+      chunk_end - 1; // Last byte processed was chunk_end
+  // So next byte is chunk_end-1.
+
+  const byte_t *chunk_begin = symbols + start_idx;
+
+  // Main loop: Process in 16-byte blocks as much as possible
+  // We want to read 16 bytes ending at current_ptr.
+  // (ptr - 16 + 1) ... ptr
+
+  while (current_ptr >= chunk_begin) {
+    // Check if we can read 16 bytes BACKWARDS
+    long long dist = (current_ptr - chunk_begin) + 1;
+
+    if (dist >= 16) {
+      // Load 16 bytes into a local buffer (unaligned-safe).
+      // We want bytes [current_ptr - 15 ... current_ptr]
+      const byte_t *load_addr = current_ptr - 15;
+
+      // Unaligned-safe load: Read bytes individually into a local array
+      byte_t local_buf[16];
+#pragma unroll
+      for (int b = 0; b < 16; ++b) {
+        local_buf[b] = load_addr[b];
+      }
+
+// Process 16 bytes from high to low (local_buf[15] down to local_buf[0])
+#pragma unroll
+      for (int i = 15; i >= 0; --i) {
+        symbol = local_buf[i];
+        GPU_FSE_SymbolTransform const sTT = s_symbolTT[symbol];
+        u32 const nbBits = ((u32)state_value + sTT.deltaNbBits) >> 16;
+        u32 loop_index = (state_value >> nbBits) + sTT.deltaFindState;
+        state_value = s_stateTable[loop_index];
+        chunk_bits += nbBits;
+      }
+
+      current_ptr -= 16;
+
+    } else {
+      // Scalar fallback for remaining items (<16)
+      symbol = *current_ptr--;
+      GPU_FSE_SymbolTransform const sTT = s_symbolTT[symbol];
+      u32 const nbBits = ((u32)state_value + sTT.deltaNbBits) >> 16;
+      u32 loop_index = (state_value >> nbBits) + sTT.deltaFindState;
+      state_value = s_stateTable[loop_index];
+      chunk_bits += nbBits;
+    }
+  }
+
+  chunk_bits += tableLog;
+
+  if (bit_counts) {
+    bit_counts[chunk_idx] = chunk_bits;
+  }
+}
+
+// ==============================================================================
+// 1b. OPTIMIZED SHARED MEMORY PARALLEL SETUP KERNEL
+// ==============================================================================
+static __global__ void fse_compute_states_kernel_parallel_shmem(
+    const byte_t *symbols, u32 num_symbols, const u16 *stateTable,
+    const GPU_FSE_SymbolTransform *symbolTT, u16 tableLog, u32 chunk_size,
+    u16 *out_states, // Array of start states for chunks
+    u32 *bit_counts  // Output: Exact bit size of each chunk
+) {
+  extern __shared__ char s_mem_buffer[];
+  u16 *s_stateTable = (u16 *)s_mem_buffer;
+
+  u32 table_size = 1u << tableLog;
+
+  // Align symbol table offset to 8 bytes
+  u32 state_bytes = table_size * sizeof(u16);
+  u32 state_bytes_aligned = (state_bytes + 7) & ~7;
+  GPU_FSE_SymbolTransform *s_symbolTT =
+      (GPU_FSE_SymbolTransform *)(s_mem_buffer + state_bytes_aligned);
+
+  // Cooperative Load: State Table
+  for (u32 i = threadIdx.x; i < table_size; i += blockDim.x) {
+    s_stateTable[i] = stateTable[i];
+  }
+
+  // Cooperative Load: Symbol Table
+  for (u32 i = threadIdx.x; i < 256; i += blockDim.x) {
+    s_symbolTT[i] = symbolTT[i];
+  }
+
+  __syncthreads();
+
+  // Compute Chunk
+  u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  u32 total_chunks = (num_symbols + chunk_size - 1) / chunk_size;
+
+  if (chunk_idx >= total_chunks)
+    return;
+
+  u32 start_idx = chunk_idx * chunk_size;
+  u32 end_idx = min(start_idx + chunk_size, num_symbols);
+
+  if (end_idx == 0)
+    return;
+
+  const byte_t *chunk_end = symbols + end_idx - 1;
+  u32 symbol = *chunk_end;
+
+  // FSE_initCState logic using SHARED MEMORY tables
+  GPU_FSE_SymbolTransform const symbolTransform = s_symbolTT[symbol];
+  u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
+  u64 tempValue = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
+  u32 tableIndex = (tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
+
+  if (tableIndex >= table_size) {
+    out_states[chunk_idx] = 0;
+    return;
+  }
+
+  u16 state_value = s_stateTable[tableIndex];
+  out_states[chunk_idx] = state_value;
+
+  // Bit counting loop
+  u32 chunk_bits = nbBitsOut;
+  const byte_t *ip = chunk_end - 1;
+  const byte_t *chunk_begin = symbols + start_idx;
+
+  while (ip >= chunk_begin) {
+    symbol = *ip--;
+
+    GPU_FSE_SymbolTransform const sTT = s_symbolTT[symbol];
+    u32 const nbBits = ((u32)state_value + sTT.deltaNbBits) >> 16;
+    u32 loop_index = (state_value >> nbBits) + sTT.deltaFindState;
+
+    state_value = s_stateTable[loop_index];
+    chunk_bits += nbBits;
+  }
+
+  chunk_bits += tableLog;
+
+  if (bit_counts) {
+    bit_counts[chunk_idx] = chunk_bits;
   }
 }
 
@@ -188,22 +549,9 @@ static __global__ void fse_encode_chunk_kernel(
   }
 
   // --- Flush State ---
-  // Only Chunk 0 flushes the final state bits (End of Stream)
-  if (chunk_idx == 0) {
-    gpu_fse_flush_state(&bitC, &CState);
-  } else {
-    // For other chunks, we flush bits remaining in container
-    // Note: This pads to next byte.
-    // Bitstream Stitching Logic will handle desync or shifting.
-    gpu_bit_flush_bits(&bitC);
-    // If bits remaining (<8), we force flush?
-    if (bitC.bitPos > 0) {
-      if (bitC.ptr < bitC.endPtr) {
-        *bitC.ptr = (byte_t)bitC.bitContainer;
-        bitC.ptr++;
-      }
-    }
-  }
+  // --- Flush State ---
+  // In Independent Chunk Mode, EVERY chunk must flush its state bits
+  gpu_fse_flush_state(&bitC, &CState);
 
   chunk_offsets[chunk_idx] = (u32)(bitC.ptr - bitC.startPtr);
 }

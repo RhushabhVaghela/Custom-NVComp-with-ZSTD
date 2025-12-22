@@ -91,6 +91,7 @@ struct FSEContext {
   // Capacity Tracking
   size_t bitstreams_capacity_bytes = 0;
   size_t num_chunks_capacity = 0;
+  size_t symbol_table_capacity = 0; // (FIX) Track max_symbol+1 capacity
 };
 
 // ============================================================================

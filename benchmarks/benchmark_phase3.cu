@@ -53,6 +53,9 @@ void generate_data(std::vector<uint8_t> &data, size_t size,
 }
 
 void benchmark_phase3_fse(const std::string &gpu_name) {
+  // Ensure fresh start (Fixes sticky Pre-existing errors)
+  cudaDeviceReset();
+
   std::cout << "============================================================"
             << std::endl;
   std::cout << "   Phase 3 Benchmark: Intra-Block Parallel FSE Throughput"
@@ -64,23 +67,41 @@ void benchmark_phase3_fse(const std::string &gpu_name) {
   // Use a large file size to ensure we trigger the Chunk Parallel path (>256KB)
   // 64MB implies 64MB / 64KB = 1024 chunks
 
-  // Clear any prior CUDA context errors
-  cudaDeviceReset();
-  cudaSetDevice(0);
-
-  const size_t input_size = 64 * 1024 * 1024;
+  // Use 1MB to test correctness quickly (avoid setup bottleneck)
+  const size_t input_size = 1 * 1024 * 1024;
   std::vector<uint8_t> h_input;
   generate_data(h_input, input_size, 4.0); // Moderate entropy
 
   void *d_input, *d_output;
   uint32_t *d_output_size;
 
-  cudaMalloc(&d_input, input_size);
-  cudaMalloc(&d_output, input_size * 2); // Conservative
-  cudaMalloc(&d_output_size, sizeof(uint32_t));
+  cudaError_t err;
+  err = cudaMalloc(&d_input, input_size);
+  if (err != cudaSuccess) {
+    printf("Malloc d_input failed: %s\n", cudaGetErrorString(err));
+    return;
+  }
 
-  cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
+  err = cudaMalloc(&d_output, input_size * 2);
+  if (err != cudaSuccess) {
+    printf("Malloc d_output failed: %s\n", cudaGetErrorString(err));
+    return;
+  }
 
+  err = cudaMalloc(&d_output_size, sizeof(uint32_t));
+  if (err != cudaSuccess) {
+    printf("Malloc d_output_size failed: %s\n", cudaGetErrorString(err));
+    return;
+  }
+
+  err = cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    printf("Memcpy d_input failed: %s\n", cudaGetErrorString(err));
+    return;
+  }
+
+  // Warmup
+  std::cout << "Warming up..." << std::endl;
   cudaStream_t stream;
   cudaStreamCreate(&stream);
 
