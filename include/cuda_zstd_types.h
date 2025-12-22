@@ -95,6 +95,24 @@ struct FSEContext {
 };
 
 // ============================================================================
+// Bitstream Format Selection (nvcomp-style)
+// ============================================================================
+
+/**
+ * @brief Selects bitstream format for compression output.
+ *
+ * NATIVE: GPU-optimized format with raw u32 sequence arrays.
+ *         Fastest for GPU-to-GPU pipelines. NOT compatible with official zstd.
+ *
+ * RAW:    RFC 8878 compliant format with FSE-encoded sequences.
+ *         Compatible with official zstd decoder. Slightly slower.
+ */
+enum class BitstreamKind : u32 {
+  NATIVE = 0, // GPU-optimized, internal use only
+  RAW = 1     // RFC 8878 compatible, interoperable with official zstd
+};
+
+// ============================================================================
 // Enhanced Status Codes with Context
 // ============================================================================
 
