@@ -23,9 +23,9 @@
 #include <vector>
 
 // Zstd Internal Headers (for FSE_buildCTable_wksp)
-#include "common/error_private.h" // For FSE_isError
-#define FSE_STATIC_LINKING_ONLY
-#include "common/fse.h" // Ensure this path is correct via -I include
+// #include "common/error_private.h" // For FSE_isError
+// #define FSE_STATIC_LINKING_ONLY
+// #include "common/fse.h" // Ensure this path is correct via -I include
 
 #include <cassert>
 #include <cmath>
@@ -2683,6 +2683,99 @@ end_loop:
 }
 
 // ==============================================================================
+// NEW: GPU Kernel for FSE Decode Table Building
+// Eliminates CPU table build by running on GPU
+// ==============================================================================
+
+/**
+ * @brief GPU kernel to build FSE decode table
+ * Phase 1: Single thread spreads symbols (matches ZSTD algorithm)
+ * Phase 2: Parallel threads build nbBits/newState
+ */
+__global__ void fse_build_decode_table_gpu(const u16 *d_normalized,
+                                           u32 max_symbol, u32 table_log,
+                                           u8 *d_symbol, u8 *d_nbBits,
+                                           u16 *d_newState) {
+
+  __shared__ u8 s_spread_symbol[4096]; // Max table size
+  __shared__ u32 s_symbol_next[256];   // Max 256 symbols
+
+  u32 table_size = 1u << table_log;
+  u32 tid = threadIdx.x;
+  u32 block_size = blockDim.x;
+
+  // Phase 1: Single thread spreads symbols (sequential ZSTD algorithm)
+  if (tid == 0) {
+    const u32 SPREAD_STEP = (table_size >> 1) + (table_size >> 3) + 3;
+    const u32 table_mask = table_size - 1;
+
+    u32 position = 0;
+    for (u32 s = 0; s <= max_symbol; s++) {
+      u32 freq = d_normalized[s];
+
+      for (u32 i = 0; i < freq; i++) {
+        s_spread_symbol[position] = (u8)s;
+        position = (position + SPREAD_STEP) & table_mask;
+      }
+      // Initialize symbolNext counter to frequency
+      s_symbol_next[s] = freq;
+    }
+  }
+  __syncthreads();
+
+  // Phase 2: Parallel threads copy spread symbols to output
+  for (u32 state = tid; state < table_size; state += block_size) {
+    d_symbol[state] = s_spread_symbol[state];
+  }
+  __syncthreads();
+
+  // Phase 3: Single thread builds nbBits/newState (sequential due to symbolNext
+  // dependency) This could be parallelized with atomic ops, but sequential is
+  // simpler and fast enough
+  if (tid == 0) {
+    for (u32 state = 0; state < table_size; state++) {
+      u8 symbol = s_spread_symbol[state];
+
+      // Get and increment nextState
+      u32 nextState = s_symbol_next[symbol]++;
+
+      // Calculate nbBits: tableLog - highBit(nextState)
+      u32 highBit = 0;
+      if (nextState > 0) {
+        highBit = 31 - __clz(nextState);
+      }
+      u32 nbBits = table_log - highBit;
+
+      // Zstd formula: newState = (nextState << nbBits) - tableSize
+      d_nbBits[state] = (u8)nbBits;
+      d_newState[state] = (u16)((nextState << nbBits) - table_size);
+
+      // Debug: Print state 7 calculation
+      if (state == 7) {
+        printf("[TABLE] state=7: symbol=%u nextState=%u highBit=%u nbBits=%u "
+               "newState=%u\\n",
+               symbol, nextState, highBit, nbBits,
+               (u16)((nextState << nbBits) - table_size));
+      }
+      // Debug: Print state 128 calculation
+      if (state == 128) {
+        printf("[TABLE] state=128: symbol=%u nextState=%u highBit=%u nbBits=%u "
+               "newState=%u\\n",
+               symbol, nextState, highBit, nbBits,
+               (u16)((nextState << nbBits) - table_size));
+      }
+      // Debug: Find states with symbols 107 and 21
+      if (symbol == 107) {
+        printf("[TABLE] state=%u has symbol=107 (0x6b)\\n", state);
+      }
+      if (symbol == 21) {
+        printf("[TABLE] state=%u has symbol=21 (0x15)\\n", state);
+      }
+    }
+  }
+}
+
+// ==============================================================================
 // NEW: GPU Kernel for Chunk Boundary Finding
 // Eliminates D2H copy by running sequential simulation on GPU
 // ==============================================================================
@@ -2949,99 +3042,321 @@ __global__ void fse_parallel_decode_setup_kernel(
   // set)
 }
 
-__global__ void fse_parallel_decode_kernel(
-    const byte_t *d_bitstream, u32 bitstream_size_bytes, u32 num_sequences,
-    const u16 *d_newState, const u8 *d_symbol, const u8 *d_nbBits,
-    u32 table_log, u32 num_chunks, const u32 *d_chunk_start_bits,
-    const u32 *d_chunk_start_states, byte_t *d_output) {
-  // Shared memory for FSE table
-  // Max table log 12 => 4096 entries
-  // Size: 4096*2 (u16) + 4096*1 (u8) +
-  // 4096*1 (u8) = 16KB
-  extern __shared__ byte_t shared_mem[];
-  u16 *s_newState = (u16 *)shared_mem;
-  u8 *s_symbol = (u8 *)&s_newState[1 << table_log];
-  u8 *s_nbBits = (u8 *)&s_symbol[1 << table_log];
+// ==============================================================================
+// SPECULATIVE PARALLEL DECODING (OVERFLOW PATTERN)
+// ==============================================================================
 
-  u32 table_size = 1 << table_log;
-  u32 tid = threadIdx.x;
-  u32 block_size = blockDim.x;
+/**
+ * @brief Kernel 1: Find valid start states and count symbols per chunk
+ * Uses "warmup" (overflow) to synchronize state from incorrect guess.
+ * INDEXING: chunks index from Low Address (0) to High Address.
+ * Chunk i covers bits [i*Size ... (i+1)*Size].
+ * Since FSE reads backward, we decode from (i+1)*Size down to i*Size.
+ */
+__global__ void fse_speculative_count_kernel(
+    const byte_t *d_bitstream, u32 bitstream_size_bytes, const u16 *d_newState,
+    const u8 *d_nbBits, u32 table_log, u32 chunk_size_bits,
+    u32 num_chunks_total, u32 *d_chunk_symbol_counts) {
 
-  // Cooperative load of tables into
-  // shared memory
-  for (u32 i = tid; i < table_size; i += block_size) {
-    s_newState[i] = d_newState[i];
-    s_symbol[i] = d_symbol[i];
-    s_nbBits[i] = d_nbBits[i];
-  }
-  __syncthreads();
-
-  // Each thread processes one chunk
-  u32 chunk_id = blockIdx.x * blockDim.x + threadIdx.x;
-  if (chunk_id >= num_chunks)
+  u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (chunk_idx >= num_chunks_total)
     return;
 
-  // Calculate this chunk's range
-  u32 chunk_start_seq = chunk_id * FSE_DECODE_SYMBOLS_PER_CHUNK;
-  u32 chunk_end_seq =
-      min(chunk_start_seq + FSE_DECODE_SYMBOLS_PER_CHUNK, num_sequences);
-  u32 chunk_size = chunk_end_seq - chunk_start_seq;
+  u32 bit_stream_end_pos = bitstream_size_bytes * 8;
 
-  if (chunk_size == 0)
-    return;
+  // Chunk i: [start_bit, stop_bit)
+  // Decode direction: stop_bit -> start_bit (Backwards)
+  long long start_bit = (long long)chunk_idx * chunk_size_bits;
+  long long stop_bit = (long long)(chunk_idx + 1) * chunk_size_bits;
 
-  // Get initial state and bit position
-  // for this chunk
-  u32 state = d_chunk_start_states[chunk_id];
-  u32 bit_position = d_chunk_start_bits[chunk_id];
+  // Last chunk clamping
+  if (stop_bit > bit_stream_end_pos)
+    stop_bit = bit_stream_end_pos;
 
-  for (int local_idx = 0; local_idx < (int)chunk_size; local_idx++) {
-
-    // Get symbol and transition info
-    // from SHARED MEMORY table
-    u8 symbol = s_symbol[state];
-    u8 num_bits = s_nbBits[state];
-    u16 next_state_base = s_newState[state];
-
-    // Read bits for state transition
-    // (reading backwards)
-    u32 new_bits = 0;
-    if (num_bits > 0) {
-      bit_position -= num_bits;
-
-      // Read bits from bitstream at
-      // bit_position
-      u32 byte_offset = bit_position / 8;
-      u32 bit_offset = bit_position % 8;
-
-      if (byte_offset < bitstream_size_bytes) {
-        u32 bytes_available = min(4u, bitstream_size_bytes - byte_offset);
-        u32 data = 0;
-        for (u32 i = 0; i < bytes_available; i++) {
-          data |= ((u32)d_bitstream[byte_offset + i]) << (i * 8);
+  // TERMINATOR SCAN (Last Chunk Only)
+  if (chunk_idx == num_chunks_total - 1) {
+    long long scan_pos = stop_bit - 1;
+    long long limit = start_bit;
+    while (scan_pos >= limit) {
+      u32 byte_idx = scan_pos / 8;
+      u32 bit_idx = scan_pos % 8;
+      if (byte_idx < bitstream_size_bytes) {
+        if ((d_bitstream[byte_idx] >> bit_idx) & 1) {
+          stop_bit = scan_pos; // Found it
+          printf(
+              "[DEBUG TERM] Found terminator at bit %lld (byte %u, bit %u)\\n",
+              scan_pos, byte_idx, bit_idx);
+          break;
         }
-
-        // Extract the required bits
-        u32 mask = (1u << num_bits) - 1;
-        new_bits = (data >> bit_offset) & mask;
       }
+      scan_pos--;
+    }
+  }
+
+  if (start_bit >= stop_bit) {
+    d_chunk_symbol_counts[chunk_idx] = 0;
+    return;
+  }
+
+  // WARMUP / OVERFLOW PHASE
+  // To find the state at stop_bit, start at stop_bit + WARMUP
+  // and decode down to stop_bit.
+  // Last Chunk: NO WARMUP (Exact start at Terminator)
+  const u32 WARMUP_BITS = (chunk_idx == num_chunks_total - 1) ? 0 : 256;
+  long long warmup_start_bit = stop_bit + WARMUP_BITS;
+  if (warmup_start_bit > bit_stream_end_pos)
+    warmup_start_bit = bit_stream_end_pos;
+
+  // Initial guess
+  u32 state = 0;
+  long long current_bit = warmup_start_bit;
+
+  // Initial state read logic
+  if (current_bit >= table_log) {
+    current_bit -= table_log;
+    u32 byte_off = current_bit / 8;
+    u32 bit_off = current_bit % 8;
+    if (byte_off < bitstream_size_bytes) {
+      u32 val = 0;
+      u32 len = min(4u, bitstream_size_bytes - byte_off);
+      for (u32 k = 0; k < len; k++)
+        val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+      state = (val >> bit_off) & ((1u << table_log) - 1);
+    }
+    if (chunk_idx == num_chunks_total - 1) {
+      printf("[DEBUG INIT] warmup=%lld stop=%lld current=%lld state=%u "
+             "(byte=%u bit=%u)\\n",
+             warmup_start_bit, stop_bit, current_bit, state, current_bit / 8,
+             current_bit % 8);
+    }
+  }
+
+  u32 symbols_counted = 0;
+
+  while (current_bit > start_bit) {
+    u8 nb = d_nbBits[state];
+    u16 nextBase = d_newState[state];
+
+    // Count symbols only in the valid range
+    if (current_bit <= stop_bit) {
+      symbols_counted++;
     }
 
-    state = next_state_base + new_bits;
+    current_bit -= nb;
 
-    // FSE is LIFO: encoder processes
-    // chunk backwards, decoder must
-    // output backwards Encoder for
-    // chunk [0,4095]: reads
-    // input[4095], input[4094],
-    // ..., input[0] Decoder for chunk
-    // [0,4095]: outputs to [4095],
-    // [4094], ..., [0] as local_idx
-    // goes 0→N
-    u32 output_idx = chunk_end_seq - 1 - local_idx;
-    d_output[output_idx] = symbol;
+    u32 bits = 0;
+    if (nb > 0) {
+      if (current_bit < start_bit) {
+        // SNAP TO ZERO: Underflow means we consume the final bits at start of
+        // block We ignore 'current_bit' and read from 'start_bit'
+        u32 byte_off = start_bit / 8;
+        u32 bit_off = start_bit % 8;
+        if (byte_off < bitstream_size_bytes) {
+          u32 val = 0;
+          u32 len = min(4u, bitstream_size_bytes - byte_off);
+          for (u32 k = 0; k < len; k++)
+            val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+          bits = (val >> bit_off) & ((1u << nb) - 1);
+        }
+      } else {
+        u32 byte_off = current_bit / 8;
+        u32 bit_off = current_bit % 8;
+        if (byte_off < bitstream_size_bytes) {
+          u32 val = 0;
+          u32 len = min(4u, bitstream_size_bytes - byte_off);
+          for (u32 k = 0; k < len; k++)
+            val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+          bits = (val >> bit_off) & ((1u << nb) - 1);
+        }
+      }
+    }
+    state = nextBase + bits;
+
+    // Safety break for infinite loops (should not happen in valid FSE)
+    // Safety break for infinite loops (only during warmup)
+    // In valid range, nb=0 is legal (state change guaranteed by FSE)
+    if (nb == 0 && current_bit > start_bit) {
+      if (current_bit > stop_bit) {
+        current_bit--; // Only force progress during warmup guess
+      } else {
+        // Valid range: nb=0 is handled by table transition
+        // Do NOT decrement current_bit
+      }
+    }
+  }
+
+  d_chunk_symbol_counts[chunk_idx] = symbols_counted;
+
+  // Tail Write: Handle the final symbol residing in the base state (Sym[N])
+  // This symbol consumes no bits (it's the start state of encoder), so the loop
+  // terminates before counting it if current_bit hits start_bit.
+  // We check start_bit to ensure we only do this if we actually reached the
+  // bottom. Actually, speculative count just counts. If we hit the bottom, we
+  // count one more.
+  if (current_bit <= stop_bit && current_bit <= start_bit + 32) {
+    // Heuristic: If we drained the bits, count the final state.
+    // Checking +7 allows for slack if loop terminated slightly above 0 due to
+    // 'nb=0' safety or alignment. But purely: if we exited loop, we have a
+    // valid state.
+    d_chunk_symbol_counts[chunk_idx]++;
   }
 }
+
+/**
+ * @brief Kernel 2: Parallel Decode Fixed Chunks
+ * Re-runs warmup and writes symbols to offsets.
+ * Writes symbols in REVERSE local order to restore global order.
+ */
+__global__ void fse_parallel_decode_fixed_bits_kernel(
+    const byte_t *d_bitstream, u32 bitstream_size_bytes, const u16 *d_newState,
+    const u8 *d_symbol, const u8 *d_nbBits, u32 table_log, u32 chunk_size_bits,
+    u32 num_chunks_total, const u32 *d_chunk_symbol_counts,
+    const u32 *d_chunk_output_offsets, byte_t *d_output) {
+
+  u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (chunk_idx >= num_chunks_total)
+    return;
+
+  u32 bit_stream_end_pos = bitstream_size_bytes * 8;
+  long long start_bit = (long long)chunk_idx * chunk_size_bits;
+  long long stop_bit = (long long)(chunk_idx + 1) * chunk_size_bits;
+
+  if (stop_bit > bit_stream_end_pos)
+    stop_bit = bit_stream_end_pos;
+
+  if (chunk_idx == 0 && threadIdx.x == 0) {
+    printf("[DEBUG] d_newState[7] = %u\n", d_newState[7]);
+  }
+
+  // TERMINATOR SCAN (Last Chunk Only)
+  if (chunk_idx == num_chunks_total - 1) {
+    long long scan_pos = stop_bit - 1;
+    long long limit = start_bit;
+    while (scan_pos >= limit) {
+      u32 byte_idx = scan_pos / 8;
+      u32 bit_idx = scan_pos % 8;
+      if (byte_idx < bitstream_size_bytes) {
+        if ((d_bitstream[byte_idx] >> bit_idx) & 1) {
+          stop_bit = scan_pos; // Found it
+          break;
+        }
+      }
+      scan_pos--;
+    }
+  }
+
+  if (start_bit >= stop_bit)
+    return;
+
+  // Last Chunk: NO WARMUP (Exact start at Terminator)
+  const u32 WARMUP_BITS = (chunk_idx == num_chunks_total - 1) ? 0 : 256;
+  long long warmup_start_bit = stop_bit + WARMUP_BITS;
+  if (warmup_start_bit > bit_stream_end_pos)
+    warmup_start_bit = bit_stream_end_pos;
+
+  u32 state = 0;
+  long long current_bit = warmup_start_bit;
+
+  if (current_bit >= table_log) {
+    current_bit -= table_log;
+    u32 byte_off = current_bit / 8;
+    u32 bit_off = current_bit % 8;
+    if (byte_off < bitstream_size_bytes) {
+      u32 val = 0;
+      u32 len = min(4u, bitstream_size_bytes - byte_off);
+      for (u32 k = 0; k < len; k++)
+        val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+      state = (val >> bit_off) & ((1u << table_log) - 1);
+    }
+  }
+
+  // Output setup
+  u32 count = d_chunk_symbol_counts[chunk_idx];
+  byte_t *my_output = d_output + d_chunk_output_offsets[chunk_idx];
+  u32 symbols_written = 0;
+
+  while (current_bit > start_bit) {
+    u8 symbol = d_symbol[state];
+    u8 nb = d_nbBits[state];
+    u16 nextBase = d_newState[state];
+
+    if (current_bit <= stop_bit) {
+      // FORWARD WRITE: Encoder runs N..0, so Decoder produces 0..N
+      if (symbols_written < count) {
+        my_output[symbols_written] = symbol;
+      }
+      symbols_written++;
+    }
+
+    // DEBUG TRACE
+    if (current_bit < start_bit + 64) {
+      printf("[TRACE %d] cur=%lld start=%lld stop=%lld state=%u sym=%u nb=%u "
+             "written=%u/%d\n",
+             chunk_idx, current_bit, start_bit, stop_bit, state, symbol, nb,
+             symbols_written, count);
+    }
+
+    current_bit -= nb;
+
+    u32 bits = 0;
+    if (nb > 0) {
+      if (current_bit < start_bit) {
+        // UNDERFLOW: We needed nb bits but only had (nb - |underflow|)
+        // available Compute how many bits we can actually read from start_bit
+        long long available = nb + current_bit - start_bit; // = nb - underflow
+        if (available > 0) {
+          u32 byte_off = start_bit / 8;
+          u32 bit_off = start_bit % 8;
+          if (byte_off < bitstream_size_bytes) {
+            u32 val = 0;
+            u32 len = min(4u, bitstream_size_bytes - byte_off);
+            for (u32 k = 0; k < len; k++)
+              val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+            bits = (val >> bit_off) & ((1u << (u32)available) - 1);
+          }
+        }
+        // bits is padded with zeros for the missing bits (already 0)
+      } else {
+        u32 byte_off = current_bit / 8;
+        u32 bit_off = current_bit % 8;
+        if (byte_off < bitstream_size_bytes) {
+          u32 val = 0;
+          u32 len = min(4u, bitstream_size_bytes - byte_off);
+          for (u32 k = 0; k < len; k++)
+            val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+          bits = (val >> bit_off) & ((1u << nb) - 1);
+        }
+      }
+    } // End if (nb > 0)
+
+    // DEBUG: Trace underflow state transition
+    if (current_bit < start_bit) {
+      printf("[UNDERFLOW] cur=%lld start=%lld nb=%u available=%lld bits=%u "
+             "nextBase=%u newState=%u\\n",
+             current_bit, start_bit, nb, nb + current_bit - start_bit, bits,
+             nextBase, nextBase + bits);
+      // DO NOT break here - update state with clamped bits so tail gets correct
+      // symbol
+    }
+
+    state = nextBase + bits;
+
+    // Safety break for infinite loops (only during warmup)
+    if (nb == 0 && current_bit > start_bit) {
+      if (current_bit > stop_bit) {
+        current_bit--;
+      }
+    }
+  } // End while
+
+  // Tail Write: Output the final symbol residing in the state
+  if (symbols_written < count) {
+    printf("[TAIL] chunk=%u final_state=%u sym=%u writing_to=%u/%u\\n",
+           chunk_idx, state, d_symbol[state], symbols_written, count);
+    my_output[symbols_written] = d_symbol[state];
+    symbols_written++;
+  }
+} // End kernel
 
 // ==============================================================================
 // NEW SIMPLIFIED FSE PARALLEL DECODE
@@ -3367,96 +3682,81 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     u32 header_size = (sizeof(u32) * 3) + header_table_size;
 
     // Step 2: Read normalized table
-    // from header
-    std::vector<u16> h_normalized(max_symbol + 1);
-    CUDA_CHECK(cudaMemcpy(h_normalized.data(), d_input + (sizeof(u32) * 3),
-                          header_table_size, cudaMemcpyDeviceToHost));
+    // Step 3: Upload normalized table to GPU and build decode table on GPU
+    u16 *d_normalized;
+    CUDA_CHECK(cudaMalloc(&d_normalized, header_table_size));
+    CUDA_CHECK(cudaMemcpyAsync(d_normalized, d_input + (sizeof(u32) * 3),
+                               header_table_size, cudaMemcpyDeviceToDevice,
+                               stream));
 
-    // Step 3: Build Decode Table on
-    // Host
-    FSEDecodeTable h_table;
-    h_table.newState = new u16[table_size];
-    h_table.symbol = new u8[table_size];
-    h_table.nbBits = new u8[table_size];
-
-    FSE_buildDTable_Host(h_normalized.data(), max_symbol, table_size, h_table);
-
-    // Step 4: Copy Decode Table to
-    // Device
+    // Allocate device decode table
     FSEDecodeTable d_table;
-    d_table.table_log = h_table.table_log;
-    d_table.table_size = h_table.table_size;
+    d_table.table_log = table_log;
+    d_table.table_size = table_size;
     CUDA_CHECK(cudaMalloc(&d_table.newState, table_size * sizeof(u16)));
     CUDA_CHECK(cudaMalloc(&d_table.symbol, table_size * sizeof(u8)));
     CUDA_CHECK(cudaMalloc(&d_table.nbBits, table_size * sizeof(u8)));
 
-    CUDA_CHECK(cudaMemcpyAsync(d_table.newState, h_table.newState,
-                               table_size * sizeof(u16), cudaMemcpyHostToDevice,
-                               stream));
-    CUDA_CHECK(cudaMemcpyAsync(d_table.symbol, h_table.symbol,
-                               table_size * sizeof(u8), cudaMemcpyHostToDevice,
-                               stream));
-    CUDA_CHECK(cudaMemcpyAsync(d_table.nbBits, h_table.nbBits,
-                               table_size * sizeof(u8), cudaMemcpyHostToDevice,
-                               stream));
+    // Build decode table on GPU (no CPU build or H2D copy needed!)
+    fse_build_decode_table_gpu<<<1, 256, 0, stream>>>(
+        d_normalized, max_symbol, table_log, d_table.symbol, d_table.nbBits,
+        d_table.newState);
+
+    cudaFree(d_normalized);
 
     const byte_t *d_bitstream = d_input + header_size;
     u32 bitstream_size_bytes = input_size - header_size;
 
-    // Step 5: Parallel Decode
-    u32 num_chunks = (output_size_expected + FSE_DECODE_SYMBOLS_PER_CHUNK - 1) /
-                     FSE_DECODE_SYMBOLS_PER_CHUNK;
+    // Step 5: Speculative Parallel Decode (Overflow Pattern)
+    // -----------------------------------------------------
+    const u32 chunk_size_bits = 32768; // 4KB chunks
+    const u32 num_chunks =
+        (bitstream_size_bytes * 8 + chunk_size_bits - 1) / chunk_size_bits;
 
-    // ==============================================================================
-    // OPTIMIZED: Find chunk boundaries on GPU (eliminates D2H copy)
-    // ==============================================================================
+    u32 *d_chunk_counts;
+    u32 *d_chunk_offsets; // Inclusive scan result
+    CUDA_CHECK(
+        cudaMallocAsync(&d_chunk_counts, num_chunks * sizeof(u32), stream));
+    CUDA_CHECK(
+        cudaMallocAsync(&d_chunk_offsets, num_chunks * sizeof(u32), stream));
 
-    // Allocate device memory for chunk infos
-    FSEChunkInfo *d_chunk_infos;
-    u32 *d_num_chunks;
-    CUDA_CHECK(cudaMalloc(&d_chunk_infos, num_chunks * sizeof(FSEChunkInfo)));
-    CUDA_CHECK(cudaMalloc(&d_num_chunks, sizeof(u32)));
+    u32 threads = 128;
+    u32 blocks = (num_chunks + threads - 1) / threads;
 
-    // Launch GPU kernel to find chunk boundaries (single thread, but no D2H
-    // copy!)
-    fse_find_chunk_boundaries_gpu<<<1, 1, 0, stream>>>(
+    // 5.1: Speculative Count (Finds states + counts symbols)
+    fse_speculative_count_kernel<<<blocks, threads, 0, stream>>>(
         d_bitstream, bitstream_size_bytes, d_table.newState, d_table.nbBits,
-        table_log, output_size_expected, FSE_DECODE_SYMBOLS_PER_CHUNK,
-        d_chunk_infos, d_num_chunks);
+        table_log, chunk_size_bits, num_chunks, d_chunk_counts);
 
-    // Copy num_chunks back to host (small, only 4 bytes)
-    CUDA_CHECK(cudaMemcpyAsync(&num_chunks, d_num_chunks, sizeof(u32),
-                               cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaStreamSynchronize(stream));
+    // 5.2: Parallel Scan (Prefix Sum of counts)
+    // Computes inclusive scan: Offsets[i] = Sum(Counts[0..i])
+    // Using cuda_zstd::utils::parallel_scan (host wrapper around
+    // CUB/Thrust)
+    Status scan_status = utils::parallel_scan(d_chunk_counts, d_chunk_offsets,
+                                              num_chunks, stream);
+    if (scan_status != Status::SUCCESS) {
+      cudaFreeAsync(d_chunk_counts, stream);
+      cudaFreeAsync(d_chunk_offsets, stream);
+      cudaFree(d_table.newState);
+      cudaFree(d_table.symbol);
+      cudaFree(d_table.nbBits);
+      return scan_status;
+    }
 
-    cudaFree(d_num_chunks);
-
-    // Clean up host table (no longer needed after GPU kernel launch)
-    delete[] h_table.newState;
-    delete[] h_table.symbol;
-    delete[] h_table.nbBits;
-
-    // Step 4.3: Launch simplified
-    // parallel decode kernel
-    u32 shared_mem_size =
-        (1u << table_log) * (sizeof(u16) + sizeof(u8) + sizeof(u8));
-    u32 threads_per_block = 128;
-    u32 blocks = (num_chunks + threads_per_block - 1) / threads_per_block;
-
-    fse_parallel_decode_kernel_v2<<<blocks, threads_per_block, shared_mem_size,
-                                    stream>>>(d_bitstream, bitstream_size_bytes,
-                                              d_chunk_infos, // NEW:
-                                                             // Pre-calculated
-                                                             // chunk info!
-                                              d_table.newState, d_table.symbol,
-                                              d_table.nbBits, table_log,
-                                              num_chunks, d_output);
+    // 5.3: Parallel Decode (Uses correct states + offsets)
+    // Kernel computes exclusive offset = Inclusive[i] - Count[i]
+    fse_parallel_decode_fixed_bits_kernel<<<blocks, threads, 0, stream>>>(
+        d_bitstream, bitstream_size_bytes, d_table.newState, d_table.symbol,
+        d_table.nbBits, table_log, chunk_size_bits, num_chunks, d_chunk_counts,
+        d_chunk_offsets, d_output);
 
     // Cleanup
+    cudaFreeAsync(d_chunk_counts, stream);
+    cudaFreeAsync(d_chunk_offsets, stream);
+
     cudaFree(d_table.newState);
     cudaFree(d_table.symbol);
     cudaFree(d_table.nbBits);
-    cudaFree(d_chunk_infos); // NEW cleanup
   }
 
   CUDA_CHECK(cudaGetLastError());

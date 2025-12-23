@@ -529,29 +529,66 @@ static __global__ void fse_encode_chunk_kernel(
 
   // --- State Initialization ---
   // If Last Chunk (in original stream order), we do Standard ZSTD Init
+  // MATCH ZSTANDARD FSE_initCState2 EXACTLY
   if (chunk_idx == total_chunks - 1) {
-    CState.value = (u64)1 << tableLog;
     u32 symbol = *ip--;
     GPU_FSE_SymbolTransform const symbolTransform = symbolTT[symbol];
-    u32 nbBitsOut = ((u32)CState.value + symbolTransform.deltaNbBits) >> 16;
-    u64 tempValue = (nbBitsOut << 16) - symbolTransform.deltaNbBits;
-    u32 tableIndex = (tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
+
+    // Zstandard FSE_initCState2 formula (NOT using CState.value for nbBitsOut!)
+    u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
+    u64 tempValue = ((u64)nbBitsOut << 16) - symbolTransform.deltaNbBits;
+    u32 tableIndex =
+        (u32)(tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
     CState.value = stateTable[tableIndex];
+
+    // DEBUG: Print detailed encoder init computation
+    printf("[ENC INIT] symbol=%u deltaNbBits=%u deltaFindState=%d nbBitsOut=%u "
+           "tempValue=%llu tableIndex=%u stateTable[%u]=%u\\n",
+           symbol, symbolTransform.deltaNbBits, symbolTransform.deltaFindState,
+           nbBitsOut, (unsigned long long)tempValue, tableIndex, tableIndex,
+           (u32)stateTable[tableIndex]);
   } else {
     // Use Pre-computed State
     CState.value = start_states[chunk_idx];
   }
 
+  u32 total_bits_written = 0;
+  u32 encode_count = 0;
   // --- Backward Encoding Loop ---
   while (ip >= chunk_begin) {
-    gpu_fse_encode_symbol(&bitC, &CState, *ip--);
+    u32 sym_idx = *ip--;
+
+    // DEBUG: Trace first 3 symbols encoded (which are LAST 3 positions in
+    // input)
+    if (chunk_idx == 0 && encode_count < 3) {
+      printf("[ENC TRACE] encode_count=%u input_pos=%u sym=%u (0x%02x)\\n",
+             encode_count, (u32)(ip + 1 - (symbols + start_idx)), sym_idx,
+             sym_idx);
+    }
+    encode_count++;
+
+    gpu_fse_encode_symbol(&bitC, &CState, sym_idx);
     gpu_bit_flush_bits(&bitC);
   }
 
-  // --- Flush State ---
-  // --- Flush State ---
-  // In Independent Chunk Mode, EVERY chunk must flush its state bits
   gpu_fse_flush_state(&bitC, &CState);
+  gpu_bit_add_bits(&bitC, 1, 1);
+  gpu_bit_flush_bits(&bitC);
+
+  if (chunk_idx == 0) {
+    // Calculate from bitC state (approximated)
+    u32 bytes = (u32)(bitC.ptr - bitC.startPtr);
+    u32 bits = bytes * 8 + bitC.bitPos;
+    printf("[DEBUG ENC] Chunk 0 bits written = %u\n", bits);
+  }
+
+  // FLUSH PARTIAL BYTE (Critical Step missing in flush_bits)
+  if (bitC.bitPos > 0) {
+    if (bitC.ptr < bitC.endPtr) {
+      *bitC.ptr = (byte_t)bitC.bitContainer;
+      bitC.ptr++;
+    }
+  }
 
   chunk_offsets[chunk_idx] = (u32)(bitC.ptr - bitC.startPtr);
 }
