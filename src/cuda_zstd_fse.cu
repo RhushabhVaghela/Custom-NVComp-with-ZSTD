@@ -2749,28 +2749,6 @@ __global__ void fse_build_decode_table_gpu(const u16 *d_normalized,
       // Zstd formula: newState = (nextState << nbBits) - tableSize
       d_nbBits[state] = (u8)nbBits;
       d_newState[state] = (u16)((nextState << nbBits) - table_size);
-
-      // Debug: Print state 7 calculation
-      if (state == 7) {
-        printf("[TABLE] state=7: symbol=%u nextState=%u highBit=%u nbBits=%u "
-               "newState=%u\\n",
-               symbol, nextState, highBit, nbBits,
-               (u16)((nextState << nbBits) - table_size));
-      }
-      // Debug: Print state 128 calculation
-      if (state == 128) {
-        printf("[TABLE] state=128: symbol=%u nextState=%u highBit=%u nbBits=%u "
-               "newState=%u\\n",
-               symbol, nextState, highBit, nbBits,
-               (u16)((nextState << nbBits) - table_size));
-      }
-      // Debug: Find states with symbols 107 and 21
-      if (symbol == 107) {
-        printf("[TABLE] state=%u has symbol=107 (0x6b)\\n", state);
-      }
-      if (symbol == 21) {
-        printf("[TABLE] state=%u has symbol=21 (0x15)\\n", state);
-      }
     }
   }
 }
@@ -3083,9 +3061,6 @@ __global__ void fse_speculative_count_kernel(
       if (byte_idx < bitstream_size_bytes) {
         if ((d_bitstream[byte_idx] >> bit_idx) & 1) {
           stop_bit = scan_pos; // Found it
-          printf(
-              "[DEBUG TERM] Found terminator at bit %lld (byte %u, bit %u)\\n",
-              scan_pos, byte_idx, bit_idx);
           break;
         }
       }
@@ -3122,12 +3097,6 @@ __global__ void fse_speculative_count_kernel(
       for (u32 k = 0; k < len; k++)
         val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
       state = (val >> bit_off) & ((1u << table_log) - 1);
-    }
-    if (chunk_idx == num_chunks_total - 1) {
-      printf("[DEBUG INIT] warmup=%lld stop=%lld current=%lld state=%u "
-             "(byte=%u bit=%u)\\n",
-             warmup_start_bit, stop_bit, current_bit, state, current_bit / 8,
-             current_bit % 8);
     }
   }
 
@@ -3288,14 +3257,6 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
       symbols_written++;
     }
 
-    // DEBUG TRACE
-    if (current_bit < start_bit + 64) {
-      printf("[TRACE %d] cur=%lld start=%lld stop=%lld state=%u sym=%u nb=%u "
-             "written=%u/%d\n",
-             chunk_idx, current_bit, start_bit, stop_bit, state, symbol, nb,
-             symbols_written, count);
-    }
-
     current_bit -= nb;
 
     u32 bits = 0;
@@ -3329,16 +3290,6 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
       }
     } // End if (nb > 0)
 
-    // DEBUG: Trace underflow state transition
-    if (current_bit < start_bit) {
-      printf("[UNDERFLOW] cur=%lld start=%lld nb=%u available=%lld bits=%u "
-             "nextBase=%u newState=%u\\n",
-             current_bit, start_bit, nb, nb + current_bit - start_bit, bits,
-             nextBase, nextBase + bits);
-      // DO NOT break here - update state with clamped bits so tail gets correct
-      // symbol
-    }
-
     state = nextBase + bits;
 
     // Safety break for infinite loops (only during warmup)
@@ -3351,8 +3302,6 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
 
   // Tail Write: Output the final symbol residing in the state
   if (symbols_written < count) {
-    printf("[TAIL] chunk=%u final_state=%u sym=%u writing_to=%u/%u\\n",
-           chunk_idx, state, d_symbol[state], symbols_written, count);
     my_output[symbols_written] = d_symbol[state];
     symbols_written++;
   }

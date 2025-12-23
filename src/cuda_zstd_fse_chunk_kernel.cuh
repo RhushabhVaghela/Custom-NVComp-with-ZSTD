@@ -540,33 +540,14 @@ static __global__ void fse_encode_chunk_kernel(
     u32 tableIndex =
         (u32)(tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
     CState.value = stateTable[tableIndex];
-
-    // DEBUG: Print detailed encoder init computation
-    printf("[ENC INIT] symbol=%u deltaNbBits=%u deltaFindState=%d nbBitsOut=%u "
-           "tempValue=%llu tableIndex=%u stateTable[%u]=%u\\n",
-           symbol, symbolTransform.deltaNbBits, symbolTransform.deltaFindState,
-           nbBitsOut, (unsigned long long)tempValue, tableIndex, tableIndex,
-           (u32)stateTable[tableIndex]);
   } else {
     // Use Pre-computed State
     CState.value = start_states[chunk_idx];
   }
 
-  u32 total_bits_written = 0;
-  u32 encode_count = 0;
   // --- Backward Encoding Loop ---
   while (ip >= chunk_begin) {
     u32 sym_idx = *ip--;
-
-    // DEBUG: Trace first 3 symbols encoded (which are LAST 3 positions in
-    // input)
-    if (chunk_idx == 0 && encode_count < 3) {
-      printf("[ENC TRACE] encode_count=%u input_pos=%u sym=%u (0x%02x)\\n",
-             encode_count, (u32)(ip + 1 - (symbols + start_idx)), sym_idx,
-             sym_idx);
-    }
-    encode_count++;
-
     gpu_fse_encode_symbol(&bitC, &CState, sym_idx);
     gpu_bit_flush_bits(&bitC);
   }
