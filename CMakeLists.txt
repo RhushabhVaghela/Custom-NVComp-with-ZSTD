@@ -251,9 +251,47 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
 
     # Phase 3 Benchmark
     # Compile dependencies directly to access internal functions (encode_fse_advanced)
-    add_executable(benchmark_phase3 benchmarks/benchmark_phase3.cu src/cuda_zstd_fse.cu src/cuda_zstd_utils.cu src/cuda_zstd_manager.cu)
+    add_executable(benchmark_phase3 benchmarks/benchmark_phase3.cu 
+        src/cuda_zstd_fse.cu 
+        src/cuda_zstd_utils.cu 
+        src/cuda_zstd_manager.cu
+        src/cuda_zstd_c_api.cpp
+        src/cuda_zstd_types.cpp
+        src/cuda_zstd_dictionary.cu
+        src/cuda_zstd_sequence.cu
+        src/cuda_zstd_hash.cu
+        src/cuda_zstd_xxhash.cu
+        src/cuda_zstd_nvcomp.cpp
+        src/cuda_zstd_utils.cpp
+        src/cuda_zstd_memory_pool_complex.cu
+        src/cuda_zstd_stacktrace.cpp
+        src/cuda_zstd_adaptive.cu
+        src/cuda_zstd_stream_pool.cpp
+        src/workspace_manager.cu
+        src/error_context.cpp
+        src/lz77_parallel.cu
+        src/pipeline_manager.cu 
+        src/cuda_zstd_lz77.cu
+        src/cuda_zstd_huffman.cu
+    )
     target_link_libraries(benchmark_phase3 PRIVATE libzstd_static ${CUDA_LIBRARIES})
     set_target_properties(benchmark_phase3 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+    # GPU-to-GPU FSE Benchmark (pure kernel performance)
+    add_executable(benchmark_fse_gpu benchmarks/benchmark_fse_gpu.cu)
+    set_target_properties(benchmark_fse_gpu PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_fse_gpu cuda_zstd_static)
+
+    # Pipelined Streaming Benchmark
+    add_executable(benchmark_pipeline_streaming benchmarks/benchmark_pipeline.cu)
+    set_target_properties(benchmark_pipeline_streaming PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_pipeline_streaming cuda_zstd_static)
 endif()
 
 

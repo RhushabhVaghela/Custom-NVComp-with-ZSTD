@@ -6,7 +6,6 @@
 #include <queue>
 #include <thread>
 
-
 namespace cuda_zstd {
 
 // --- Helper: Thread-Safe Queue ---
@@ -148,7 +147,7 @@ Status PipelinedBatchManager::compress_stream_pipeline(
       // manager->compress acts synchronously on the CPU-side (due to loop
       // syncs), it WILL update the size_t before returning status.
 
-      size_t comp_size = 0;
+      size_t comp_size = slot.output_capacity;
       Status s = manager_->compress(
           slot.d_input, slot.current_input_size, slot.d_output, &comp_size,
           slot.d_workspace, slot.workspace_capacity, nullptr, 0, streams_[1]);

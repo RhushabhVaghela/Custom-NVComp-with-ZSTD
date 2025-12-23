@@ -1627,7 +1627,8 @@ public:
     // Calculate per-block workspace size (Must match get_compress_temp_size)
     size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2;
     size_t output_buffer_size =
-        CUDA_ZSTD_BLOCKSIZE_MAX * 2; // NEW: Separate output buffer
+        CUDA_ZSTD_BLOCKSIZE_MAX *
+        8; // NEW: Separate output buffer (Increased to 1MB for safety)
 
     size_t fse_table_size = 3 * sizeof(fse::FSEEncodeTable);
     size_t huff_size = sizeof(huffman::HuffmanTable);
@@ -3896,7 +3897,7 @@ private:
     if (literals_type == 2) { // FSE
       u32 h_fse_output_size = 0;
       return fse::decode_fse(d_data_start, *h_compressed_size, output,
-                             &h_fse_output_size, stream);
+                             &h_fse_output_size, nullptr, stream);
     } else { // Huffman
       size_t h_huff_output_size = 0;
       return huffman::decode_huffman(d_data_start, *h_compressed_size,
@@ -4117,7 +4118,7 @@ private:
 
       Status status =
           fse::decode_fse(input + *offset, stream_size, (byte_t *)d_out_buffer,
-                          &h_decoded_count, stream);
+                          &h_decoded_count, nullptr, stream);
       *offset += stream_size;
       return status;
     }

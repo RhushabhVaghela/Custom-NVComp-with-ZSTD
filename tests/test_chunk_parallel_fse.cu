@@ -88,9 +88,10 @@ void verification_test() {
   CHECK(cudaMalloc(&d_out_states, num_chunks * sizeof(u16)));
   CHECK(cudaMalloc(&d_bit_counts, num_chunks * sizeof(u32)));
 
-  fse_compute_states_kernel<<<1, 1>>>(d_symbols, NUM_SYMBOLS, d_stateTable,
-                                      d_symbolTT, 1, CHUNK_SIZE, d_out_states,
-                                      d_bit_counts);
+  fse_compute_states_kernel_sequential<<<1, 1>>>(d_symbols, NUM_SYMBOLS,
+                                                 d_stateTable, d_symbolTT, 1,
+                                                 CHUNK_SIZE, d_out_states,
+                                                 d_bit_counts);
   CHECK(cudaDeviceSynchronize());
 
   // 4. Encode Chunks
