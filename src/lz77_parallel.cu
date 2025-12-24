@@ -180,6 +180,247 @@ Status compute_optimal_parse_v2(const u8 *d_input, u32 input_size,
   return Status::SUCCESS;
 }
 
+// ==============================================================================
+// Parallel Backtracking Infrastructure (Phase 2)
+// ==============================================================================
+
+BacktrackConfig create_backtrack_config(u32 input_size) {
+  BacktrackConfig config;
+  config.parallel_threshold = 1024 * 1024; // 1MB threshold
+
+  if (input_size >= config.parallel_threshold) {
+    config.use_parallel = true;
+    // Use larger segments for huge inputs, smaller for medium
+    if (input_size > 10 * 1024 * 1024) {
+      config.segment_size = 1024 * 1024; // 1MB segments for >10MB
+    } else {
+      config.segment_size = 256 * 1024; // 256KB segments for 1-10MB
+    }
+    config.num_segments =
+        (input_size + config.segment_size - 1) / config.segment_size;
+  } else {
+    config.use_parallel = false;
+    config.segment_size = input_size;
+    config.num_segments = 1;
+  }
+
+  return config;
+}
+
+// GPU Kernel: Each block processes one segment
+__global__ void backtrack_segments_parallel_kernel(
+    const ParseCost *d_costs, const Match *d_matches, u32 input_size,
+    SegmentInfo *d_segments, u32 *d_literal_lengths, u32 *d_match_lengths,
+    u32 *d_offsets, u32 *d_segment_seq_counts, u32 num_segments) {
+
+  u32 seg_idx = blockIdx.x;
+  if (seg_idx >= num_segments)
+    return;
+
+  // Only thread 0 in each block does the work (sequential within segment)
+  if (threadIdx.x != 0)
+    return;
+
+  SegmentInfo seg = d_segments[seg_idx];
+  u32 curr_pos = seg.end_pos;
+  u32 local_seq_count = 0;
+
+  // Temporary local storage (max sequences per segment)
+  // We write directly to global arrays at segment offset
+  u32 write_base = seg.sequence_offset;
+  u32 literal_run = 0;
+  u32 pending_ml = 0, pending_of = 0;
+
+  // Backtrack within this segment
+  while (curr_pos > seg.start_pos) {
+    u32 parent = d_costs[curr_pos].parent();
+
+    // Clamp parent to valid range
+    if (parent >= curr_pos)
+      parent = curr_pos - 1;
+    if (parent < seg.start_pos)
+      parent = seg.start_pos;
+
+    u32 len = curr_pos - parent;
+
+    // Check for valid match
+    bool is_valid_match = false;
+    if (len >= 3 && parent < input_size) {
+      u32 match_offset = d_matches[parent].offset;
+      if (match_offset > 0) {
+        is_valid_match = true;
+      }
+    }
+
+    if (is_valid_match) {
+      // Push pending sequence
+      d_literal_lengths[write_base + local_seq_count] = literal_run;
+      d_match_lengths[write_base + local_seq_count] = pending_ml;
+      d_offsets[write_base + local_seq_count] = pending_of;
+      local_seq_count++;
+
+      // New pending
+      pending_ml = len;
+      pending_of = d_matches[parent].offset;
+      literal_run = 0;
+    } else {
+      literal_run += len;
+    }
+
+    curr_pos = parent;
+  }
+
+  // Push final sequence for this segment
+  d_literal_lengths[write_base + local_seq_count] = literal_run;
+  d_match_lengths[write_base + local_seq_count] = pending_ml;
+  d_offsets[write_base + local_seq_count] = pending_of;
+  local_seq_count++;
+
+  // Store count for this segment
+  d_segment_seq_counts[seg_idx] = local_seq_count;
+}
+
+Status backtrack_sequences_parallel(const ParseCost *d_costs, u32 input_size,
+                                    CompressionWorkspace &workspace,
+                                    u32 *h_num_sequences, cudaStream_t stream) {
+
+  BacktrackConfig config = create_backtrack_config(input_size);
+
+  // Allocate segment info on device
+  SegmentInfo *d_segments = nullptr;
+  u32 *d_segment_seq_counts = nullptr;
+  cudaMalloc(&d_segments, config.num_segments * sizeof(SegmentInfo));
+  cudaMalloc(&d_segment_seq_counts, config.num_segments * sizeof(u32));
+
+  // Prepare segments on host
+  std::vector<SegmentInfo> h_segments(config.num_segments);
+  u32 max_seqs_per_segment = config.segment_size / 3 + 1; // Rough estimate
+
+  for (u32 i = 0; i < config.num_segments; ++i) {
+    h_segments[i].start_pos = i * config.segment_size;
+    h_segments[i].end_pos = std::min((i + 1) * config.segment_size, input_size);
+    h_segments[i].sequence_offset = i * max_seqs_per_segment;
+    h_segments[i].num_sequences = 0;
+  }
+
+  // Copy segments to device
+  cudaMemcpyAsync(d_segments, h_segments.data(),
+                  config.num_segments * sizeof(SegmentInfo),
+                  cudaMemcpyHostToDevice, stream);
+
+  // Launch kernel: 1 block per segment, 1 thread per block
+  backtrack_segments_parallel_kernel<<<config.num_segments, 1, 0, stream>>>(
+      d_costs, (const Match *)workspace.d_matches, input_size, d_segments,
+      workspace.d_literal_lengths_reverse, workspace.d_match_lengths_reverse,
+      workspace.d_offsets_reverse, d_segment_seq_counts, config.num_segments);
+
+  // Get segment counts back
+  std::vector<u32> h_seg_counts(config.num_segments);
+  cudaMemcpyAsync(h_seg_counts.data(), d_segment_seq_counts,
+                  config.num_segments * sizeof(u32), cudaMemcpyDeviceToHost,
+                  stream);
+  cudaStreamSynchronize(stream);
+
+  // Calculate total sequences and compact on host
+  u32 total_seqs = 0;
+  for (u32 i = 0; i < config.num_segments; ++i) {
+    total_seqs += h_seg_counts[i];
+  }
+
+  // Merge segments: copy from scattered positions to contiguous
+  // For simplicity, do this on CPU after copying back
+  std::vector<u32> h_ll_scattered(config.num_segments * max_seqs_per_segment);
+  std::vector<u32> h_ml_scattered(config.num_segments * max_seqs_per_segment);
+  std::vector<u32> h_of_scattered(config.num_segments * max_seqs_per_segment);
+
+  cudaMemcpy(h_ll_scattered.data(), workspace.d_literal_lengths_reverse,
+             h_ll_scattered.size() * sizeof(u32), cudaMemcpyDeviceToHost);
+  cudaMemcpy(h_ml_scattered.data(), workspace.d_match_lengths_reverse,
+             h_ml_scattered.size() * sizeof(u32), cudaMemcpyDeviceToHost);
+  cudaMemcpy(h_of_scattered.data(), workspace.d_offsets_reverse,
+             h_of_scattered.size() * sizeof(u32), cudaMemcpyDeviceToHost);
+
+  // Compact and reverse (segments are in reverse order, sequences within are
+  // reversed)
+  std::vector<u32> h_ll_final, h_ml_final, h_of_final;
+  h_ll_final.reserve(total_seqs);
+  h_ml_final.reserve(total_seqs);
+  h_of_final.reserve(total_seqs);
+
+  // Process segments in reverse order (last segment first in file)
+  for (int seg = config.num_segments - 1; seg >= 0; --seg) {
+    u32 base = seg * max_seqs_per_segment;
+    u32 count = h_seg_counts[seg];
+
+    // Sequences within segment are already in reverse order, so reverse again
+    for (int i = count - 1; i >= 0; --i) {
+      h_ll_final.push_back(h_ll_scattered[base + i]);
+      h_ml_final.push_back(h_ml_scattered[base + i]);
+      h_of_final.push_back(h_of_scattered[base + i]);
+    }
+  }
+
+  // Copy final contiguous results back to device
+  *h_num_sequences = (u32)h_ll_final.size();
+
+  if (*h_num_sequences > 0) {
+    cudaMemcpyAsync(workspace.d_literal_lengths_reverse, h_ll_final.data(),
+                    *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice,
+                    stream);
+    cudaMemcpyAsync(workspace.d_match_lengths_reverse, h_ml_final.data(),
+                    *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice,
+                    stream);
+    cudaMemcpyAsync(workspace.d_offsets_reverse, h_of_final.data(),
+                    *h_num_sequences * sizeof(u32), cudaMemcpyHostToDevice,
+                    stream);
+  }
+
+  cudaFree(d_segments);
+  cudaFree(d_segment_seq_counts);
+
+  return Status::SUCCESS;
+}
+
+// Sequential CPU backtracking (for small inputs or fallback)
+Status backtrack_sequences_cpu(const ParseCost *h_costs, u32 input_size,
+                               u32 *h_literal_lengths, u32 *h_match_lengths,
+                               u32 *h_offsets, u32 *h_num_sequences) {
+  // This is essentially the logic from backtrack_sequences_v2 but operating on
+  // host arrays directly
+  u32 curr_pos = input_size;
+  u32 seq_idx = 0;
+  u32 literal_run = 0;
+  u32 pending_ml = 0, pending_of = 0;
+
+  while (curr_pos > 0) {
+    u32 parent = h_costs[curr_pos].parent();
+    if (parent >= curr_pos)
+      parent = curr_pos - 1;
+
+    u32 len = curr_pos - parent;
+
+    if (len >= 3) {
+      h_literal_lengths[seq_idx] = literal_run;
+      h_match_lengths[seq_idx] = pending_ml;
+      h_offsets[seq_idx] = pending_of;
+      seq_idx++;
+      pending_ml = len;
+      pending_of = 0; // Would need match info
+      literal_run = 0;
+    } else {
+      literal_run += len;
+    }
+    curr_pos = parent;
+  }
+
+  h_literal_lengths[seq_idx] = literal_run;
+  h_match_lengths[seq_idx] = pending_ml;
+  h_offsets[seq_idx] = pending_of;
+  *h_num_sequences = seq_idx + 1;
+
+  return Status::SUCCESS;
+}
+
 // V2 Backtracking Implementation (Host-side)
 Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
                               u32 *h_num_sequences, bool *out_has_dummy,
@@ -314,9 +555,32 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
 Status backtrack_sequences(u32 input_size, CompressionWorkspace &workspace,
                            u32 *h_num_sequences, bool *out_has_dummy,
                            cudaStream_t stream) {
-  // V2: Always use V2 backtracking (CPU for now, but uses new ParseCost format)
-  return backtrack_sequences_v2(input_size, workspace, h_num_sequences,
-                                out_has_dummy, stream);
+  // Adaptive routing: use parallel GPU for large inputs, CPU for small
+  BacktrackConfig config = create_backtrack_config(input_size);
+
+  if (config.use_parallel) {
+    // GPU parallel backtracking for inputs >= 1MB
+    Status status = backtrack_sequences_parallel(
+        (const ParseCost *)workspace.d_costs, input_size, workspace,
+        h_num_sequences, stream);
+
+    if (status != Status::SUCCESS) {
+      // Fallback to CPU on GPU failure
+      return backtrack_sequences_v2(input_size, workspace, h_num_sequences,
+                                    out_has_dummy, stream);
+    }
+
+    // Set dummy flag based on last sequence
+    if (out_has_dummy)
+      *out_has_dummy = false;
+    // TODO: Could check last ML to set dummy flag properly
+
+    return status;
+  } else {
+    // CPU backtracking for small inputs (< 1MB)
+    return backtrack_sequences_v2(input_size, workspace, h_num_sequences,
+                                  out_has_dummy, stream);
+  }
 }
 
 Status find_matches_parallel(const u8 *d_input, u32 input_size,

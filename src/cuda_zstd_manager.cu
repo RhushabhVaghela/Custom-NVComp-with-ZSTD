@@ -45,9 +45,19 @@ void test_linkage_v2(int x) {
 // Add alignment constants
 constexpr u32 GPU_MEMORY_ALIGNMENT = 256; // Most GPU requirements
 
-// Helper: Align size to boundary
 inline size_t align_to_boundary(size_t size, size_t alignment) {
   return ((size + alignment - 1) / alignment) * alignment;
+}
+
+// Helper: Calculate adaptive output buffer size to prevent overflow
+// Uses 8x worst-case expansion for incompressible data with Tier 4 raw encoding
+// (12 bytes per sequence = ~3x expansion + headers)
+inline size_t calculate_adaptive_output_size(size_t input_size) {
+  constexpr size_t MIN_OUTPUT_SIZE = 1024 * 1024; // 1MB minimum
+  constexpr size_t EXPANSION_FACTOR = 8;          // 8x worst-case
+
+  size_t required = input_size * EXPANSION_FACTOR;
+  return (required < MIN_OUTPUT_SIZE) ? MIN_OUTPUT_SIZE : required;
 }
 
 // Helper: Align pointer to boundary
@@ -848,8 +858,8 @@ public:
     size_t input_buf_size = input_size;
     total += align_to_boundary(input_buf_size, GPU_MEMORY_ALIGNMENT);
 
-    // 2. Compressed output buffer (device)
-    size_t output_buf_size = input_size * 2; // Worst case
+    // 2. Compressed output buffer (device) - use adaptive sizing
+    size_t output_buf_size = calculate_adaptive_output_size(input_size);
     total += align_to_boundary(output_buf_size, GPU_MEMORY_ALIGNMENT);
 
     // 3. LZ77 temporary buffer (device) - d_compressed_block
@@ -1624,11 +1634,15 @@ public:
     u32 num_blocks = (uncompressed_size + block_size - 1) / block_size;
 
     // Calculate per-block workspace size (Must match get_compress_temp_size)
-    // Calculate per-block workspace size (Must match get_compress_temp_size)
     size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2;
-    size_t output_buffer_size =
-        CUDA_ZSTD_BLOCKSIZE_MAX *
-        8; // NEW: Separate output buffer (Increased to 1MB for safety)
+
+    // Adaptive Output Buffer Sizing
+    // Formula: Max(MinBuffer, BlockSize * ExpansionFactor + Overhead)
+    // ExpansionFactor = 4 (Worst case: Raw uncompressed sequences expand ~4x
+    // for small literals) Overhead = 4096 (Headers, alignment)
+    const size_t min_buffer_size = 128 * 1024; // 128KB min
+    size_t adaptive_size = (size_t)(block_size * 4) + 4096;
+    size_t output_buffer_size = std::max(min_buffer_size, adaptive_size);
 
     size_t fse_table_size = 3 * sizeof(fse::FSEEncodeTable);
     size_t huff_size = sizeof(huffman::HuffmanTable);
