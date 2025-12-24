@@ -1456,7 +1456,7 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
                                           byte_t *d_output, u32 *d_output_size,
                                           bool gpu_optimize,
                                           cudaStream_t stream, FSEContext *ctx,
-                                          u64 **d_offsets_out = nullptr) {
+                                          u64 **d_offsets_out) {
   [[maybe_unused]] TableType table_type = TableType::LITERALS;
   bool auto_table_log = true;
   [[maybe_unused]] bool accurate_norm = true;

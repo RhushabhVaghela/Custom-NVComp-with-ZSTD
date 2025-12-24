@@ -137,6 +137,49 @@ struct FSEDecoderTable {
   u32 max_symbol_value;
 };
 
+/**
+ * @brief (NEW) Context for FSE Decompression reuse.
+ * Persists device buffers between calls to eliminate allocation overhead.
+ * Supports SoA layout (State, Symbol, Bits) used by decode_fse.
+ */
+struct FSEDecodeContext {
+  // SoA Table Storage
+  void *d_newState = nullptr;
+  void *d_symbol = nullptr;
+  void *d_nbBits = nullptr;
+  size_t table_capacity = 0; // Number of elements (max symbol/table size)
+
+  // Chunk Data
+  void *d_chunk_counts = nullptr;  // Usage: u32*
+  void *d_chunk_offsets = nullptr; // Usage: u32*
+  size_t chunk_capacity = 0;       // Number of chunks
+
+  // Normalized Counts (added for full reuse)
+  void *d_normalized = nullptr;
+  size_t normalized_capacity = 0;
+
+  ~FSEDecodeContext() {
+    if (d_newState)
+      cudaFree(d_newState);
+    if (d_symbol)
+      cudaFree(d_symbol);
+    if (d_nbBits)
+      cudaFree(d_nbBits);
+    if (d_chunk_counts)
+      cudaFree(d_chunk_counts);
+    if (d_chunk_offsets)
+      cudaFree(d_chunk_offsets);
+    if (d_normalized)
+      cudaFree(d_normalized);
+    d_newState = nullptr;
+    d_symbol = nullptr;
+    d_nbBits = nullptr;
+    d_chunk_counts = nullptr;
+    d_chunk_offsets = nullptr;
+    d_normalized = nullptr;
+  }
+};
+
 // ============================================================================
 // FSE Decompression Host Functions (NEW)
 // ============================================================================
@@ -159,7 +202,8 @@ struct FSEDecoderTable {
 Status build_fse_decoder_table(const i16 *h_normalized_counts, u32 num_counts,
                                u32 max_symbol_value, u32 table_log,
                                FSEDecoderTable *d_table_out,
-                               cudaStream_t stream);
+                               cudaStream_t stream,
+                               FSEDecodeContext *ctx = nullptr);
 
 /**
  * @brief Builds the FSE Encoding Table (CTable) on the host.
@@ -247,24 +291,26 @@ __host__ Status encode_fse_batch(const byte_t **d_inputs,
                                  u32 *d_output_sizes, u32 num_blocks,
                                  cudaStream_t stream = 0);
 
-__host__ Status decode_fse(const byte_t *d_input, u32 input_size,
-                           byte_t *d_output,
-                           u32 *d_output_size, // Host pointer
-                           cudaStream_t stream = 0);
+__host__ Status
+decode_fse(const byte_t *d_input, u32 input_size, byte_t *d_output,
+           u32 *d_output_size,                   // Host pointer
+           const u64 *d_chunk_offsets = nullptr, // Optional: Device ptr
+           cudaStream_t stream = 0, FSEDecodeContext *ctx = nullptr);
 
 // Debug version
 __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
                                           byte_t *d_output, u32 *d_output_size,
                                           bool gpu_optimize = true,
                                           cudaStream_t stream = 0,
-                                          FSEContext *ctx = nullptr);
+                                          FSEContext *ctx = nullptr,
+                                          u64 **d_offsets_out = nullptr);
 
 // Production version (wrapper)
-__host__ Status encode_fse_advanced(const byte_t *d_input, u32 input_size,
-                                    byte_t *d_output, u32 *d_output_size,
-                                    bool gpu_optimize = true,
-                                    cudaStream_t stream = 0,
-                                    FSEContext *ctx = nullptr);
+__host__ Status
+encode_fse_advanced(const byte_t *d_input, u32 input_size, byte_t *d_output,
+                    u32 *d_output_size, bool gpu_optimize = true,
+                    cudaStream_t stream = 0, FSEContext *ctx = nullptr,
+                    u64 **d_offsets_out = nullptr); // Optional output
 
 /**
  * @brief Decodes a stream using a predefined Zstd table.

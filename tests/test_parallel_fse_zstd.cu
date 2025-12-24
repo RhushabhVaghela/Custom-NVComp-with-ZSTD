@@ -43,8 +43,8 @@ bool verify_roundtrip(const byte_t *d_input, u32 input_size,
   CUDA_CHECK(cudaMalloc(&d_decoded, input_size));
 
   u32 decoded_size = 0;
-  Status status =
-      decode_fse(d_output, output_size, d_decoded, &decoded_size, stream);
+  Status status = decode_fse(d_output, output_size, d_decoded, &decoded_size,
+                             nullptr, stream);
 
   if (status != Status::SUCCESS) {
     printf("  ❌ Decode failed: %d\n", (int)status);
