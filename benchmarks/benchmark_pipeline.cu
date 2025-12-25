@@ -42,23 +42,38 @@ int main() {
   std::cout << "======================================================\n"
             << std::endl;
 
-  // Dataset: 4GB
-  const size_t DATA_SIZE = 4ULL * 1024 * 1024 * 1024;
-  std::cout << "Allocating and generating " << (DATA_SIZE >> 30)
-            << "GB synthetic data..." << std::endl;
+  // Dataset: 512MB (reduced from 4GB to prevent memory issues)
+  // For larger datasets, ensure sufficient RAM and use chunked processing
+  const size_t DATA_SIZE = 512ULL * 1024 * 1024;
+  std::cout << "Allocating and generating " << (DATA_SIZE >> 20)
+            << "MB synthetic data..." << std::endl;
 
-  std::vector<uint8_t> h_data(DATA_SIZE);
+  std::vector<uint8_t> h_data;
+  try {
+    h_data.resize(DATA_SIZE);
+  } catch (const std::bad_alloc &e) {
+    std::cerr << "ERROR: Failed to allocate " << (DATA_SIZE >> 20)
+              << "MB for input data. Reduce DATA_SIZE." << std::endl;
+    return 1;
+  }
   generate_test_data(h_data);
 
-  // Allocate buffer for storing compressed result (worst case)
-  std::vector<uint8_t> h_compressed_data(DATA_SIZE + (DATA_SIZE >> 7) + 65536);
+  // Allocate buffer for storing compressed result (worst case ~1.1x for
+  // incompressible data)
+  std::vector<uint8_t> h_compressed_data;
+  try {
+    h_compressed_data.resize(DATA_SIZE + (DATA_SIZE >> 7) + 65536);
+  } catch (const std::bad_alloc &e) {
+    std::cerr << "ERROR: Failed to allocate output buffer." << std::endl;
+    return 1;
+  }
 
-  // Batch sizes to test
+  // Batch sizes to test (adjusted for 512MB dataset)
   std::vector<size_t> batch_sizes = {
+      16ULL * 1024 * 1024,  // 16 MB
+      32ULL * 1024 * 1024,  // 32 MB
       64ULL * 1024 * 1024,  // 64 MB
       128ULL * 1024 * 1024, // 128 MB
-      256ULL * 1024 * 1024, // 256 MB
-      512ULL * 1024 * 1024, // 512 MB
   };
 
   // Default Zstd config (level 3)

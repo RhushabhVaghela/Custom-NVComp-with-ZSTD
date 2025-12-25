@@ -1276,10 +1276,7 @@ public:
 
       *compressed_size = cSize;
       return Status::SUCCESS;
-    } else {
     }
-    // ======================================================================
-    fflush(stderr);
 
     // --- 1. Ensure temp_workspace is device memory ---
     cudaPointerAttributes temp_attrs;
@@ -1691,13 +1688,7 @@ public:
       return status;
     }
 
-    // header_size is set by write_frame_header
-    fflush(stderr);
-
     compressed_offset += header_size;
-    fprintf(stderr,
-            header_size, compressed_offset);
-    fflush(stderr);
 
     // Fix: Cap block size to max supported by internal buffers (128KB)
     // efficient_config.block_size might suggest 256KB+ for high levels,
@@ -1710,9 +1701,8 @@ public:
     // Block size already calculated during workspace partitioning
     // (see line ~1082, stored in effective_config.block_size)
     u32 num_blocks = (uncompressed_size + block_size - 1) / block_size;
-    fprintf(stderr,
-            "uncompressed_size=%zu\n",
-            num_blocks, block_size, uncompressed_size);
+    fprintf(stderr, "uncompressed_size=%zu\n", num_blocks, block_size,
+            uncompressed_size);
     fflush(stderr);
 
     // Calculate per-block workspace size (Must match
@@ -2551,8 +2541,6 @@ public:
       }
     }
 
-            streaming_compressed_offset);
-    fflush(stderr);
     *compressed_size = streaming_compressed_offset;
 
     // Final synchronization to ensure all async operations complete
