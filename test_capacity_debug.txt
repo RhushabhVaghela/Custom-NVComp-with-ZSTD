@@ -1,6 +1,0 @@
-========================================
-Comprehensive LZ77 Testing
-========================================
-Test: Random 1MB (1048576 bytes)... [DEBUG] decompress: ERROR_BUFFER_TOO_SMALL. Header Content Size=1048576, Output Capacity=0
-[DEBUG] Batch Item 0 decompress failed with status 7
-Status error at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_lz77_comprehensive.cu:172 code=1
