@@ -293,6 +293,14 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     )
     target_link_libraries(benchmark_pipeline_streaming cuda_zstd_static)
 
+    # Dictionary Compression Benchmark
+    add_executable(benchmark_dictionary_compression benchmarks/benchmark_dictionary_compression.cu)
+    set_target_properties(benchmark_dictionary_compression PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_dictionary_compression cuda_zstd_static)
+
 
 endif()
 
