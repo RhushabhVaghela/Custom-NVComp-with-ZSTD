@@ -330,6 +330,36 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     add_test(NAME benchmark_dictionary_compression COMMAND benchmark_dictionary_compression)
     set_property(TEST benchmark_dictionary_compression PROPERTY LABELS "benchmark")
 
+    # XXHash Checksum Benchmark (100% coverage)
+    add_executable(benchmark_xxhash benchmarks/benchmark_xxhash.cu)
+    set_target_properties(benchmark_xxhash PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_xxhash cuda_zstd_static)
+    add_test(NAME benchmark_xxhash COMMAND benchmark_xxhash)
+    set_property(TEST benchmark_xxhash PROPERTY LABELS "benchmark")
+
+    # Adaptive Level Selection Benchmark (100% coverage)
+    add_executable(benchmark_adaptive benchmarks/benchmark_adaptive.cu)
+    set_target_properties(benchmark_adaptive PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_adaptive cuda_zstd_static)
+    add_test(NAME benchmark_adaptive COMMAND benchmark_adaptive)
+    set_property(TEST benchmark_adaptive PROPERTY LABELS "benchmark")
+
+    # Stream Pool Performance Benchmark (100% coverage)
+    add_executable(benchmark_stream_pool benchmarks/benchmark_stream_pool.cu)
+    set_target_properties(benchmark_stream_pool PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_stream_pool cuda_zstd_static)
+    add_test(NAME benchmark_stream_pool COMMAND benchmark_stream_pool)
+    set_property(TEST benchmark_stream_pool PROPERTY LABELS "benchmark")
+
 
 endif()
 
