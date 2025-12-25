@@ -135,18 +135,6 @@ Status PipelinedBatchManager::compress_stream_pipeline(
       cudaStreamWaitEvent(streams_[1], slot.event_uploaded, 0);
 
       // Run Compression (Blocking on CPU)
-      // Uses Stream 1
-      // Important: We must pass 'compressed_size' pointer.
-      // compress() interface usually wants a host pointer for size,
-      // but it's asynchronously written?
-      // In ZstdManager, size is an output param.
-      // We pass a stack variable or member variable?
-      // We use slot.current_output_size BUT we need to be careful about async
-      // usage. ZstdManager::compress writes to *compressed_size at the end. If
-      // the manager implementation syncs, it's safe. Since we know
-      // manager->compress acts synchronously on the CPU-side (due to loop
-      // syncs), it WILL update the size_t before returning status.
-
       size_t comp_size = slot.output_capacity;
       Status s = manager_->compress(
           slot.d_input, slot.current_input_size, slot.d_output, &comp_size,
@@ -179,17 +167,16 @@ Status PipelinedBatchManager::compress_stream_pipeline(
       // Wait for Compute to finish
       cudaStreamWaitEvent(streams_[2], slot.event_compressed, 0);
 
-      // Copy Output D2H (Using Pinned Host Memory)
-      // Note: slot.current_output_size was set by Compute thread.
+      // Copy Output D2H
       if (slot.current_output_size > 0) {
         cudaMemcpyAsync(slot.h_output, slot.d_output, slot.current_output_size,
                         cudaMemcpyDeviceToHost, streams_[2]);
       }
 
-      // Sync Stream 2 to ensure data is on host
+      // Sync Stream 2
       cudaStreamSynchronize(streams_[2]);
 
-      // Mark as Downloaded (frees the slot for H2D)
+      // Mark as Downloaded
       cudaEventRecord(slot.event_downloaded, streams_[2]);
 
       // Callback to User
@@ -205,7 +192,7 @@ Status PipelinedBatchManager::compress_stream_pipeline(
     int slot_idx = batch_idx % num_slots_;
     auto &slot = ring_buffer_[slot_idx];
 
-    // Wait for slot to be free (D2H from previous Cycle done)
+    // Wait for slot to be free
     cudaEventSynchronize(slot.event_downloaded);
 
     // Fill Input Buffer

@@ -1314,7 +1314,6 @@ public:
     DictionaryContent *d_dict_content = nullptr;
     byte_t *d_dict_buffer = nullptr;
     if (has_dictionary) {
-      fflush(stderr);
       d_dict_content = reinterpret_cast<DictionaryContent *>(workspace_ptr);
       workspace_ptr =
           align_ptr(workspace_ptr + sizeof(DictionaryContent), alignment);
@@ -1340,12 +1339,10 @@ public:
                                    stream));
       } else {
         // Dictionary on host, use host-to-device copy
-        fflush(stderr);
         CUDA_CHECK(cudaMemcpyAsync(d_dict_buffer, dict.raw_content,
                                    dict.raw_size, cudaMemcpyHostToDevice,
                                    stream));
       }
-      fflush(stderr);
 
       // Set up DictionaryContent structure
       DictionaryContent h_dict_content;
@@ -1353,7 +1350,6 @@ public:
       h_dict_content.size = dict.raw_size;
       h_dict_content.dict_id = dict.header.dictionary_id;
 
-      fflush(stderr);
       CUDA_CHECK(cudaMemcpyAsync(d_dict_content, &h_dict_content,
                                  sizeof(DictionaryContent),
                                  cudaMemcpyHostToDevice, stream));
@@ -1395,7 +1391,6 @@ public:
           estimate_compressed_size(uncompressed_size, effective_config.level);
       workspace_ptr = align_ptr(workspace_ptr + d_output_max_size, alignment);
     }
-    fflush(stderr);
 
     // --- (NEW) Setup CompressionWorkspace ---
     CompressionWorkspace call_workspace;
@@ -1412,7 +1407,6 @@ public:
       // Use user-specified size
       block_size = effective_config.block_size;
     }
-    fflush(stderr);
 
     call_workspace.num_blocks =
         (uncompressed_size + block_size - 1) / block_size;
@@ -1495,26 +1489,20 @@ public:
 
     size_t forward_lit_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + forward_lit_bytes, alignment);
-    fflush(stderr);
 
     ctx.seq_ctx->d_match_lengths = reinterpret_cast<u32 *>(workspace_ptr);
-    fflush(stderr);
     size_t forward_match_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + forward_match_bytes, alignment);
-    fflush(stderr);
 
     ctx.seq_ctx->d_offsets = reinterpret_cast<u32 *>(workspace_ptr);
-    fflush(stderr);
     // size_t forward_offset_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + forward_match_bytes,
                               alignment); // reuse size
-    fflush(stderr);
 
     ctx.seq_ctx->d_literals_buffer = reinterpret_cast<byte_t *>(workspace_ptr);
     // Literals buffer size = block size
     size_t literals_bytes = ZSTD_BLOCKSIZE_MAX;
     workspace_ptr = align_ptr(workspace_ptr + literals_bytes, alignment);
-    fflush(stderr);
 
     // (NEW) Partition per-block sums (3 slots per block)
     call_workspace.d_block_sums = reinterpret_cast<u32 *>(workspace_ptr);
@@ -1533,46 +1521,36 @@ public:
         call_workspace.num_blocks * 3 * sizeof(u32);
     workspace_ptr =
         align_ptr(workspace_ptr + scanned_block_sums_bytes, alignment);
-    fflush(stderr);
 
     // (NEW) Partition checksum buffer
     size_t checksum_bytes = sizeof(u64);
     workspace_ptr = align_ptr(workspace_ptr + checksum_bytes, alignment);
-    fflush(stderr);
 
     // Partition Huffman temporary buffers
     call_workspace.d_frequencies = reinterpret_cast<u32 *>(workspace_ptr);
     size_t frequencies_bytes = 256 * sizeof(u32); // MAX_HUFFMAN_SYMBOLS
     workspace_ptr = align_ptr(workspace_ptr + frequencies_bytes, alignment);
-    fflush(stderr);
 
     call_workspace.d_code_lengths = reinterpret_cast<u32 *>(workspace_ptr);
     size_t code_lengths_bytes =
         uncompressed_size * sizeof(u32); // Per-input-symbol code lengths
     workspace_ptr = align_ptr(workspace_ptr + code_lengths_bytes, alignment);
-    fflush(stderr);
 
     call_workspace.d_bit_offsets = reinterpret_cast<u32 *>(workspace_ptr);
     size_t bit_offsets_bytes =
         uncompressed_size * sizeof(u32); // Prefix sum result
     workspace_ptr = align_ptr(workspace_ptr + bit_offsets_bytes, alignment);
-    fflush(stderr);
 
     // Set max_sequences capacity
     call_workspace.max_sequences = uncompressed_size; // Conservative estimate
 
     // Partition sequence storage from the workspace for compression
-    fflush(stderr);
-    fflush(stderr);
     ctx.seq_ctx->d_sequences =
         reinterpret_cast<sequence::Sequence *>(workspace_ptr);
-    fflush(stderr);
 
-    fflush(stderr);
     // (FIX) Also assign to call_workspace so block_ws inherits it
     call_workspace.d_sequences =
         reinterpret_cast<void *>(ctx.seq_ctx->d_sequences);
-    fflush(stderr);
 
     // (FIX) Allocate sequences for ALL blocks (SoA layout simulation)
     // Previously allocated only 1 block size, causing race conditions
@@ -1623,7 +1601,6 @@ public:
 
     // Synchronize to catch any pending errors before starting
     // compression
-    fflush(stderr);
     cudaError_t pre_compress_err = cudaDeviceSynchronize();
     if (pre_compress_err != cudaSuccess) {
       printf("[ERROR] compress: CUDA error BEFORE compression "
@@ -1675,7 +1652,6 @@ public:
 
     // 3. Write Frame Header
     // Status initialized above
-    fflush(stderr);
     status = write_frame_header(
         d_output + compressed_offset, d_output_max_size - compressed_offset,
         &header_size, (u32)uncompressed_size,
@@ -1701,9 +1677,6 @@ public:
     // Block size already calculated during workspace partitioning
     // (see line ~1082, stored in effective_config.block_size)
     u32 num_blocks = (uncompressed_size + block_size - 1) / block_size;
-    fprintf(stderr, "uncompressed_size=%zu\n", num_blocks, block_size,
-            uncompressed_size);
-    fflush(stderr);
 
     // Calculate per-block workspace size (Must match
     // get_compress_temp_size)
@@ -1762,7 +1735,6 @@ public:
 
     // Safety Net: Ensure all HtoD copies are fully complete before
     // launching threads
-    fflush(stderr);
     cudaError_t safety_err = cudaDeviceSynchronize();
     if (safety_err != cudaSuccess) {
       printf("[ERROR] compress: Safety Net Sync failed: %s\n",
@@ -1797,7 +1769,6 @@ public:
     // ZSTD_BLOCKSIZE_MAX)); // REMOVED LEAK
 
     for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
-      fflush(stderr);
       cudaError_t loop_start_err = cudaGetLastError();
       if (loop_start_err != cudaSuccess)
         printf("[ERROR] compress: Loop start error (Block %u): %s\n", block_idx,
@@ -2490,7 +2461,6 @@ public:
       }
 
       /* continue; */ // End of block logic
-      fflush(stderr);
 
       // CRITICAL FIX: Synchronize after writing block/before next
       // block's LZ77 effectively overwrites the SHARED O(1) buffers
@@ -2577,7 +2547,6 @@ public:
       //             parameters\n");
       return Status::ERROR_INVALID_PARAMETER;
     }
-    fflush(stderr);
 
     size_t required_size = get_decompress_temp_size(compressed_size);
     // required=%zu\n", temp_size, required_size);
@@ -2742,7 +2711,6 @@ public:
                                   stream);
         if (status != Status::SUCCESS) {
           fprintf(stderr, "status %d\n", (int)status);
-          fflush(stderr);
           return status;
         }
 

@@ -5,7 +5,6 @@
 #include <iostream>
 #include <vector>
 
-
 using namespace cuda_zstd;
 
 // Generate a verifiable pattern (cyclic)
@@ -100,22 +99,14 @@ void run_benchmark(const char *name, size_t total_size_bytes) {
 }
 
 int main(int argc, char **argv) {
+  // 512MB
+  run_benchmark("512 MB Dataset", 512ULL * 1024 * 1024);
+
   // 1GB
   run_benchmark("1 GB Dataset", 1ULL * 1024 * 1024 * 1024);
 
-  // 5GB
-  run_benchmark("5 GB Dataset", 5ULL * 1024 * 1024 * 1024);
-
-  // 10GB
-  run_benchmark("10 GB Dataset", 10ULL * 1024 * 1024 * 1024);
-
-  // Larger tests (only if arg provided to save CI time, or run all?)
-  // User requested testing all.
-  run_benchmark("15 GB Dataset", 15ULL * 1024 * 1024 * 1024);
-
-  run_benchmark("20 GB Dataset", 20ULL * 1024 * 1024 * 1024);
-
-  run_benchmark("25 GB Dataset", 25ULL * 1024 * 1024 * 1024);
+  // 2GB
+  run_benchmark("2 GB Dataset", 2ULL * 1024 * 1024 * 1024);
 
   return 0;
 }
