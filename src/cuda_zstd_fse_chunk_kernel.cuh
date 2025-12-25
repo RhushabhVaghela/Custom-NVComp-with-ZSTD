@@ -140,8 +140,8 @@ static __global__ void fse_compute_states_kernel_sequential(
 
   // Remaining bits belong to Chunk 0
   if (bit_counts != nullptr) {
-    bit_counts[0] =
-        chunk_current_bits + tableLog; // Add Flush bits (tableLog) to Chunk 0
+    bit_counts[0] = chunk_current_bits + tableLog +
+                    1; // Add Flush bits (tableLog) + Stop bit (1)
   }
 }
 
@@ -211,8 +211,8 @@ static __global__ void fse_compute_states_kernel_parallel(
   // So we DO the scan.
 
   // Init is already done (state_value).
-  // Bits from init symbol:
-  u32 chunk_bits = nbBitsOut;
+  // Bits from init symbol are NOT emitted (encoded in state).
+  u32 chunk_bits = 0;
 
   // We scan backwards from end_idx-1 down to start_idx.
   // BUT we already processed end_idx-1 (init).
@@ -237,9 +237,9 @@ static __global__ void fse_compute_states_kernel_parallel(
 
   // Flush bits?
   // Independent stream: Flush state at end.
-  // `fse_encode_chunk_kernel` does `gpu_fse_flush_state` which adds `tableLog`
-  // bits.
-  chunk_bits += tableLog;
+  // `fse_encode_chunk_kernel` does `gpu_fse_flush_state` (tableLog) + Stop Bit
+  // (1)
+  chunk_bits += tableLog + 1;
 
   if (bit_counts) {
     bit_counts[chunk_idx] = chunk_bits;
@@ -334,7 +334,7 @@ static __global__ void fse_compute_states_kernel_parallel_shmem_int4(
   out_states[chunk_idx] = state_value;
 
   // Bit counting loop with INT4 Loading
-  u32 chunk_bits = nbBitsOut;
+  u32 chunk_bits = 0;
 
   // We scan backwards from end_idx-1 down to start_idx.
   // We already processed end_idx-1.
@@ -466,7 +466,7 @@ static __global__ void fse_compute_states_kernel_parallel_shmem(
   out_states[chunk_idx] = state_value;
 
   // Bit counting loop
-  u32 chunk_bits = nbBitsOut;
+  u32 chunk_bits = 0;
   const byte_t *ip = chunk_end - 1;
   const byte_t *chunk_begin = symbols + start_idx;
 
@@ -481,7 +481,7 @@ static __global__ void fse_compute_states_kernel_parallel_shmem(
     chunk_bits += nbBits;
   }
 
-  chunk_bits += tableLog;
+  chunk_bits += tableLog + 1; // Flush bits + Stop bit
 
   if (bit_counts) {
     bit_counts[chunk_idx] = chunk_bits;
@@ -542,7 +542,11 @@ static __global__ void fse_encode_chunk_kernel(
     CState.value = stateTable[tableIndex];
   } else {
     // Use Pre-computed State
+    // We need the state at the TOP of the chunk (end of previous spatial chunk)
+    // Pass 1 on chunk (idx+1) computed the state at its bottom (which is our
+    // top)
     CState.value = start_states[chunk_idx];
+    ip--; // Skip the initialization symbol (already absorbed into start_states)
   }
 
   // --- Backward Encoding Loop ---
@@ -560,7 +564,7 @@ static __global__ void fse_encode_chunk_kernel(
     // Calculate from bitC state (approximated)
     u32 bytes = (u32)(bitC.ptr - bitC.startPtr);
     u32 bits = bytes * 8 + bitC.bitPos;
-    printf("[DEBUG ENC] Chunk 0 bits written = %u\n", bits);
+    // printf("[DEBUG ENC] Chunk 0 bits written = %u\n", bits);
   }
 
   // FLUSH PARTIAL BYTE (Critical Step missing in flush_bits)
@@ -597,8 +601,9 @@ __device__ inline void atomicOr_u8(byte_t *address, byte_t val) {
 static __global__ void fse_merge_bitstreams_kernel(
     const byte_t *input_buffers, // input chunks (stride separated)
     const u32 *chunk_bit_counts, // Exact bit size of each chunk
-    const u32 *chunk_bit_starts, // Calculated prefix sum (in bits)
-    byte_t *output_payload,      // Destination buffer
+    const u64
+        *chunk_bit_starts,  // Calculated prefix sum (in bits) - u64 for >512MB
+    byte_t *output_payload, // Destination buffer
     u32 num_chunks, u32 buffer_stride) {
   u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (chunk_idx >= num_chunks)
@@ -608,11 +613,11 @@ static __global__ void fse_merge_bitstreams_kernel(
   if (num_bits == 0)
     return; // Empty chunk
 
-  u32 global_start_bit = chunk_bit_starts[chunk_idx];
+  u64 global_start_bit = chunk_bit_starts[chunk_idx];
   const byte_t *src_ptr = input_buffers + chunk_idx * buffer_stride;
 
-  u32 start_byte = global_start_bit / 8;
-  u32 bit_shift = global_start_bit % 8;
+  u64 start_byte = global_start_bit / 8;
+  u32 bit_shift = (u32)(global_start_bit % 8);
 
   u32 num_bytes = (num_bits + 7) / 8;
 

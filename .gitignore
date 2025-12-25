@@ -15,5 +15,6 @@ dist/
 *.exe
 *.dll
 *.code*
-previous_conversation_resources/
-latest_conversation_resources/
+Conversation-1
+Conversation-2
+Conversation-3

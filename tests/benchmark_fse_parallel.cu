@@ -39,9 +39,18 @@ BenchmarkResult run_benchmark(u32 data_size, int iterations = 5) {
   fill_random(h_input);
 
   byte_t *d_input, *d_output, *d_decoded;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
-  cudaMalloc(&d_decoded, data_size);
+  CUDA_CHECK_VOID(cudaMalloc(&d_input, data_size));
+  CUDA_CHECK_VOID(cudaMalloc(&d_output, data_size * 2));
+  CUDA_CHECK_VOID(
+      cudaMemset(d_output, 0,
+                 data_size * 2)); // Ensure clean start to detect bad overwrites
+  CUDA_CHECK_VOID(cudaMalloc(&d_decoded, data_size));
+
+  // Check state before encode
+  cudaError_t pre_enc_err = cudaGetLastError();
+  if (pre_enc_err != cudaSuccess) {
+    printf("Benchmark Pre-Encode Error: %s\n", cudaGetErrorString(pre_enc_err));
+  }
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
   // Warmup

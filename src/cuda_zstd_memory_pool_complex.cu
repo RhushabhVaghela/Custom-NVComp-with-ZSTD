@@ -98,6 +98,13 @@ void *MemoryPoolManager::allocate_from_cuda(size_t size) {
     return nullptr;
   }
 
+  // Check against max pool size (soft limit)
+  if (current_memory_usage_.load(std::memory_order_relaxed) + size >
+      max_pool_size_) {
+    allocation_failures_.fetch_add(1, std::memory_order_relaxed);
+    return nullptr;
+  }
+
   cudaError_t err = cudaMalloc(&ptr, size);
 
   if (err != cudaSuccess) {
@@ -152,6 +159,9 @@ bool MemoryPoolManager::lock_pools_ordered(
   // Attempt to lock each mutex in order, with retries until the deadline.
   while (true) {
     locks.clear();
+    // CRITICAL FIX: Pre-reserve capacity to prevent reallocation during
+    // emplace_back. Reallocation invalidates unique_lock objects causing UB.
+    locks.reserve(idxs.size());
     bool ok = true;
     for (int id : idxs) {
       locks.emplace_back(pool_mutexes_[id], std::defer_lock);
@@ -1257,17 +1267,21 @@ void MemoryPoolManager::clear() {
       if (entry.ready_event != nullptr) {
         cudaEventSynchronize(entry.ready_event);
         cudaEventDestroy(entry.ready_event);
+        entry.ready_event = nullptr;
       }
       if (entry.ptr && !entry.is_host_fallback) {
         cudaFree(entry.ptr);
+        entry.ptr = nullptr;
       }
       if (entry.host_ptr) {
         free(entry.host_ptr);
+        entry.host_ptr = nullptr;
       }
     }
 
     pools_[i].clear();
   }
+  // std::cerr << "MemoryPoolManager::clear() finished\n";
 
   current_memory_usage_.store(0, std::memory_order_relaxed);
   host_memory_usage_.store(0, std::memory_order_relaxed);
@@ -1284,14 +1298,28 @@ void MemoryPoolManager::reset_for_reuse() {
     all_indices.push_back(i);
 
   std::vector<std::unique_lock<std::timed_mutex>> locks;
-  lock_pools_ordered(all_indices, 500, locks); // 500ms timeout
+  bool locked = lock_pools_ordered(all_indices, 500, locks); // 500ms timeout
 
-  // 1. Destroy any pending events
+  // If we couldn't acquire locks, skip reset to avoid deadlock
+  if (!locked || locks.empty()) {
+    return;
+  }
+
+  // 1. Destroy any pending events with proper error handling
   for (int i = 0; i < NUM_POOL_SIZES; ++i) {
     for (auto &entry : pools_[i]) {
       if (entry.ready_event != nullptr) {
-        cudaEventSynchronize(entry.ready_event);
-        cudaEventDestroy(entry.ready_event);
+        // Synchronize with error handling - ignore errors on stale events
+        cudaError_t sync_err = cudaEventSynchronize(entry.ready_event);
+        if (sync_err != cudaSuccess) {
+          // Event is likely corrupted or already destroyed, just reset pointer
+          cudaGetLastError(); // Clear error state
+        }
+
+        cudaError_t destroy_err = cudaEventDestroy(entry.ready_event);
+        if (destroy_err != cudaSuccess) {
+          cudaGetLastError(); // Clear error state
+        }
         entry.ready_event = nullptr;
       }
       // Clear stream association

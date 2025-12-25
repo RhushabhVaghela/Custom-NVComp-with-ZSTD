@@ -292,6 +292,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_pipeline_streaming cuda_zstd_static)
+
+
 endif()
 
 
