@@ -1,252 +1,185 @@
-# CUDA-ZSTD Streaming API Guide
+# 🌊 Streaming API: Process Data as It Flows
 
-## Overview
+> *"Why wait for the whole river when you can drink as it flows?"*
 
-The Streaming API enables compression/decompression of data that arrives incrementally, maintaining state across chunks while producing valid ZSTD frames.
+## What is Streaming?
 
-## Architecture
+Imagine you're watching a live video. You don't wait for the entire movie to download—you watch it as it arrives. **Streaming compression** works the same way!
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                   ZstdStreamingManager                           │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    Internal State                         │   │
-│  │  - Frame context (window, checksum)                       │   │
-│  │  - Block buffer (partial data)                            │   │
-│  │  - Dictionary context                                     │   │
-│  │  - Flush mode                                             │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Input Chunks → [Compress Chunk] → Output Chunks                │
-│                                                                  │
-│  Modes:                                                          │
-│    • CONTINUE - More data coming                                 │
-│    • FLUSH    - Produce output, reset block                      │
-│    • END      - Finalize frame                                   │
-└─────────────────────────────────────────────────────────────────┘
+Traditional Compression:          Streaming Compression:
+                                   
+Wait... Wait... Wait...           Start immediately!
+        ↓                                ↓
+[████████████████] 100%           [█░░░░░░░░░░░░░░░] → 📦
+        ↓                         [████░░░░░░░░░░░] → 📦📦
+       📦                         [████████░░░░░░░] → 📦📦📦
+                                  [████████████░░░] → 📦📦📦📦
+Total time: 10 seconds            [████████████████] → 📦📦📦📦📦
+                                  Total time: 10 seconds
+                                  BUT: Output starts at 2 seconds!
 ```
 
-## API Reference
+## 🎯 When to Use Streaming
 
-### Class Definition
+### ✅ Perfect For:
+| Scenario | Why Streaming Wins |
+|:---------|:-------------------|
+| 📡 **Live data feeds** | Can't wait for "the end"—there isn't one! |
+| 📁 **Huge files** | Don't need to fit entire file in memory |
+| 🌐 **Network transfers** | Start sending compressed data immediately |
+| 💾 **Limited memory** | Process 100GB file with only 128KB buffer |
 
-```cpp
-class ZstdStreamingManager {
-public:
-    // Create streaming manager
-    static std::unique_ptr<ZstdStreamingManager> create(int level = 3);
-    
-    // Initialize for compression
-    Status init_compression();
-    
-    // Initialize for decompression
-    Status init_decompression();
-    
-    // Compress a chunk
-    Status compress_chunk(
-        const void* d_input,
-        size_t input_size,
-        void* d_output,
-        size_t* output_size,
-        bool is_last_chunk,
-        cudaStream_t stream = 0
-    );
-    
-    // Decompress a chunk
-    Status decompress_chunk(
-        const void* d_input,
-        size_t input_size,
-        void* d_output,
-        size_t* output_size,
-        bool* frame_complete,
-        cudaStream_t stream = 0
-    );
-    
-    // Reset for new stream
-    Status reset();
-    
-    // Get internal statistics
-    StreamingStats get_stats();
-};
-```
+### ❌ Skip Streaming When:
+- You have many small files (use [Batch Processing](BATCH-PROCESSING.md) instead)
+- The entire file fits easily in memory
 
-## Usage Examples
+---
 
-### File Compression
+## 🛠️ How to Use It
+
+### Basic Example: Compress a File Piece by Piece
 
 ```cpp
 #include "cuda_zstd_manager.h"
-#include <fstream>
 
-void compress_file_streaming(const std::string& input_path,
-                             const std::string& output_path) {
-    using namespace cuda_zstd;
+void compress_huge_file(const std::string& filename) {
+    // 1. Create a streaming manager
+    auto stream_mgr = cuda_zstd::ZstdStreamingManager::create(5);
+    stream_mgr->init_compression();
     
-    // Create manager
-    auto manager = ZstdStreamingManager::create(5);
-    manager->init_compression();
+    // 2. Process the file in 128KB chunks
+    const size_t CHUNK_SIZE = 128 * 1024;  // 128KB
     
-    // Setup buffers
-    const size_t CHUNK_SIZE = 128 * 1024;  // 128KB chunks
-    std::vector<uint8_t> h_input(CHUNK_SIZE);
-    std::vector<uint8_t> h_output(CHUNK_SIZE * 2);
+    std::ifstream input(filename, std::ios::binary);
+    std::ofstream output(filename + ".zst", std::ios::binary);
     
-    void *d_input, *d_output;
-    cudaMalloc(&d_input, CHUNK_SIZE);
-    cudaMalloc(&d_output, CHUNK_SIZE * 2);
-    
-    std::ifstream fin(input_path, std::ios::binary);
-    std::ofstream fout(output_path, std::ios::binary);
-    
-    while (fin) {
-        // Read chunk
-        fin.read((char*)h_input.data(), CHUNK_SIZE);
-        size_t bytes_read = fin.gcount();
-        if (bytes_read == 0) break;
+    while (!input.eof()) {
+        // Read a chunk
+        std::vector<uint8_t> chunk(CHUNK_SIZE);
+        input.read((char*)chunk.data(), CHUNK_SIZE);
+        size_t bytes_read = input.gcount();
         
-        bool is_last = fin.eof();
+        // Is this the last piece?
+        bool is_last = input.eof();
         
-        // Transfer to GPU
-        cudaMemcpy(d_input, h_input.data(), bytes_read, 
-                   cudaMemcpyHostToDevice);
-        
-        // Compress chunk
-        size_t out_size = CHUNK_SIZE * 2;
-        Status status = manager->compress_chunk(
-            d_input, bytes_read,
-            d_output, &out_size,
-            is_last, 0
+        // Compress it (GPU does the heavy lifting!)
+        size_t compressed_size;
+        stream_mgr->compress_chunk(
+            chunk.data(), bytes_read,
+            output_buffer, &compressed_size,
+            is_last
         );
         
-        if (status != Status::SUCCESS) {
-            fprintf(stderr, "Compression error: %s\n", 
-                    status_to_string(status));
-            break;
-        }
-        
-        // Write compressed data
-        cudaMemcpy(h_output.data(), d_output, out_size,
-                   cudaMemcpyDeviceToHost);
-        fout.write((char*)h_output.data(), out_size);
+        // Write compressed data immediately
+        output.write((char*)output_buffer, compressed_size);
     }
     
-    cudaFree(d_input);
-    cudaFree(d_output);
+    // That's it! File compressed in chunks 🎉
 }
 ```
 
-### Network Stream Compression
+### Real-World Example: Network Stream
 
 ```cpp
-void compress_network_stream(Socket& socket) {
-    auto manager = cuda_zstd::ZstdStreamingManager::create(3);
-    manager->init_compression();
+// Compress data as it arrives from the network
+while (socket.has_data()) {
+    auto data = socket.receive();
     
-    void *d_buf, *d_out;
-    cudaMalloc(&d_buf, 64 * 1024);
-    cudaMalloc(&d_out, 128 * 1024);
+    size_t compressed_size;
+    stream_mgr->compress_chunk(
+        data.ptr, data.size,
+        output, &compressed_size,
+        socket.is_closing()  // Is this the last chunk?
+    );
     
-    while (socket.connected()) {
-        // Receive data (non-blocking)
-        std::vector<uint8_t> data = socket.receive(64 * 1024);
-        if (data.empty()) continue;
-        
-        bool is_last = socket.is_closing();
-        
-        cudaMemcpy(d_buf, data.data(), data.size(), 
-                   cudaMemcpyHostToDevice);
-        
-        size_t out_size;
-        manager->compress_chunk(d_buf, data.size(),
-                                d_out, &out_size, is_last);
-        
-        std::vector<uint8_t> compressed(out_size);
-        cudaMemcpy(compressed.data(), d_out, out_size,
-                   cudaMemcpyDeviceToHost);
-        
-        // Send compressed data
-        socket.send(compressed);
-        
-        if (is_last) break;
-    }
+    // Send compressed data immediately
+    socket.send(output, compressed_size);
 }
 ```
 
-### Decompression with Unknown Size
+---
 
-```cpp
-void decompress_streaming(const void* compressed_data,
-                          size_t compressed_size,
-                          std::vector<uint8_t>& output) {
-    auto manager = cuda_zstd::ZstdStreamingManager::create();
-    manager->init_decompression();
-    
-    const size_t chunk_size = 64 * 1024;
-    void *d_input, *d_output;
-    cudaMalloc(&d_input, chunk_size);
-    cudaMalloc(&d_output, chunk_size * 10);  // Decompression expands
-    
-    size_t offset = 0;
-    bool frame_complete = false;
-    
-    while (offset < compressed_size && !frame_complete) {
-        size_t this_chunk = std::min(chunk_size, compressed_size - offset);
-        
-        cudaMemcpy(d_input, (uint8_t*)compressed_data + offset,
-                   this_chunk, cudaMemcpyHostToDevice);
-        
-        size_t out_size = chunk_size * 10;
-        manager->decompress_chunk(
-            d_input, this_chunk,
-            d_output, &out_size,
-            &frame_complete, 0
-        );
-        
-        // Append to output
-        std::vector<uint8_t> chunk(out_size);
-        cudaMemcpy(chunk.data(), d_output, out_size,
-                   cudaMemcpyDeviceToHost);
-        output.insert(output.end(), chunk.begin(), chunk.end());
-        
-        offset += this_chunk;
-    }
-}
+## 🎨 Visual: How Streaming Works Inside
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  Streaming Manager                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   Your Data     ═══▶  [Internal Buffer]  ═══▶  Compressed   │
+│   (arrives in         (accumulates if         (output when  │
+│    chunks)             needed)                 ready)        │
+│                                                              │
+│   State Machine:                                             │
+│   ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐            │
+│   │ INIT │ →  │ RUN  │ →  │ FLUSH│ →  │ END  │            │
+│   └──────┘    └──────┘    └──────┘    └──────┘            │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Configuration Options
+The streaming manager remembers its state between chunks, so each piece connects seamlessly to the next!
+
+---
+
+## ⚙️ Configuration Options
 
 ### Chunk Size Guidelines
 
-| Use Case | Recommended Size | Latency | Throughput |
-|:---------|:----------------:|:-------:|:----------:|
-| Real-time | 8-16 KB | Low | Medium |
-| Balanced | 64-128 KB | Medium | High |
-| Maximum | 256+ KB | High | Maximum |
+| Your Situation | Recommended Chunk Size | Latency | Speed |
+|:---------------|:----------------------:|:-------:|:-----:|
+| Real-time (video, audio) | 8-16 KB | ⚡ Ultra-low | Medium |
+| General files | 64-128 KB | Low | Fast |
+| Maximum throughput | 256 KB+ | Higher | 🚀 Maximum |
 
 ### Flush Modes
 
-| Mode | Behavior |
-|:-----|:---------|
-| `FLUSH_NONE` | Buffer data, output when full |
-| `FLUSH_BLOCK` | Complete current block, output |
-| `FLUSH_FRAME` | End frame, output, reset |
+| Mode | What Happens | When to Use |
+|:-----|:-------------|:------------|
+| **Continue** | Buffer data, output when optimal | Normal operation |
+| **Flush** | Output everything now | Need immediate output |
+| **End** | Finalize the frame | Last chunk of data |
 
-## Thread Safety
+---
 
-- Single manager: **NOT** thread-safe
-- Multiple managers: Thread-safe (separate instances)
-- CUDA stream: Provides async safety within one manager
+## 🧪 Testing Your Streaming Code
 
-## Source Files
+```cpp
+// Test with a file you can verify
+void test_streaming_roundtrip() {
+    std::vector<uint8_t> original = load_file("test.bin");
+    
+    // Compress in streaming mode
+    auto compressed = streaming_compress(original);
+    
+    // Decompress
+    auto decompressed = streaming_decompress(compressed);
+    
+    // Verify
+    assert(original == decompressed);
+    printf("✅ Roundtrip successful!\n");
+}
+```
 
-| File | Description |
-|:-----|:------------|
-| `src/cuda_zstd_manager.cu` | ZstdStreamingManager |
-| `tests/test_streaming.cu` | Streaming tests |
-| `benchmarks/benchmark_streaming.cu` | Streaming benchmark |
+---
 
-## Related Documentation
-- [BATCH-PROCESSING.md](BATCH-PROCESSING.md)
-- [MANAGER-IMPLEMENTATION.md](MANAGER-IMPLEMENTATION.md)
-- [PERFORMANCE-TUNING.md](PERFORMANCE-TUNING.md)
+## 🔍 Common Issues
+
+| Problem | Likely Cause | Solution |
+|:--------|:-------------|:---------|
+| Output is empty | Forgot to call with `is_last=true` | Always set `is_last` on final chunk |
+| Decompression fails | Chunks out of order | Process chunks sequentially |
+| Memory growing | Not writing output | Write compressed data after each chunk |
+
+---
+
+## 📚 Related Guides
+
+- [Batch Processing](BATCH-PROCESSING.md) — For many small files
+- [Performance Tuning](PERFORMANCE-TUNING.md) — Optimize your streaming
+- [Error Handling](ERROR-HANDLING.md) — Handle edge cases gracefully
+
+---
+
+*Streaming: Because the best time to start compressing is right now! 🌊*

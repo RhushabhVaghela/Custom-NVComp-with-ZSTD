@@ -1,172 +1,171 @@
-# CUDA-ZSTD Error Handling Guide
+# 🚨 Error Handling: When Things Go Wrong
 
-## Overview
+> *"Good error handling is the difference between 'it crashed' and 'here's exactly what went wrong.'"*
 
-The error handling system provides comprehensive error detection, reporting, and recovery mechanisms with 18 distinct error codes and detailed context information.
+## Understanding Errors
 
-## Error Code Reference
-
-| Code | Name | Description | Recovery |
-|:----:|:-----|:------------|:---------|
-| 0 | `SUCCESS` | Operation completed successfully | N/A |
-| 1 | `ERROR_GENERIC` | Unspecified error | Check logs |
-| 2 | `ERROR_INVALID_PARAMETER` | Invalid function argument | Fix parameter |
-| 3 | `ERROR_BUFFER_TOO_SMALL` | Output buffer insufficient | Resize buffer |
-| 4 | `ERROR_OUT_OF_MEMORY` | GPU/Host memory exhausted | Free memory |
-| 5 | `ERROR_CUDA_ERROR` | CUDA runtime error | Check GPU |
-| 6 | `ERROR_UNSUPPORTED_FORMAT` | Unknown data format | Verify input |
-| 7 | `ERROR_NOT_INITIALIZED` | Manager not initialized | Call init() |
-| 8 | `ERROR_CHECKSUM_MISMATCH` | Data integrity failure | Re-transfer |
-| 9 | `ERROR_CORRUPTED_DATA` | Invalid compressed data | Verify source |
-| 10 | `ERROR_INVALID_HEADER` | Malformed frame header | Check format |
-| 11 | `ERROR_WORKSPACE_TOO_SMALL` | Workspace buffer too small | Resize |
-| 12 | `ERROR_STREAM_ERROR` | CUDA stream error | Reset stream |
-| 13 | `ERROR_DICTIONARY_INVALID` | Invalid dictionary format | Retrain |
-| 14 | `ERROR_DICTIONARY_MISMATCH` | Dictionary ID mismatch | Use correct dict |
-| 15 | `ERROR_TIMEOUT` | Operation timed out | Retry or abort |
-| 16 | `ERROR_CANCELLED` | Operation cancelled | User action |
-| 17 | `ERROR_DICTIONARY_FAILED` | Dictionary training failed | Check samples |
-| 18 | `ERROR_UNSUPPORTED_FORMAT` | Unsupported ZSTD features | Check version |
-
-## ErrorContext Structure
+Every function in CUDA-ZSTD returns a **Status** code. Think of it like a report card:
 
 ```cpp
-struct ErrorContext {
-    Status status;              // Error code
-    const char* file;           // Source file
-    int line;                   // Line number
-    const char* function;       // Function name
-    const char* message;        // Detailed message
-    cudaError_t cuda_error;     // CUDA error (if applicable)
-};
-```
+Status result = manager->compress(...);
 
-## Usage Patterns
-
-### Basic Error Checking
-```cpp
-#include "cuda_zstd_manager.h"
-
-Status status = manager->compress(...);
-if (status != Status::SUCCESS) {
-    printf("Compression failed: %s\n", status_to_string(status));
-    return status;
+if (result == Status::SUCCESS) {
+    🎉 Everything worked!
+} else {
+    🚨 Something went wrong - check what!
 }
 ```
 
-### Detailed Error Context
+---
+
+## 📋 Error Code Reference
+
+### The Good Ones
+| Code | Name | Meaning |
+|:----:|:-----|:--------|
+| ✅ 0 | `SUCCESS` | All good! Continue on. |
+
+### The Recoverable Ones
+| Code | Name | What Happened | How to Fix |
+|:----:|:-----|:--------------|:-----------|
+| 🔧 3 | `BUFFER_TOO_SMALL` | Output buffer too small | Make buffer bigger |
+| 🔧 4 | `OUT_OF_MEMORY` | GPU ran out of memory | Free some memory, try again |
+| 🔧 15 | `TIMEOUT` | Operation took too long | Retry or use smaller chunks |
+
+### The "Check Your Input" Ones
+| Code | Name | What Happened | How to Fix |
+|:----:|:-----|:--------------|:-----------|
+| ⚠️ 2 | `INVALID_PARAMETER` | Bad argument passed | Check your inputs |
+| ⚠️ 9 | `CORRUPTED_DATA` | Data is broken | Verify source data |
+| ⚠️ 10 | `INVALID_HEADER` | Not a valid ZSTD file | Check file format |
+
+### The Serious Ones
+| Code | Name | What Happened | How to Fix |
+|:----:|:-----|:--------------|:-----------|
+| 🔴 5 | `CUDA_ERROR` | GPU had a problem | Restart, check GPU |
+| 🔴 8 | `CHECKSUM_MISMATCH` | Data corrupted in transit | Re-transfer data |
+
+---
+
+## 🛠️ How to Handle Errors
+
+### The Basic Pattern
+```cpp
+Status status = manager->compress(...);
+
+if (status != Status::SUCCESS) {
+    printf("Error: %s\n", status_to_string(status));
+    // Handle the error...
+}
+```
+
+### The Complete Pattern (Recommended)
 ```cpp
 #include "error_context.h"
 
 Status status = manager->compress(...);
+
 if (status != Status::SUCCESS) {
+    // Get detailed information
     ErrorContext ctx = cuda_zstd::error_handling::get_last_error();
     
-    fprintf(stderr, "Error: %s\n", status_to_string(ctx.status));
-    fprintf(stderr, "  File: %s:%d\n", ctx.file, ctx.line);
-    fprintf(stderr, "  Function: %s\n", ctx.function);
+    printf("Error: %s\n", status_to_string(ctx.status));
+    printf("  Location: %s:%d\n", ctx.file, ctx.line);
+    printf("  Function: %s\n", ctx.function);
+    
     if (ctx.message) {
-        fprintf(stderr, "  Message: %s\n", ctx.message);
+        printf("  Details: %s\n", ctx.message);
     }
+    
     if (ctx.cuda_error != cudaSuccess) {
-        fprintf(stderr, "  CUDA: %s\n", cudaGetErrorString(ctx.cuda_error));
+        printf("  CUDA: %s\n", cudaGetErrorString(ctx.cuda_error));
     }
 }
 ```
 
-### Error Callbacks
+---
+
+## 🎯 Common Scenarios
+
+### "Buffer Too Small"
 ```cpp
-void my_error_handler(const ErrorContext& ctx) {
-    // Log to file, send alert, etc.
-    log_to_file("[CUDA-ZSTD] %s in %s at %s:%d",
-                status_to_string(ctx.status),
-                ctx.function, ctx.file, ctx.line);
+// ❌ Wrong: Guessing the size
+void* output = malloc(input_size);  // Too small!
+
+// ✅ Right: Ask for the correct size
+size_t max_size = manager->get_max_compressed_size(input_size);
+void* output = malloc(max_size);
+```
+
+### "Out of Memory"
+```cpp
+// ❌ Wrong: Allocating too much
+cudaMalloc(&huge_buffer, 16 * GB);  // 💥
+
+// ✅ Right: Process in chunks
+for (auto chunk : split_into_chunks(data, 128 * MB)) {
+    manager->compress(chunk, ...);
 }
-
-// Register handler
-cuda_zstd::set_error_callback(my_error_handler);
 ```
 
-## Debug Macros
-
-### CHECK_STATUS
+### "Checksum Mismatch"
 ```cpp
-#define CHECK_STATUS(status) do { \
-    if ((status) != Status::SUCCESS) { \
-        ErrorContext ctx((status), __FILE__, __LINE__, __FUNCTION__); \
-        error_handling::log_error(ctx); \
-        return (status); \
-    } \
-} while(0)
+Status status = manager->decompress(...);
 
-// Usage
-CHECK_STATUS(compress(...));  // Logs and returns on error
+if (status == Status::ERROR_CHECKSUM_MISMATCH) {
+    printf("⚠️ Data was corrupted! Re-download and try again.\n");
+    // Don't trust the output!
+}
 ```
 
-### VALIDATE_NOT_NULL
-```cpp
-#define VALIDATE_NOT_NULL(ptr, name) do { \
-    if (!(ptr)) { \
-        ErrorContext ctx(Status::ERROR_INVALID_PARAMETER, \
-                        __FILE__, __LINE__, __FUNCTION__, \
-                        name " is null"); \
-        error_handling::log_error(ctx); \
-        return Status::ERROR_INVALID_PARAMETER; \
-    } \
-} while(0)
+---
 
-// Usage
-VALIDATE_NOT_NULL(d_input, "d_input");
+## 🔍 Debugging Tips
+
+### 1. Enable Debug Logging
+```bash
+CUDA_ZSTD_DEBUG_LEVEL=3 ./my_app
 ```
 
-## CUDA Error Handling
-
-### Automatic Detection
-```cpp
-// Internal CUDA_CHECK macro
-#define CUDA_CHECK(call) do { \
-    cudaError_t err = call; \
-    if (err != cudaSuccess) { \
-        ErrorContext ctx(Status::ERROR_CUDA_ERROR, \
-                        __FILE__, __LINE__, __FUNCTION__); \
-        ctx.cuda_error = err; \
-        error_handling::log_error(ctx); \
-        return Status::ERROR_CUDA_ERROR; \
-    } \
-} while(0)
+### 2. Force Synchronous Execution
+```bash
+CUDA_LAUNCH_BLOCKING=1 ./my_app
 ```
 
-### Stream Error Recovery
+### 3. Check for CUDA Errors
 ```cpp
-// Check for async errors
-cudaStreamSynchronize(stream);
 cudaError_t err = cudaGetLastError();
 if (err != cudaSuccess) {
-    // Reset stream state
-    cudaStreamDestroy(stream);
-    cudaStreamCreate(&stream);
-    // Retry operation or fail gracefully
+    printf("CUDA error: %s\n", cudaGetErrorString(err));
 }
 ```
 
-## Best Practices
+---
 
-1. **Always Check Return Values**: Never ignore Status returns
-2. **Use Detailed Logging**: Enable verbose mode for debugging
-3. **Implement Recovery Logic**: Handle recoverable errors gracefully
-4. **Monitor Memory**: Track allocations to prevent OOM
-5. **Validate Input**: Check parameters before GPU operations
+## 📚 Error Code Quick Reference
 
-## Source Files
+```
+ 0 = SUCCESS              ✅ All good
+ 1 = ERROR_GENERIC        🤷 Something went wrong
+ 2 = INVALID_PARAMETER    ⚠️ Bad input
+ 3 = BUFFER_TOO_SMALL     📏 Need bigger buffer
+ 4 = OUT_OF_MEMORY        💾 No more memory
+ 5 = CUDA_ERROR           🔴 GPU problem
+ 6 = UNSUPPORTED_FORMAT   📄 Unknown format
+ 7 = NOT_INITIALIZED      🚫 Call init() first
+ 8 = CHECKSUM_MISMATCH    🔐 Data corrupted
+ 9 = CORRUPTED_DATA       💔 Invalid data
+10 = INVALID_HEADER       📝 Bad header
+```
 
-| File | Description |
-|:-----|:------------|
-| `include/error_context.h` | Error context definitions |
-| `include/cuda_zstd_types.h` | Status enum (lines 120-170) |
-| `src/error_context.cpp` | Error context implementation |
-| `src/cuda_zstd_types.cpp` | status_to_string() |
-| `tests/test_error_handling.cu` | Error handling tests |
+---
 
-## Related Documentation
-- [C-API-REFERENCE.md](C-API-REFERENCE.md)
-- [MANAGER-IMPLEMENTATION.md](MANAGER-IMPLEMENTATION.md)
+## 📚 Related Guides
+
+- [Debugging Guide](DEBUGGING-GUIDE.md) — Deep dive into troubleshooting
+- [Testing Guide](TESTING-GUIDE.md) — Test your error handling
+- [Quick Reference](QUICK-REFERENCE.md) — Common patterns
+
+---
+
+*"Expect the best, handle the worst." 🛡️*
