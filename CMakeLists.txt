@@ -360,6 +360,57 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     add_test(NAME benchmark_stream_pool COMMAND benchmark_stream_pool)
     set_property(TEST benchmark_stream_pool PROPERTY LABELS "benchmark")
 
+    # Performance Suite Runner
+    add_executable(run_performance_suite benchmarks/run_performance_suite.cu)
+    set_target_properties(run_performance_suite PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(run_performance_suite cuda_zstd_static)
+    add_test(NAME run_performance_suite COMMAND run_performance_suite)
+    set_property(TEST run_performance_suite PROPERTY LABELS "benchmark")
+
+    # nvComp Interface Throughput Benchmark (100% coverage)
+    add_executable(benchmark_nvcomp_interface benchmarks/benchmark_nvcomp_interface.cu)
+    set_target_properties(benchmark_nvcomp_interface PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_nvcomp_interface cuda_zstd_static)
+    add_test(NAME benchmark_nvcomp_interface COMMAND benchmark_nvcomp_interface)
+    set_property(TEST benchmark_nvcomp_interface PROPERTY LABELS "benchmark")
+
+    # C API Performance Benchmark (100% coverage)
+    add_executable(benchmark_c_api benchmarks/benchmark_c_api.cu)
+    set_target_properties(benchmark_c_api PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_c_api cuda_zstd_static)
+    add_test(NAME benchmark_c_api COMMAND benchmark_c_api)
+    set_property(TEST benchmark_c_api PROPERTY LABELS "benchmark")
+
+    # Streaming Manager Performance Benchmark (100% coverage)
+    add_executable(benchmark_streaming benchmarks/benchmark_streaming.cu)
+    set_target_properties(benchmark_streaming PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_streaming cuda_zstd_static)
+    add_test(NAME benchmark_streaming COMMAND benchmark_streaming)
+    set_property(TEST benchmark_streaming PROPERTY LABELS "benchmark")
+
+
+    # Batch Throughput Benchmark
+    add_executable(benchmark_batch_throughput benchmarks/benchmark_batch_throughput.cu)
+    set_target_properties(benchmark_batch_throughput PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    find_package(OpenMP REQUIRED)
+    target_link_libraries(benchmark_batch_throughput cuda_zstd_static OpenMP::OpenMP_CXX)
+    add_test(NAME benchmark_batch_throughput COMMAND benchmark_batch_throughput)
+    set_property(TEST benchmark_batch_throughput PROPERTY LABELS "benchmark")
 
 endif()
 
