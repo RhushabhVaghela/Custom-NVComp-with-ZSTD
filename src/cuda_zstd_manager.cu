@@ -4312,9 +4312,9 @@ ZstdBatchManager::~ZstdBatchManager() {
 
   // CRITICAL FIX: Clear sticky CUDA errors
   (void)cudaGetLastError();
-  // Reset global pool state to ensure clean state for next compression
-  // FIX: reset_for_reuse now has proper CUDA error handling for stale events
-  memory::get_global_pool().reset_for_reuse();
+  // NOTE: Do NOT call reset_for_reuse() here - it causes deadlock in
+  // multi-threaded scenarios where other managers are still allocating
+  // from the global pool. The pool manages its own state correctly.
 }
 
 Status ZstdBatchManager::configure(const CompressionConfig &config) {

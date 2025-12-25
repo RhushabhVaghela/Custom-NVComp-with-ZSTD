@@ -1886,13 +1886,13 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   //        "input_size=%u\n",
   //        total_bits, total_bytes, num_chunks, input_size);
 
-  // DEBUG PRINT OFFSETS
-  if (num_chunks > 0 && num_chunks <= 32) {
-    for (int i = 0; i < num_chunks; i++) {
-      // printf("[DEBUG OFFSET] Chunk %d: Count=%u Offset=%u\\n", i,
-      //        h_bit_counts[i], h_bit_offsets[i]);
-    }
-  }
+  // DEBUG PRINT OFFSETS (Disabled for production)
+  // if (num_chunks > 0 && num_chunks <= 32) {
+  //   for (int i = 0; i < num_chunks; i++) {
+  //     printf("[DEBUG OFFSET] Chunk %d: Count=%u Offset=%llu\n", i,
+  //            h_bit_counts[i], h_bit_offsets[i]);
+  //   }
+  // }
   // FIX: Use u64 for size calculation to avoid overflow with large inputs
   // (>2GB)
   u64 max_output_size = (u64)input_size * 2;
@@ -2246,6 +2246,14 @@ __host__ Status encode_fse_batch(const byte_t **d_inputs,
 
   for (u32 i = 0; i < num_blocks; i++) {
     u32 input_size = input_sizes[i];
+
+    // Handle 0-byte input gracefully (no-op with empty output)
+    if (input_size == 0) {
+      u32 zero_size = 0;
+      CUDA_CHECK(cudaMemcpyAsync(&d_output_sizes[i], &zero_size, sizeof(u32),
+                                 cudaMemcpyHostToDevice, stream));
+      continue;
+    }
 
     if (h_block_types[i] == 1) {
       // === RLE Block === (Handled on Host/Copy)
@@ -3260,6 +3268,12 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
   if (chunk_idx >= num_chunks_total)
     return;
 
+  // PROBE: Verify Execution (Disabled for production)
+  // if (chunk_idx == 0 && d_output) {
+  //   d_output[0] = 0xAA;
+  //   d_output[1] = 0xBB;
+  // }
+
   u64 bit_stream_end_pos = (u64)bitstream_size_bytes * 8;
   long long start_bit;
   long long stop_bit;
@@ -3315,11 +3329,9 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
     return;
 
   // Last Chunk or Explicit Offsets: NO WARMUP
-  u32 WARMUP_BITS;
-  if (d_explicit_bit_offsets) {
-    WARMUP_BITS = 0;
-  } else {
-    WARMUP_BITS = (chunk_idx == num_chunks_total - 1) ? 0 : 256;
+  u32 WARMUP_BITS = 0;
+  if (!d_explicit_bit_offsets && chunk_idx < num_chunks_total - 1) {
+    WARMUP_BITS = 256;
   }
   long long warmup_start_bit = stop_bit + WARMUP_BITS;
   if (warmup_start_bit > bit_stream_end_pos)
@@ -3328,6 +3340,9 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
   u32 state = 0;
   long long current_bit = warmup_start_bit;
 
+  // Calculate strict memory boundary for this chunk
+  u32 max_valid_byte = (u32)(stop_bit / 8);
+
   if (current_bit >= table_log) {
     current_bit -= table_log;
     u32 byte_off = current_bit / 8;
@@ -3335,8 +3350,12 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
     if (byte_off < bitstream_size_bytes) {
       u32 val = 0;
       u32 len = min(4u, bitstream_size_bytes - byte_off);
-      for (u32 k = 0; k < len; k++)
-        val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+      for (u32 k = 0; k < len; k++) {
+        // BOUNDARY CHECK: Only read bytes within this chunk's range
+        if (byte_off + k <= max_valid_byte) {
+          val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+        }
+      }
       state = (val >> bit_off) & ((1u << table_log) - 1);
     }
   }
@@ -3355,6 +3374,11 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
       // FORWARD WRITE: Encoder runs N..0, so Decoder produces 0..N
       if (symbols_written < count) {
         my_output[symbols_written] = symbol;
+        // Debug print disabled for production
+        // if (chunk_idx == 0 && symbols_written < 5) {
+        //   printf("[DEC LOOP] Sym %u: State=%u Symbol=%02x nbBits=%u\n",
+        //          symbols_written, state, symbol, nb);
+        // }
       }
       symbols_written++;
     }
@@ -3385,8 +3409,12 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
         if (byte_off < bitstream_size_bytes) {
           u32 val = 0;
           u32 len = min(4u, bitstream_size_bytes - byte_off);
-          for (u32 k = 0; k < len; k++)
-            val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+          for (u32 k = 0; k < len; k++) {
+            // BOUNDARY CHECK: Only read bytes within this chunk's range
+            if (byte_off + k <= max_valid_byte) {
+              val |= ((u32)d_bitstream[byte_off + k]) << (k * 8);
+            }
+          }
           bits = (val >> bit_off) & ((1u << nb) - 1);
         }
       }
@@ -3582,7 +3610,9 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     threshold = (u32)atoi(env_threshold);
   }
 
-  if (output_size_expected < threshold) {
+  // FORCE GPU if explicit offsets are provided (Multichunk parallel format)
+  // CPU path does not support parallel chunks.
+  if (output_size_expected < threshold && !d_chunk_offsets_in) {
     // === CPU SEQUENTIAL PATH ===
     // (Unchanged for Context Reuse - Reuse is primarily for GPU path overhead
     // reduction)
@@ -3767,7 +3797,15 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
           (output_size_expected + chunk_size_syms - 1) / chunk_size_syms;
       if (num_chunks == 0)
         num_chunks = 1;
+      // printf("[HOST DEBUG] Explicit Offsets Present. ExpSize=%u
+      // NumChunks=%u\n",
+      //        output_size_expected, num_chunks);
+      // fflush(stdout);
     } else {
+      // printf("[HOST DEBUG] Heuristic Mode (Offsets NULL).
+      // BitstreamSize=%u\n",
+      //        (u32)bitstream_size_bytes);
+      // fflush(stdout);
       // HEURISTIC MODE: Estimate from bitstream
       const u32 chunk_size_bits = 32768; // 4KB chunks
       num_chunks =

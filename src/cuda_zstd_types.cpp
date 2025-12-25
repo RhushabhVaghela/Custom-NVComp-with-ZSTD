@@ -892,11 +892,25 @@ Status free_compression_workspace(CompressionWorkspace &workspace) {
 size_t estimate_compressed_size(size_t uncompressed_size,
                                 int compression_level) {
   // Conservative estimate: worst case is input_size + overhead
-  // Zstandard overhead is roughly 0.4% for incompressible data
+  // For incompressible data: each block needs 3-byte header + original data
+  // Block size is typically 128KB-256KB, so add 3 bytes per ~128KB block
   (void)compression_level; // Unused
-  // Increased overhead to 512 to account for CustomMetadataFrame and
-  // SkippableFrameHeader
-  return uncompressed_size + (uncompressed_size / 255) + 512;
+
+  // Calculate approximate number of blocks (using 128KB as worst case)
+  size_t num_blocks = (uncompressed_size + (128 * 1024 - 1)) / (128 * 1024);
+  if (num_blocks == 0)
+    num_blocks = 1;
+
+  // Per-block header overhead (3 bytes each)
+  size_t block_header_overhead = num_blocks * 3;
+
+  // Frame overhead: magic (4) + frame header (14 max) + skippable (16) +
+  // checksum (4)
+  size_t frame_overhead = 512;
+
+  // Total: input + Zstd overhead (0.4%) + block headers + frame overhead
+  return uncompressed_size + (uncompressed_size / 255) + block_header_overhead +
+         frame_overhead;
 }
 
 Status validate_config(const CompressionConfig &config) {

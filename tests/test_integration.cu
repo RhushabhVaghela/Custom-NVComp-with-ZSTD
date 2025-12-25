@@ -170,7 +170,8 @@ bool test_complete_compression_pipeline() {
 
     // Compress
     LOG_INFO("Compressing...");
-    size_t compressed_size;
+    size_t compressed_size =
+        data_size * 2; // Initialize to allocated buffer size
     Status status =
         manager->compress(d_input, data_size, d_compressed, &compressed_size,
                           d_temp, temp_size, nullptr, 0, 0);
@@ -282,7 +283,7 @@ bool test_dictionary_integration() {
 
   printf("DEBUG: Compressing...\n");
   fflush(stdout);
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2; // Init to allocated buffer size
   status = manager.compress(d_input, data_size, d_compressed, &compressed_size,
                             d_temp, temp_size, nullptr, 0);
   printf("DEBUG: Compression returned status %d\n", (int)status);
@@ -344,13 +345,14 @@ bool test_batch_processing_with_memory_pool() {
     item.input_ptr = d_input;
     item.input_size = item_size;
     item.output_ptr = d_output;
-    item.output_size = 0;
+    item.output_size = item_size * 2; // Init to max buffer size (not 0!)
 
     items.push_back(item);
   }
 
-  // Compress batch
-  size_t batch_temp_size = manager.get_batch_compress_temp_size({item_size});
+  // Compress batch - need workspace for ALL items, not just 1!
+  std::vector<size_t> all_sizes(num_items, item_size);
+  size_t batch_temp_size = manager.get_batch_compress_temp_size(all_sizes);
   void *d_temp = pool.allocate(batch_temp_size);
 
   Status status = manager.compress_batch(items, d_temp, batch_temp_size);
@@ -529,7 +531,7 @@ bool test_concurrent_compression() {
       size_t temp_size = manager.get_compress_temp_size(data_size);
       cudaMalloc(&d_temp, temp_size);
 
-      size_t compressed_size;
+      size_t compressed_size = data_size * 2; // Init to allocated buffer size
       Status status =
           manager.compress(d_input, data_size, d_output, &compressed_size,
                            d_temp, temp_size, nullptr, 0);
@@ -697,14 +699,18 @@ bool test_buffer_boundary_conditions() {
     size_t temp_size = manager.get_compress_temp_size(size);
     cudaMalloc(&d_temp, temp_size);
 
-    size_t compressed_size;
+    size_t compressed_size = size * 2; // Init to allocated buffer size
     Status status = manager.compress(d_input, size, d_output, &compressed_size,
                                      d_temp, temp_size, nullptr, 0);
 
     if (status == Status::SUCCESS) {
-      size_t decompressed_size;
+      size_t decompressed_size = size; // Init to allocated buffer size!
       status = manager.decompress(d_output, compressed_size, d_decompressed,
                                   &decompressed_size, d_temp, temp_size);
+      if (status != Status::SUCCESS) {
+        LOG_INFO("DEBUG: Size " << size << " compressed to " << compressed_size
+                                << " bytes, decompress status=" << (int)status);
+      }
       ASSERT_STATUS(status, "Size " << size << " decompression failed");
       ASSERT_EQ(decompressed_size, size, "Size mismatch for " << size);
 

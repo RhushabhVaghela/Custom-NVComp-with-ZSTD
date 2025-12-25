@@ -562,9 +562,9 @@ static __global__ void fse_encode_chunk_kernel(
   gpu_bit_flush_bits(&bitC);
 
   if (chunk_idx == 0) {
-    // Calculate from bitC state (approximated)
-    u32 bytes = (u32)(bitC.ptr - bitC.startPtr);
-    u32 bits = bytes * 8 + bitC.bitPos;
+    // Calculate from bitC state (approximated) - Debug disabled
+    // u32 bytes = (u32)(bitC.ptr - bitC.startPtr);
+    // u32 bits = bytes * 8 + bitC.bitPos;
     // printf("[DEBUG ENC] Chunk 0 bits written = %u\n", bits);
   }
 
@@ -625,6 +625,16 @@ static __global__ void fse_merge_bitstreams_kernel(
   // Simple Byte Loop
   for (u32 i = 0; i < num_bytes; i++) {
     byte_t val = src_ptr[i];
+
+    // Debug End of Chunk 0 and Start of Chunk 1 (Disabled for production)
+    // if (chunk_idx == 0 && i >= num_bytes - 2) {
+    //   printf("[MERGE DEBUG] Chunk 0 Byte %u: %02x (offset=%llu)\n", i, val,
+    //          global_start_bit);
+    // }
+    // if (chunk_idx == 1 && i < 2) {
+    //   printf("[MERGE DEBUG] Chunk 1 Byte %u: %02x (offset=%llu)\n", i, val,
+    //          global_start_bit);
+    // }
 
     // Mask garbage bits for last byte
     if (i == num_bytes - 1) {

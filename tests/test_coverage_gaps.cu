@@ -13,11 +13,16 @@ using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
 
 // Helper to fill buffer with random data
+// Helper to fill buffer with random data (Skewed)
 void fill_random(std::vector<byte_t> &buffer) {
   std::mt19937 rng(42);
-  std::uniform_int_distribution<int> dist(0, 255);
+  std::uniform_int_distribution<int> dist(0, 100);
+  std::uniform_int_distribution<int> val_dist(0, 255);
   for (size_t i = 0; i < buffer.size(); ++i) {
-    buffer[i] = (byte_t)dist(rng);
+    if (dist(rng) < 90)
+      buffer[i] = 0;
+    else
+      buffer[i] = (byte_t)val_dist(rng);
   }
 }
 
@@ -164,6 +169,8 @@ bool test_exact_256kb_input() {
 
   CUDA_CHECK(
       cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemset(
+      d_output, 0, data_size * 2)); // Zero initialize output for atomicOr merge
 
   // DEBUG: Verify d_input
   std::vector<byte_t> h_verify(data_size);
@@ -198,8 +205,9 @@ bool test_exact_256kb_input() {
   // This ensures header format compatibility.
   u32 h_output_size_val = 0;
   u64 *d_offsets = nullptr;
-  Status status = encode_fse_advanced(d_input, data_size, d_output,
-                                      &h_output_size_val, true, 0, nullptr, &d_offsets);
+  Status status =
+      encode_fse_advanced(d_input, data_size, d_output, &h_output_size_val,
+                          true, 0, nullptr, &d_offsets);
 
   // Update device output size for verification logic consistency
   CUDA_CHECK(cudaMemcpy(d_output_sizes, &h_output_size_val, sizeof(u32),
@@ -237,10 +245,13 @@ bool test_exact_256kb_input() {
   printf("\n");
   fflush(stdout);
 
-  status = decode_fse(d_output, output_size, d_decoded, &decoded_size, d_offsets, 0);
+  // Initialize decoded_size to expected size (required for parallel chunking)
+  decoded_size = data_size;
+  status =
+      decode_fse(d_output, output_size, d_decoded, &decoded_size, d_offsets, 0);
 
   if (d_offsets) {
-      cudaFree(d_offsets);
+    cudaFree(d_offsets);
   }
 
   if (status != Status::SUCCESS) {
@@ -280,6 +291,56 @@ bool test_exact_256kb_input() {
   cudaFree(d_output);
   cudaFree(d_output_sizes);
   cudaFree(d_decoded);
+  return true;
+}
+
+bool test_single_chunk_64kb() {
+  printf("=== Testing Single Chunk 64KB Input ===\n");
+  const u32 data_size = 64 * 1024;
+  std::vector<byte_t> h_input(data_size);
+  fill_random(h_input); // Skewed data
+
+  byte_t *d_input = nullptr;
+  byte_t *d_output = nullptr;
+  u32 *d_output_sizes = nullptr;
+  cudaMalloc(&d_input, data_size);
+  cudaMalloc(&d_output, data_size * 2);
+  cudaMalloc(&d_output_sizes, sizeof(u32));
+  cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+  cudaMemset(d_output, 0, data_size * 2);
+
+  u64 *d_offsets = nullptr;
+  u32 h_out_size = 0;
+
+  Status st = encode_fse_advanced(d_input, data_size, d_output, &h_out_size,
+                                  true, 0, nullptr, &d_offsets);
+  if (st != Status::SUCCESS) {
+    printf("Encode failed\n");
+    return false;
+  }
+
+  byte_t *d_decoded = nullptr;
+  u32 dec_size = 0;
+  cudaMalloc(&d_decoded, data_size);
+  decode_fse(d_output, h_out_size, d_decoded, &dec_size, d_offsets, 0);
+
+  std::vector<byte_t> h_dec(data_size);
+  cudaMemcpy(h_dec.data(), d_decoded, data_size, cudaMemcpyDeviceToHost);
+
+  if (h_dec != h_input) {
+    printf("❌ 64KB Mismatch!\n");
+    for (int i = 0; i < 10; ++i)
+      if (h_dec[i] != h_input[i])
+        printf("Mismatch idx %d: exp %02x got %02x\n", i, h_input[i], h_dec[i]);
+    return false;
+  }
+  printf("✅ 64KB Passed!\n\n");
+  if (d_offsets)
+    cudaFree(d_offsets);
+  cudaFree(d_input);
+  cudaFree(d_output);
+  cudaFree(d_decoded);
+  cudaFree(d_output_sizes);
   return true;
 }
 
@@ -338,6 +399,7 @@ bool test_zero_byte_input() {
 
 int main() {
   test_rle_roundtrip();
+  test_single_chunk_64kb();
   test_exact_256kb_input();
   test_zero_byte_input();
 
