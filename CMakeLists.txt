@@ -151,6 +151,7 @@ if(CUDA_ZSTD_BUILD_TESTS)
         )
         target_link_libraries(${test_name} cuda_zstd_static)
         add_test(NAME ${test_name} COMMAND ${test_name})
+        set_property(TEST ${test_name} PROPERTY LABELS "unittest")
 
         # Set timeout for tests (300 seconds)
         set_tests_properties(${test_name} PROPERTIES TIMEOUT 300)
@@ -164,6 +165,7 @@ if(CUDA_ZSTD_BUILD_TESTS)
     set_source_files_properties(tests/test_c_api.c PROPERTIES LANGUAGE CXX)
     target_link_libraries(test_c_api cuda_zstd_static)
     add_test(NAME test_c_api COMMAND test_c_api)
+    set_property(TEST test_c_api PROPERTY LABELS "unittest")
     set_tests_properties(test_c_api PROPERTIES TIMEOUT 100)
 
     # level_nvcomp_demo test
@@ -174,6 +176,7 @@ if(CUDA_ZSTD_BUILD_TESTS)
     )
     target_link_libraries(level_nvcomp_demo cuda_zstd_static)
     add_test(NAME level_nvcomp_demo COMMAND level_nvcomp_demo)
+    set_property(TEST level_nvcomp_demo PROPERTY LABELS "unittest")
     set_tests_properties(level_nvcomp_demo PROPERTIES TIMEOUT 100)
 endif()
 
@@ -188,6 +191,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(fixed_benchmark cuda_zstd_static)
+    add_test(NAME fixed_benchmark COMMAND fixed_benchmark)
+    set_property(TEST fixed_benchmark PROPERTY LABELS "benchmark")
     
 
     
@@ -197,6 +202,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(limited_benchmark cuda_zstd_static)
+    add_test(NAME limited_benchmark COMMAND limited_benchmark)
+    set_property(TEST limited_benchmark PROPERTY LABELS "benchmark")
     
     add_executable(comprehensive_benchmark benchmarks/comprehensive_benchmark.cu)
     set_target_properties(comprehensive_benchmark PROPERTIES
@@ -204,6 +211,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(comprehensive_benchmark cuda_zstd_static)
+    add_test(NAME comprehensive_benchmark COMMAND comprehensive_benchmark)
+    set_property(TEST comprehensive_benchmark PROPERTY LABELS "benchmark")
 
     add_executable(benchmark_lz77 benchmarks/benchmark_lz77.cu)
     set_target_properties(benchmark_lz77 PROPERTIES
@@ -211,6 +220,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_lz77 cuda_zstd_static)
+    add_test(NAME benchmark_lz77 COMMAND benchmark_lz77)
+    set_property(TEST benchmark_lz77 PROPERTY LABELS "benchmark")
 
 
     add_executable(benchmark_parallel_throughput benchmarks/benchmark_parallel_throughput.cu)
@@ -219,6 +230,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_parallel_throughput cuda_zstd_static)
+    add_test(NAME benchmark_parallel_throughput COMMAND benchmark_parallel_throughput)
+    set_property(TEST benchmark_parallel_throughput PROPERTY LABELS "benchmark")
 
     add_executable(benchmark_memory_alloc benchmarks/benchmark_memory_alloc.cu)
     set_target_properties(benchmark_memory_alloc PROPERTIES
@@ -226,6 +239,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_memory_alloc cuda_zstd_static)
+    add_test(NAME benchmark_memory_alloc COMMAND benchmark_memory_alloc)
+    set_property(TEST benchmark_memory_alloc PROPERTY LABELS "benchmark")
 
     add_executable(benchmark_pipeline tests/benchmark_pipeline.cu)
     set_target_properties(benchmark_pipeline PROPERTIES
@@ -233,6 +248,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_pipeline cuda_zstd_static)
+    add_test(NAME benchmark_pipeline COMMAND benchmark_pipeline)
+    set_property(TEST benchmark_pipeline PROPERTY LABELS "benchmark")
 
     add_executable(benchmark_fse_parallel tests/benchmark_fse_parallel.cu)
     set_target_properties(benchmark_fse_parallel PROPERTIES
@@ -240,6 +257,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_fse_parallel cuda_zstd_static)
+    add_test(NAME benchmark_fse_parallel COMMAND benchmark_fse_parallel)
+    set_property(TEST benchmark_fse_parallel PROPERTY LABELS "benchmark")
 
     # Batch encoding benchmark (test_batch_fse is auto-discovered via glob)
     add_executable(benchmark_batch_fse tests/benchmark_batch_fse.cu)
@@ -248,6 +267,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_batch_fse cuda_zstd_static)
+    add_test(NAME benchmark_batch_fse COMMAND benchmark_batch_fse)
+    set_property(TEST benchmark_batch_fse PROPERTY LABELS "benchmark")
 
     # Phase 3 Benchmark
     # Compile dependencies directly to access internal functions (encode_fse_advanced)
@@ -276,6 +297,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     )
     target_link_libraries(benchmark_phase3 PRIVATE libzstd_static ${CUDA_LIBRARIES})
     set_target_properties(benchmark_phase3 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    add_test(NAME benchmark_phase3 COMMAND benchmark_phase3)
+    set_property(TEST benchmark_phase3 PROPERTY LABELS "benchmark")
 
     # GPU-to-GPU FSE Benchmark (pure kernel performance)
     add_executable(benchmark_fse_gpu benchmarks/benchmark_fse_gpu.cu)
@@ -284,6 +307,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_fse_gpu cuda_zstd_static)
+    add_test(NAME benchmark_fse_gpu COMMAND benchmark_fse_gpu)
+    set_property(TEST benchmark_fse_gpu PROPERTY LABELS "benchmark")
 
     # Pipelined Streaming Benchmark
     add_executable(benchmark_pipeline_streaming benchmarks/benchmark_pipeline.cu)
@@ -292,6 +317,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_pipeline_streaming cuda_zstd_static)
+    add_test(NAME benchmark_pipeline_streaming COMMAND benchmark_pipeline_streaming)
+    set_property(TEST benchmark_pipeline_streaming PROPERTY LABELS "benchmark")
 
     # Dictionary Compression Benchmark
     add_executable(benchmark_dictionary_compression benchmarks/benchmark_dictionary_compression.cu)
@@ -300,6 +327,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(benchmark_dictionary_compression cuda_zstd_static)
+    add_test(NAME benchmark_dictionary_compression COMMAND benchmark_dictionary_compression)
+    set_property(TEST benchmark_dictionary_compression PROPERTY LABELS "benchmark")
 
 
 endif()

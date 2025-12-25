@@ -197,8 +197,9 @@ bool test_exact_256kb_input() {
   // Use encode_fse_advanced (single buffer) to match decode_fse (single buffer)
   // This ensures header format compatibility.
   u32 h_output_size_val = 0;
+  u64 *d_offsets = nullptr;
   Status status = encode_fse_advanced(d_input, data_size, d_output,
-                                      &h_output_size_val, true, 0);
+                                      &h_output_size_val, true, 0, nullptr, &d_offsets);
 
   // Update device output size for verification logic consistency
   CUDA_CHECK(cudaMemcpy(d_output_sizes, &h_output_size_val, sizeof(u32),
@@ -236,7 +237,11 @@ bool test_exact_256kb_input() {
   printf("\n");
   fflush(stdout);
 
-  status = decode_fse(d_output, output_size, d_decoded, &decoded_size, 0);
+  status = decode_fse(d_output, output_size, d_decoded, &decoded_size, d_offsets, 0);
+
+  if (d_offsets) {
+      cudaFree(d_offsets);
+  }
 
   if (status != Status::SUCCESS) {
     printf("❌ Decoding failed for 256KB: %d\n", (int)status);

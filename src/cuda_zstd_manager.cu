@@ -728,6 +728,7 @@ private:
   bool ctx_initialized;
   u64 *d_checksum_buffer;
   std::unique_ptr<StreamPool> stream_pool_;
+  mutable std::mutex api_mutex;
 
 public:
   DefaultZstdManager(int compression_level = 3)
@@ -1053,6 +1054,7 @@ public:
 
   // Configuration
   virtual Status configure(const CompressionConfig &new_config) override {
+    std::lock_guard<std::mutex> lock(api_mutex);
     auto status = validate_config(new_config);
     if (status != Status::SUCCESS) {
       fprintf(stderr, "failed with status %d\n", (int)status);
@@ -1072,6 +1074,7 @@ public:
   virtual CompressionConfig get_config() const override { return config; }
 
   virtual Status set_compression_level(int level) override {
+    std::lock_guard<std::mutex> lock(api_mutex);
     if (!is_valid_compression_level(level)) {
       return Status::ERROR_INVALID_PARAMETER;
     }
@@ -1093,6 +1096,7 @@ public:
                           size_t *compressed_size, void *temp_workspace,
                           size_t temp_size, const void *dict_buffer,
                           size_t dict_size, cudaStream_t stream) override {
+    std::lock_guard<std::mutex> lock(api_mutex);
     void *device_workspace = nullptr; // Scope for cleanup
     cudaEvent_t memset_done_event;
     Status status = Status::SUCCESS;
@@ -2539,6 +2543,7 @@ public:
                             void *uncompressed_data, size_t *uncompressed_size,
                             void *temp_workspace, size_t temp_size,
                             cudaStream_t stream = 0) override {
+    std::lock_guard<std::mutex> lock(api_mutex);
     // compressed_size=%zu, ptr=%p\n", compressed_size, compressed_data);
 
     // === Parameter Validation ===

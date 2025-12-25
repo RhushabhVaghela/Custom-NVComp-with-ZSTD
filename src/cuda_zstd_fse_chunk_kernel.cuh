@@ -56,7 +56,8 @@ static __global__ void fse_compute_states_kernel_sequential(
   state_value = stateTable[tableIndex];
 
   // Last Symbol bits belong to the LAST chunk
-  chunk_current_bits += nbBitsOut;
+  // Last Symbol bits belong to the LAST chunk
+  // chunk_current_bits += nbBitsOut; // Fix: Init symbol does not emit bits
 
   // (Fix) Write start state for the Last Chunk
   u32 max_chunks = (num_symbols + chunk_size - 1) / chunk_size;

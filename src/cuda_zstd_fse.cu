@@ -1935,8 +1935,26 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
     // benchmark... Benchmark passes `d_output_size` allocated with
     // `cudaMalloc`. So we use cudaMemcpy.
     u32 size_val = header_size + total_bytes;
-    CUDA_CHECK(cudaMemcpyAsync(d_output_size, &size_val, sizeof(u32),
-                               cudaMemcpyHostToDevice, stream));
+
+    cudaPointerAttributes attrs;
+    cudaError_t attr_err = cudaPointerGetAttributes(&attrs, d_output_size);
+    // Clear error if not a device pointer (cudaPointerGetAttributes returns
+    // invalid value for host pointers)
+    if (attr_err != cudaSuccess)
+      cudaGetLastError();
+
+    if (attr_err == cudaSuccess && attrs.type == cudaMemoryTypeDevice) {
+      CUDA_CHECK(cudaMemcpyAsync(d_output_size, &size_val, sizeof(u32),
+                                 cudaMemcpyHostToDevice, stream));
+    } else {
+      // Host pointer
+      *d_output_size = size_val;
+      // Ensure host is updated before returning if stream is involved?
+      // Since it's a host write, it happens immediately on CPU.
+      // Ideally we should sync stream if the size depends on GPU work?
+      // But size is calculated on CPU here (total_bytes from h_bit_counts).
+      // So it's fine.
+    }
   }
 
   // Cleanup
@@ -2355,7 +2373,22 @@ __host__ Status encode_fse_batch(const byte_t **d_inputs,
 
     for (u32 k = 0; k < num_batch; k++) {
       u32 idx = batch_indices[k];
-      d_output_sizes[idx] = h_results[k] + batch_headers[k];
+      u32 total_size = h_results[k] + batch_headers[k];
+
+      cudaPointerAttributes attrs;
+      cudaError_t attr_err =
+          cudaPointerGetAttributes(&attrs, &d_output_sizes[idx]);
+      if (attr_err != cudaSuccess)
+        cudaGetLastError(); // Clear error for host ptrs
+
+      if (attr_err == cudaSuccess && attrs.type == cudaMemoryTypeDevice) {
+        CUDA_CHECK(cudaMemcpyAsync(&d_output_sizes[idx], &total_size,
+                                   sizeof(u32), cudaMemcpyHostToDevice,
+                                   stream));
+      } else {
+        // Host pointer
+        d_output_sizes[idx] = total_size;
+      }
     }
 
     // Cleanup
