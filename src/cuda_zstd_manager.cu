@@ -2111,11 +2111,8 @@ public:
 
           // (FIX) Calculate total literals for this block (Host
           // Summation to avoid Thrust issues)
-          // THIS IS HOST LOGIC DEPENDING ON DEVICE!
-          // For Graph Benchmark, we skip this check and assume 0 or fixed size?
-          // Disabling specific logic for benchmark compatibility
-
-          /*
+          // RESTORED: This was previously commented out causing 0 literals in
+          // compressed output!
           std::vector<u32> h_literal_lengths(num_seq);
           cudaMemcpyAsync(h_literal_lengths.data(),
                           block_seq_ctxs[block_idx].d_literal_lengths,
@@ -2127,11 +2124,6 @@ public:
             total_literals += len;
           }
           block_literals_sizes[block_idx] = total_literals;
-          */
-          // Assume size is known or handled by GPU?
-          // Since we can't run CPU logic, we leave block_literals_sizes as is
-          // (init to 0?) block_literals_sizes[block_idx] = 0; // Effectively
-          // disable literal compression
 
           // (FIX) Copy literal bytes from input to d_literals_buffer
           // This was missing, causing "All ones" and other patterns to
