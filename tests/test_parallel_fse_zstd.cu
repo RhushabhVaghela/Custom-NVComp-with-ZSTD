@@ -35,16 +35,19 @@ void fill_compressible(std::vector<byte_t> &buffer) {
   }
 }
 
-bool verify_roundtrip(const byte_t *d_input, u32 input_size,
-                      const byte_t *d_output, u32 output_size,
-                      cudaStream_t stream) {
+bool verify_roundtrip(
+    const byte_t *d_input, u32 input_size, const byte_t *d_output,
+    u32 output_size,
+    u64 *d_chunk_offsets, // Added: chunk offsets for multi-chunk decode
+    cudaStream_t stream) {
   // Decode the encoded output
   byte_t *d_decoded = nullptr;
   CUDA_CHECK(cudaMalloc(&d_decoded, input_size));
 
   u32 decoded_size = 0;
-  Status status = decode_fse(d_output, output_size, d_decoded, &decoded_size,
-                             nullptr, stream);
+  Status status =
+      decode_fse(d_output, output_size, d_decoded, &decoded_size,
+                 d_chunk_offsets, stream); // Pass offsets to decoder
 
   if (status != Status::SUCCESS) {
     printf("  ❌ Decode failed: %d\n", (int)status);
@@ -108,7 +111,9 @@ bool test_parallel_single_chunk() {
     return false;
   }
 
-  bool success = verify_roundtrip(d_input, data_size, d_output, output_size, 0);
+  // Single chunk: no offsets needed (nullptr)
+  bool success =
+      verify_roundtrip(d_input, data_size, d_output, output_size, nullptr, 0);
 
   cudaFree(d_input);
   cudaFree(d_output);
@@ -133,8 +138,10 @@ bool test_parallel_two_chunks() {
       cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
 
   u32 output_size = 0;
+  u64 *d_chunk_offsets = nullptr; // Capture offsets for multi-chunk decode
   Status status =
-      encode_fse_advanced(d_input, data_size, d_output, &output_size, true, 0);
+      encode_fse_advanced(d_input, data_size, d_output, &output_size, true, 0,
+                          nullptr, &d_chunk_offsets);
 
   if (status != Status::SUCCESS) {
     printf("  ❌ Encode failed: %d\n", (int)status);
@@ -143,7 +150,10 @@ bool test_parallel_two_chunks() {
     return false;
   }
 
-  bool success = verify_roundtrip(d_input, data_size, d_output, output_size, 0);
+  bool success = verify_roundtrip(d_input, data_size, d_output, output_size,
+                                  d_chunk_offsets, 0);
+  if (d_chunk_offsets)
+    cudaFree(d_chunk_offsets);
 
   cudaFree(d_input);
   cudaFree(d_output);
@@ -168,8 +178,10 @@ bool test_parallel_many_chunks() {
       cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
 
   u32 output_size = 0;
+  u64 *d_chunk_offsets = nullptr;
   Status status =
-      encode_fse_advanced(d_input, data_size, d_output, &output_size, true, 0);
+      encode_fse_advanced(d_input, data_size, d_output, &output_size, true, 0,
+                          nullptr, &d_chunk_offsets);
 
   if (status != Status::SUCCESS) {
     printf("  ❌ Encode failed: %d\n", (int)status);
@@ -178,7 +190,10 @@ bool test_parallel_many_chunks() {
     return false;
   }
 
-  bool success = verify_roundtrip(d_input, data_size, d_output, output_size, 0);
+  bool success = verify_roundtrip(d_input, data_size, d_output, output_size,
+                                  d_chunk_offsets, 0);
+  if (d_chunk_offsets)
+    cudaFree(d_chunk_offsets);
 
   cudaFree(d_input);
   cudaFree(d_output);
@@ -209,8 +224,10 @@ bool test_integration_10MB_roundtrip() {
   auto start = std::chrono::high_resolution_clock::now();
 
   u32 output_size = 0;
+  u64 *d_chunk_offsets = nullptr;
   Status status =
-      encode_fse_advanced(d_input, data_size, d_output, &output_size, true, 0);
+      encode_fse_advanced(d_input, data_size, d_output, &output_size, true, 0,
+                          nullptr, &d_chunk_offsets);
 
   auto end = std::chrono::high_resolution_clock::now();
   double encode_ms =
@@ -226,7 +243,10 @@ bool test_integration_10MB_roundtrip() {
   printf("  Encoded %u bytes -> %u bytes (%.2f:1) in %.2f ms\n", data_size,
          output_size, (float)data_size / output_size, encode_ms);
 
-  bool success = verify_roundtrip(d_input, data_size, d_output, output_size, 0);
+  bool success = verify_roundtrip(d_input, data_size, d_output, output_size,
+                                  d_chunk_offsets, 0);
+  if (d_chunk_offsets)
+    cudaFree(d_chunk_offsets);
 
   cudaFree(d_input);
   cudaFree(d_output);
@@ -251,8 +271,10 @@ bool test_compressible_data() {
       cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
 
   u32 output_size = 0;
+  u64 *d_chunk_offsets = nullptr;
   Status status =
-      encode_fse_advanced(d_input, data_size, d_output, &output_size, true, 0);
+      encode_fse_advanced(d_input, data_size, d_output, &output_size, true, 0,
+                          nullptr, &d_chunk_offsets);
 
   if (status != Status::SUCCESS) {
     printf("  ❌ Encode failed: %d\n", (int)status);
@@ -264,7 +286,10 @@ bool test_compressible_data() {
   float ratio = (float)data_size / output_size;
   printf("  Compression ratio: %.2f:1\n", ratio);
 
-  bool success = verify_roundtrip(d_input, data_size, d_output, output_size, 0);
+  bool success = verify_roundtrip(d_input, data_size, d_output, output_size,
+                                  d_chunk_offsets, 0);
+  if (d_chunk_offsets)
+    cudaFree(d_chunk_offsets);
 
   cudaFree(d_input);
   cudaFree(d_output);
