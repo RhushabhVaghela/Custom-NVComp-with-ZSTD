@@ -1027,6 +1027,7 @@ Status MemoryPoolManager::deallocate(void *ptr) {
   total_deallocations_.fetch_add(1, std::memory_order_relaxed);
 
   // Search all pools to find this pointer
+  bool timeout_occurred = false;
   for (int i = 0; i < NUM_POOL_SIZES; ++i) {
     // guard is a timed mutex that by default blocks (timeout=0). For test
     // environments we optionally use a try_lock timeout.
@@ -1044,16 +1045,9 @@ Status MemoryPoolManager::deallocate(void *ptr) {
     std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i], std::defer_lock);
     if (!lock.try_lock_for(std::chrono::milliseconds(lock_timeout_all))) {
       // If we can't acquire the lock, we can't safely check this pool.
-      // In a race condition (double-free), this might happen if another thread
-      // holds the lock. We should probably continue or return timeout.
-      // For deallocation, if we can't find the pointer because of a lock,
-      // we can't guarantee it's not in this pool.
-      // But returning TIMEOUT might be better than hanging.
-      //             std::cerr << "MemoryPoolManager::deallocate: timeout
-      //             acquiring lock for pool_idx=" << i << "\n";
-      continue; // Try next pool? Or return error?
-      // If we skip, we might miss the pointer and return INVALID_PARAMETER
-      // (double free) which is actually correct for the race test!
+      // We must track that we missed a pool check due to timeout.
+      timeout_occurred = true;
+      continue;
     }
 
     for (auto &entry : pools_[i]) {
@@ -1146,6 +1140,9 @@ Status MemoryPoolManager::deallocate(void *ptr) {
 
   //     std::cerr << "MemoryPoolManager::deallocate: pointer not found in pools
   //     or tracking map. ptr=" << ptr << std::endl;
+  if (timeout_occurred) {
+    return Status::ERROR_TIMEOUT;
+  }
   return Status::ERROR_INVALID_PARAMETER;
 
   // Not in pool, must be a direct allocation. For portability and safety

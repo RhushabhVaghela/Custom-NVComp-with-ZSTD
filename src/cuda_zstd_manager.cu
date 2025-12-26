@@ -4704,6 +4704,50 @@ Status ZstdStreamingManager::compress_chunk(const void *input,
                                             size_t *output_size,
                                             bool is_last_chunk,
                                             cudaStream_t stream) {
+  if (!input || !output || !output_size) {
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
+  // Initialize output size to 0 in case of early return
+  *output_size = 0;
+
+  // Calculate required workspace size for this input
+  size_t required_temp = pimpl_->manager->get_compress_temp_size(input_size);
+
+  // Allocate or reallocate workspace if needed
+  if (!pimpl_->d_workspace || pimpl_->workspace_size < required_temp) {
+    if (pimpl_->d_workspace) {
+      cudaFree(pimpl_->d_workspace);
+      pimpl_->d_workspace = nullptr;
+    }
+    pimpl_->workspace_size = required_temp;
+    if (cudaMalloc(&pimpl_->d_workspace, pimpl_->workspace_size) !=
+        cudaSuccess) {
+      return Status::ERROR_OUT_OF_MEMORY;
+    }
+  }
+  pimpl_->comp_initialized = true;
+
+  // Delegate to the underlying manager's compress function
+  // Each chunk is compressed as a complete ZSTD frame
+  // BUGFIX: compressed_size MUST be initialized to output buffer capacity
+  size_t compressed_size = pimpl_->manager->get_max_compressed_size(input_size);
+  Status status = pimpl_->manager->compress(
+      input, input_size, output, &compressed_size, pimpl_->d_workspace,
+      pimpl_->workspace_size, nullptr, 0, // No dictionary for now
+      stream);
+
+  if (status != Status::SUCCESS) {
+    return status;
+  }
+
+  *output_size = compressed_size;
+
+  // If this is the last chunk, we could flush any internal state
+  if (is_last_chunk) {
+    // Currently no additional action needed - each chunk is a complete frame
+  }
+
   return Status::SUCCESS;
 }
 
@@ -4712,6 +4756,34 @@ Status ZstdStreamingManager::decompress_chunk(const void *input,
                                               size_t *output_size,
                                               bool *is_last_chunk,
                                               cudaStream_t stream) {
+  if (!input || !output || !output_size || !is_last_chunk) {
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
+  // Initialize outputs
+  // *output_size = 0; // BUGFIX: Don't clear output size, it contains capacity
+  *is_last_chunk = true; // Each chunk is currently a complete frame
+
+  // Ensure decompression is initialized
+  if (!pimpl_->decomp_initialized) {
+    auto status = init_decompression(stream);
+    if (status != Status::SUCCESS) {
+      return status;
+    }
+  }
+
+  // Delegate to the underlying manager's decompress function
+  size_t decompressed_size = *output_size;
+  Status status = pimpl_->manager->decompress(
+      input, input_size, output, &decompressed_size, pimpl_->d_workspace,
+      pimpl_->workspace_size, stream);
+
+  if (status != Status::SUCCESS) {
+    return status;
+  }
+
+  *output_size = decompressed_size;
+
   return Status::SUCCESS;
 }
 
@@ -4736,7 +4808,7 @@ ZstdManager::select_execution_path(size_t size, int cpu_threshold) {
     // TODO: Enable GPU_CHUNK when Phase 3 kernels are ready.
     // For now, fall back to GPU_BATCH (Standard) to ensure correctness.
     // return ExecutionPath::GPU_BATCH;
-    return ExecutionPath::GPU_CHUNK;
+    return ExecutionPath::GPU_BATCH;
   }
 
   // 3. Standard Batch/Block Path
