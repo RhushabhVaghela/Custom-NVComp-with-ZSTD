@@ -198,7 +198,7 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
                                            const u32 *offsets_in,
                                            u32 input_size, u32 *ll_out,
                                            u32 *ml_out, u32 *of_out,
-                                           u32 *seq_count) {
+                                           u32 *seq_count, bool *has_dummy) {
 
   // Single thread builds sequences (sequential on GPU but no D2H transfer!)
   if (threadIdx.x != 0 || blockIdx.x != 0)
@@ -225,11 +225,19 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
   }
 
   // Handle trailing literals
+  // Handle trailing literals
   if (literal_run > 0 || num_seqs == 0) {
     ll_out[num_seqs] = literal_run;
     ml_out[num_seqs] = 0;
     of_out[num_seqs] = 0;
-    num_seqs++;
+    num_seqs++; // FIX: Do NOT increment count for trailing literals!
+    // The "dummy" is purely for launch_copy_literals.
+    // It is NOT a ZSTD sequence.
+    if (has_dummy)
+      *has_dummy = true;
+  } else {
+    if (has_dummy)
+      *has_dummy = false;
   }
 
   *seq_count = num_seqs;
@@ -251,7 +259,7 @@ Status build_sequences_from_greedy(const u32 *d_decisions, const u32 *d_offsets,
   build_sequences_gpu_kernel<<<1, 1, 0, stream>>>(
       d_decisions, d_offsets, input_size, workspace.d_literal_lengths_reverse,
       workspace.d_match_lengths_reverse, workspace.d_offsets_reverse,
-      d_seq_count);
+      d_seq_count, nullptr); // has_dummy not needed here (manual check later)
 
   // Only copy 4 bytes (seq count) instead of 128KB!
   // (OPTIMIZATION) Use sync copy to ensure we have the count
@@ -281,7 +289,7 @@ Status build_sequences_from_greedy_async(
   build_sequences_gpu_kernel<<<1, 1, 0, stream>>>(
       d_decisions, d_offsets, input_size, workspace.d_literal_lengths_reverse,
       workspace.d_match_lengths_reverse, workspace.d_offsets_reverse,
-      d_num_sequences);
+      d_num_sequences, d_has_dummy);
 
   // Note: has_dummy check is deferred to batch sync phase
   // The caller must handle this after batch sync
