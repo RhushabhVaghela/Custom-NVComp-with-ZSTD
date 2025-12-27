@@ -146,6 +146,118 @@ public:
   size_t get_batch_decompress_temp_size(
       const std::vector<size_t> &compressed_sizes) const;
 
+  // ============================================================================
+  // INFERENCE-READY API (For Holographic/JIT Inference)
+  // ============================================================================
+  // These methods support zero-malloc decompression using pre-allocated
+  // "Zipper Buffers" that rotate during inference. Ideal for:
+  // - LLM inference with layer-wise streaming
+  // - Double-buffered decompression (decompress N+1 while computing N)
+  // - Minimizing VRAM allocation overhead during inference
+  // ============================================================================
+
+  /**
+   * @brief Decompress directly into a pre-allocated output buffer.
+   *
+   * Unlike decompress_batch(), this method does NOT allocate output memory.
+   * The caller provides pre-allocated buffers (e.g., a rotating "Zipper
+   * Buffer").
+   *
+   * Use case: Inference where you decompress into a fixed VRAM buffer,
+   * compute, and then overwrite with the next layer's decompressed data.
+   *
+   * @param compressed_data Pointer to compressed data (device memory)
+   * @param compressed_size Size of compressed data in bytes
+   * @param preallocated_output Pre-allocated output buffer (device memory)
+   * @param output_capacity Capacity of the output buffer
+   * @param actual_output_size [out] Actual decompressed size written
+   * @param temp_workspace Temporary workspace (device memory)
+   * @param temp_size Size of workspace
+   * @param stream CUDA stream for async operation
+   * @return Status::OK on success
+   */
+  Status decompress_to_preallocated(const void *compressed_data,
+                                    size_t compressed_size,
+                                    void *preallocated_output,
+                                    size_t output_capacity,
+                                    size_t *actual_output_size,
+                                    void *temp_workspace, size_t temp_size,
+                                    cudaStream_t stream = 0);
+
+  /**
+   * @brief Decompress batch into pre-allocated output buffers (inference mode).
+   *
+   * For batch decompression where ALL output buffers are provided by caller.
+   * Enables true zero-malloc inference with rotating buffer pools.
+   *
+   * @param items Vector of BatchItem with pre-set output pointers and
+   * capacities (output_data must point to valid pre-allocated memory)
+   * @param temp_workspace Shared workspace
+   * @param temp_size Workspace size
+   * @param stream CUDA stream
+   * @return Status::OK on success
+   */
+  Status decompress_batch_preallocated(
+      std::vector<BatchItem> &items, // Note: non-const, output_size is set
+      void *temp_workspace, size_t temp_size, cudaStream_t stream = 0);
+
+  /**
+   * @brief Async decompress that doesn't synchronize (caller manages sync).
+   *
+   * For pipelined inference: decompress layer N+1 while computing layer N.
+   * The caller MUST synchronize the stream before reading output.
+   *
+   * @param compressed_data Compressed input (device or pinned host memory)
+   * @param compressed_size Size of compressed data
+   * @param preallocated_output Pre-allocated output (device memory)
+   * @param output_capacity Output buffer capacity
+   * @param d_actual_size Device pointer to write actual size (async-safe)
+   * @param temp_workspace Workspace
+   * @param temp_size Workspace size
+   * @param stream Stream for async operation (caller syncs)
+   * @return Status::OK if launch succeeded (not completion)
+   */
+  Status decompress_async_no_sync(
+      const void *compressed_data, size_t compressed_size,
+      void *preallocated_output, size_t output_capacity,
+      size_t *d_actual_size, // Device pointer for async size write
+      void *temp_workspace, size_t temp_size, cudaStream_t stream);
+
+  // ============================================================================
+  // INFERENCE UTILITY METHODS
+  // ============================================================================
+
+  /**
+   * @brief Query workspace size for inference with pre-allocated output.
+   *
+   * @param max_compressed_size Maximum compressed chunk size expected
+   * @param max_output_size Maximum decompressed output size expected
+   * @return Required workspace size in bytes
+   */
+  size_t get_inference_workspace_size(size_t max_compressed_size,
+                                      size_t max_output_size) const;
+
+  /**
+   * @brief Allocate a reusable inference workspace once at init time.
+   *
+   * Returns a workspace that can be reused for all inference calls.
+   *
+   * @param max_compressed_size Max compressed size expected
+   * @param max_output_size Max output size expected
+   * @param[out] workspace_ptr Set to allocated workspace (device memory)
+   * @param[out] workspace_size Set to allocated size
+   * @return Status::OK on success
+   */
+  Status allocate_inference_workspace(size_t max_compressed_size,
+                                      size_t max_output_size,
+                                      void **workspace_ptr,
+                                      size_t *workspace_size);
+
+  /**
+   * @brief Free inference workspace allocated by allocate_inference_workspace.
+   */
+  Status free_inference_workspace(void *workspace_ptr);
+
 private:
   class Impl;
   std::unique_ptr<Impl> pimpl_;

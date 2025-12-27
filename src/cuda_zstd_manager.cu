@@ -4613,6 +4613,185 @@ Status ZstdBatchManager::decompress_batch(const std::vector<BatchItem> &items,
 }
 
 // ==============================================================================
+// INFERENCE-READY API IMPLEMENTATION (Holographic/JIT Inference)
+// ==============================================================================
+// These methods enable zero-malloc decompression for LLM inference by reusing
+// pre-allocated "Zipper Buffers" that rotate during layer-wise processing.
+// ==============================================================================
+
+Status ZstdBatchManager::decompress_to_preallocated(
+    const void *compressed_data, size_t compressed_size,
+    void *preallocated_output, size_t output_capacity,
+    size_t *actual_output_size, void *temp_workspace, size_t temp_size,
+    cudaStream_t stream) {
+
+  if (!compressed_data || !preallocated_output || !actual_output_size) {
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
+  if (output_capacity == 0) {
+    return Status::ERROR_BUFFER_TOO_SMALL;
+  }
+
+  // Use the single-item decompress path with the provided output buffer
+  // The key difference: we DON'T allocate, we use the caller's buffer
+  size_t decompressed_size = output_capacity;
+
+  Status result = pimpl_->manager->decompress(
+      compressed_data, compressed_size, preallocated_output, &decompressed_size,
+      temp_workspace, temp_size, stream);
+
+  if (result == Status::SUCCESS) {
+    *actual_output_size = decompressed_size;
+  }
+
+  return result;
+}
+
+Status ZstdBatchManager::decompress_batch_preallocated(
+    std::vector<BatchItem> &items, void *temp_workspace, size_t temp_size,
+    cudaStream_t stream) {
+
+  pimpl_->manager->reset_stats();
+  bool all_success = true;
+  int stream_idx = 0;
+
+  if (items.empty())
+    return Status::SUCCESS;
+
+  // Calculate the size of a single item's workspace
+  size_t max_item_temp_size = 0;
+  for (const auto &item : items) {
+    // Validate that output_ptr is pre-allocated (non-null)
+    if (item.output_ptr == nullptr) {
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+    max_item_temp_size =
+        std::max(max_item_temp_size,
+                 pimpl_->manager->get_decompress_temp_size(item.input_size));
+  }
+  max_item_temp_size = (max_item_temp_size + 127) & ~127; // Align
+
+  if (temp_size < max_item_temp_size * items.size()) {
+    return Status::ERROR_BUFFER_TOO_SMALL;
+  }
+
+  for (size_t i = 0; i < items.size(); ++i) {
+    auto &item = items[i];
+
+    cudaStream_t item_stream =
+        pimpl_->streams[stream_idx % pimpl_->num_streams];
+    stream_idx++;
+
+    byte_t *item_workspace =
+        static_cast<byte_t *>(temp_workspace) + i * max_item_temp_size;
+
+    // Decompress directly into the pre-allocated output buffer
+    item.status = pimpl_->manager->decompress(
+        item.input_ptr, item.input_size, item.output_ptr,
+        &item.output_size, // output_ptr is pre-allocated
+        item_workspace, max_item_temp_size, item_stream);
+
+    if (item.status != Status::SUCCESS) {
+      all_success = false;
+    }
+  }
+
+  // Wait for all pooled streams to finish
+  for (auto s : pimpl_->streams) {
+    cudaStreamSynchronize(s);
+  }
+
+  pimpl_->batch_stats = pimpl_->manager->get_stats();
+
+  return all_success ? Status::SUCCESS : Status::ERROR_GENERIC;
+}
+
+Status ZstdBatchManager::decompress_async_no_sync(
+    const void *compressed_data, size_t compressed_size,
+    void *preallocated_output, size_t output_capacity,
+    size_t *d_actual_size, // Device pointer for async size write
+    void *temp_workspace, size_t temp_size, cudaStream_t stream) {
+
+  if (!compressed_data || !preallocated_output) {
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
+  if (output_capacity == 0) {
+    return Status::ERROR_BUFFER_TOO_SMALL;
+  }
+
+  // For async operation, we need a host-side size variable first
+  size_t decompressed_size = output_capacity;
+
+  // Launch decompression on the provided stream
+  Status result = pimpl_->manager->decompress(
+      compressed_data, compressed_size, preallocated_output, &decompressed_size,
+      temp_workspace, temp_size, stream);
+
+  // If caller provided a device pointer for size, write it asynchronously
+  if (result == Status::SUCCESS && d_actual_size != nullptr) {
+    cudaMemcpyAsync(d_actual_size, &decompressed_size, sizeof(size_t),
+                    cudaMemcpyHostToDevice, stream);
+  }
+
+  // NOTE: We do NOT synchronize here - caller is responsible for sync
+  // This enables pipelining: decompress layer N+1 while computing layer N
+
+  return result;
+}
+
+// ==============================================================================
+// INFERENCE UTILITY METHODS
+// ==============================================================================
+
+size_t
+ZstdBatchManager::get_inference_workspace_size(size_t max_compressed_size,
+                                               size_t max_output_size) const {
+
+  // Workspace needs to accommodate decompression temp buffers
+  size_t decompress_temp =
+      pimpl_->manager->get_decompress_temp_size(max_compressed_size);
+
+  // Add some alignment padding
+  decompress_temp = (decompress_temp + 255) & ~255;
+
+  return decompress_temp;
+}
+
+Status ZstdBatchManager::allocate_inference_workspace(
+    size_t max_compressed_size, size_t max_output_size, void **workspace_ptr,
+    size_t *workspace_size) {
+
+  if (!workspace_ptr || !workspace_size) {
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
+  size_t required_size =
+      get_inference_workspace_size(max_compressed_size, max_output_size);
+
+  cudaError_t err = cudaMalloc(workspace_ptr, required_size);
+  if (err != cudaSuccess) {
+    *workspace_ptr = nullptr;
+    *workspace_size = 0;
+    return Status::ERROR_GPU_ALLOC;
+  }
+
+  *workspace_size = required_size;
+  return Status::SUCCESS;
+}
+
+Status ZstdBatchManager::free_inference_workspace(void *workspace_ptr) {
+  if (workspace_ptr) {
+    cudaError_t err = cudaFree(workspace_ptr);
+    if (err != cudaSuccess) {
+      return Status::ERROR_GENERIC;
+    }
+  }
+  return Status::SUCCESS;
+}
+
+// ==============================================================================
 // STREAMING MANAGER IMPLEMENTATION
 // ==============================================================================
 
