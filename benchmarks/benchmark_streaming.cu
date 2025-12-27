@@ -10,8 +10,29 @@
 #include <numeric>
 #include <vector>
 
-
 using namespace cuda_zstd;
+
+#ifndef BENCH_CUDA_CHECK
+#define BENCH_CUDA_CHECK(call)                                                 \
+  do {                                                                         \
+    cudaError_t err = call;                                                    \
+    if (err != cudaSuccess) {                                                  \
+      std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at "         \
+                << __FILE__ << ":" << __LINE__ << std::endl;                   \
+      exit(1);                                                                 \
+    }                                                                          \
+  } while (0)
+#endif
+
+#define CHECK_STATUS(call)                                                     \
+  do {                                                                         \
+    Status s = call;                                                           \
+    if (s != Status::SUCCESS) {                                                \
+      std::cerr << "Manager Error: " << (int)s << " at " << __FILE__ << ":"    \
+                << __LINE__ << std::endl;                                      \
+      exit(1);                                                                 \
+    }                                                                          \
+  } while (0)
 
 void print_header() {
   std::cout << std::left << std::setw(15) << "Type" << std::setw(15)
@@ -20,193 +41,160 @@ void print_header() {
   std::cout << std::string(75, '-') << std::endl;
 }
 
-void run_benchmark(const char *name, size_t chunk_size, int num_chunks) {
-  size_t total_size = chunk_size * num_chunks;
+struct ChunkDesc {
+  size_t offset;
+  size_t size;
+};
 
-  // Setup Data
-  std::vector<uint8_t> h_input(chunk_size);
-  for (size_t i = 0; i < chunk_size; i++)
-    h_input[i] = (i & 0xFF); // Sequential/Repetitive data
+void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
+  size_t total_input_size = chunk_size * num_chunks;
 
-  void *d_input, *d_output, *d_compressed;
-  cudaMalloc(&d_input, chunk_size);
-  cudaMalloc(&d_compressed, chunk_size * 2);
-  cudaMalloc(&d_output, chunk_size);
+  // 1. Prepare Input Data (Repeated pattern to ensure compressibility)
+  std::vector<uint8_t> h_input_chunk(chunk_size);
+  for (size_t i = 0; i < chunk_size; i++) {
+    h_input_chunk[i] = (i % 256);
+  }
 
-  ZstdStreamingManager manager(CompressionConfig{.level = 1});
+  // Allocate huge buffers
+  void *d_input_continuous; // Only need one chunk if we reuse it, but for true
+                            // streaming simulation we might want continuous?
+  // Actually, reusing the same input buffer for every chunk is fine for
+  // performance testing as long as we treat them as a stream sequence.
+  void *d_input_chunk;
+
+  // Output buffer must be large enough to hold the ENTIRE stream for
+  // decompression test
+  size_t max_output_size = total_input_size * 1.5; // Safety margin
+  void *d_stream_output;
+  void *d_decomp_output_chunk;
+
+  BENCH_CUDA_CHECK(cudaMalloc(&d_input_chunk, chunk_size));
+  BENCH_CUDA_CHECK(cudaMalloc(&d_stream_output, max_output_size));
+  BENCH_CUDA_CHECK(cudaMalloc(&d_decomp_output_chunk, chunk_size));
+
+  BENCH_CUDA_CHECK(cudaMemcpy(d_input_chunk, h_input_chunk.data(), chunk_size,
+                              cudaMemcpyHostToDevice));
+
+  // Metadata to track the stream
+  std::vector<ChunkDesc> stream_chunks;
+  stream_chunks.reserve(num_chunks);
+
+  // Optimize: Force GPU execution (cpu_threshold = 0) to avoid host fallback
+  // for small chunks
+  CompressionConfig config;
+  config.level = 1;
+  config.cpu_threshold = 0; // FORCE GPU
+
+  ZstdStreamingManager manager(config);
+
+  // =================================================================================
+  // COMPRESSION BENCHMARK
+  // =================================================================================
   manager.init_compression();
 
-  // Warmup
-  cudaMemcpy(d_input, h_input.data(), chunk_size, cudaMemcpyHostToDevice);
-  size_t temp_size;
-  manager.compress_chunk(d_input, chunk_size, d_compressed, &temp_size, false);
-  cudaDeviceSynchronize();
-
-  // --- Compression Benchmark ---
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
 
   cudaEventRecord(start);
-  size_t total_compressed = 0;
+
+  size_t current_output_offset = 0;
 
   for (int i = 0; i < num_chunks; i++) {
-    size_t compressed_size;
-    manager.compress_chunk(d_input, chunk_size, d_compressed, &compressed_size,
-                           i == num_chunks - 1);
-    total_compressed += compressed_size;
+    bool is_last = (i == num_chunks - 1);
+
+    // Calculate pointer to current output position
+    byte_t *d_curr_out = (byte_t *)d_stream_output + current_output_offset;
+    size_t capacity = max_output_size - current_output_offset;
+    size_t produced = 0;
+
+    // Use the SAME input chunk repeatedly, but compressor treats it as a
+    // continuous stream because we don't reset_init.
+    CHECK_STATUS(manager.compress_chunk(d_input_chunk, chunk_size, d_curr_out,
+                                        &produced, is_last));
+
+    // Store metadata for decompression
+    stream_chunks.push_back({current_output_offset, produced});
+    current_output_offset += produced;
   }
 
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
-  float ms = 0;
-  cudaEventElapsedTime(&ms, start, stop);
 
-  double run_gb = (double)total_size / (1024 * 1024 * 1024);
-  double throughput = run_gb / (ms / 1000.0);
-
-  std::cout << std::left << std::setw(15) << "Compress" << std::setw(15)
-            << chunk_size << std::setw(15) << (total_size / (1024 * 1024))
-            << " MB" << std::setw(15) << ms << throughput << " GB/s"
-            << std::endl;
-
-  // Capture compressed data for decompression
-  std::vector<uint8_t> h_compressed(temp_size); // Approx size
-  // In real bench we'd ideally capture all chunks but for throughput sim with
-  // strict repeats, re-decompressing the last chunk 'num_chunks' times is
-  // acceptable approximation IF the compressor usage was stateless per chunk
-  // (it's not). So we must execute correct decompression flow.
-
-  // --- Decompression Benchmark ---
-  manager.init_decompression();
-
-  cudaEventRecord(start);
-  for (int i = 0; i < num_chunks; i++) {
-    size_t decomp_size = chunk_size;
-    bool is_last;
-    // Re-using the d_compressed buffer which holds the LAST compressed chunk
-    // from loop above. This is valid for throughput testing as long as we reset
-    // context state if needed, but streaming decompression expects a valid
-    // stream. For accurate streaming benchmark, we should have stored the
-    // stream. Simplified: Retest just 1 chunk repeated 1000 times (if
-    // stateless) or use real stream.
-
-    // Since we didn't store the stream, let's re-compress getting the stream
-    // into a vector
-  }
-  // Correct approach: Store the stream first.
-}
-
-void run_benchmark_accurate(size_t chunk_size, int num_chunks) {
-  size_t total_size = chunk_size * num_chunks;
-  std::vector<uint8_t> h_input(chunk_size);
-  for (size_t i = 0; i < chunk_size; i++)
-    h_input[i] = (i % 256);
-
-  void *d_input, *d_output, *d_compressed_buf;
-  cudaMalloc(&d_input, chunk_size);
-  cudaMalloc(&d_output, chunk_size);
-  cudaMalloc(&d_compressed_buf, chunk_size * 2);
-
-  // Store compressed stream components
-  struct ChunkInfo {
-    std::vector<uint8_t> data;
-  };
-  std::vector<ChunkInfo> stream_data;
-  stream_data.reserve(num_chunks);
-
-  ZstdStreamingManager manager(CompressionConfig{.level = 1});
-  manager.init_compression();
-
-  cudaMemcpy(d_input, h_input.data(), chunk_size, cudaMemcpyHostToDevice);
-
-  // Record Compression Latency
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-
-  cudaEventRecord(start);
-  for (int i = 0; i < num_chunks; i++) {
-    size_t c_size;
-    manager.compress_chunk(d_input, chunk_size, d_compressed_buf, &c_size,
-                           i == num_chunks - 1);
-
-    // Copy out to store valid stream sequence (slows down 'pure' GPU
-    // benchmarking so valid ONLY if overhead ignored? No, copying is part of
-    // the 'streaming' host app overhead usually. But for GPU throughput, we
-    // want to exclude PCI-E. We will pre-generate the stream for DECOMPRESSION
-    // benchmark, but measure COMPRESSION separately.)
-  }
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
   float ms_comp = 0;
   cudaEventElapsedTime(&ms_comp, start, stop);
 
-  double run_gb = (double)total_size / (1024 * 1024 * 1024);
-  double gb_s_comp = run_gb / (ms_comp / 1000.0);
+  double mb_total = (double)total_input_size / (1024.0 * 1024.0);
+  double mb_s_comp = mb_total / (ms_comp / 1000.0);
 
   std::cout << std::left << std::setw(15) << "Compress" << std::setw(15)
-            << chunk_size << std::setw(15) << (total_size / (1024 * 1024))
-            << " MB" << std::setw(15) << std::fixed << std::setprecision(2)
-            << ms_comp << std::setprecision(2) << gb_s_comp << " GB/s"
+            << chunk_size << std::setw(15) << (int)mb_total << " MB"
+            << std::setw(15) << std::fixed << std::setprecision(2) << ms_comp
+            << std::setw(15) << std::setprecision(2) << mb_s_comp << " MB/s"
             << std::endl;
 
-  // Prepare Decompression Stream (Pre-calculate to avoid measuring PCI-E)
-  // We cannot easily pre-calculate 1GB of compressed data on GPU without
-  // running OOM or complex management. So we will measure just the GPU kernel
-  // execution time for Decompression by re-decompressing the SAME chunk
-  // multiple times? NO, streaming state changes.
-  // We must respect the stream.
-  // Solution: Decompress the SAME single-chunk stream multiple times (resetting
-  // context). This measures "Single Chunk Streaming Throughput".
-
-  // 1. Generate 1 valid compressed chunk
-  size_t single_c_size;
-  manager.init_compression();
-  manager.compress_chunk(d_input, chunk_size, d_compressed_buf, &single_c_size,
-                         true); // Standalone frame
+  // =================================================================================
+  // DECOMPRESSION BENCHMARK
+  // =================================================================================
+  // Now we have a valid compressed stream in d_stream_output and metadata in
+  // stream_chunks.
 
   manager.init_decompression();
 
   cudaEventRecord(start);
-  for (int i = 0; i < num_chunks; i++) {
-    size_t d_size = chunk_size;
-    bool is_last;
-    // Reset necessary? If each is a standalone frame (passed true above), we
-    // might need to reset or it handles concatenated frames. ZSTD supports
-    // concatenated frames.
-    manager.decompress_chunk(d_compressed_buf, single_c_size, d_output, &d_size,
-                             &is_last);
 
-    // If the library requires explicit init call between frames, include it?
-    // Let's assume concatenated stream support for throughput test.
+  for (int i = 0; i < num_chunks; i++) {
+    bool is_last = (i == num_chunks - 1);
+    ChunkDesc &desc = stream_chunks[i];
+
+    byte_t *d_curr_in = (byte_t *)d_stream_output + desc.offset;
+
+    // We reuse the single output chunk buffer because we don't need to save the
+    // result
+    size_t decomp_produced = chunk_size;
+
+    CHECK_STATUS(manager.decompress_chunk(d_curr_in, desc.size,
+                                          d_decomp_output_chunk,
+                                          &decomp_produced, &is_last));
   }
+
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
+
   float ms_decomp = 0;
   cudaEventElapsedTime(&ms_decomp, start, stop);
 
-  double gb_s_decomp = run_gb / (ms_decomp / 1000.0);
+  double mb_s_decomp = mb_total / (ms_decomp / 1000.0);
 
   std::cout << std::left << std::setw(15) << "Decompress" << std::setw(15)
-            << chunk_size << std::setw(15) << (total_size / (1024 * 1024))
-            << " MB" << std::setw(15) << std::fixed << std::setprecision(2)
-            << ms_decomp << std::setprecision(2) << gb_s_decomp << " GB/s"
+            << chunk_size << std::setw(15) << (int)mb_total << " MB"
+            << std::setw(15) << std::fixed << std::setprecision(2) << ms_decomp
+            << std::setw(15) << std::setprecision(2) << mb_s_decomp << " MB/s"
             << std::endl;
 
-  cudaFree(d_input);
-  cudaFree(d_output);
-  cudaFree(d_compressed_buf);
+  // Cleanup
+  cudaFree(d_input_chunk);
+  cudaFree(d_stream_output);
+  cudaFree(d_decomp_output_chunk);
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
 }
 
 int main() {
   print_header();
 
   // Test various chunk sizes
-  run_benchmark_accurate(4096, 10000);  // 4KB, 40MB
-  run_benchmark_accurate(16384, 5000);  // 16KB, 80MB
-  run_benchmark_accurate(65536, 2000);  // 64KB, 130MB
-  run_benchmark_accurate(1048576, 200); // 1MB, 200MB
+  // Small Chunks (Latency dominated)
+  run_streaming_benchmark(4096, 5000); // 4KB chunks, 20MB total
+
+  // Medium Chunks
+  run_streaming_benchmark(65536, 2000); // 64KB chunks, 130MB total
+
+  // Large Chunks (Throughput dominated)
+  run_streaming_benchmark(1048576, 200); // 1MB chunks, 200MB total
+
+  // Very Large
+  run_streaming_benchmark(4 * 1048576, 50); // 4MB chunks, 200MB total
 
   return 0;
 }

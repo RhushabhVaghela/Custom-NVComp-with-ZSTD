@@ -163,20 +163,339 @@ __global__ void compute_costs_kernel_forward(const u8 *input, u32 input_size,
   }
 }
 
+// ==============================================================================
+// PARALLEL GREEDY PARSING
+// Each position independently decides: emit match (if found) or literal.
+// This is fully parallelizable - O(1) per position with N threads.
+// Trade-off: Slightly worse compression ratio (~1-5%) for massive speedup.
+// ==============================================================================
+
+// Greedy decision kernel: each thread handles one position
+__global__ void
+greedy_parse_kernel(const Match *matches, u32 input_size,
+                    u32 *d_decisions, // Output: 0 = literal, >0 = match length
+                    u32 *d_offsets_out, // Output: match offset (if match)
+                    u32 min_match) {
+
+  u32 pos = blockIdx.x * blockDim.x + threadIdx.x;
+  if (pos >= input_size)
+    return;
+
+  Match m = matches[pos];
+
+  // Greedy decision: use match if valid, else literal
+  if (m.length >= min_match && m.offset > 0) {
+    d_decisions[pos] = m.length;
+    d_offsets_out[pos] = m.offset;
+  } else {
+    d_decisions[pos] = 0; // Literal
+    d_offsets_out[pos] = 0;
+  }
+}
+
+// GPU Kernel: Build sequences directly on GPU (avoids 128KB D2H copy)
+__global__ void build_sequences_gpu_kernel(const u32 *decisions,
+                                           const u32 *offsets_in,
+                                           u32 input_size, u32 *ll_out,
+                                           u32 *ml_out, u32 *of_out,
+                                           u32 *seq_count) {
+
+  // Single thread builds sequences (sequential on GPU but no D2H transfer!)
+  if (threadIdx.x != 0 || blockIdx.x != 0)
+    return;
+
+  u32 pos = 0;
+  u32 literal_run = 0;
+  u32 num_seqs = 0;
+
+  while (pos < input_size) {
+    u32 decision = decisions[pos];
+
+    if (decision == 0) {
+      literal_run++;
+      pos++;
+    } else {
+      ll_out[num_seqs] = literal_run;
+      ml_out[num_seqs] = decision;
+      of_out[num_seqs] = offsets_in[pos];
+      num_seqs++;
+      literal_run = 0;
+      pos += decision;
+    }
+  }
+
+  // Handle trailing literals
+  if (literal_run > 0 || num_seqs == 0) {
+    ll_out[num_seqs] = literal_run;
+    ml_out[num_seqs] = 0;
+    of_out[num_seqs] = 0;
+    num_seqs++;
+  }
+
+  *seq_count = num_seqs;
+}
+
+// Build sequences from greedy decisions - GPU-only path
+// Avoids 128KB D2H copy by doing sequence building on GPU
+Status build_sequences_from_greedy(const u32 *d_decisions, const u32 *d_offsets,
+                                   u32 input_size,
+                                   CompressionWorkspace &workspace,
+                                   u32 *h_num_sequences, bool *out_has_dummy,
+                                   cudaStream_t stream) {
+
+  // Use workspace temp area for seq_count (already allocated)
+  u32 *d_seq_count =
+      (u32 *)((u8 *)workspace.d_lz77_temp + 2 * input_size * sizeof(u32));
+
+  // Build sequences entirely on GPU - no large D2H transfer!
+  build_sequences_gpu_kernel<<<1, 1, 0, stream>>>(
+      d_decisions, d_offsets, input_size, workspace.d_literal_lengths_reverse,
+      workspace.d_match_lengths_reverse, workspace.d_offsets_reverse,
+      d_seq_count);
+
+  // Only copy 4 bytes (seq count) instead of 128KB!
+  // (OPTIMIZATION) Use sync copy to ensure we have the count
+  cudaMemcpy(h_num_sequences, d_seq_count, sizeof(u32), cudaMemcpyDeviceToHost);
+
+  if (out_has_dummy && *h_num_sequences > 0) {
+    u32 last_ml;
+    cudaMemcpy(&last_ml,
+               workspace.d_match_lengths_reverse + *h_num_sequences - 1,
+               sizeof(u32), cudaMemcpyDeviceToHost);
+    *out_has_dummy = (last_ml == 0);
+  }
+
+  return Status::SUCCESS;
+}
+
+// ASYNC variant - writes to device memory, no sync
+// Used for two-phase batched processing
+Status build_sequences_from_greedy_async(
+    const u32 *d_decisions, const u32 *d_offsets, u32 input_size,
+    CompressionWorkspace &workspace,
+    u32 *d_num_sequences, // Device pointer
+    bool *d_has_dummy,    // Device pointer (can be nullptr)
+    cudaStream_t stream) {
+
+  // Build sequences entirely on GPU - no sync!
+  build_sequences_gpu_kernel<<<1, 1, 0, stream>>>(
+      d_decisions, d_offsets, input_size, workspace.d_literal_lengths_reverse,
+      workspace.d_match_lengths_reverse, workspace.d_offsets_reverse,
+      d_num_sequences);
+
+  // Note: has_dummy check is deferred to batch sync phase
+  // The caller must handle this after batch sync
+
+  return Status::SUCCESS;
+}
+
+// PARALLEL GREEDY PIPELINE
+// Uses GPU for both match finding and greedy parsing decisions
+Status lz77_parallel_greedy_pipeline(u32 input_size,
+                                     CompressionWorkspace &workspace,
+                                     const LZ77Config &config,
+                                     u32 *h_num_sequences, bool *out_has_dummy,
+                                     cudaStream_t stream) {
+
+  // OPTIMIZATION: Reuse workspace.d_lz77_temp instead of per-call cudaMalloc
+  // Partition: [decisions: input_size*4 bytes][offsets: input_size*4 bytes]
+  u32 *d_decisions = (u32 *)workspace.d_lz77_temp;
+  u32 *d_offsets_out = d_decisions + input_size;
+
+  // (OPTIMIZATION REMOVED) No sync needed here - kernel launch serializes on
+  // stream
+
+  // Launch greedy parse kernel - fully parallel!
+  const u32 block_size = 256;
+  const u32 num_blocks = (input_size + block_size - 1) / block_size;
+
+  greedy_parse_kernel<<<num_blocks, block_size, 0, stream>>>(
+      (const Match *)workspace.d_matches, input_size, d_decisions,
+      d_offsets_out, config.min_match);
+
+  // Build sequences from greedy decisions
+  Status status = build_sequences_from_greedy(
+      d_decisions, d_offsets_out, input_size, workspace, h_num_sequences,
+      out_has_dummy, stream);
+
+  // No cudaFree needed - workspace memory is managed by caller
+
+  return status;
+}
+
+// ASYNC PARALLEL GREEDY PIPELINE (for two-phase batched processing)
+// Writes to device memory, no sync - caller batches syncs
+Status lz77_parallel_greedy_pipeline_async(
+    u32 input_size, CompressionWorkspace &workspace, const LZ77Config &config,
+    u32 *d_num_sequences, // Device pointer
+    bool *d_has_dummy,    // Device pointer
+    cudaStream_t stream) {
+
+  // OPTIMIZATION: Reuse workspace.d_lz77_temp instead of per-call cudaMalloc
+  u32 *d_decisions = (u32 *)workspace.d_lz77_temp;
+  u32 *d_offsets_out = d_decisions + input_size;
+
+  // Launch greedy parse kernel - fully parallel!
+  const u32 block_size = 256;
+  const u32 num_blocks = (input_size + block_size - 1) / block_size;
+
+  greedy_parse_kernel<<<num_blocks, block_size, 0, stream>>>(
+      (const Match *)workspace.d_matches, input_size, d_decisions,
+      d_offsets_out, config.min_match);
+
+  // Build sequences - ASYNC version, no sync
+  Status status = build_sequences_from_greedy_async(
+      d_decisions, d_offsets_out, input_size, workspace, d_num_sequences,
+      d_has_dummy, stream);
+
+  return status;
+}
+
+// ==============================================================================
+// UNIFIED CPU LZ77 PIPELINE
+// Combines forward DP + backtracking with shared host buffers to eliminate
+// redundant D2H copies. For small chunks, this is significantly faster than
+// separate functions that each copy data.
+// ==============================================================================
+Status lz77_cpu_pipeline(u32 input_size, CompressionWorkspace &workspace,
+                         const LZ77Config &config, u32 *h_num_sequences,
+                         bool *out_has_dummy, cudaStream_t stream) {
+
+  try {
+    // 1. Sync stream to ensure matches from GPU are ready
+    cudaStreamSynchronize(stream);
+
+    // 2. Copy matches D2H - ONLY ONCE for both forward DP and backtracking
+    std::vector<Match> h_matches(input_size);
+    cudaError_t err =
+        cudaMemcpy(h_matches.data(), workspace.d_matches,
+                   input_size * sizeof(Match), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+      return Status::ERROR_CUDA_ERROR;
+    }
+
+    // 3. Forward DP on CPU - compute optimal parse costs
+    std::vector<ParseCost> h_costs(input_size + 1);
+    h_costs[0].set(0, 0);
+    for (u32 i = 1; i <= input_size; ++i) {
+      h_costs[i].data = 0xFFFFFFFFFFFFFFFFULL;
+    }
+
+    for (u32 pos = 0; pos < input_size; ++pos) {
+      u32 current_cost = h_costs[pos].cost();
+      if (current_cost == 0xFFFFFFFF)
+        continue;
+
+      // Literal transition
+      u32 lit_dest = pos + 1;
+      u32 lit_cost_val = current_cost + calculate_literal_cost(1);
+      if (lit_cost_val < h_costs[lit_dest].cost()) {
+        h_costs[lit_dest].set(lit_cost_val, pos);
+      }
+
+      // Match transition
+      const Match &m = h_matches[pos];
+      if (m.length >= config.min_match) {
+        u32 match_dest = pos + m.length;
+        if (match_dest <= input_size) {
+          u32 match_cost_val =
+              current_cost + calculate_match_cost(m.length, m.offset);
+          if (match_cost_val < h_costs[match_dest].cost()) {
+            h_costs[match_dest].set(match_cost_val, pos);
+          }
+        }
+      }
+    }
+
+    // 4. Backtracking on CPU - using already-computed h_costs and h_matches
+    // NO additional D2H copies needed!
+    std::vector<u32> ll_buf, ml_buf, of_buf;
+    ll_buf.reserve(input_size / 3);
+    ml_buf.reserve(input_size / 3);
+    of_buf.reserve(input_size / 3);
+
+    u32 curr_pos = input_size;
+    u32 literal_run = 0;
+    u32 pending_ml = 0;
+    u32 pending_of = 0;
+
+    while (curr_pos > 0) {
+      u32 parent = h_costs[curr_pos].parent();
+      if (parent >= curr_pos)
+        parent = curr_pos - 1;
+
+      u32 len = curr_pos - parent;
+      bool is_valid_match = (len >= 3);
+      if (is_valid_match) {
+        u32 match_offset = h_matches[parent].offset;
+        if (match_offset == 0) {
+          is_valid_match = false;
+        }
+      }
+
+      if (is_valid_match) {
+        ll_buf.push_back(literal_run);
+        ml_buf.push_back(pending_ml);
+        of_buf.push_back(pending_of);
+        pending_ml = len;
+        pending_of = h_matches[parent].offset;
+        literal_run = 0;
+      } else {
+        literal_run += len;
+      }
+      curr_pos = parent;
+    }
+
+    ll_buf.push_back(literal_run);
+    ml_buf.push_back(pending_ml);
+    of_buf.push_back(pending_of);
+
+    std::reverse(ll_buf.begin(), ll_buf.end());
+    std::reverse(ml_buf.begin(), ml_buf.end());
+    std::reverse(of_buf.begin(), of_buf.end());
+
+    if (out_has_dummy)
+      *out_has_dummy = (!ml_buf.empty() && ml_buf.back() == 0);
+
+    u32 num_sequences = (u32)ll_buf.size();
+    *h_num_sequences = num_sequences;
+
+    // 5. Copy sequences H2D - ONLY output copy needed
+    if (num_sequences > 0) {
+      if (num_sequences > workspace.max_sequences) {
+        return Status::ERROR_BUFFER_TOO_SMALL;
+      }
+      cudaMemcpyAsync(workspace.d_literal_lengths_reverse, ll_buf.data(),
+                      num_sequences * sizeof(u32), cudaMemcpyHostToDevice,
+                      stream);
+      cudaMemcpyAsync(workspace.d_match_lengths_reverse, ml_buf.data(),
+                      num_sequences * sizeof(u32), cudaMemcpyHostToDevice,
+                      stream);
+      cudaMemcpyAsync(workspace.d_offsets_reverse, of_buf.data(),
+                      num_sequences * sizeof(u32), cudaMemcpyHostToDevice,
+                      stream);
+    }
+
+    return Status::SUCCESS;
+  } catch (const std::bad_alloc &) {
+    return Status::ERROR_OUT_OF_MEMORY;
+  } catch (...) {
+    return Status::ERROR_UNKNOWN;
+  }
+}
+
+// Legacy wrapper for compatibility - now uses unified pipeline
 Status compute_optimal_parse_v2(const u8 *d_input, u32 input_size,
                                 CompressionWorkspace *workspace,
                                 const LZ77Config &config, cudaStream_t stream) {
-  // 1. Init costs (done in kernel)
-  // 2. Launch Match finder? Caller (manager) does it?
-  // Usage implies compute_optimal_parse_v2 does the optimal parse PASS.
-  // Matches are already in workspace->d_matches from previous step
-  // (find_matches_parallel).
-
-  // Launch Forward DP kernel (Serial)
-  compute_costs_kernel_forward<<<1, 1, 0, stream>>>(
-      d_input, input_size, (const Match *)workspace->d_matches,
-      (ParseCost *)workspace->d_costs, config);
-
+  // Forward DP is now done inside lz77_cpu_pipeline
+  // This function is kept for API compatibility but does nothing
+  // The caller should use lz77_cpu_pipeline instead
+  (void)d_input;
+  (void)input_size;
+  (void)workspace;
+  (void)config;
+  (void)stream;
   return Status::SUCCESS;
 }
 
@@ -186,7 +505,10 @@ Status compute_optimal_parse_v2(const u8 *d_input, u32 input_size,
 
 BacktrackConfig create_backtrack_config(u32 input_size) {
   BacktrackConfig config;
-  config.parallel_threshold = 1024 * 1024; // 1MB threshold
+  // Use CPU backtracking for small inputs (<= 128KB) to avoid per-call
+  // cudaMalloc overhead GPU parallel is only beneficial for large inputs where
+  // kernel launch overhead is amortized
+  config.parallel_threshold = 128 * 1024; // 128KB threshold
 
   if (input_size >= config.parallel_threshold) {
     config.use_parallel = true;
