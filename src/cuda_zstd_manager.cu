@@ -2170,9 +2170,12 @@ public:
         lz77_config.min_match = config.min_match;
         // (REVERT) Use standard nice_length to prevent overflow/edge
         // cases
-        lz77_config.nice_length = 131072;
-        lz77_config.good_length = 131072;
-        lz77_config.search_depth = 128;
+        // (OPTIMIZATION) Use configuration-driven parameters
+        lz77_config.nice_length = effective_config.target_length > 0
+                                      ? effective_config.target_length
+                                      : 256;
+        lz77_config.good_length = lz77_config.nice_length;
+        lz77_config.search_depth = (1 << effective_config.search_log);
         // Run V2 Pipeline
 
         /*
@@ -2501,7 +2504,9 @@ public:
 
     // Final synchronization to ensure all async operations complete
     // before the caller accesses the output buffer
-    CUDA_CHECK(cudaDeviceSynchronize());
+    // Final synchronization to ensure all async operations complete
+    // before the caller accesses the output buffer
+    CUDA_CHECK(cudaStreamSynchronize(stream));
 
     stats.bytes_compressed += uncompressed_size;
     stats.bytes_produced += *compressed_size;
