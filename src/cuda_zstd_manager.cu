@@ -2353,19 +2353,6 @@ public:
     // =========================================================================
     cudaStreamSynchronize(stream);
 
-    // Batch copy all literal sizes from device to host
-    cudaMemcpy(block_literals_sizes.data(), d_block_literals_sizes,
-               num_blocks * sizeof(u32), cudaMemcpyDeviceToHost);
-
-    // DEBUG: Trace compression literals sizes
-    printf("[DEBUG COMPRESS] num_blocks=%u\n", num_blocks);
-    for (u32 i = 0; i < num_blocks; i++) {
-      printf("[DEBUG COMPRESS] Block %u: block_size=%u, literals_size=%u, "
-             "num_seq=%u, has_dummy=%d\n",
-             i, current_block_sizes[i], block_literals_sizes[i],
-             block_num_sequences[i], h_has_dummy[i] ? 1 : 0);
-    }
-
     // =========================================================================
     // PHASE 2b: ENCODING Loop
     // =========================================================================
