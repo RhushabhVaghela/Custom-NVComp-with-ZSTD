@@ -103,7 +103,7 @@ bool test_fse_normalization() {
 
   u32 actual_table_size = 0;
   Status status = normalize_frequencies_accurate(
-      raw_freqs.data(), 575, 4, normalized.data(), 8, &actual_table_size);
+      raw_freqs.data(), 575, 16, normalized.data(), 8, &actual_table_size);
 
   if (status != Status::SUCCESS) {
     LOG_FAIL(__func__, "normalize_frequencies_accurate failed");
@@ -115,8 +115,8 @@ bool test_fse_normalization() {
     sum += freq;
   }
 
-  if (sum != 256) {
-    LOG_FAIL(__func__, "Normalization sum != 256");
+  if (sum != 16) {
+    LOG_FAIL(__func__, "Normalization sum != 16");
     return false;
   }
 
@@ -168,7 +168,7 @@ bool test_fse_roundtrip_small() {
   cudaMemcpy(h_encoded.data(), d_output, encoded_size, cudaMemcpyDeviceToHost);
 
   u32 decoded_size = data_size;
-  status = decode_fse(h_encoded.data(), encoded_size,
+  status = decode_fse(static_cast<byte_t *>(d_output), encoded_size,
                       static_cast<byte_t *>(d_decoded), &decoded_size);
 
   if (status != Status::SUCCESS) {
@@ -256,7 +256,7 @@ bool test_fse_roundtrip_large() {
   cudaMemcpy(h_encoded.data(), d_output, encoded_size, cudaMemcpyDeviceToHost);
 
   u32 decoded_size = static_cast<u32>(data_size);
-  status = decode_fse(h_encoded.data(), encoded_size,
+  status = decode_fse(static_cast<byte_t *>(d_output), encoded_size,
                       static_cast<byte_t *>(d_decoded), &decoded_size);
 
   if (status != Status::SUCCESS) {

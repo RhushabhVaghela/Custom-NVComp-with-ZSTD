@@ -2269,13 +2269,6 @@ public:
     cudaMemcpy(block_num_sequences.data(), d_block_num_sequences,
                num_blocks * sizeof(u32), cudaMemcpyDeviceToHost);
 
-    // DEBUG: Trace block_num_sequences after batch sync
-    printf("[DEBUG BATCH_SYNC] num_blocks=%u\n", num_blocks);
-    for (u32 i = 0; i < num_blocks; i++) {
-      printf("[DEBUG BATCH_SYNC] Block %u: num_seq=%u\n", i,
-             block_num_sequences[i]);
-    }
-
     // Copy has_dummy flags
     std::vector<bool> h_has_dummy(num_blocks);
     for (u32 i = 0; i < num_blocks; i++) {
@@ -3698,7 +3691,6 @@ private:
     // (Size_Format=00) | (Size << 3) If Size=0, Header = 0x00.
 
     // DEBUG: Trace num_literals being encoded
-    printf("[DEBUG COMPRESS_LIT] num_literals=%u\n", num_literals);
 
     byte_t header[3];
     u32 header_len = 0;
