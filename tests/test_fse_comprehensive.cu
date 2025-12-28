@@ -103,7 +103,7 @@ bool test_fse_normalization() {
 
   u32 actual_table_size = 0;
   Status status = normalize_frequencies_accurate(
-      raw_freqs.data(), 5, normalized.data(), 8, &actual_table_size);
+      raw_freqs.data(), 575, 4, normalized.data(), 8, &actual_table_size);
 
   if (status != Status::SUCCESS) {
     LOG_FAIL(__func__, "normalize_frequencies_accurate failed");

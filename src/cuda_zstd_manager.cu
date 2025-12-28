@@ -4774,7 +4774,7 @@ Status ZstdBatchManager::allocate_inference_workspace(
   if (err != cudaSuccess) {
     *workspace_ptr = nullptr;
     *workspace_size = 0;
-    return Status::ERROR_GPU_ALLOC;
+    return Status::ERROR_ALLOCATION_FAILED;
   }
 
   *workspace_size = required_size;

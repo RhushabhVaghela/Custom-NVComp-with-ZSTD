@@ -129,11 +129,11 @@ if(CUDA_ZSTD_DEBUG_BOUNDS)
     target_compile_definitions(cuda_zstd_shared PUBLIC CUDA_ZSTD_DEBUG_BOUNDS)
 endif()
 
-# Examples
-if(CUDA_ZSTD_BUILD_EXAMPLES)
-    add_executable(simple_test tests/simple_test.cu)
-    target_link_libraries(simple_test cuda_zstd_static libzstd_static)
-endif()
+# Examples (simple_test.cu was removed during test cleanup)
+# if(CUDA_ZSTD_BUILD_EXAMPLES)
+#     add_executable(simple_test tests/simple_test.cu)
+#     target_link_libraries(simple_test cuda_zstd_static libzstd_static)
+# endif()
 
 # Tests
 if(CUDA_ZSTD_BUILD_TESTS)
@@ -168,16 +168,16 @@ if(CUDA_ZSTD_BUILD_TESTS)
     set_property(TEST test_c_api PROPERTY LABELS "unittest")
     set_tests_properties(test_c_api PROPERTIES TIMEOUT 100)
 
-    # level_nvcomp_demo test
-    add_executable(level_nvcomp_demo tests/level_nvcomp_demo.cu)
-    set_target_properties(level_nvcomp_demo PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON
-        CUDA_RESOLVE_DEVICE_SYMBOLS ON
-    )
-    target_link_libraries(level_nvcomp_demo cuda_zstd_static)
-    add_test(NAME level_nvcomp_demo COMMAND level_nvcomp_demo)
-    set_property(TEST level_nvcomp_demo PROPERTY LABELS "unittest")
-    set_tests_properties(level_nvcomp_demo PROPERTIES TIMEOUT 100)
+    # level_nvcomp_demo was removed during test cleanup
+    # add_executable(level_nvcomp_demo tests/level_nvcomp_demo.cu)
+    # set_target_properties(level_nvcomp_demo PROPERTIES
+    #     CUDA_SEPARABLE_COMPILATION ON
+    #     CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    # )
+    # target_link_libraries(level_nvcomp_demo cuda_zstd_static)
+    # add_test(NAME level_nvcomp_demo COMMAND level_nvcomp_demo)
+    # set_property(TEST level_nvcomp_demo PROPERTY LABELS "unittest")
+    # set_tests_properties(level_nvcomp_demo PROPERTIES TIMEOUT 100)
 endif()
 
 # Benchmarks
