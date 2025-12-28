@@ -1068,6 +1068,20 @@ public:
     // 10. Final round to reasonable boundary
     total = align_to_boundary(total, 1024 * 1024); // 1MB boundary
 
+    // CRITICAL: Hard cap to prevent overflow on large inputs
+    // Maximum reasonable workspace: 2GB or 16x input size (whichever is smaller)
+    constexpr size_t MAX_WORKSPACE_ABSOLUTE = 2ULL * 1024 * 1024 * 1024; // 2GB
+    size_t max_workspace_relative = input_size * 16;
+    size_t max_workspace = std::min(MAX_WORKSPACE_ABSOLUTE, max_workspace_relative);
+    
+    // Apply cap if total exceeds reasonable limits
+    if (total > max_workspace) {
+      // Fallback: Use conservative estimate instead of overflowed value
+      // Conservative: 8x input + 64MB for tables, capped at MAX_WORKSPACE_ABSOLUTE
+      total = std::min(input_size * 8 + 64 * 1024 * 1024, MAX_WORKSPACE_ABSOLUTE);
+      total = align_to_boundary(total, 1024 * 1024);
+    }
+
     return total;
   }
 
