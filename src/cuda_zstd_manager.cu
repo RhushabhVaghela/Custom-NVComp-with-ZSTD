@@ -1069,16 +1069,20 @@ public:
     total = align_to_boundary(total, 1024 * 1024); // 1MB boundary
 
     // CRITICAL: Hard cap to prevent overflow on large inputs
-    // Maximum reasonable workspace: 2GB or 16x input size (whichever is smaller)
+    // Maximum reasonable workspace: 2GB or 16x input size (whichever is
+    // smaller)
     constexpr size_t MAX_WORKSPACE_ABSOLUTE = 2ULL * 1024 * 1024 * 1024; // 2GB
     size_t max_workspace_relative = input_size * 16;
-    size_t max_workspace = std::min(MAX_WORKSPACE_ABSOLUTE, max_workspace_relative);
-    
+    size_t max_workspace =
+        std::min(MAX_WORKSPACE_ABSOLUTE, max_workspace_relative);
+
     // Apply cap if total exceeds reasonable limits
     if (total > max_workspace) {
       // Fallback: Use conservative estimate instead of overflowed value
-      // Conservative: 8x input + 64MB for tables, capped at MAX_WORKSPACE_ABSOLUTE
-      total = std::min(input_size * 8 + 64 * 1024 * 1024, MAX_WORKSPACE_ABSOLUTE);
+      // Conservative: 8x input + 64MB for tables, capped at
+      // MAX_WORKSPACE_ABSOLUTE
+      total =
+          std::min(input_size * 8 + 64 * 1024 * 1024, MAX_WORKSPACE_ABSOLUTE);
       total = align_to_boundary(total, 1024 * 1024);
     }
 
@@ -2224,6 +2228,14 @@ public:
         // Pass 2+3: ASYNC PARALLEL GREEDY LZ77 PIPELINE
         // Uses GPU parallel greedy parsing - writes results to device memory
         // This eliminates per-block D2H sync inside the pipeline
+
+        // DEBUG: Trace LZ77 output buffer offset
+        ptrdiff_t lz77_offset = thread_block_ws.d_literal_lengths_reverse -
+                                d_all_lit_lengths_reverse;
+        printf("[DEBUG LZ77_CALL] Block %u: lz77_offset=%ld, expected=%lu\n",
+               block_idx, (long)lz77_offset,
+               (unsigned long)(block_idx * block_size));
+
         status = lz77::lz77_parallel_greedy_pipeline_async(
             current_block_size_val, thread_block_ws, lz77_config,
             &d_block_num_sequences[block_idx], &d_block_has_dummy[block_idx],
@@ -2249,11 +2261,20 @@ public:
     // =========================================================================
     // BATCH SYNC POINT - Wait for all LZ77 operations to complete
     // =========================================================================
-    cudaStreamSynchronize(stream);
+    // FIX: Use cudaDeviceSynchronize to ensure ALL GPU operations finish
+    // cudaStreamSynchronize may not sync operations on other streams/contexts
+    cudaDeviceSynchronize();
 
     // Batch copy all seq counts from device to host
     cudaMemcpy(block_num_sequences.data(), d_block_num_sequences,
                num_blocks * sizeof(u32), cudaMemcpyDeviceToHost);
+
+    // DEBUG: Trace block_num_sequences after batch sync
+    printf("[DEBUG BATCH_SYNC] num_blocks=%u\n", num_blocks);
+    for (u32 i = 0; i < num_blocks; i++) {
+      printf("[DEBUG BATCH_SYNC] Block %u: num_seq=%u\n", i,
+             block_num_sequences[i]);
+    }
 
     // Copy has_dummy flags
     std::vector<bool> h_has_dummy(num_blocks);
@@ -2296,6 +2317,13 @@ public:
         launch_async_sum_reduce(block_ws.d_literal_lengths_reverse, num_seq,
                                 &d_block_literals_sizes[block_idx], stream);
 
+        // FIX: Sync and copy directly to host array per-block
+        // This bypasses batch D2H corruption that caused blocks 4-7 to return 0
+        cudaStreamSynchronize(stream);
+        cudaMemcpy(&block_literals_sizes[block_idx],
+                   &d_block_literals_sizes[block_idx], sizeof(u32),
+                   cudaMemcpyDeviceToHost);
+
         if (has_dummy) {
           block_num_sequences[block_idx]--;
         }
@@ -2328,6 +2356,15 @@ public:
     // Batch copy all literal sizes from device to host
     cudaMemcpy(block_literals_sizes.data(), d_block_literals_sizes,
                num_blocks * sizeof(u32), cudaMemcpyDeviceToHost);
+
+    // DEBUG: Trace compression literals sizes
+    printf("[DEBUG COMPRESS] num_blocks=%u\n", num_blocks);
+    for (u32 i = 0; i < num_blocks; i++) {
+      printf("[DEBUG COMPRESS] Block %u: block_size=%u, literals_size=%u, "
+             "num_seq=%u, has_dummy=%d\n",
+             i, current_block_sizes[i], block_literals_sizes[i],
+             block_num_sequences[i], h_has_dummy[i] ? 1 : 0);
+    }
 
     // =========================================================================
     // PHASE 2b: ENCODING Loop
@@ -3625,6 +3662,11 @@ private:
     // //                 ctx.seq_ctx->num_sequences,
     // literals_decompressed_size);
 
+    // DEBUG: Trace literals_decompressed_size before execute_sequences
+    printf("[DEBUG DECOMP_BLOCK] literals_decompressed_size=%u, "
+           "num_sequences=%u\n",
+           literals_decompressed_size, ctx.seq_ctx->num_sequences);
+
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
@@ -3667,6 +3709,9 @@ private:
     // num_literals is 0, we verify how to encode "empty literals". Raw
     // Literals Block (formatted): Header byte: (Block_Type=00) |
     // (Size_Format=00) | (Size << 3) If Size=0, Header = 0x00.
+
+    // DEBUG: Trace num_literals being encoded
+    printf("[DEBUG COMPRESS_LIT] num_literals=%u\n", num_literals);
 
     byte_t header[3];
     u32 header_len = 0;
@@ -3951,6 +3996,12 @@ private:
 
     u32 literals_type = h_header[0] & 0x03;
 
+    // DEBUG: Trace literals header parsing
+    printf("[DEBUG LITERALS] h_header=%02X %02X %02X, literals_type=%u, "
+           "size_format=%u\n",
+           h_header[0], h_header[1], h_header[2], literals_type,
+           (h_header[0] >> 2) & 0x03);
+
     if (literals_type == 0 || literals_type == 1) {
       // Raw (0) or RLE (1)
       u32 size_format = (h_header[0] >> 2) & 0x03;
@@ -3966,22 +4017,34 @@ private:
       }
 
       // Let's implement full RFC logic
+      printf("[DEBUG LITERALS] h[0]=0x%02X, raw_shift=(0x%02X)>>2=0x%02X, "
+             "size_format=%u\n",
+             h_header[0], h_header[0], h_header[0] >> 2, size_format);
       if (size_format == 0) {
+        printf("[DEBUG LITERALS] Taking size_format==0 branch\n");
         // Format 00: 1 byte header. Size uses 5 bits (bits 3-7).
         *h_header_size = 1;
         *h_decompressed_size = (h_header[0] >> 3) & 0x1F;
       } else if (size_format == 1) {
+        printf("[DEBUG LITERALS] Taking size_format==1 branch\n");
         // Format 01: 2 bytes. Size uses 12 bits.
         // Bits 4-7 of H[0] are low 4 bits. H[1] is high 8 bits.
         *h_header_size = 2;
         *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) | (h_header[1] << 4);
       } else {
+        printf("[DEBUG LITERALS] Taking size_format>=2 branch (format=%u)\n",
+               size_format);
         // Format 10 or 11: 3 bytes. Size uses 20 bits.
         // Bits 4-7 of H[0] are low 4 bits. H[1] is next 8. H[2] is high 8.
         *h_header_size = 3;
         *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) |
                                (h_header[1] << 4) | (h_header[2] << 12);
       }
+
+      // DEBUG: Trace calculated h_decompressed_size
+      printf("[DEBUG LITERALS] After calc: h_header_size=%u, "
+             "h_decompressed_size=%u\n",
+             *h_header_size, *h_decompressed_size);
 
       if (literals_type == 0) { // Raw
         *h_compressed_size = *h_decompressed_size;
