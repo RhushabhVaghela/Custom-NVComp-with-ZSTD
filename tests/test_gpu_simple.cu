@@ -5,12 +5,12 @@
 #include <cuda_runtime.h>
 #include <vector>
 
-
 extern "C" {
 #define ZSTD_STATIC_LINKING_ONLY
 #include "zstd.h"
 }
 
+#ifndef CUDA_CHECK
 #define CUDA_CHECK(call)                                                       \
   do {                                                                         \
     cudaError_t err = call;                                                    \
@@ -20,6 +20,7 @@ extern "C" {
       exit(1);                                                                 \
     }                                                                          \
   } while (0)
+#endif
 
 int main() {
   printf("╔══════════════════════════════════════════════════════════╗\n");

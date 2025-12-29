@@ -192,10 +192,6 @@ bool test_exact_256kb_input() {
     exit(1);
   }
 
-  const byte_t *d_inputs_arr[] = {d_input};
-  u32 input_sizes_arr[] = {data_size};
-  byte_t *d_outputs_arr[] = {d_output};
-
   // Use encode_fse_advanced (single buffer) to match decode_fse (single buffer)
   // This ensures header format compatibility.
   u32 h_output_size_val = 0;

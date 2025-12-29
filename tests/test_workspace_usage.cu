@@ -143,13 +143,13 @@ bool test_workspace_memory_sizes() {
 
     if (workspace.hash_table_size != expected_hash_size) {
       printf("    Hash table size mismatch: expected %zu, got %zu\n",
-             expected_hash_size, workspace.hash_table_size);
+             expected_hash_size, (size_t)workspace.hash_table_size);
       passed = false;
     }
 
     if (workspace.chain_table_size != expected_chain_size) {
       printf("    Chain table size mismatch: expected %zu, got %zu\n",
-             expected_chain_size, workspace.chain_table_size);
+             expected_chain_size, (size_t)workspace.chain_table_size);
       passed = false;
     }
   }

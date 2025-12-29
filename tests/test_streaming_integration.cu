@@ -153,7 +153,7 @@ bool test_large_streaming() {
 
   const size_t chunk_size = 128 * 1024; // 128KB
   const int num_chunks = 80;            // ~10MB
-  const size_t total_size = chunk_size * num_chunks;
+  (void)(chunk_size * num_chunks);      // ~10MB total
 
   void *d_input, *d_compressed;
   cudaMalloc(&d_input, chunk_size);

@@ -1777,11 +1777,12 @@ public:
 
     // Adaptive Output Buffer Sizing
     // Formula: Max(MinBuffer, BlockSize * ExpansionFactor + Overhead)
-    // ExpansionFactor = 4 (Worst case: Raw uncompressed sequences
-    // expand ~4x for small literals) Overhead = 4096 (Headers,
-    // alignment)
-    const size_t min_buffer_size = 128 * 1024; // 128KB min
-    size_t adaptive_size = (size_t)(block_size * 4) + 4096;
+    // ExpansionFactor = 8 (Increased from 4 to handle worst-case scenarios
+    // where compression expansion occurs) Overhead = 8192 (Headers,
+    // alignment, safety margin)
+    const size_t min_buffer_size =
+        256 * 1024; // 256KB min (increased from 128KB)
+    size_t adaptive_size = (size_t)(block_size * 8) + 8192;
     size_t output_buffer_size = std::max(min_buffer_size, adaptive_size);
 
     size_t fse_table_size = 3 * sizeof(fse::FSEEncodeTable);
@@ -2228,13 +2229,6 @@ public:
         // Pass 2+3: ASYNC PARALLEL GREEDY LZ77 PIPELINE
         // Uses GPU parallel greedy parsing - writes results to device memory
         // This eliminates per-block D2H sync inside the pipeline
-
-        // DEBUG: Trace LZ77 output buffer offset
-        ptrdiff_t lz77_offset = thread_block_ws.d_literal_lengths_reverse -
-                                d_all_lit_lengths_reverse;
-        printf("[DEBUG LZ77_CALL] Block %u: lz77_offset=%ld, expected=%lu\n",
-               block_idx, (long)lz77_offset,
-               (unsigned long)(block_idx * block_size));
 
         status = lz77::lz77_parallel_greedy_pipeline_async(
             current_block_size_val, thread_block_ws, lz77_config,
@@ -3642,11 +3636,6 @@ private:
     // //                 ctx.seq_ctx->num_sequences,
     // literals_decompressed_size);
 
-    // DEBUG: Trace literals_decompressed_size before execute_sequences
-    printf("[DEBUG DECOMP_BLOCK] literals_decompressed_size=%u, "
-           "num_sequences=%u\n",
-           literals_decompressed_size, ctx.seq_ctx->num_sequences);
-
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
@@ -3975,12 +3964,6 @@ private:
 
     u32 literals_type = h_header[0] & 0x03;
 
-    // DEBUG: Trace literals header parsing
-    printf("[DEBUG LITERALS] h_header=%02X %02X %02X, literals_type=%u, "
-           "size_format=%u\n",
-           h_header[0], h_header[1], h_header[2], literals_type,
-           (h_header[0] >> 2) & 0x03);
-
     if (literals_type == 0 || literals_type == 1) {
       // Raw (0) or RLE (1)
       u32 size_format = (h_header[0] >> 2) & 0x03;
@@ -3996,34 +3979,22 @@ private:
       }
 
       // Let's implement full RFC logic
-      printf("[DEBUG LITERALS] h[0]=0x%02X, raw_shift=(0x%02X)>>2=0x%02X, "
-             "size_format=%u\n",
-             h_header[0], h_header[0], h_header[0] >> 2, size_format);
       if (size_format == 0) {
-        printf("[DEBUG LITERALS] Taking size_format==0 branch\n");
         // Format 00: 1 byte header. Size uses 5 bits (bits 3-7).
         *h_header_size = 1;
         *h_decompressed_size = (h_header[0] >> 3) & 0x1F;
       } else if (size_format == 1) {
-        printf("[DEBUG LITERALS] Taking size_format==1 branch\n");
         // Format 01: 2 bytes. Size uses 12 bits.
         // Bits 4-7 of H[0] are low 4 bits. H[1] is high 8 bits.
         *h_header_size = 2;
         *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) | (h_header[1] << 4);
       } else {
-        printf("[DEBUG LITERALS] Taking size_format>=2 branch (format=%u)\n",
-               size_format);
         // Format 10 or 11: 3 bytes. Size uses 20 bits.
         // Bits 4-7 of H[0] are low 4 bits. H[1] is next 8. H[2] is high 8.
         *h_header_size = 3;
         *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) |
                                (h_header[1] << 4) | (h_header[2] << 12);
       }
-
-      // DEBUG: Trace calculated h_decompressed_size
-      printf("[DEBUG LITERALS] After calc: h_header_size=%u, "
-             "h_decompressed_size=%u\n",
-             *h_header_size, *h_decompressed_size);
 
       if (literals_type == 0) { // Raw
         *h_compressed_size = *h_decompressed_size;

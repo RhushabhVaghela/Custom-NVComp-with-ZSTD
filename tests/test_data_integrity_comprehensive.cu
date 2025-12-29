@@ -158,8 +158,8 @@ bool test_backtracking_integrity(const char *pattern_name,
       }
       // Coverage may not match exactly due to segment-based storage
     } else if (total_coverage != input_size) {
-      printf("    FAIL: Coverage mismatch! Expected %zu, got %llu\n",
-             input_size, total_coverage);
+      printf("    FAIL: Coverage mismatch! Expected %zu, got %lu\n", input_size,
+             (unsigned long)total_coverage);
       passed = false;
     }
   }

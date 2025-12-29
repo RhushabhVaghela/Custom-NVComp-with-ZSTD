@@ -17,6 +17,7 @@
 
 using namespace cuda_zstd;
 
+#ifndef CUDA_CHECK
 #define CUDA_CHECK(call)                                                       \
   do {                                                                         \
     cudaError_t err = call;                                                    \
@@ -26,6 +27,7 @@ using namespace cuda_zstd;
       exit(1);                                                                 \
     }                                                                          \
   } while (0)
+#endif
 
 // ==============================================================================
 // Test 1: parallel_scan<u32>
