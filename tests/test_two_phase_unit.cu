@@ -9,7 +9,6 @@
 #include <iostream>
 #include <vector>
 
-
 using namespace cuda_zstd;
 
 /**
@@ -51,7 +50,7 @@ int test_basic_roundtrip() {
   }
 
   // Compress
-  size_t compressed_size = 0;
+  size_t compressed_size = output_size;
   Status status =
       manager.compress(h_input.data(), input_size, d_output, &compressed_size,
                        d_temp, temp_size, nullptr, 0, 0);
@@ -101,7 +100,7 @@ int test_multi_block() {
   void *d_temp = nullptr;
   cudaMalloc(&d_temp, temp_size);
 
-  size_t compressed_size = 0;
+  size_t compressed_size = output_size;
   Status status =
       manager.compress(h_input.data(), total_size, d_output, &compressed_size,
                        d_temp, temp_size, nullptr, 0, 0);

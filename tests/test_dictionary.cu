@@ -10,7 +10,6 @@
 #include <iostream>
 #include <vector>
 
-
 using namespace cuda_zstd;
 using namespace cuda_zstd::dictionary;
 
@@ -108,7 +107,7 @@ int main() {
 
   // 4. Test 1: Compress *without* dictionary
   std::cout << "Compressing *without* dictionary...\n";
-  size_t size_no_dict = 0;
+  size_t size_no_dict = h_test_data.size() * 2;
   Status compress_status =
       manager->compress(d_input, h_test_data.size(), d_output, &size_no_dict,
                         d_temp, temp_size, nullptr, 0, 0);
@@ -134,7 +133,7 @@ int main() {
   // 5. Test 2: Compress *with* dictionary
   std::cout << "Compressing *with* dictionary...\n";
   manager->set_dictionary(gpu_dict); // Set the dictionary
-  size_t size_with_dict = 0;
+  size_t size_with_dict = h_test_data.size() * 2;
   Status compress_dict_status =
       manager->compress(d_input, h_test_data.size(), d_output, &size_with_dict,
                         d_temp, temp_size, nullptr, 0, 0);

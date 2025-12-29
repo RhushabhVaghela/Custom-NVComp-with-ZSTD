@@ -998,9 +998,10 @@ public:
     // 1. LZ77 Temp (Decisions + Offsets)
     size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2 * sizeof(u32);
 
-    // 2. Output Buffer (Adaptive)
-    const size_t min_buffer_size = 128 * 1024;
-    size_t adaptive_size = (size_t)(block_size * 4) + 4096;
+    // 2. Output Buffer (Adaptive) - MUST MATCH compress() sizing!
+    const size_t min_buffer_size = 256 * 1024; // 256KB min (matches compress)
+    size_t adaptive_size =
+        (size_t)(block_size * 8) + 8192; // 8x + 8KB (matches compress)
     size_t output_buffer_size = std::max(min_buffer_size, adaptive_size);
 
     // 3. Metadata tables
@@ -1659,9 +1660,6 @@ public:
     size_t total_used = (byte_t *)workspace_ptr - (byte_t *)workspace_start;
 
     if (total_used > temp_size) {
-      // printf("[ERROR] compress: Workspace overflow! Used %zu, have
-      // %zu\n",
-      //        total_used, temp_size);
       if (device_workspace)
         cudaFree(device_workspace);
       return Status::ERROR_BUFFER_TOO_SMALL;
@@ -1777,12 +1775,10 @@ public:
 
     // Adaptive Output Buffer Sizing
     // Formula: Max(MinBuffer, BlockSize * ExpansionFactor + Overhead)
-    // ExpansionFactor = 8 (Increased from 4 to handle worst-case scenarios
-    // where compression expansion occurs) Overhead = 8192 (Headers,
-    // alignment, safety margin)
-    const size_t min_buffer_size =
-        256 * 1024; // 256KB min (increased from 128KB)
-    size_t adaptive_size = (size_t)(block_size * 8) + 8192;
+    // ExpansionFactor = 4 (Standard safe expansion)
+    // Overhead = 8192 (Headers, alignment, safety margin)
+    const size_t min_buffer_size = 256 * 1024; // 256KB min
+    size_t adaptive_size = (size_t)(block_size * 4) + 8192;
     size_t output_buffer_size = std::max(min_buffer_size, adaptive_size);
 
     size_t fse_table_size = 3 * sizeof(fse::FSEEncodeTable);
