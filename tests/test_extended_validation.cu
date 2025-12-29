@@ -30,7 +30,6 @@ bool test_compression(const char *test_name, size_t input_size,
   // Initialize manager
   CompressionConfig config = CompressionConfig::from_level(3);
   ZstdBatchManager manager(config);
-  std::cout << "[DEBUG] Manager initialized" << std::endl;
 
   // Allocate GPU buffers
   void *d_input;
@@ -44,7 +43,6 @@ bool test_compression(const char *test_name, size_t input_size,
     cudaFree(d_input);
     return false;
   }
-  printf("[DEBUG] Input copied to GPU\n");
 
   size_t max_compressed_size = manager.get_max_compressed_size(input_size);
   void *d_compressed;
@@ -62,8 +60,6 @@ bool test_compression(const char *test_name, size_t input_size,
     cudaFree(d_compressed);
     return false;
   }
-  std::cout << "[DEBUG] Buffers allocated. Temp size: " << temp_size
-            << std::endl;
 
   // Compress
   auto start = std::chrono::high_resolution_clock::now();

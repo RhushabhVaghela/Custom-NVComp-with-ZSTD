@@ -268,26 +268,21 @@ bool test_dictionary_integration() {
   cudaMalloc(&d_output, data_size);
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
-  printf("DEBUG: Creating Manager\n");
-  fflush(stdout);
+
   ZstdBatchManager manager(CompressionConfig{.level = 5});
 
-  printf("DEBUG: Setting Dictionary\n");
-  fflush(stdout);
+
   manager.set_dictionary(dict);
-  printf("DEBUG: Dictionary Set\n");
-  fflush(stdout);
+
 
   size_t temp_size = manager.get_compress_temp_size(data_size);
   cudaMalloc(&d_temp, temp_size);
 
-  printf("DEBUG: Compressing...\n");
-  fflush(stdout);
+
   size_t compressed_size = data_size * 2; // Init to allocated buffer size
   status = manager.compress(d_input, data_size, d_compressed, &compressed_size,
                             d_temp, temp_size, nullptr, 0);
-  printf("DEBUG: Compression returned status %d\n", (int)status);
-  fflush(stdout);
+
   ASSERT_STATUS(status, "Dictionary compression failed");
   LOG_INFO("✓ Compressed with dictionary: " << data_size << " -> "
                                             << compressed_size);
@@ -708,8 +703,7 @@ bool test_buffer_boundary_conditions() {
       status = manager.decompress(d_output, compressed_size, d_decompressed,
                                   &decompressed_size, d_temp, temp_size);
       if (status != Status::SUCCESS) {
-        LOG_INFO("DEBUG: Size " << size << " compressed to " << compressed_size
-                                << " bytes, decompress status=" << (int)status);
+
       }
       ASSERT_STATUS(status, "Size " << size << " decompression failed");
       ASSERT_EQ(decompressed_size, size, "Size mismatch for " << size);

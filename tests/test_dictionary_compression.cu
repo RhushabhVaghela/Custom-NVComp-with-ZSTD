@@ -134,31 +134,24 @@ int main() {
   assert(err == cudaSuccess);
 
   auto manager = create_manager(5);
-  fprintf(stderr, "[DEBUG] manager created\n");
-  fflush(stderr);
+
   manager->set_dictionary(gpu_dict);
-  fprintf(stderr, "[DEBUG] dictionary set\n");
-  fflush(stderr);
+
   size_t temp_size = manager->get_compress_temp_size(test_data_size);
-  fprintf(stderr, "[DEBUG] temp_size=%zu\n", temp_size);
-  fflush(stderr);
+
   err = cudaMalloc(&d_temp, temp_size);
   assert(err == cudaSuccess);
-  fprintf(stderr, "[DEBUG] d_temp allocated\n");
-  fflush(stderr);
 
   // ========================================================================
   // Test 1: Correctness Test (Round-trip)
   // ========================================================================
   print_test_header("Correctness Test (Round-trip)");
   size_t compressed_size = max_compressed;
-  fprintf(stderr, "[TEST] Calling compress (Round-trip)...\n");
-  fflush(stderr);
+
   status =
       manager->compress(d_input, test_data_size, d_compressed, &compressed_size,
                         d_temp, temp_size, nullptr, 0, 0);
-  fprintf(stderr, "[TEST] compress returned status=%d\n", (int)status);
-  fflush(stderr);
+
   if (status != Status::SUCCESS) {
     std::cerr << "  FAILED: compress failed with status " << (int)status
               << "\n";
@@ -166,16 +159,13 @@ int main() {
   }
 
   size_t decompressed_size = test_data_size;
-  fprintf(stderr, "[TEST] Calling decompress...\n");
-  fflush(stderr);
+
   status = manager->decompress(d_compressed, compressed_size, d_decompressed,
                                &decompressed_size, d_temp, temp_size, 0);
-  fprintf(stderr, "[TEST] decompress returned status=%d\n", (int)status);
-  fflush(stderr);
+
   assert(status == Status::SUCCESS);
   cudaError_t sync_err = cudaDeviceSynchronize();
-  fprintf(stderr, "[TEST] Device sync after decompress: %d\n", (int)sync_err);
-  fflush(stderr);
+
   assert(sync_err == cudaSuccess);
 
   std::vector<byte_t> h_decompressed_data(test_data_size);

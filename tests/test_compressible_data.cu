@@ -140,8 +140,6 @@ CompressionResult test_compression(const std::vector<byte_t> &input_data,
     safe_cuda_free(d_input);
     return result;
   }
-  printf("[DEBUG] test_compression: d_compressed allocated at %p\n",
-         d_compressed);
 
   if (!safe_cuda_malloc(&d_output, input_data.size())) {
     printf("❌ CUDA malloc for d_output failed\n");
@@ -245,8 +243,7 @@ bool test_rle_pattern() {
     printf("[ERROR] RLE Compression failed!\n");
     return false;
   }
-  printf("[DEBUG] RLE Result: Size=%zu, Ratio=%.2f\n", result.compressed_size,
-         result.compression_ratio);
+
   // assert(result.compression_ratio > 10.0f && "RLE should compress extremely
   // well");
   if (result.compression_ratio <= 10.0f) {
@@ -311,9 +308,6 @@ bool test_all_ones() {
 
   CompressionResult result = test_compression(input, "All Ones Pattern (0xFF)",
                                               false); // false = verify only
-
-  printf("[DEBUG] All Ones Result: Size=%zu, Ratio=%.2f\n",
-         result.compressed_size, result.compression_ratio);
 
   if (result.success) {
     if (result.compression_ratio > 500.0f) {

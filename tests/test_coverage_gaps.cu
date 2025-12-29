@@ -184,9 +184,6 @@ bool test_exact_256kb_input() {
     counts[b]++;
   }
   double avg = (double)sum / data_size;
-  printf("Test: d_input Avg Value: %.2f (Expected ~127.5)\n", avg);
-  printf("Test: d_input Zero Count: %d\n", counts[0]);
-  printf("Test: d_input 0xFF Count: %d\n", counts[255]);
 
   if (h_verify != h_input) {
     printf("Test FATAL: d_input mismatch! Copy failed?\n");
@@ -194,8 +191,6 @@ bool test_exact_256kb_input() {
     fflush(stdout);
     exit(1);
   }
-  printf("Test: d_input verified. Random data matches.\n");
-  fflush(stdout);
 
   const byte_t *d_inputs_arr[] = {d_input};
   u32 input_sizes_arr[] = {data_size};
@@ -226,24 +221,9 @@ bool test_exact_256kb_input() {
   CUDA_CHECK(cudaMemcpy(&output_size, d_output_sizes, sizeof(u32),
                         cudaMemcpyDeviceToHost));
 
-  // DEBUG: Print encoded data
-  printf("Encoded size: %u bytes\n", output_size);
-  fflush(stdout);
-
   std::vector<byte_t> h_encoded(output_size);
   CUDA_CHECK(cudaMemcpy(h_encoded.data(), d_output, output_size,
                         cudaMemcpyDeviceToHost));
-
-  printf("Encoded data (first 20 bytes): ");
-  for (int i = 0; i < 20 && i < output_size; i++)
-    printf("%02x ", h_encoded[i]);
-  printf("\n");
-
-  printf("Decoder Input Tail: ");
-  for (int i = output_size - 10; i < output_size && i >= 0; i++)
-    printf("%02x ", h_encoded[i]);
-  printf("\n");
-  fflush(stdout);
 
   // Initialize decoded_size to expected size (required for parallel chunking)
   decoded_size = data_size;
