@@ -12,8 +12,7 @@
 
 using namespace cuda_zstd;
 
-#ifndef BENCH_CUDA_CHECK
-#define BENCH_CUDA_CHECK(call)                                                 \
+#define BENCH_CHECK(call)                                                      \
   do {                                                                         \
     cudaError_t err = call;                                                    \
     if (err != cudaSuccess) {                                                  \
@@ -22,9 +21,8 @@ using namespace cuda_zstd;
       exit(1);                                                                 \
     }                                                                          \
   } while (0)
-#endif
 
-#define CHECK_STATUS(call)                                                     \
+#define BENCH_CHECK_STATUS(call)                                               \
   do {                                                                         \
     Status s = call;                                                           \
     if (s != Status::SUCCESS) {                                                \
@@ -56,8 +54,7 @@ void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
   }
 
   // Allocate huge buffers
-  void *d_input_continuous; // Only need one chunk if we reuse it, but for true
-                            // streaming simulation we might want continuous?
+
   // Actually, reusing the same input buffer for every chunk is fine for
   // performance testing as long as we treat them as a stream sequence.
   void *d_input_chunk;
@@ -68,12 +65,12 @@ void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
   void *d_stream_output;
   void *d_decomp_output_chunk;
 
-  BENCH_CUDA_CHECK(cudaMalloc(&d_input_chunk, chunk_size));
-  BENCH_CUDA_CHECK(cudaMalloc(&d_stream_output, max_output_size));
-  BENCH_CUDA_CHECK(cudaMalloc(&d_decomp_output_chunk, chunk_size));
+  BENCH_CHECK(cudaMalloc(&d_input_chunk, chunk_size));
+  BENCH_CHECK(cudaMalloc(&d_stream_output, max_output_size));
+  BENCH_CHECK(cudaMalloc(&d_decomp_output_chunk, chunk_size));
 
-  BENCH_CUDA_CHECK(cudaMemcpy(d_input_chunk, h_input_chunk.data(), chunk_size,
-                              cudaMemcpyHostToDevice));
+  BENCH_CHECK(cudaMemcpy(d_input_chunk, h_input_chunk.data(), chunk_size,
+                         cudaMemcpyHostToDevice));
 
   // Metadata to track the stream
   std::vector<ChunkDesc> stream_chunks;
@@ -105,13 +102,13 @@ void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
 
     // Calculate pointer to current output position
     byte_t *d_curr_out = (byte_t *)d_stream_output + current_output_offset;
-    size_t capacity = max_output_size - current_output_offset;
+
     size_t produced = 0;
 
     // Use the SAME input chunk repeatedly, but compressor treats it as a
     // continuous stream because we don't reset_init.
-    CHECK_STATUS(manager.compress_chunk(d_input_chunk, chunk_size, d_curr_out,
-                                        &produced, is_last));
+    BENCH_CHECK_STATUS(manager.compress_chunk(d_input_chunk, chunk_size,
+                                              d_curr_out, &produced, is_last));
 
     // Store metadata for decompression
     stream_chunks.push_back({current_output_offset, produced});
@@ -153,9 +150,9 @@ void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
     // result
     size_t decomp_produced = chunk_size;
 
-    CHECK_STATUS(manager.decompress_chunk(d_curr_in, desc.size,
-                                          d_decomp_output_chunk,
-                                          &decomp_produced, &is_last));
+    BENCH_CHECK_STATUS(manager.decompress_chunk(d_curr_in, desc.size,
+                                                d_decomp_output_chunk,
+                                                &decomp_produced, &is_last));
   }
 
   cudaEventRecord(stop);
