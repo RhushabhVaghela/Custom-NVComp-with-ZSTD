@@ -1771,7 +1771,7 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
   // For small inputs, use sequential encoder (simpler, verified)
   // For large inputs, use parallel encoder with new Zstd-compatible
   // kernels
-  const u32 PARALLEL_THRESHOLD = 256 * 1024; // 256KB
+  const u32 PARALLEL_THRESHOLD = 64 * 1024; // 64KB to match Decoder Chunk Size
 
   if (input_size <= PARALLEL_THRESHOLD) {
     // === SEQUENTIAL PATH (Restored) ===
@@ -1830,10 +1830,9 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
     }
 
     // Step 6: Flush Final State
-    // FSE states during encoding are in range [table_size, 2*table_size-1]
-    // This requires table_log+1 bits to represent (e.g., for table_log=5,
-    // states 32-63 need 6 bits)
-    u32 state_bits = table_log + 1;
+    // Consistent with Parallel Kernel: Write table_log bits (state 32..63 ->
+    // 0..31)
+    u32 state_bits = table_log;
     write_bits_to_buffer_verified(h_out_vec.data(), bit_position, state,
                                   state_bits);
 
@@ -2982,7 +2981,10 @@ __global__ void fse_build_decode_table_gpu(const u16 *d_normalized,
 
       // Zstd formula: newState = (nextState << nbBits) - tableSize + state
       d_nbBits[state] = (u8)nbBits;
-      d_newState[state] = (u16)((nextState << nbBits) - table_size + state);
+      // FIX: Mask result to table_size-1 to prevent OOB (similar to Host
+      // Builder)
+      d_newState[state] = (u16)(((nextState << nbBits) - table_size + state) &
+                                (table_size - 1));
     }
   }
 }
@@ -3511,6 +3513,7 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
         }
       }
       state = (val >> bit_off) & ((1u << table_log) - 1);
+      // NOTE: Initial state is already normalized by reading table_log bits
     }
   }
 
@@ -3572,6 +3575,7 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
     } // End if (nb > 0)
 
     state = nextBase + bits;
+    state &= ((1 << table_log) - 1); // Normalize state to [0, table_size-1]
 
     // Safety break for infinite loops (only during warmup)
     if (nb == 0 && current_bit > start_bit) {
@@ -3826,9 +3830,8 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     }
 
     // Skip the terminator bit and position to read initial state
-    // Encoder writes final_state with table_log+1 bits since states are in
-    // range [table_size, 2*table_size) i.e., values 32-63 for table_log=5
-    u32 state_bits = table_log + 1;
+    // Consistent with Parallel Kernel: Read table_log bits
+    u32 state_bits = table_log;
     if (bit_position >= state_bits) {
       bit_position -= state_bits; // Position now at start of final_state
     } else {
@@ -3838,10 +3841,8 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     u32 read_pos = bit_position;
     u32 raw_state = read_bits_from_buffer(bitstream, read_pos, state_bits);
 
-    // Convert from encoder state range [table_size, 2*table_size) to
-    // decoder table index range [0, table_size)
-    u32 state =
-        (raw_state >= table_size) ? (raw_state - table_size) : raw_state;
+    // Raw state (0..table_size-1) is already the index
+    u32 state = raw_state;
 
     for (int i = 0; i < (int)output_size_expected; i++) {
       u8 symbol = h_table.symbol[state];
@@ -3859,6 +3860,7 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
       read_pos = bit_position;
       u32 new_bits = read_bits_from_buffer(bitstream, read_pos, num_bits);
       state = next_state_base + new_bits;
+      state &= ((1 << table_log) - 1);
     }
 
     // 5. Copy output to device
@@ -4155,8 +4157,7 @@ __host__ Status decode_fse_predefined(const byte_t *d_input, u32 input_size,
   // bitstream backwards
   u32 bit_position = input_size * 8;
 
-  // Read initial state (last table_log
-  // bits)
+  // Read initial state (last table_log bits)
   bit_position -= table_log;
   u32 state = read_bits_from_buffer(h_input.data(), bit_position, table_log);
 
