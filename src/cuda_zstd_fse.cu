@@ -1833,7 +1833,7 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
       u32 nbBitsOut = (state + enc_sym.deltaNbBits) >> 16;
       if (i < 20) {
         printf("[ENC] i=%d sym=%02x state=%llu nbBitsOut=%u\n", i, symbol,
-               (u64)state, nbBitsOut);
+               (unsigned long long)state, nbBitsOut);
       }
       if (nbBitsOut > 0) {
         u64 bits = state & ((1ULL << nbBitsOut) - 1);
@@ -1863,7 +1863,8 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
 
     printf("[ENC_FINAL] State=%llu Terminator written. Total Bits: %u (byte "
            "%u, bit %u)\n",
-           state, bit_position, bit_position / 8, bit_position % 8);
+           (unsigned long long)state, bit_position, bit_position / 8,
+           bit_position % 8);
     printf("[ENC_FINAL] Last 4 bytes: %02x %02x %02x %02x\n",
            h_out_vec[bit_position / 8 - 1], h_out_vec[bit_position / 8],
            h_out_vec[bit_position / 8 + 1], h_out_vec[bit_position / 8 + 2]);

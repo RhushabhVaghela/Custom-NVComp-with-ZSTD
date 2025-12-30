@@ -24,7 +24,7 @@ using namespace cuda_zstd;
     if (err != cudaSuccess) {                                                  \
       std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at "         \
                 << __FILE__ << ":" << __LINE__ << std::endl;                   \
-      exit(1);                                                                 \
+      return false;                                                            \
     }                                                                          \
   } while (0)
 #endif
