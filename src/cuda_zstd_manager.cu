@@ -989,9 +989,49 @@ public:
       num_blocks = 1;
 
     // Per-block resources (Must match compress function allocations)
-    // NOTE: Hash/Chain/Matches/Costs/Sequences are now allocated separately
-    // O(n) or O(1) and reside OUTSIDE d_workspace. We only track d_workspace
-    // usage here.
+    // (FIX) These ARE allocated from d_workspace in compress(), not separately!
+    // See lines 1497-1602 in compress() for actual partitioning.
+
+    // 1. Hash table (O(1) - reused across blocks)
+    // compress() uses up to 22-bit logs, so we need to reserve worst-case
+    u32 hash_log = std::max(config.hash_log, 22u); // Use 22-bit default
+    if (hash_log > 22u)
+      hash_log = 22u;                                       // Cap at 22
+    size_t hash_table_size = (1 << hash_log) * sizeof(u32); // 16MB for 22-bit
+    total += align_to_boundary(hash_table_size, GPU_MEMORY_ALIGNMENT);
+
+    // 2. Chain table (O(1) - reused across blocks)
+    u32 chain_log = std::max(config.chain_log, 22u); // Use 22-bit default
+    if (chain_log > 22u)
+      chain_log = 22u;
+    size_t chain_table_size = (1 << chain_log) * sizeof(u32); // 16MB for 22-bit
+    total += align_to_boundary(chain_table_size, GPU_MEMORY_ALIGNMENT);
+
+    // 3. Matches buffer (O(1) - reused across blocks)
+    size_t matches_bytes =
+        ZSTD_BLOCKSIZE_MAX * 16; // sizeof(lz77::Match) ~16 bytes
+    total += align_to_boundary(matches_bytes, GPU_MEMORY_ALIGNMENT);
+
+    // 4. Costs buffer (O(1) - reused across blocks)
+    size_t costs_bytes =
+        (ZSTD_BLOCKSIZE_MAX + 1) * 8; // sizeof(ParseCost) ~8 bytes
+    total += align_to_boundary(costs_bytes, GPU_MEMORY_ALIGNMENT);
+
+    // 5. Reverse sequence buffers (3 x O(blocksize))
+    size_t reverse_seq_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
+    total += align_to_boundary(reverse_seq_bytes, GPU_MEMORY_ALIGNMENT);
+
+    // 6. Forward sequence buffers (3 x O(blocksize))
+    size_t forward_seq_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
+    total += align_to_boundary(forward_seq_bytes, GPU_MEMORY_ALIGNMENT);
+
+    // 7. Literals buffer (O(blocksize))
+    size_t literals_buffer_bytes = ZSTD_BLOCKSIZE_MAX;
+    total += align_to_boundary(literals_buffer_bytes, GPU_MEMORY_ALIGNMENT);
+
+    // 8. Block sums + Scanned block sums (per-block)
+    size_t block_sums_bytes = num_blocks * 3 * sizeof(u32) * 2;
+    total += align_to_boundary(block_sums_bytes, GPU_MEMORY_ALIGNMENT);
 
     // 1. LZ77 Temp (Decisions + Offsets)
     size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2 * sizeof(u32);
@@ -1013,15 +1053,16 @@ public:
     per_block_size += align_to_boundary(fse_table_size, GPU_MEMORY_ALIGNMENT);
     per_block_size += align_to_boundary(huff_size, GPU_MEMORY_ALIGNMENT);
 
-    // (FIX) Add substantial safety padding (10MB) to cover any O(1) shared
-    // buffers that compress() might partition from workspace (like O(1)
-    // matches/costs). This avoids "Invalid Argument" or "Buffer Too Small"
-    // without fragile exact math.
-    // (FIX) Add substantial safety padding (Global, not per-block)
-    // Previously added 10MB per block, causing massive overestimate (6GB+)
-    // which triggered the 2GB cap and fallback to insufficient memory.
-    // Now adding 64MB global padding.
-    total += 64 * 1024 * 1024;
+    // (FIX) Scale padding with input size: larger inputs need more safety
+    // margin Minimum 4MB for small inputs, maximum 64MB for large inputs This
+    // prevents the fixed 64MB from exceeding workspace relative limit on small
+    // inputs
+    size_t min_padding = 4 * 1024 * 1024;         // 4MB minimum
+    size_t max_padding = 64 * 1024 * 1024;        // 64MB maximum
+    size_t proportional_padding = input_size * 4; // 4x input
+    size_t scaled_padding =
+        std::max(min_padding, std::min(max_padding, proportional_padding));
+    total += scaled_padding;
 
     // Total size for partitioned workspace
     total += per_block_size * num_blocks;
@@ -1056,8 +1097,16 @@ public:
     // Increased to 32GB to support large datasets (e.g. 2GB input -> ~16GB
     // temp?) 512MB input needs ~1.5GB workspace. 2GB cap was too tight.
     constexpr size_t MAX_WORKSPACE_ABSOLUTE =
-        32ULL * 1024 * 1024 * 1024;                  // 32GB
-    size_t max_workspace_relative = input_size * 64; // Relaxed relative limit
+        32ULL * 1024 * 1024 * 1024; // 32GB
+    // (FIX) Increase relative limit for small inputs to prevent clamping
+    // Small inputs need proportionally more workspace overhead
+    size_t max_workspace_relative;
+    if (input_size < 16 * 1024 * 1024) { // < 16MB
+      max_workspace_relative =
+          256ULL * 1024 * 1024; // 256MB minimum for small inputs
+    } else {
+      max_workspace_relative = input_size * 64; // 64x for large inputs
+    }
     size_t max_workspace =
         std::min(MAX_WORKSPACE_ABSOLUTE, max_workspace_relative);
 
