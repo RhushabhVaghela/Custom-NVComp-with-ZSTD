@@ -18,7 +18,7 @@
 using namespace cuda_zstd;
 
 #ifndef CUDA_CHECK
-#define CUDA_CHECK(call)                                                       \
+#define TEST_CUDA_CHECK(call)                                                  \
   do {                                                                         \
     cudaError_t err = call;                                                    \
     if (err != cudaSuccess) {                                                  \
@@ -50,24 +50,24 @@ bool test_parallel_scan_u32() {
     h_expected[i] = h_expected[i - 1] + h_input[i - 1];
 
   u32 *d_input, *d_output;
-  CUDA_CHECK(cudaMalloc(&d_input, N * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_output, N * sizeof(u32)));
-  CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), N * sizeof(u32),
-                        cudaMemcpyHostToDevice));
+  TEST_CUDA_CHECK(cudaMalloc(&d_input, N * sizeof(u32)));
+  TEST_CUDA_CHECK(cudaMalloc(&d_output, N * sizeof(u32)));
+  TEST_CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), N * sizeof(u32),
+                             cudaMemcpyHostToDevice));
 
   cudaStream_t stream;
-  CUDA_CHECK(cudaStreamCreate(&stream));
+  TEST_CUDA_CHECK(cudaStreamCreate(&stream));
 
   Status status = utils::parallel_scan<u32>(d_input, d_output, N, stream);
-  CUDA_CHECK(cudaStreamSynchronize(stream));
+  TEST_CUDA_CHECK(cudaStreamSynchronize(stream));
 
   if (status != Status::SUCCESS) {
     std::cerr << " FAILED (Status=" << (int)status << ")" << std::endl;
     return false;
   }
 
-  CUDA_CHECK(cudaMemcpy(h_output.data(), d_output, N * sizeof(u32),
-                        cudaMemcpyDeviceToHost));
+  TEST_CUDA_CHECK(cudaMemcpy(h_output.data(), d_output, N * sizeof(u32),
+                             cudaMemcpyDeviceToHost));
 
   // Verify
   bool pass = true;
@@ -96,7 +96,7 @@ bool test_parallel_scan_empty() {
   std::cout << "[TEST] parallel_scan<u32> (empty)..." << std::flush;
 
   cudaStream_t stream;
-  CUDA_CHECK(cudaStreamCreate(&stream));
+  TEST_CUDA_CHECK(cudaStreamCreate(&stream));
 
   Status status = utils::parallel_scan<u32>(nullptr, nullptr, 0, stream);
 
@@ -128,15 +128,16 @@ bool test_parallel_sort_dmers() {
   }
 
   dictionary::Dmer *d_dmers;
-  CUDA_CHECK(cudaMalloc(&d_dmers, N * sizeof(dictionary::Dmer)));
-  CUDA_CHECK(cudaMemcpy(d_dmers, h_dmers.data(), N * sizeof(dictionary::Dmer),
-                        cudaMemcpyHostToDevice));
+  TEST_CUDA_CHECK(cudaMalloc(&d_dmers, N * sizeof(dictionary::Dmer)));
+  TEST_CUDA_CHECK(cudaMemcpy(d_dmers, h_dmers.data(),
+                             N * sizeof(dictionary::Dmer),
+                             cudaMemcpyHostToDevice));
 
   cudaStream_t stream;
-  CUDA_CHECK(cudaStreamCreate(&stream));
+  TEST_CUDA_CHECK(cudaStreamCreate(&stream));
 
   Status status = utils::parallel_sort_dmers(d_dmers, N, stream);
-  CUDA_CHECK(cudaStreamSynchronize(stream));
+  TEST_CUDA_CHECK(cudaStreamSynchronize(stream));
 
   if (status != Status::SUCCESS) {
     std::cerr << " FAILED (Status=" << (int)status << ")" << std::endl;
@@ -144,8 +145,9 @@ bool test_parallel_sort_dmers() {
   }
 
   std::vector<dictionary::Dmer> h_sorted(N);
-  CUDA_CHECK(cudaMemcpy(h_sorted.data(), d_dmers, N * sizeof(dictionary::Dmer),
-                        cudaMemcpyDeviceToHost));
+  TEST_CUDA_CHECK(cudaMemcpy(h_sorted.data(), d_dmers,
+                             N * sizeof(dictionary::Dmer),
+                             cudaMemcpyDeviceToHost));
 
   // Verify sorted by hash
   bool pass = true;
