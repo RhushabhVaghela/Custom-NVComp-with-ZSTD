@@ -963,17 +963,16 @@ public:
       total += align_to_boundary(dict.raw_size, GPU_MEMORY_ALIGNMENT);
     }
 
-    // 1. Input buffer (device) - User provided or handled separately
-    // We do NOT need to reserve space in workspace if d_input is passed.
-    // Even if manager handles H2D, it usually allocates separate buffer.
+    // (FIX) 1. Input buffer - compress() partitions this from workspace if
+    // input is on host (see lines 1481-1482). We must include it for
+    // worst-case.
+    total += align_to_boundary(input_size, GPU_MEMORY_ALIGNMENT);
 
-    // 2. Compressed output buffer (device) - Per-block buffers used
-    // Global output buffer is either user-provided or allocated separately.
-
-    // 3. LZ77 temporary buffer (device) - d_compressed_block
-    // 3. LZ77 temporary buffer (device) - d_compressed_block
-    // 3. LZ77 temporary buffer (device) - d_compressed_block
-    // CRITICAL: Must match the actual allocation in compress() function
+    // (FIX) 2. Output buffer - compress() partitions this from workspace if
+    // compressed_data is nullptr. Include estimated compressed size.
+    size_t est_compressed =
+        (input_size * 110) / 100 + 1024; // ~10% overhead + 1KB
+    total += align_to_boundary(est_compressed, GPU_MEMORY_ALIGNMENT);
     u32 block_size = config.block_size;
     if (block_size == 0)
       block_size = get_optimal_block_size((u32)input_size, config.level);
