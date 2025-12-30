@@ -52,7 +52,8 @@ void generate_data(std::vector<uint8_t> &data, size_t size,
   }
 }
 
-void benchmark_phase3_fse(const std::string &gpu_name) {
+void benchmark_phase3_fse(const std::string &gpu_name,
+                          size_t custom_input_size) {
   // Ensure fresh start (Fixes sticky Pre-existing errors)
   cudaDeviceReset();
 
@@ -64,13 +65,12 @@ void benchmark_phase3_fse(const std::string &gpu_name) {
   std::cout << "============================================================"
             << std::endl;
 
-  // Use a large file size to ensure we trigger the Chunk Parallel path (>256KB)
-  // 64MB implies 64MB / 64KB = 1024 chunks
-
-  // Use 1MB to test correctness quickly (avoid setup bottleneck)
-  const size_t input_size = 1 * 1024 * 1024;
+  const size_t input_size =
+      custom_input_size > 0 ? custom_input_size : (1 * 1024 * 1024);
   std::vector<uint8_t> h_input;
   generate_data(h_input, input_size, 4.0); // Moderate entropy
+
+  // ... (rest of function remains same until end)
 
   void *d_input, *d_output;
   uint32_t *d_output_size;
@@ -129,7 +129,8 @@ void benchmark_phase3_fse(const std::string &gpu_name) {
   // Measure (Reuses memory in context)
   int iterations = 10;
   std::cout << "Running " << iterations << " iterations for "
-            << (input_size / (1024.0 * 1024.0)) << " MB..." << std::endl;
+            << (input_size / (1024.0 * 1024.0)) << " MB (" << input_size
+            << " bytes)..." << std::endl;
 
   // NOTE: Measurements here include Kernel Launch overhead and ANY remaining
   // host work but explicitly EXCLUDE cudaMalloc overhead now.
@@ -182,11 +183,20 @@ void benchmark_phase3_fse(const std::string &gpu_name) {
   cudaStreamDestroy(stream);
 }
 
-int main() {
+int main(int argc, char **argv) {
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   std::string gpu_name = prop.name;
 
-  benchmark_phase3_fse(gpu_name);
+  size_t input_size = 0;
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--input_size" && i + 1 < argc) {
+      input_size = std::stoull(argv[i + 1]);
+      i++;
+    }
+  }
+
+  benchmark_phase3_fse(gpu_name, input_size);
   return 0;
 }
