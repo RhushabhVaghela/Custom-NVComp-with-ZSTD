@@ -3850,12 +3850,12 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
       return status;
     }
 
-    // DEBUG: Dump DTable entries for states 74-80
-    printf("[DTABLE] Entries for states 74-80:\n");
-    for (u32 s = 74; s <= 80 && s < table_size; s++) {
-      printf("  state=%u: sym=%02x nb=%u base=%u\n", s, h_table.symbol[s],
-             h_table.nbBits[s], h_table.newState[s]);
-    }
+    // DEBUG DISABLED: Dump DTable entries
+    // printf("[DTABLE] Entries for states 74-80:\n");
+    // for (u32 s = 74; s <= 80 && s < table_size; s++) {
+    //   printf("  state=%u: sym=%02x nb=%u base=%u\n", s, h_table.symbol[s],
+    //          h_table.nbBits[s], h_table.newState[s]);
+    // }
 
     // 4. Decode Loop
     std::vector<byte_t> h_output(output_size_expected);
@@ -3877,9 +3877,7 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
       }
       // bit_idx now points to the terminator '1' bit (MSB scan)
       bit_position = byte_idx * 8 + bit_idx; // Position of terminator
-      printf("[DEC_TERM] byte_idx=%d byte_val=%02x bit_idx=%d -> "
-             "bit_position=%u\n",
-             byte_idx, b, bit_idx, bit_position);
+      // DEBUG DISABLED: printf("[DEC_TERM] ...");
     } else {
       bit_position = bitstream_size * 8;
     }
@@ -3900,9 +3898,7 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
 
     // Raw state (0..table_size-1) is already the index
     u32 state = raw_state;
-    printf("[DEC_SEQ] Found Terminator pos=%u state_bits=%u total_bits=%u "
-           "raw_state=%u\n",
-           bit_position, state_bits, bit_position + state_bits, state);
+    // DEBUG DISABLED: printf("[DEC_SEQ] ...");
 
     // FSE decodes in reverse order: first decoded symbol is the LAST original
     // symbol. Decode forward, then reverse the decoded portion.
@@ -3919,8 +3915,7 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
       // Update state
       if (num_bits > 0) {
         if (bit_position < num_bits) {
-          printf("[DEC_ERR] Underflow bit_pos=%u num=%u\n", bit_position,
-                 num_bits);
+          // DEBUG DISABLED: printf("[DEC_ERR] ...");
           break;
         }
         // Read bits (BACKWARDS: Decrement position first)
