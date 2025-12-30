@@ -10,8 +10,8 @@ extern "C" {
 #include "zstd.h"
 }
 
-#ifndef CUDA_CHECK
-#define CUDA_CHECK(call)                                                       \
+#ifndef SIMPLE_CUDA_CHECK
+#define SIMPLE_CUDA_CHECK(call)                                                \
   do {                                                                         \
     cudaError_t err = call;                                                    \
     if (err != cudaSuccess) {                                                  \
@@ -72,11 +72,11 @@ int main() {
   uint8_t *d_input, *d_output;
   uint32_t *d_output_size;
 
-  CUDA_CHECK(cudaMalloc(&d_input, input_size));
-  CUDA_CHECK(cudaMalloc(&d_output, input_size * 2)); // Conservative
-  CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(uint32_t)));
+  SIMPLE_CUDA_CHECK(cudaMalloc(&d_input, input_size));
+  SIMPLE_CUDA_CHECK(cudaMalloc(&d_output, input_size * 2)); // Conservative
+  SIMPLE_CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(uint32_t)));
 
-  CUDA_CHECK(
+  SIMPLE_CUDA_CHECK(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
 
   printf("Calling encode_fse_advanced...\n");
@@ -92,12 +92,12 @@ int main() {
   }
 
   uint32_t gpu_size;
-  CUDA_CHECK(cudaMemcpy(&gpu_size, d_output_size, sizeof(uint32_t),
-                        cudaMemcpyDeviceToHost));
+  SIMPLE_CUDA_CHECK(cudaMemcpy(&gpu_size, d_output_size, sizeof(uint32_t),
+                               cudaMemcpyDeviceToHost));
 
   std::vector<uint8_t> gpu_output(gpu_size);
-  CUDA_CHECK(cudaMemcpy(gpu_output.data(), d_output, gpu_size,
-                        cudaMemcpyDeviceToHost));
+  SIMPLE_CUDA_CHECK(cudaMemcpy(gpu_output.data(), d_output, gpu_size,
+                               cudaMemcpyDeviceToHost));
 
   printf("Compressed: %zu → %u bytes (%.1f%%)\n", input_size, gpu_size,
          100.0 * gpu_size / input_size);
