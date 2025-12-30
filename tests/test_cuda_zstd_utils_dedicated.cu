@@ -17,7 +17,7 @@
 
 using namespace cuda_zstd;
 
-#ifndef CUDA_CHECK
+#ifndef TEST_CUDA_CHECK
 #define TEST_CUDA_CHECK(call)                                                  \
   do {                                                                         \
     cudaError_t err = call;                                                    \
