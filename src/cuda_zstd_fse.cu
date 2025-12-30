@@ -3491,10 +3491,10 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
 
     if (current_bit <= stop_bit) {
       if (symbols_written < count) {
-        if (chunk_idx == 0 && symbols_written < 5) {
-          printf("[DEC_GPU] i=%u state=%u sym=%02x nb=%u\n", symbols_written,
-                 state, symbol, nb);
-        }
+        // DEBUG DISABLED: if (chunk_idx == 0 && symbols_written < 5) {
+        //   printf("[DEC_GPU] i=%u state=%u sym=%02x nb=%u\n", symbols_written,
+        //          state, symbol, nb);
+        // }
         // FORWARD WRITE: Decoder produces symbols in correct order (0..N)
         my_output[symbols_written] = symbol;
       }
@@ -3685,21 +3685,17 @@ __host__ static Status FSE_buildDTable_Internal(const u16 *normalized_freqs,
   const u32 table_mask = table_size - 1;
   const u32 step = (table_size >> 1) + (table_size >> 3) + 3;
 
-  printf("[DTABLE_SPREAD] TSize=%u Step=%u Mask=%u\n", table_size, step,
-         table_mask);
+  // DEBUG DISABLED: printf("[DTABLE_SPREAD] TSize=%u Step=%u Mask=%u\n",
+  // table_size, step, table_mask);
 
   std::vector<u8> spread_symbol(table_size);
   u32 position = 0;
 
-  // DEBUG: Show normalized freqs for symbols 46 and 47 and 00
-  printf("[DTABLE_NORM] sym0(0x00)=%u sym46(0x2e)=%u sym47(0x2f)=%u\n",
-         normalized_freqs[0], normalized_freqs[46], normalized_freqs[47]);
+  // DEBUG DISABLED: printf("[DTABLE_NORM] ...");
 
   for (u32 s = 0; s <= max_symbol; s++) {
     for (u32 i = 0; i < normalized_freqs[s]; i++) {
-      if (s == 46 || s == 47) {
-        printf("[DTABLE_POS] sym=%u pos=%u\n", s, position);
-      }
+      // DEBUG DISABLED: [DTABLE_POS] print removed
       spread_symbol[position] = (u8)s;
       position = (position + step) & table_mask;
     }
@@ -3739,10 +3735,7 @@ __host__ static Status FSE_buildDTable_Internal(const u16 *normalized_freqs,
     d_table.nbBits[state] = (u8)nb_bits;
     d_table.newState[state] = new_state;
 
-    if (state == 574 && table_size > 574) {
-      printf("[TBL_CPU] state=574 sym=%02x nb=%u next=%u\n", symbol, nb_bits,
-             new_state);
-    }
+    // DEBUG DISABLED: [TBL_CPU] print removed
   }
 
   return Status::SUCCESS;
@@ -3766,9 +3759,7 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
   output_size_expected = h_header_base[1];
   max_symbol = h_header_base[2];
 
-  printf("[DEC_DBG] input_size_arg=%u output_size_expected=%u max_sym=%u "
-         "table_log=%u\n",
-         input_size, output_size_expected, max_symbol, table_log);
+  // DEBUG DISABLED: printf("[DEC_DBG] ...");
 
   *d_output_size = output_size_expected; // Set host output size
 
@@ -3958,7 +3949,7 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     u32 header_size =
         (sizeof(u32) * 3) +
         header_table_size; // Check if we can reuse normalized table storage?
-    u16 *d_normalized;
+    // d_normalized removed - was declared but never used
     bool use_ctx = (ctx != nullptr);
 
     // Step 2: Read normalized table

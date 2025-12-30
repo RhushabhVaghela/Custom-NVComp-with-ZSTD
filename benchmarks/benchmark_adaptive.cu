@@ -103,7 +103,7 @@ void benchmark_auto_level_decision() {
   for (int i = 0; i < iterations; i++) {
     // Simulate level selection based on data characteristics
     size_t test_size = rand() % (16 * 1024 * 1024);
-    int selected_level;
+    [[maybe_unused]] int selected_level;
     if (test_size < 64 * 1024) {
       selected_level = 1; // Fast for small data
     } else if (test_size < 1024 * 1024) {
@@ -111,7 +111,6 @@ void benchmark_auto_level_decision() {
     } else {
       selected_level = 5; // Better ratio for large data
     }
-    (void)selected_level;
   }
   auto end = std::chrono::high_resolution_clock::now();
 
