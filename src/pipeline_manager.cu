@@ -69,13 +69,18 @@ Status PipelinedBatchManager::init_resources() {
 
   // 3. Allocate Ring Buffer Slots
   for (int i = 0; i < num_slots_; ++i) {
-    cudaMalloc(&ring_buffer_[i].d_input, batch_size_);
-    cudaMalloc(&ring_buffer_[i].d_output, output_bound);
-    cudaMalloc(&ring_buffer_[i].d_workspace, workspace_size);
+    if (cudaMalloc(&ring_buffer_[i].d_input, batch_size_) != cudaSuccess)
+      return Status::ERROR_OUT_OF_MEMORY;
+    if (cudaMalloc(&ring_buffer_[i].d_output, output_bound) != cudaSuccess)
+      return Status::ERROR_OUT_OF_MEMORY;
+    if (cudaMalloc(&ring_buffer_[i].d_workspace, workspace_size) != cudaSuccess)
+      return Status::ERROR_OUT_OF_MEMORY;
 
     // Host Pinned Allocation for maximum bandwidth
-    cudaMallocHost(&ring_buffer_[i].h_input, batch_size_);
-    cudaMallocHost(&ring_buffer_[i].h_output, output_bound);
+    if (cudaMallocHost(&ring_buffer_[i].h_input, batch_size_) != cudaSuccess)
+      return Status::ERROR_OUT_OF_MEMORY;
+    if (cudaMallocHost(&ring_buffer_[i].h_output, output_bound) != cudaSuccess)
+      return Status::ERROR_OUT_OF_MEMORY;
 
     ring_buffer_[i].input_capacity = batch_size_;
     ring_buffer_[i].output_capacity = output_bound;

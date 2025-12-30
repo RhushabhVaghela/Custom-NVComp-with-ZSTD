@@ -963,14 +963,12 @@ public:
       total += align_to_boundary(dict.raw_size, GPU_MEMORY_ALIGNMENT);
     }
 
-    // 1. Input buffer (device) - only if input is on host
-    // We'll assume worst case and include it
-    size_t input_buf_size = input_size;
-    total += align_to_boundary(input_buf_size, GPU_MEMORY_ALIGNMENT);
+    // 1. Input buffer (device) - User provided or handled separately
+    // We do NOT need to reserve space in workspace if d_input is passed.
+    // Even if manager handles H2D, it usually allocates separate buffer.
 
-    // 2. Compressed output buffer (device) - use adaptive sizing
-    size_t output_buf_size = calculate_adaptive_output_size(input_size);
-    total += align_to_boundary(output_buf_size, GPU_MEMORY_ALIGNMENT);
+    // 2. Compressed output buffer (device) - Per-block buffers used
+    // Global output buffer is either user-provided or allocated separately.
 
     // 3. LZ77 temporary buffer (device) - d_compressed_block
     // 3. LZ77 temporary buffer (device) - d_compressed_block
@@ -1019,14 +1017,11 @@ public:
     // buffers that compress() might partition from workspace (like O(1)
     // matches/costs). This avoids "Invalid Argument" or "Buffer Too Small"
     // without fragile exact math.
-    per_block_size += 10 * 1024 * 1024;
-
-    // (OPTIMIZATION) Streaming Mode: We track full workspace for 1 block
-    // NO! compress() calculates per_block_size and partitions for ALL blocks!
-    // We must accumulate per_block_size * num_blocks?
-    // In compress():
-    // block_outputs[block_idx] = ws_base + (block_idx * per_block_size) + ...
-    // So yes, we need per_block_size * num_blocks.
+    // (FIX) Add substantial safety padding (Global, not per-block)
+    // Previously added 10MB per block, causing massive overestimate (6GB+)
+    // which triggered the 2GB cap and fallback to insufficient memory.
+    // Now adding 64MB global padding.
+    total += 64 * 1024 * 1024;
 
     // Total size for partitioned workspace
     total += per_block_size * num_blocks;
@@ -1036,55 +1031,41 @@ public:
     total += align_to_boundary(num_blocks * 3 * sizeof(u32) * 2,
                                GPU_MEMORY_ALIGNMENT);
 
-    // (FIX) Duplicated additions removed (lines 883-887 were duplicates)
+    // 4. Global resources (sized by input_size)
+    // Input buffer is user-provided (d_input). Output buffer is per-block.
+    // Huffman arrays are not used in current Raw/Native pipeline.
 
-    // Global resources (sized by input_size)
-    // All major intermediate buffers are now accounted for in per_block_size
-    // to ensure safe over-allocation and alignment.
+    // Calculate total size
+    // total += per_block_size * num_blocks; // Already added above
 
-    // Total size calculation (Line 889) covers:
-    // - Hash/Chain tables
-    // - Matches/Costs
-    // - Forward/Reverse Sequence buffers
-    // - Literals buffer
-    // - Output buffer
-    // - Metadata tables (FSE, Huffman)
+    // 5.7. Huffman temporary buffers (Global) - REMOVED (Unused in current
+    // pipeline) size_t frequencies_size = 256 * sizeof(u32); total +=
+    // align_to_boundary(frequencies_size, GPU_MEMORY_ALIGNMENT); size_t
+    // code_lengths_huffman_size = input_size * sizeof(u32); total +=
+    // align_to_boundary(code_lengths_huffman_size, GPU_MEMORY_ALIGNMENT);
+    // size_t bit_offsets_size = input_size * sizeof(u32);
+    // total += align_to_boundary(bit_offsets_size, GPU_MEMORY_ALIGNMENT);
 
-    // 5.7. Huffman temporary buffers (Global)
-    // 5.7. Huffman temporary buffers (Global)
-    size_t frequencies_size = 256 * sizeof(u32); // MAX_HUFFMAN_SYMBOLS
-    total += align_to_boundary(frequencies_size, GPU_MEMORY_ALIGNMENT);
-
-    size_t code_lengths_huffman_size =
-        input_size * sizeof(u32); // Per-symbol code lengths
-    total += align_to_boundary(code_lengths_huffman_size, GPU_MEMORY_ALIGNMENT);
-
-    size_t bit_offsets_size =
-        input_size * sizeof(u32); // Prefix sum for bit positions
-    total += align_to_boundary(bit_offsets_size, GPU_MEMORY_ALIGNMENT);
-
-    // 9. Safety padding (extra 10% for alignment overhead)
+    // Only add padding once
     total += total / 10;
 
     // 10. Final round to reasonable boundary
     total = align_to_boundary(total, 1024 * 1024); // 1MB boundary
 
     // CRITICAL: Hard cap to prevent overflow on large inputs
-    // Maximum reasonable workspace: 2GB or 16x input size (whichever is
-    // smaller)
-    constexpr size_t MAX_WORKSPACE_ABSOLUTE = 2ULL * 1024 * 1024 * 1024; // 2GB
-    size_t max_workspace_relative = input_size * 16;
+    // Increased to 32GB to support large datasets (e.g. 2GB input -> ~16GB
+    // temp?) 512MB input needs ~1.5GB workspace. 2GB cap was too tight.
+    constexpr size_t MAX_WORKSPACE_ABSOLUTE =
+        32ULL * 1024 * 1024 * 1024;                  // 32GB
+    size_t max_workspace_relative = input_size * 64; // Relaxed relative limit
     size_t max_workspace =
         std::min(MAX_WORKSPACE_ABSOLUTE, max_workspace_relative);
 
     // Apply cap if total exceeds reasonable limits
     if (total > max_workspace) {
-      // Fallback: Use conservative estimate instead of overflowed value
-      // Conservative: 8x input + 64MB for tables, capped at
-      // MAX_WORKSPACE_ABSOLUTE
-      total =
-          std::min(input_size * 8 + 64 * 1024 * 1024, MAX_WORKSPACE_ABSOLUTE);
-      total = align_to_boundary(total, 1024 * 1024);
+      printf("[WARN] Workspace size %zu exceeds limit %zu. Clamping.\n", total,
+             max_workspace);
+      total = max_workspace;
     }
 
     return total;
@@ -1800,6 +1781,16 @@ public:
     per_block_size += align_to_boundary(fse_table_size, GPU_MEMORY_ALIGNMENT);
     per_block_size += align_to_boundary(huff_size, GPU_MEMORY_ALIGNMENT);
 
+    size_t total_needed = (size_t)num_blocks * per_block_size;
+    printf(
+        "[Pipeline] NumBlocks=%u PerBlock=%zu TotalNeeded=%zu Available=%zu\n",
+        num_blocks, per_block_size, total_needed, call_workspace.total_size);
+
+    if (total_needed > call_workspace.total_size) {
+      printf("[ERROR] Workspace Overflow! Needed %zu > Available %zu\n",
+             total_needed, call_workspace.total_size);
+    }
+
     // Vectors to store context for batch processing
     std::vector<sequence::SequenceContext> block_seq_ctxs(num_blocks);
     std::vector<byte_t *> block_literals_ptrs(num_blocks);
@@ -2383,6 +2374,8 @@ public:
       // block_idx,
       //        local_seq_ctx.num_literals,
       //        local_seq_ctx.num_sequences);[block_idx]);
+
+      // Status initialized to SUCCESS
 
       status =
           compress_literals(block_seq_ctxs[block_idx].d_literals_buffer,
@@ -3665,6 +3658,19 @@ private:
 
     // ZSTD Literals Section
     // Elements: [Literals Header] [Literals Content]
+
+    // DEBUG: Trace bad blocks
+    if (num_literals > 100000 && num_literals < 200000) {
+      // printf("[DEBUG] compress_literals: Large Block? num=%u\n",
+      // num_literals);
+    }
+
+    if (num_literals > 0 && literals == nullptr) {
+      printf("[ERROR] compress_literals: num_literals=%u but literals ptr is "
+             "NULL!\n",
+             num_literals);
+      return Status::ERROR_INVALID_PARAMETER;
+    }
 
     // Case 1: No literals (Still need a header saying so, usually)
     // Actually, empty block doesn't seem to have literals section?
