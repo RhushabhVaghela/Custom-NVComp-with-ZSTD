@@ -1831,10 +1831,11 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
           h_ctable.d_symbol_table[symbol];
 
       u32 nbBitsOut = (state + enc_sym.deltaNbBits) >> 16;
-      if (i < 20) {
-        printf("[ENC] i=%d sym=%02x state=%llu nbBitsOut=%u\n", i, symbol,
-               (unsigned long long)state, nbBitsOut);
-      }
+      // DEBUG DISABLED: [ENC] per-symbol prints
+      // if (i < 20) {
+      //   printf("[ENC] i=%d sym=%02x state=%llu nbBitsOut=%u\n", i, symbol,
+      //          (unsigned long long)state, nbBitsOut);
+      // }
       if (nbBitsOut > 0) {
         u64 bits = state & ((1ULL << nbBitsOut) - 1);
         write_bits_to_buffer_verified(h_out_vec.data(), bit_position, bits,
@@ -1861,13 +1862,14 @@ __host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
     // Necessary for FSE decoder to find end of stream when scanning backwards
     write_bits_to_buffer_verified(h_out_vec.data(), bit_position, 1, 1);
 
-    printf("[ENC_FINAL] State=%llu Terminator written. Total Bits: %u (byte "
-           "%u, bit %u)\n",
-           (unsigned long long)state, bit_position, bit_position / 8,
-           bit_position % 8);
-    printf("[ENC_FINAL] Last 4 bytes: %02x %02x %02x %02x\n",
-           h_out_vec[bit_position / 8 - 1], h_out_vec[bit_position / 8],
-           h_out_vec[bit_position / 8 + 1], h_out_vec[bit_position / 8 + 2]);
+    // DEBUG DISABLED: [ENC_FINAL] prints
+    // printf("[ENC_FINAL] State=%llu Terminator written. Total Bits: %u (byte "
+    //        "%u, bit %u)\n",
+    //        (unsigned long long)state, bit_position, bit_position / 8,
+    //        bit_position % 8);
+    // printf("[ENC_FINAL] Last 4 bytes: %02x %02x %02x %02x\n",
+    //        h_out_vec[bit_position / 8 - 1], h_out_vec[bit_position / 8],
+    //        h_out_vec[bit_position / 8 + 1], h_out_vec[bit_position / 8 + 2]);
 
     // Step 7: Finalize (Single terminator bit already written above)
     u32 total_bits = bit_position;
