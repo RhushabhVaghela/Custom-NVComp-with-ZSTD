@@ -7,6 +7,7 @@
 
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "throughput_display.h"
 #include <chrono>
 #include <cstring>
 #include <cuda_runtime.h>
@@ -14,7 +15,6 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
-
 
 using namespace cuda_zstd;
 
@@ -45,6 +45,7 @@ void generate_model_weight_data(std::vector<uint8_t> &data, size_t size) {
 
 struct BenchmarkResult {
   double throughput_gbps;
+  double throughput_mbps; // Added for dual display
   double avg_latency_ms;
   double min_latency_ms;
   double max_latency_ms;
@@ -55,8 +56,8 @@ struct BenchmarkResult {
 void print_result(const BenchmarkResult &result, const char *name) {
   std::cout << std::fixed << std::setprecision(2);
   std::cout << "\n  Results for " << name << ":" << std::endl;
-  std::cout << "    Throughput:   " << result.throughput_gbps << " GB/s"
-            << std::endl;
+  std::cout << "    Throughput:   " << result.throughput_mbps << " MB/s ("
+            << result.throughput_gbps << " GB/s)" << std::endl;
   std::cout << "    Avg Latency:  " << result.avg_latency_ms << " ms"
             << std::endl;
   std::cout << "    Min Latency:  " << result.min_latency_ms << " ms"
@@ -136,6 +137,7 @@ BenchmarkResult benchmark_decompress_to_preallocated(size_t data_size,
   result.iterations = iterations;
   result.throughput_gbps =
       (result.total_bytes / (1024.0 * 1024.0 * 1024.0)) / total_time_sec;
+  result.throughput_mbps = result.throughput_gbps * 1024.0;
   result.avg_latency_ms =
       std::accumulate(latencies.begin(), latencies.end(), 0.0) /
       latencies.size();
@@ -157,8 +159,8 @@ void run_benchmark_throughput_sweep() {
       64 * 1024 * 1024  // 64 MB
   };
 
-  std::cout << "\nSize (KB)\tThroughput (GB/s)\tAvg Latency (ms)" << std::endl;
-  std::cout << "--------\t-----------------\t-----------------" << std::endl;
+  std::cout << "\nSize (KB)\tMB/s\t\tGB/s\t\tAvg Latency (ms)" << std::endl;
+  std::cout << "--------\t----\t\t----\t\t-----------------" << std::endl;
 
   for (size_t size : sizes) {
     int iterations = (size < 1024 * 1024) ? 100 : 20;
@@ -166,8 +168,9 @@ void run_benchmark_throughput_sweep() {
         benchmark_decompress_to_preallocated(size, iterations);
 
     std::cout << std::fixed << std::setprecision(2);
-    std::cout << (size / 1024) << "\t\t" << result.throughput_gbps << "\t\t\t"
-              << result.avg_latency_ms << std::endl;
+    std::cout << (size / 1024) << "\t\t" << result.throughput_mbps << "\t\t"
+              << result.throughput_gbps << "\t\t" << result.avg_latency_ms
+              << std::endl;
   }
 }
 

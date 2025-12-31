@@ -1,9 +1,11 @@
+#include "../include/throughput_display.h"
 #include "../src/pipeline_manager.hpp"
 #include <chrono>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <vector>
+
 
 using namespace cuda_zstd;
 
@@ -87,6 +89,7 @@ void run_benchmark(const char *name, size_t total_size_bytes) {
   double seconds = diff.count();
   double throughput_gbps =
       (total_size_bytes / (1024.0 * 1024.0 * 1024.0)) / seconds;
+  double throughput_mbps = throughput_gbps * 1024.0;
 
   std::cout << "Status: SUCCESS" << std::endl;
   std::cout << "Time:   " << std::fixed << std::setprecision(3) << seconds
@@ -95,7 +98,9 @@ void run_benchmark(const char *name, size_t total_size_bytes) {
             << " bytes" << std::endl;
   std::cout << "Ratio:  " << (double)bytes_generated / bytes_compressed
             << std::endl;
-  std::cout << "Speed:  " << throughput_gbps << " GB/s" << std::endl;
+  std::cout << "Speed:  " << std::fixed << std::setprecision(2)
+            << throughput_mbps << " MB/s (" << throughput_gbps << " GB/s)"
+            << std::endl;
 }
 
 int main(int argc, char **argv) {
