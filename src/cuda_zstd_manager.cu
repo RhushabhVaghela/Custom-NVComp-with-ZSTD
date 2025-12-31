@@ -1871,7 +1871,7 @@ public:
     // (TWO-PHASE) Per-block state for Phase 2 processing
     std::vector<const byte_t *> block_inputs(num_blocks);
     std::vector<u32> current_block_sizes(num_blocks);
-    std::vector<bool> block_has_dummy(num_blocks, false);
+    std::vector<bool> h_has_dummy(num_blocks, false);
 
     // =================================================================================
     // (FIX) Allocate O(n) LZ77 buffers to prevent race conditions in parallel
@@ -2260,12 +2260,11 @@ public:
 
         // LZ77 kernel will be launched below
         // Pass 1: Find Matches
-        Status status =
-            static_cast<Status>(cuda_zstd::lz77::find_matches_parallel(
-                block_input, current_block_size_val,
-                reinterpret_cast<cuda_zstd::CompressionWorkspace *>(
-                    &thread_block_ws),
-                lz77_config, block_stream));
+        status = static_cast<Status>(cuda_zstd::lz77::find_matches_parallel(
+            block_input, current_block_size_val,
+            reinterpret_cast<cuda_zstd::CompressionWorkspace *>(
+                &thread_block_ws),
+            lz77_config, block_stream));
 
         // GRANULAR ERROR CHECK: Sync stream first to catch async errors
         // (OPTIMIZATION) Removed per-block sync to allow pipelining
@@ -2274,12 +2273,14 @@ public:
         if (find_err != cudaSuccess) {
           printf("[ERROR] Block %u: find_matches_parallel launch error: %s\n",
                  block_idx, cudaGetErrorString(find_err));
-          return Status::ERROR_CUDA_ERROR;
+          status = Status::ERROR_CUDA_ERROR;
+          goto cleanup;
         }
 
         if (status != Status::SUCCESS) {
-          cudaStreamDestroy(block_stream);
-          return status;
+          // cudaStreamDestroy(block_stream); // WRONG: Do not destroy user
+          // stream
+          goto cleanup;
         }
 
         // Pass 2+3: ASYNC PARALLEL GREEDY LZ77 PIPELINE
@@ -2293,12 +2294,13 @@ public:
 
         cudaError_t pipeline_err = cudaGetLastError();
         if (pipeline_err != cudaSuccess) {
-          return Status::ERROR_CUDA_ERROR;
+          status = Status::ERROR_CUDA_ERROR;
+          goto cleanup;
         }
 
         if (status != Status::SUCCESS) {
-          cudaStreamDestroy(block_stream);
-          return status;
+          // cudaStreamDestroy(block_stream); // WRONG
+          goto cleanup;
         }
 
         // (TWO-PHASE OPTIMIZATION) Phase 1 complete for this block
@@ -2320,7 +2322,6 @@ public:
                num_blocks * sizeof(u32), cudaMemcpyDeviceToHost);
 
     // Copy has_dummy flags
-    std::vector<bool> h_has_dummy(num_blocks);
     for (u32 i = 0; i < num_blocks; i++) {
       bool tmp;
       cudaMemcpy(&tmp, &d_block_has_dummy[i], sizeof(bool),
@@ -2456,14 +2457,15 @@ public:
       if (lit_err != cudaSuccess) {
         printf("[ERROR] Block %u: compress_literals launch error: %s\n",
                block_idx, cudaGetErrorString(lit_err));
-        return Status::ERROR_CUDA_ERROR;
+        status = Status::ERROR_CUDA_ERROR;
+        goto cleanup;
       }
 
       if (status != Status::SUCCESS) {
         printf("[ERROR] Block %d: compress_literals failed with status "
                "%d\n",
                block_idx, (int)status);
-        return status;
+        goto cleanup;
       }
 
       // Build Sequences (Async)
@@ -2476,7 +2478,7 @@ public:
                                       seq_blocks, seq_threads, stream);
 
         if (status != Status::SUCCESS)
-          return status;
+          goto cleanup;
       }
 
       // Compress Sequences
@@ -2488,7 +2490,7 @@ public:
         printf("[ERROR] Block %d: compress_sequences failed with "
                "status %d\n",
                block_idx, (int)status);
-        return status;
+        goto cleanup;
       }
 
       block_compressed_sizes[block_idx] = writer.get_offset();
@@ -2512,7 +2514,7 @@ public:
       if (status != Status::SUCCESS) {
         printf("[ERROR] Block %u: write_block failed with status %d\n",
                block_idx, (int)status);
-        return status;
+        goto cleanup;
       }
 
       /* continue; */ // End of block logic
@@ -2579,7 +2581,8 @@ public:
       if (chk_sync_err != cudaSuccess) {
         printf("[ERROR] checksum failed: %s\n",
                cudaGetErrorString(chk_sync_err));
-        return Status::ERROR_CUDA_ERROR;
+        status = Status::ERROR_CUDA_ERROR;
+        goto cleanup;
       }
     }
 
@@ -2589,11 +2592,12 @@ public:
     // before the caller accesses the output buffer
     // Final synchronization to ensure all async operations complete
     // before the caller accesses the output buffer
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-
-    stats.bytes_compressed += uncompressed_size;
     stats.bytes_produced += *compressed_size;
     stats.blocks_processed += num_blocks;
+
+  cleanup:
+    // Final synchronization to ensure all async operations complete
+    cudaStreamSynchronize(stream);
 
     if (d_all_hash_tables)
       cudaFree(d_all_hash_tables);
@@ -2611,17 +2615,13 @@ public:
     if (d_block_literals_sizes)
       cudaFree(d_block_literals_sizes);
     if (d_block_num_sequences)
-      cudaFree(
-          d_block_num_sequences); // Allocated in earlier step? Assume managed.
-    // Actually block_num_sequences is host vector. d_block_num_sequences is
-    // DEVICE? Checking allocation... d_block_num_sequences was passed to
-    // pipeline. It was allocated in Phase 1 setup usually? Ah,
-    // d_block_num_sequences declaration: "u32 *d_block_num_sequences =
-    // nullptr;" Yes. Free it.
+      cudaFree(d_block_num_sequences);
+    if (d_block_has_dummy)
+      cudaFree(d_block_has_dummy);
 
     if (device_workspace)
       cudaFree(device_workspace);
-    return Status::SUCCESS;
+    return status;
 
     return Status::ERROR_CUDA_ERROR; // Or specific status? Problem:
                                      // multiple statuses.

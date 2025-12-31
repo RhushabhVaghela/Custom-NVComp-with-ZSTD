@@ -861,9 +861,11 @@ Status free_compression_workspace(CompressionWorkspace &workspace) {
     //         d_scanned_block_sums=" << (void*)workspace.d_scanned_block_sums
     //         << std::endl;
     auto _s = pool.deallocate(workspace.d_scanned_block_sums);
-    //         if (_s != Status::SUCCESS) std::cerr <<
     //         "free_compression_workspace: dealloc failed for
     //         d_scanned_block_sums -> " << status_to_string(_s) << std::endl;
+  }
+  if (workspace.d_lz77_temp) {
+    auto _s = pool.deallocate(workspace.d_lz77_temp);
   }
 
   // Reset all pointers and metadata

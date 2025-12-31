@@ -649,16 +649,8 @@ int main() {
   total++;
   if (test_inference_workspace_allocation())
     passed++;
-  // INVESTIGATION RESULT (Dec 2025):
-  // - Fixed get_decompress_temp_size() to include 2MB sequences buffer
-  // - Fixed decompress() to assign d_literals_buffer (was NULL)
-  // - Test STILL SEGFAULTS (likely another missing buffer or alignment issue)
-  // - Recommend detailed memory tracing with compute-sanitizer on single layer
-  std::cout << "\n[SKIP] test_full_inference_simulation - Still SEGFAULTs "
-               "after partial fixes"
-            << std::endl;
-  total++;  // Count but don't run
-  passed++; // Skip = pass
+  if (test_full_inference_simulation())
+    passed++;
 
   // Suite 5: Error Handling
   std::cout << "\n";
