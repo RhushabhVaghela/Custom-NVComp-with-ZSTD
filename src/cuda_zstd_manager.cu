@@ -1006,14 +1006,17 @@ public:
     size_t chain_table_size = (1 << chain_log) * sizeof(u32); // 16MB for 22-bit
     total += align_to_boundary(chain_table_size, GPU_MEMORY_ALIGNMENT);
 
-    // 3. Matches buffer (O(1) - reused across blocks)
+    // 3. Matches buffer (O(N) - Partitioned per block)
+    // FIX: Must scales with num_blocks because compress() addresses it as
+    // base + block_idx * stride
     size_t matches_bytes =
-        ZSTD_BLOCKSIZE_MAX * 16; // sizeof(lz77::Match) ~16 bytes
+        num_blocks * ZSTD_BLOCKSIZE_MAX * 16; // sizeof(lz77::Match) ~16 bytes
     total += align_to_boundary(matches_bytes, GPU_MEMORY_ALIGNMENT);
 
-    // 4. Costs buffer (O(1) - reused across blocks)
+    // 4. Costs buffer (O(N) - Partitioned per block)
+    // Used by optimal parser, or potentially reused. allocate safely.
     size_t costs_bytes =
-        (ZSTD_BLOCKSIZE_MAX + 1) * 8; // sizeof(ParseCost) ~8 bytes
+        num_blocks * (ZSTD_BLOCKSIZE_MAX + 1) * 8; // sizeof(ParseCost) ~8 bytes
     total += align_to_boundary(costs_bytes, GPU_MEMORY_ALIGNMENT);
 
     // 5. Reverse sequence buffers (Allocated via cudaMalloc, but we keep this
@@ -1586,19 +1589,19 @@ public:
     call_workspace.d_matches = reinterpret_cast<void *>(workspace_ptr);
     // (OPTIMIZATION) Reuse buffers for O(1) memory
     call_workspace.max_matches = ZSTD_BLOCKSIZE_MAX;
-    size_t matches_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(lz77::Match);
+    size_t matches_bytes =
+        call_workspace.num_blocks * ZSTD_BLOCKSIZE_MAX * sizeof(lz77::Match);
     // (FIX) Initialize matches to 0 to avoid garbage if kernels are
     // skipped
 
-    // CUDA_CHECK(
-    //     cudaMemsetAsync(call_workspace.d_matches, 0, matches_bytes,
-    //     stream));
-    // CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(
+        cudaMemsetAsync(call_workspace.d_matches, 0, matches_bytes, stream));
     workspace_ptr = align_ptr(workspace_ptr + matches_bytes, alignment);
 
     call_workspace.d_costs = reinterpret_cast<void *>(workspace_ptr);
     call_workspace.max_costs = ZSTD_BLOCKSIZE_MAX + 1;
-    size_t costs_bytes = (ZSTD_BLOCKSIZE_MAX + 1) * sizeof(lz77::ParseCost);
+    size_t costs_bytes = call_workspace.num_blocks * (ZSTD_BLOCKSIZE_MAX + 1) *
+                         sizeof(lz77::ParseCost);
 
     CUDA_CHECK(cudaMemsetAsync(call_workspace.d_costs, 0, costs_bytes, stream));
     // OPTIMIZATION: Removed sync
@@ -3861,28 +3864,9 @@ private:
     CUDA_CHECK(cudaMemcpy(h_match_lengths, seq_ctx->d_match_lengths,
                           num_sequences * sizeof(u32), cudaMemcpyDeviceToHost));
 
-    // Step 2: Count valid sequences (filter out invalid sequences)
-    // Invalid: (ML > 0 && offset == 0) OR (ML > 0 && ML < 3)
-    u32 valid_count = 0;
-    u32 invalid_count = 0;
-    for (u32 i = 0; i < num_sequences; i++) {
-      bool is_invalid = false;
-      if (h_match_lengths[i] > 0 && h_offsets[i] == 0) {
-        is_invalid = true; // Invalid: match with zero offset
-      }
-      if (h_match_lengths[i] > 0 && h_match_lengths[i] < 3) {
-        is_invalid = true; // Invalid: ML < MINMATCH (3)
-      }
-      if (is_invalid) {
-        invalid_count++;
-        // Convert to literal-only sequence: discard match data
-        // Don't add ML to LL as it can cause overflow
-        h_match_lengths[i] = 0;
-        h_offsets[i] = 0;
-      }
-      valid_count++; // All sequences kept, but invalid ones converted to
-                     // literal-only
-    }
+    // Step 2: Validation (Removed - d_matches is now initialized)
+    // We expect all sequences to be valid.
+    u32 valid_count = num_sequences;
 
     // offset_zero=%u\n",
     //        num_sequences, valid_count, offset_zero_count);

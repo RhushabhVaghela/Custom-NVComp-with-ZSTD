@@ -221,31 +221,24 @@ __global__ void compute_sequence_details_kernel(
       // ZSTD spec requires ML >= 3
       if (d_error_flag) {
         *d_error_flag = 1; // Error: Invalid ML < 3
-        printf("[KERNEL ERROR] Flag 1 at seq %u/%u: ML=%u (Min 3 required)\n",
-               i, num_sequences, match_length);
       }
       return;
     }
     if (match_length > 1000000) {
       if (d_error_flag) {
         *d_error_flag = 2; // Error: ML too large
-        printf("[KERNEL ERROR] Flag 2 at seq %u: ML=%u (Max 1M)\n", i,
-               match_length);
       }
       return;
     }
     if (lit_len > 1000000) {
       if (d_error_flag) {
         *d_error_flag = 3; // Error: LL too large
-        printf("[KERNEL ERROR] Flag 3 at seq %u: LL=%u (Max 1M)\n", i, lit_len);
       }
       return;
     }
     if (match_length > 0 && seq.match_offset == 0) {
       if (d_error_flag) {
         *d_error_flag = 4; // Error: Offset 0 with match
-        printf("[KERNEL ERROR] Flag 4 at seq %u/%u: ML=%u LL=%u Offset=0\n", i,
-               num_sequences, match_length, lit_len);
       }
       return;
     }
@@ -256,34 +249,32 @@ __global__ void compute_sequence_details_kernel(
     if (total_literals + lit_len > total_literal_count) {
       if (d_error_flag) {
         *d_error_flag = 5; // Error: Total literals exceed input
-        printf("[KERNEL ERROR] Flag 5 at seq %u: Total LL %u > Input %u\n", i,
-               total_literals + lit_len, total_literal_count);
       }
-      return;
     }
-    total_literals += lit_len;
-    total_output += lit_len + match_length;
+    return;
+  }
+  total_literals += lit_len;
+  total_output += lit_len + match_length;
 
-    if (match_length > 0) {
-      if (is_raw_offsets) {
-        // Tier 4: Offsets are already raw distances, use directly
-        d_actual_offsets[i] = seq.match_offset;
-      } else {
-        // Tier 1: Offsets are FSE-encoded with +3 bias, apply ZSTD decoding
-        d_actual_offsets[i] =
-            get_actual_offset(lit_len, seq.match_offset, state);
-      }
+  if (match_length > 0) {
+    if (is_raw_offsets) {
+      // Tier 4: Offsets are already raw distances, use directly
+      d_actual_offsets[i] = seq.match_offset;
     } else {
-      d_actual_offsets[i] = 0; // No match
+      // Tier 1: Offsets are FSE-encoded with +3 bias, apply ZSTD decoding
+      d_actual_offsets[i] = get_actual_offset(lit_len, seq.match_offset, state);
     }
+  } else {
+    d_actual_offsets[i] = 0; // No match
   }
+}
 
-  // Add trailing literals to total output size
-  if (total_literal_count > total_literals) {
-    total_output += (total_literal_count - total_literals);
-  }
+// Add trailing literals to total output size
+if (total_literal_count > total_literals) {
+  total_output += (total_literal_count - total_literals);
+}
 
-  *d_total_output_size = total_output;
+*d_total_output_size = total_output;
 }
 
 /**
