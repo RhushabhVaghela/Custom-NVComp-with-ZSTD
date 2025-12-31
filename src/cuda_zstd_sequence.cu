@@ -219,8 +219,11 @@ __global__ void compute_sequence_details_kernel(
     // VALIDATION: Check for corrupted values to prevent GPU crashes
     if (match_length > 0 && match_length < 3) {
       // ZSTD spec requires ML >= 3
-      if (d_error_flag)
+      if (d_error_flag) {
         *d_error_flag = 1; // Error: Invalid ML < 3
+        printf("[KERNEL ERROR] Flag 1 at seq %u/%u: ML=%u (Min 3 required)\n",
+               i, num_sequences, match_length);
+      }
       return;
     }
     if (match_length > 1000000) {
@@ -237,8 +240,11 @@ __global__ void compute_sequence_details_kernel(
       return;
     }
     if (match_length > 0 && seq.match_offset == 0) {
-      if (d_error_flag)
+      if (d_error_flag) {
         *d_error_flag = 4; // Error: Offset 0 with match
+        printf("[KERNEL ERROR] Flag 4 at seq %u/%u: ML=%u LL=%u Offset=0\n", i,
+               num_sequences, match_length, lit_len);
+      }
       return;
     }
 
