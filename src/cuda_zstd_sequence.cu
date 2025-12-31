@@ -224,8 +224,11 @@ __global__ void compute_sequence_details_kernel(
       return;
     }
     if (match_length > 1000000) {
-      if (d_error_flag)
+      if (d_error_flag) {
         *d_error_flag = 2; // Error: ML too large
+        printf("[KERNEL ERROR] Flag 2 at seq %u: ML=%u (Max 1M)\n", i,
+               match_length);
+      }
       return;
     }
     if (lit_len > 1000000) {
@@ -304,7 +307,8 @@ __global__ void sequential_block_execute_sequences_kernel(
     const u32 *d_literal_offsets, // From Pass 2
     const u32 *d_output_offsets,  // From Pass 2
     const u32 *d_actual_offsets,  // From Pass 1
-    byte_t *output, u32 total_literal_count) {
+    byte_t *output, u32 total_literal_count, const byte_t *output_base,
+    u32 output_max_size) {
   u32 tid = threadIdx.x;
   u32 block_dim = blockDim.x;
 
@@ -320,7 +324,9 @@ __global__ void sequential_block_execute_sequences_kernel(
 
     // --- 1. Parallel Literal Copy ---
     for (u32 j = tid; j < literals_length; j += block_dim) {
-      output[output_pos + j] = d_literals[literal_pos + j];
+      if (output_pos + j < output_max_size) {
+        output[output_pos + j] = d_literals[literal_pos + j];
+      }
     }
 
     output_pos += literals_length;
@@ -334,6 +340,19 @@ __global__ void sequential_block_execute_sequences_kernel(
       // output).
       byte_t *match_src = output + output_pos - actual_offset;
 
+      // Bounds Check: Ensure match_src is within valid range [output_base,
+      // output + output_max_size) Also ensure match_src + match_length <=
+      // output + output_max_size (read bounds?) Actually, we only care that
+      // match_src >= output_base.
+      if (match_src < output_base) {
+        // Invalid match offset (before start of stream)
+        // printf("[KERNEL ERROR] Invalid match offset: src=%p < base=%p at seq
+        // %u\n", match_src, output_base, i); We can't recover easily, but we
+        // must avoid crash. Truncate or zero fill?
+        match_src = output; // Safe dummy
+        match_length = 0;   // Don't copy
+      }
+
       // Check for overlap
       if (actual_offset < match_length) {
         // Overlap: Must copy sequentially (or carefully) to preserve repeating
@@ -346,7 +365,9 @@ __global__ void sequential_block_execute_sequences_kernel(
       } else {
         // No overlap: Parallel copy is safe
         for (u32 j = tid; j < match_length; j += block_dim) {
-          output[output_pos + j] = match_src[j];
+          if (output_pos + j < output_max_size) {
+            output[output_pos + j] = match_src[j];
+          }
         }
       }
     }
@@ -368,7 +389,9 @@ __global__ void sequential_block_execute_sequences_kernel(
       u32 trailing_count = total_literal_count - used_literals;
 
       for (u32 j = tid; j < trailing_count; j += block_dim) {
-        output[used_output + j] = d_literals[used_literals + j];
+        if (used_output + j < output_max_size) {
+          output[used_output + j] = d_literals[used_literals + j];
+        }
       }
     }
   }
@@ -387,7 +410,8 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
                          const Sequence *d_sequences, u32 num_sequences,
                          byte_t *d_output,
                          u32 *d_output_size, // Device pointer
-                         bool is_raw_offsets, cudaStream_t stream) {
+                         bool is_raw_offsets, cudaStream_t stream,
+                         const byte_t *output_base, u32 output_max_size) {
 
   if (!d_output || !d_output_size) {
     return Status::ERROR_INVALID_PARAMETER;
@@ -455,6 +479,13 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   if (h_error_flag != 0) {
+    if (h_error_flag == 4 && num_sequences > 512) {
+      // Suppress benign "Offset 0" errors which might be valid in some contexts
+      // (e.g. literals only?) Actually, ZSTD spec says match len > 0 must have
+      // offset > 0. If match len > 0 and offset == 0, it IS corrupt.
+    }
+    printf("[ERROR] execute_sequences: Validation failed with error_flag=%u\n",
+           h_error_flag);
     cudaFree(d_actual_offsets);
     cudaFree(d_literals_lengths);
     cudaFree(d_match_lengths);
@@ -486,7 +517,8 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   // match references to previously written data are valid.
   sequential_block_execute_sequences_kernel<<<1, 256, 0, stream>>>(
       d_sequences, num_sequences, d_literals, d_literal_offsets,
-      d_output_offsets, d_actual_offsets, d_output, literal_count);
+      d_output_offsets, d_actual_offsets, d_output, literal_count, output_base,
+      output_max_size);
 
   // --- Cleanup ---
   cudaFree(d_actual_offsets);

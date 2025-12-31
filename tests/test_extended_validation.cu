@@ -207,12 +207,11 @@ int main() {
   */
   passed++;
 
-  // Test 5: 16MB Sequential (Memory Verification)
-  // Reduced from 256MB to 16MB to fit within reliable workspace limits
-  // Larger sizes may have per-block scaling issues in decompression
+  // Test 5: 128MB Sequential (Memory Verification)
+  // Restored to larger size to verify fix for 64MB+ decompression
   total++;
-  if (test_compression("Test 5: 16MB Sequential (Memory Verification)",
-                       16 * 1024 * 1024, false)) {
+  if (test_compression("Test 5: 128MB Sequential (Memory Verification)",
+                       128 * 1024 * 1024, false)) {
     passed++;
   }
 

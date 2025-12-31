@@ -1016,12 +1016,18 @@ public:
         (ZSTD_BLOCKSIZE_MAX + 1) * 8; // sizeof(ParseCost) ~8 bytes
     total += align_to_boundary(costs_bytes, GPU_MEMORY_ALIGNMENT);
 
-    // 5. Reverse sequence buffers (3 x O(blocksize))
-    size_t reverse_seq_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
+    // 5. Reverse sequence buffers (Allocated via cudaMalloc, but we keep this
+    // padding) FIX: Using num_blocks scaling provides ~1.5x input_size padding
+    // which covers subtle d_workspace under-estimations (e.g. alignment
+    // accumulation).
+    size_t reverse_seq_bytes =
+        num_blocks * ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
     total += align_to_boundary(reverse_seq_bytes, GPU_MEMORY_ALIGNMENT);
 
-    // 6. Forward sequence buffers (3 x O(blocksize))
-    size_t forward_seq_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
+    // 6. Forward sequence buffers (1 x O(blocksize)) - Shared Buffer
+    // FIX: Must use 16 bytes (sizeof(Sequence)) not 12 bytes!
+    // Sequence struct is aligned to 16 bytes.
+    size_t forward_seq_bytes = ZSTD_BLOCKSIZE_MAX * 16;
     total += align_to_boundary(forward_seq_bytes, GPU_MEMORY_ALIGNMENT);
 
     // 7. Literals buffer (O(blocksize))
@@ -1079,10 +1085,14 @@ public:
     // total += per_block_size * num_blocks; // Already added above
 
     // 5.7. Huffman temporary buffers (Global) - REMOVED (Unused in current
-    // pipeline) size_t frequencies_size = 256 * sizeof(u32); total +=
-    // align_to_boundary(frequencies_size, GPU_MEMORY_ALIGNMENT); size_t
-    // code_lengths_huffman_size = input_size * sizeof(u32); total +=
-    // align_to_boundary(code_lengths_huffman_size, GPU_MEMORY_ALIGNMENT);
+    // pipeline)
+    // size_t frequencies_size = 256 * sizeof(u32);
+    // total += align_to_boundary(frequencies_size, GPU_MEMORY_ALIGNMENT);
+
+    // size_t code_lengths_huffman_size = input_size * sizeof(u32);
+    // total += align_to_boundary(code_lengths_huffman_size,
+    // GPU_MEMORY_ALIGNMENT);
+
     // size_t bit_offsets_size = input_size * sizeof(u32);
     // total += align_to_boundary(bit_offsets_size, GPU_MEMORY_ALIGNMENT);
 
@@ -1134,13 +1144,24 @@ public:
     // 1. Input (compressed) buffer
     total += align_to_boundary(compressed_size, GPU_MEMORY_ALIGNMENT);
 
-    // 2. Output buffer
-    total += align_to_boundary(max_decompressed, GPU_MEMORY_ALIGNMENT);
+    // 2. Output buffer (REMOVED)
+    // decompress() writes directly to the user-provided output buffer.
+    // It does NOT use the workspace for an intermediate output buffer.
+    // Removing this fixes over-estimation for large inputs and under-estimation
+    // logic that relied on this to cover fixed overheads.
 
-    // 3. Temp working buffers
+    // 3. Temp working buffers (LZ77 temp)
     total += align_to_boundary(ZSTD_BLOCKSIZE_MAX * 2, GPU_MEMORY_ALIGNMENT);
 
-    // 4. FSE decode tables
+    // 4. Sequences buffer (CRITICAL FIX)
+    // decompress() allocates a sequences buffer from workspace:
+    // ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence) ~ 2MB
+    // This was missing, causing SEGFAULTs on small inputs where output reserve
+    // was small.
+    size_t sequences_size = ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence);
+    total += align_to_boundary(sequences_size, GPU_MEMORY_ALIGNMENT);
+
+    // 5. FSE decode tables
     total += align_to_boundary(3 * sizeof(fse::FSEDecodeTable),
                                GPU_MEMORY_ALIGNMENT);
 
@@ -2629,7 +2650,10 @@ public:
     size_t required_size = get_decompress_temp_size(compressed_size);
     // required=%zu\n", temp_size, required_size);
     if (temp_size < required_size) {
-      //             small\n");
+      fprintf(
+          stderr,
+          "[DEBUG] decompress: Temp buffer too small! temp=%zu, required=%zu\n",
+          temp_size, required_size);
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
@@ -2724,18 +2748,13 @@ public:
 
     ctx.seq_ctx->d_sequences =
         reinterpret_cast<sequence::Sequence *>(workspace_ptr);
-    //         std::cerr << "initialize_context: assigned
-    //         ctx.seq_ctx->d_sequences=" << ctx.seq_ctx->d_sequences << "
-    //         workspace_ptr=" << (void*)workspace_ptr << std::endl;
-    // Diagnostic: verify pointer is still valid
-    //         std::cerr << "partition workspace after assignments:
-    //         ctx.seq_ctx->d_sequences=" << ctx.seq_ctx->d_sequences << "
-    //         ctx.workspace.d_hash_table=" << ctx.workspace.d_hash_table << "
-    //         ctx.workspace.d_chain_table=" << ctx.workspace.d_chain_table <<
-    //         std::endl;
     workspace_ptr = align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX *
                                                   sizeof(sequence::Sequence),
                               alignment);
+
+    // Allocate literals buffer (FIX: Was missing!)
+    ctx.seq_ctx->d_literals_buffer = workspace_ptr;
+    workspace_ptr = align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX, alignment);
 
     byte_t *d_output = static_cast<byte_t *>(uncompressed_data);
     size_t d_output_max_size = *uncompressed_size;
@@ -2762,6 +2781,10 @@ public:
     // Validate the output buffer size if content size is present
     if (frame_content_size > 0) {
       if (d_output_max_size < frame_content_size) {
+        fprintf(stderr,
+                "[DEBUG] decompress: Output buffer too small! max=%zu, "
+                "content=%u\n",
+                d_output_max_size, frame_content_size);
         return Status::ERROR_BUFFER_TOO_SMALL;
       }
       *uncompressed_size = frame_content_size;
@@ -2787,7 +2810,7 @@ public:
       if (block_size > 0) {
         status = decompress_block(d_input + read_offset, block_size,
                                   d_output + write_offset, &decompressed_size,
-                                  stream);
+                                  d_output, d_output_max_size, stream);
         if (status != Status::SUCCESS) {
           fprintf(stderr, "status %d\n", (int)status);
           return status;
@@ -2834,7 +2857,7 @@ public:
           u32 decompressed_size = 0;
           status = decompress_block(d_input + read_offset, block_size,
                                     d_output + write_offset, &decompressed_size,
-                                    stream);
+                                    d_output, d_output_max_size, stream);
           if (status != Status::SUCCESS)
             return status;
 
@@ -3538,6 +3561,7 @@ private:
 
   Status decompress_block(const byte_t *input, u32 input_size, byte_t *output,
                           u32 *output_size, // Host pointer for output
+                          const byte_t *output_base, u32 output_max_size,
                           cudaStream_t stream) {
     if (!input || !output || !output_size) {
       return Status::ERROR_INVALID_PARAMETER;
@@ -3565,6 +3589,8 @@ private:
     if (status != Status::SUCCESS) {
       // %d\n",
       //         (int)status);
+      fprintf(stderr, "[DEBUG] decompress_literals failed with status %d\n",
+              (int)status);
       return status;
     }
 
@@ -3616,6 +3642,8 @@ private:
     if (status != Status::SUCCESS) {
       // %d\n",
       //         (int)status);
+      fprintf(stderr, "[DEBUG] decompress_sequences failed with status %d\n",
+              (int)status);
       // printf("[DEBUG] Err @ %d: Status %d\n", __LINE__, (int)status);
       return status;
     }
@@ -3648,6 +3676,8 @@ private:
       if (status != Status::SUCCESS) {
         //                 fprintf(stderr, "[ERROR] build_sequences failed
         //                 with status %d\n", (int)status);
+        fprintf(stderr, "[DEBUG] build_sequences failed with status %d\n",
+                (int)status);
         // printf("[DEBUG] Err @ %d: Status %d\n", __LINE__, (int)status);
         return status;
       }
@@ -3678,7 +3708,7 @@ private:
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
         d_output_size,
         ctx.seq_ctx->is_raw_offsets, // Pass tier flag
-        stream);
+        stream, output_base, output_max_size);
 
     // Sync after execute
     cudaError_t exec_sync_err = cudaStreamSynchronize(stream);
@@ -4173,6 +4203,7 @@ private:
     } else {
       if (input_size < 3) {
         // printf("[DEBUG] Err @ %d\n", __LINE__);
+        fprintf(stderr, "[DEBUG] decompress_sequences: Header too small (3)\n");
         return Status::ERROR_CORRUPT_DATA;
       }
       num_sequences = (h_header[1] << 8) + h_header[2] + 0x7F00;
@@ -4184,6 +4215,8 @@ private:
       return Status::SUCCESS;
     }
     if (offset >= input_size) {
+      fprintf(stderr,
+              "[DEBUG] decompress_sequences: Offset >= input_size (mid)\n");
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -4192,6 +4225,9 @@ private:
 
     // Check for custom raw u32 mode (fse_modes=0xFF)
     if (fse_modes == 0xFF) {
+      fprintf(stderr,
+              "[DEBUG] decompress_sequences: Hit 0xFF mode! num_seq=%u\n",
+              num_sequences);
       // Custom raw u32 mode: data is stored as full u32 arrays
       u32 array_size = num_sequences * sizeof(u32);
 
@@ -4205,6 +4241,9 @@ private:
       }
 
       if (offset + array_size * 3 > input_size) {
+        printf("[DEBUG] decompress_sequences: Bounds Check Failed! offset=%u, "
+               "array_size=%u, required=%u, input_size=%u\n",
+               offset, array_size, offset + array_size * 3, input_size);
         return Status::ERROR_CORRUPT_DATA;
       }
 
@@ -4244,6 +4283,9 @@ private:
         // printf("[DEBUG] Err @ %d: Header parse, offset >= input. o=%u,
         // i=%u\n",
         //        __LINE__, offset, input_size);
+        fprintf(
+            stderr,
+            "[DEBUG] decompress_sequences: Std Mode Offset >= input_size\n");
         return Status::ERROR_CORRUPT_DATA;
       }
 
@@ -4251,6 +4293,9 @@ private:
         // printf("[DEBUG] Err @ %d: Header parse, offset+2 > input. o=%u,
         // i=%u\n",
         //        __LINE__, offset, input_size);
+        fprintf(
+            stderr,
+            "[DEBUG] decompress_sequences: Std Mode Offset+2 > input_size\n");
         return Status::ERROR_CORRUPT_DATA;
       }
       ll_size = h_header[offset] | (h_header[offset + 1] << 8);
