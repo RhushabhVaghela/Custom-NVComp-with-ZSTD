@@ -777,14 +777,21 @@ int main() {
   std::cout << "SUITE 3: Multi-threaded Tests" << std::endl;
   print_separator();
 
-  // TODO: Concurrent compression test disabled due to GPU runtime SEGFAULT
-  // when multiple threads access the compression pipeline simultaneously.
-  // This is a thread-safety issue in the CUDA runtime or our kernel scheduling.
-  // Investigation needed for true concurrent compression support.
-  // For now: single-threaded compression works correctly.
-  std::cout
-      << "\n[SKIP] test_concurrent_compression - Known GPU thread-safety issue"
-      << std::endl;
+  // INVESTIGATION RESULT (Dec 2025):
+  // - Re-enabled test with compute-sanitizer: no race conditions found
+  // - Direct execution: Exit code 0 (appears to complete)
+  // - Via ctest: 300s timeout (hangs somewhere)
+  // - Root cause: Likely deadlock in concurrent cudaMalloc/cudaFree calls
+  //   or performance serialization due to GPU resource contention
+  // - The previous SEGFAULT was fixed by workspace size corrections (b0268c6)
+  // - Full concurrent support requires:
+  //   1. Per-thread CUDA streams
+  //   2. Proper mutex around shared resources
+  //   3. Avoid concurrent cudaMalloc (use memory pool)
+  // For now: Skip test until concurrent GPU compression is implemented
+  std::cout << "\n[SKIP] test_concurrent_compression - Timeout (concurrent GPU "
+               "needs work)"
+            << std::endl;
   total++;  // Count but don't run
   passed++; // Skip = pass
   total++;
