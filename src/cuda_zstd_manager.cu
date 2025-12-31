@@ -1164,6 +1164,15 @@ public:
     size_t sequences_size = ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence);
     total += align_to_boundary(sequences_size, GPU_MEMORY_ALIGNMENT);
 
+    // 4b. Raw component arrays (literal_lengths, match_lengths, offsets)
+    // Required for decompress_sequences raw mode (0xFF)
+    size_t components_size = ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
+    total += align_to_boundary(components_size, GPU_MEMORY_ALIGNMENT);
+
+    // 4c. Literals buffer
+    size_t literals_size = ZSTD_BLOCKSIZE_MAX;
+    total += align_to_boundary(literals_size, GPU_MEMORY_ALIGNMENT);
+
     // 5. FSE decode tables
     total += align_to_boundary(3 * sizeof(fse::FSEDecodeTable),
                                GPU_MEMORY_ALIGNMENT);
@@ -2602,6 +2611,17 @@ public:
     // Final synchronization to ensure all async operations complete
     cudaStreamSynchronize(stream);
 
+    // FIX: Clear borrowed pointers from ctx.seq_ctx so cleanup_context doesn't
+    // try to free them
+    if (ctx.seq_ctx) {
+      ctx.seq_ctx->d_literals_buffer = nullptr;
+      ctx.seq_ctx->d_literal_lengths = nullptr;
+      ctx.seq_ctx->d_match_lengths = nullptr;
+      ctx.seq_ctx->d_offsets = nullptr;
+      ctx.seq_ctx->d_num_sequences = nullptr;
+      ctx.seq_ctx->d_sequences = nullptr;
+    }
+
     if (d_all_hash_tables)
       cudaFree(d_all_hash_tables);
     if (d_all_chain_tables)
@@ -2754,6 +2774,20 @@ public:
     workspace_ptr = align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX *
                                                   sizeof(sequence::Sequence),
                               alignment);
+
+    // FIX: Partition raw component arrays (Must match get_decompress_temp_size
+    // order)
+    ctx.seq_ctx->d_literal_lengths = reinterpret_cast<u32 *>(workspace_ptr);
+    workspace_ptr =
+        align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX * sizeof(u32), alignment);
+
+    ctx.seq_ctx->d_match_lengths = reinterpret_cast<u32 *>(workspace_ptr);
+    workspace_ptr =
+        align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX * sizeof(u32), alignment);
+
+    ctx.seq_ctx->d_offsets = reinterpret_cast<u32 *>(workspace_ptr);
+    workspace_ptr =
+        align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX * sizeof(u32), alignment);
 
     // Allocate literals buffer (FIX: Was missing!)
     ctx.seq_ctx->d_literals_buffer = workspace_ptr;
@@ -2925,6 +2959,18 @@ public:
 
     // === Update statistics ===
     stats.bytes_decompressed += write_offset;
+
+    // FIX: Clear borrowed pointers from ctx to prevent double-free in
+    // cleanup_context
+    ctx.d_temp_buffer = nullptr;
+    if (ctx.seq_ctx) {
+      ctx.seq_ctx->d_literals_buffer = nullptr;
+      ctx.seq_ctx->d_literal_lengths = nullptr;
+      ctx.seq_ctx->d_match_lengths = nullptr;
+      ctx.seq_ctx->d_offsets = nullptr;
+      ctx.seq_ctx->d_num_sequences = nullptr;
+      ctx.seq_ctx->d_sequences = nullptr;
+    }
 
     return Status::SUCCESS;
   }

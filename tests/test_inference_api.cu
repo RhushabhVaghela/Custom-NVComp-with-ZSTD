@@ -656,11 +656,12 @@ int main() {
   // - Root cause: Repeated manager creation/destruction across test suites
   //   triggers lifecycle bugs in cleanup_context()
   // - This is a thread-safety/lifecycle design issue requiring major refactor
-  std::cout << "\n[SKIP] test_full_inference_simulation - Lifecycle bugs in "
-               "multi-manager scenarios"
-            << std::endl;
-  total++;  // Count but don't run
-  passed++; // Skip = pass
+  // std::cout << "\n[SKIP] test_full_inference_simulation - Lifecycle bugs in "
+  //              "multi-manager scenarios"
+  //           << std::endl;
+  total++;
+  if (test_full_inference_simulation())
+    passed++;
 
   // Suite 5: Error Handling
   std::cout << "\n";
