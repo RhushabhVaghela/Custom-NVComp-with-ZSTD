@@ -4220,7 +4220,7 @@ private:
     } else {
       if (input_size < 3) {
         // printf("[DEBUG] Err @ %d\n", __LINE__);
-        fprintf(stderr, "[DEBUG] decompress_sequences: Header too small (3)\n");
+
         return Status::ERROR_CORRUPT_DATA;
       }
       num_sequences = (h_header[1] << 8) + h_header[2] + 0x7F00;
@@ -4232,8 +4232,7 @@ private:
       return Status::SUCCESS;
     }
     if (offset >= input_size) {
-      fprintf(stderr,
-              "[DEBUG] decompress_sequences: Offset >= input_size (mid)\n");
+
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -4242,9 +4241,6 @@ private:
 
     // Check for custom raw u32 mode (fse_modes=0xFF)
     if (fse_modes == 0xFF) {
-      fprintf(stderr,
-              "[DEBUG] decompress_sequences: Hit 0xFF mode! num_seq=%u\n",
-              num_sequences);
       // Custom raw u32 mode: data is stored as full u32 arrays
       u32 array_size = num_sequences * sizeof(u32);
 
@@ -4258,9 +4254,6 @@ private:
       }
 
       if (offset + array_size * 3 > input_size) {
-        printf("[DEBUG] decompress_sequences: Bounds Check Failed! offset=%u, "
-               "array_size=%u, required=%u, input_size=%u\n",
-               offset, array_size, offset + array_size * 3, input_size);
         return Status::ERROR_CORRUPT_DATA;
       }
 

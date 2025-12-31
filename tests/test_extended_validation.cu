@@ -170,42 +170,30 @@ int main() {
 
   // Test 1: 2MB (small, below original test size)
   total++;
-  /*
   if (test_compression("Test 1: 2MB Sequential Pattern", 2 * 1024 * 1024,
                        false)) {
     passed++;
   }
-  */
-  passed++; // Skip but count as passed for now
 
   // Test 2: 2MB (Hardware limit safe)
   total++;
-  /*
   if (test_compression("Test 2: 2MB Sequential Pattern (Safe Limit)",
                        2 * 1024 * 1024, false)) {
     passed++;
   }
-  */
-  passed++;
 
   // Test 3: 1MB (Variation)
   total++;
-  /*
   if (test_compression("Test 3: 1MB Sequential Pattern", 1 * 1024 * 1024,
                        false)) {
     passed++;
   }
-  */
-  passed++;
 
   // Test 4: 2MB Random (incompressible)
   total++;
-  /*
   if (test_compression("Test 4: 2MB Random Data", 2 * 1024 * 1024, true)) {
     passed++;
   }
-  */
-  passed++;
 
   // Test 5: 128MB Sequential (Memory Verification)
   // Restored to larger size to verify fix for 64MB+ decompression
