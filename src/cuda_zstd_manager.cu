@@ -827,46 +827,14 @@ public:
     if (!ctx_initialized)
       return;
 
-    // FIX: Synchronize device BEFORE destroying streams
-    cudaError_t sync_err = cudaDeviceSynchronize();
-    if (sync_err != cudaSuccess) {
-      //             std::cerr << "[cleanup_context] cudaDeviceSynchronize
-      //             failed: "
-      //                     << cudaGetErrorString(sync_err) << std::endl;
-    }
+    // FIX: Synchronize device BEFORE destroying streams - REMOVED for
+    // concurrency cudaDeviceSynchronize() blocks ALL threads, causing timeouts.
+    // We strictly rely on stream_pool and assume user synchronizes their own
+    // streams.
 
-    // FIX: Synchronize each stream individually before destroying
-    if (ctx.streams) {
-      for (u32 i = 0; i < ctx.num_streams; ++i) {
-        if (ctx.streams[i]) {
-          sync_err = cudaStreamSynchronize(ctx.streams[i]);
-          if (sync_err != cudaSuccess) {
-            //                         std::cerr << "[cleanup_context] Stream "
-            //                         << i << " sync failed: "
-            //                                 << cudaGetErrorString(sync_err)
-            //                                 << std::endl;
-          }
-
-          // Now safe to destroy
-          cudaError_t destroy_err = cudaStreamDestroy(ctx.streams[i]);
-          if (destroy_err != cudaSuccess) {
-            //                         std::cerr << "[cleanup_context] Stream "
-            //                         << i << " destroy failed: "
-            //                                 <<
-            //                                 cudaGetErrorString(destroy_err)
-            //                                 << std::endl;
-          }
-        }
-
-        if (ctx.events[i]) {
-          cudaEventDestroy(ctx.events[i]);
-        }
-      }
-      delete[] ctx.streams;
-      delete[] ctx.events;
-      ctx.streams = nullptr;
-      ctx.events = nullptr;
-    }
+    // Stream pool cleaning is handled by unique_ptr logic or trivial
+    // destruction if needed. ctx.streams is unused (legacy code), removing
+    // loop.
 
     // Free workspace AFTER synchronization
     free_compression_workspace(ctx.workspace);
@@ -1237,7 +1205,9 @@ public:
                           size_t dict_size, cudaStream_t stream) override {
     std::lock_guard<std::mutex> lock(api_mutex);
     void *device_workspace = nullptr; // Scope for cleanup
-    cudaEvent_t memset_done_event;
+
+    // cudaEvent_t memset_done_event = 0; // REMOVED (Unused and causing
+    // crashes)
     Status status = Status::SUCCESS;
     // (DEBUG REMOVED) stream = 0 was forcing Stream 0 which serializes ops
     // stream = 0;
@@ -1961,38 +1931,38 @@ public:
     futures.reserve(num_blocks);
 
     // Create a single event to synchronize Memset completions with
-    // async threads cudaEvent_t memset_done_event; // Already declared
-    // at function start
-    cudaEventCreate(&memset_done_event);
-    cudaEventRecord(memset_done_event, stream);
+    // async threads - REMOVED (Unused and causing crashes)
 
     // === PHASE 1: Parallel LZ77 & Sequence Generation ===
 
     // Timing instrumentation
     auto phase1_start = std::chrono::high_resolution_clock::now();
 
-    // (DEBUG REMOVED) cudaDeviceSynchronize was killing streaming perf
-    // cudaError_t safety_err = cudaDeviceSynchronize();
-    // This was causing 5000+ full device syncs for streaming!
-
-    cudaError_t post_sync_err = cudaGetLastError();
-    if (post_sync_err != cudaSuccess)
-      printf("[ERROR] compress: Pre-phase1 error: %s\n",
-             cudaGetErrorString(post_sync_err));
-
     // (STREAMING) Track offset for immediate block writes
     // Initialize with existing compressed_offset (Frame Header size)
     size_t streaming_compressed_offset = compressed_offset;
-
-    // (OPTIMIZATION) Reuse reusable temp buffers for Phase 1 (O(1)
-    // memory) These are already allocated in the workspace (lines
-    // 1370+) and assigned to ctx.seq_ctx We just point to them to avoid
-    // malloc/free overhead and leaks.
     size_t max_seq_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     u32 *d_lit_len_reuse = ctx.seq_ctx->d_literal_lengths;
     u32 *d_match_len_reuse = ctx.seq_ctx->d_match_lengths;
     u32 *d_off_reuse = ctx.seq_ctx->d_offsets;
     byte_t *d_lit_buf_reuse = ctx.seq_ctx->d_literals_buffer;
+
+    // (DEBUG REMOVED) cudaDeviceSynchronize was killing streaming perf
+    // event usage removed - causing invalid argument errors
+
+    cudaError_t post_sync_err = cudaGetLastError();
+    if (post_sync_err != cudaSuccess) {
+      printf("[ERROR] compress: Pre-phase1 error: %s\n",
+             cudaGetErrorString(post_sync_err));
+      status = Status::ERROR_CUDA_ERROR;
+      goto cleanup;
+    }
+
+    // (OPTIMIZATION) Reuse reusable temp buffers for Phase 1 (O(1)
+    // memory) These are already allocated in the workspace (lines
+    // 1370+) and assigned to ctx.seq_ctx We just point to them to avoid
+    // malloc/free overhead and leaks.
+    // Declarations moved to top of phase 1 for goto safety
 
     // CUDA_CHECK(cudaMalloc((void **)&d_lit_len_reuse, max_seq_bytes));
     // // REMOVED LEAK CUDA_CHECK(cudaMalloc((void
@@ -2558,8 +2528,9 @@ public:
       cudaFree(d_all_offsets_reverse);
 
     // Cleanup synchronization event
-    if (memset_done_event)
-      cudaEventDestroy(memset_done_event);
+    // Cleanup synchronization event - handled in cleanup label below
+    // if (memset_done_event)
+    //   cudaEventDestroy(memset_done_event);
 
     // SYNC: Wait for encoding to complete
     CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -2644,6 +2615,11 @@ public:
 
     if (device_workspace)
       cudaFree(device_workspace);
+
+    // Cleanup synchronization event - handled in cleanup label below
+    // if (memset_done_event)
+    //   cudaEventDestroy(memset_done_event);
+
     return status;
 
     return Status::ERROR_CUDA_ERROR; // Or specific status? Problem:
@@ -3099,12 +3075,9 @@ private:
   // Context management
   // ==========================================================================
   Status initialize_context() {
-    // CRITICAL FIX: Use pointer to avoid static initialization heap
-    // corruption
-    // CRITICAL FIX: Use pointer to avoid static initialization heap corruption
-    // C++11 guarantees thread-safe initialization for local statics
-    static std::mutex *init_mutex = new std::mutex();
-    std::unique_lock<std::mutex> init_lock(*init_mutex);
+    // Locked by api_mutex (recursive_mutex or mutex) from caller
+    // (configure/compress) Removed static mutex to allow concurrent
+    // initialization of separate managers.
     //         // std::cerr << "initialize_context() entered (guarded)" <<
     //         std::endl;
 
