@@ -451,28 +451,36 @@ bool test_memory_efficiency_large_file() {
 
   LOG_INFO("Free memory before: " << free_before / (1024 * 1024) << " MB");
 
-  ZstdStreamingManager streaming_mgr(CompressionConfig{.level = 5});
-  streaming_mgr.init_compression();
+  // Scope block to ensure streaming_mgr destructor runs before memory
+  // measurement
+  {
+    ZstdStreamingManager streaming_mgr(CompressionConfig{.level = 5});
+    streaming_mgr.init_compression();
 
-  void *d_input, *d_output;
-  cudaMalloc(&d_input, chunk_size);
-  cudaMalloc(&d_output, chunk_size * 2);
+    void *d_input, *d_output;
+    cudaMalloc(&d_input, chunk_size);
+    cudaMalloc(&d_output, chunk_size * 2);
 
-  int num_chunks = (file_size + chunk_size - 1) / chunk_size;
+    int num_chunks = (file_size + chunk_size - 1) / chunk_size;
 
-  for (int i = 0; i < num_chunks; i++) {
-    size_t current_chunk = std::min(chunk_size, file_size - (i * chunk_size));
-    std::vector<uint8_t> h_chunk;
-    generate_test_data(h_chunk, current_chunk, "text");
-    cudaMemcpy(d_input, h_chunk.data(), current_chunk, cudaMemcpyHostToDevice);
+    for (int i = 0; i < num_chunks; i++) {
+      size_t current_chunk = std::min(chunk_size, file_size - (i * chunk_size));
+      std::vector<uint8_t> h_chunk;
+      generate_test_data(h_chunk, current_chunk, "text");
+      cudaMemcpy(d_input, h_chunk.data(), current_chunk,
+                 cudaMemcpyHostToDevice);
 
-    size_t compressed_size;
-    streaming_mgr.compress_chunk(d_input, current_chunk, d_output,
-                                 &compressed_size, i == num_chunks - 1);
-  }
+      size_t compressed_size;
+      streaming_mgr.compress_chunk(d_input, current_chunk, d_output,
+                                   &compressed_size, i == num_chunks - 1);
+    }
 
-  cudaFree(d_input);
-  cudaFree(d_output);
+    cudaFree(d_input);
+    cudaFree(d_output);
+  } // streaming_mgr destructor runs here, freeing internal buffers
+
+  // Sync to ensure all CUDA cleanup is complete
+  cudaDeviceSynchronize();
 
   size_t free_after;
   cudaMemGetInfo(&free_after, &total);
@@ -482,10 +490,8 @@ bool test_memory_efficiency_large_file() {
   size_t leaked = (free_before > free_after) ? (free_before - free_after) : 0;
   LOG_INFO("Memory delta: " << leaked / (1024 * 1024) << " MB");
 
-  // FIX: Increased threshold from 10MB to 150MB to account for:
-  // 1. Larger workspace allocations (~45MB with 22-bit hash/chain tables)
-  // 2. CUDA memory caching (driver keeps allocations resident)
-  ASSERT_TRUE(leaked < 150 * 1024 * 1024, "Memory leak detected");
+  // Threshold accounts for CUDA driver memory caching (not actual leaks)
+  ASSERT_TRUE(leaked < 50 * 1024 * 1024, "Memory leak detected");
   LOG_INFO("✓ No significant memory leaks");
 
   LOG_PASS("Memory Efficiency for Large Files");
