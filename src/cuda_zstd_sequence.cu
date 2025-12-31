@@ -235,8 +235,10 @@ __global__ void compute_sequence_details_kernel(
       return;
     }
     if (lit_len > 1000000) {
-      if (d_error_flag)
+      if (d_error_flag) {
         *d_error_flag = 3; // Error: LL too large
+        printf("[KERNEL ERROR] Flag 3 at seq %u: LL=%u (Max 1M)\n", i, lit_len);
+      }
       return;
     }
     if (match_length > 0 && seq.match_offset == 0) {
@@ -250,8 +252,17 @@ __global__ void compute_sequence_details_kernel(
 
     d_literals_lengths[i] = lit_len;
     d_match_lengths[i] = match_length;
-    total_output += lit_len + match_length;
+
+    if (total_literals + lit_len > total_literal_count) {
+      if (d_error_flag) {
+        *d_error_flag = 5; // Error: Total literals exceed input
+        printf("[KERNEL ERROR] Flag 5 at seq %u: Total LL %u > Input %u\n", i,
+               total_literals + lit_len, total_literal_count);
+      }
+      return;
+    }
     total_literals += lit_len;
+    total_output += lit_len + match_length;
 
     if (match_length > 0) {
       if (is_raw_offsets) {
@@ -331,7 +342,9 @@ __global__ void sequential_block_execute_sequences_kernel(
     // --- 1. Parallel Literal Copy ---
     for (u32 j = tid; j < literals_length; j += block_dim) {
       if (output_pos + j < output_max_size) {
-        output[output_pos + j] = d_literals[literal_pos + j];
+        if (literal_pos + j < total_literal_count) { // Add input bounds check
+          output[output_pos + j] = d_literals[literal_pos + j];
+        }
       }
     }
 
