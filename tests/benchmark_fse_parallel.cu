@@ -105,10 +105,12 @@ BenchmarkResult run_benchmark(u32 data_size, int iterations = 5) {
 
 void benchmark_scaling() {
   printf("\n=== Benchmark: Scaling with Input Size ===\n");
-  printf("%-12s %-12s %-12s %-12s %-14s %-14s %-8s\n", "Size", "Encode(ms)",
-         "Decode(ms)", "Ratio", "MB/s", "GB/s", "Status");
-  printf("%-12s %-12s %-12s %-12s %-14s %-14s %-8s\n", "--------", "----------",
-         "----------", "------", "--------", "--------", "------");
+  printf("%-12s %-12s %-12s %-12s %-18s %-18s %-8s\n", "Size", "Encode(ms)",
+         "Decode(ms)", "Ratio", "Throughput(MB/s)", "Throughput(GB/s)",
+         "Status");
+  printf("%-12s %-12s %-12s %-12s %-18s %-18s %-8s\n", "--------", "----------",
+         "----------", "------", "----------------", "----------------",
+         "------");
 
   u32 sizes[] = {64 * 1024,        256 * 1024,       1 * 1024 * 1024,
                  4 * 1024 * 1024,  10 * 1024 * 1024, 50 * 1024 * 1024,
@@ -124,7 +126,7 @@ void benchmark_scaling() {
       snprintf(size_str, sizeof(size_str), "%uKB", size / 1024);
     }
 
-    printf("%-12s %-12.2f %-12.2f %-12.2f %-14.2f %-14.4f ✅\n", size_str,
+    printf("%-12s %-12.2f %-12.2f %-12.2f %-18.2f %-18.4f ✅\n", size_str,
            r.encode_ms, r.decode_ms, r.ratio, r.throughput_mbps,
            r.throughput_gbps);
   }

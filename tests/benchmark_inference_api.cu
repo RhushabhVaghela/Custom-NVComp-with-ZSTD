@@ -159,8 +159,11 @@ void run_benchmark_throughput_sweep() {
       64 * 1024 * 1024  // 64 MB
   };
 
-  std::cout << "\nSize (KB)\tMB/s\t\tGB/s\t\tAvg Latency (ms)" << std::endl;
-  std::cout << "--------\t----\t\t----\t\t-----------------" << std::endl;
+  std::cout
+      << "\nSize (KB)\tThroughput(MB/s)\tThroughput(GB/s)\tAvg Latency (ms)"
+      << std::endl;
+  std::cout << "--------\t----------------\t----------------\t-----------------"
+            << std::endl;
 
   for (size_t size : sizes) {
     int iterations = (size < 1024 * 1024) ? 100 : 20;
