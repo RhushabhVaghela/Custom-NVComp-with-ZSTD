@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-
 // Ensure we link/include necessary components
 using namespace cuda_zstd;
 
@@ -97,8 +96,23 @@ bool run_test_case(size_t data_size, size_t batch_size,
   }
 }
 
+// --- Helper: Check if zstd CLI is available ---
+bool is_zstd_available() {
+  int ret = std::system("which zstd > /dev/null 2>&1");
+  return (ret == 0);
+}
+
 int main() {
   std::cout << "Running Pipeline Integration Tests..." << std::endl;
+
+  // Check if zstd CLI is available - skip gracefully if not installed
+  if (!is_zstd_available()) {
+    std::cout << "\n[SKIP] zstd CLI not found. Install zstd to run these tests."
+              << std::endl;
+    std::cout << "Tests skipped (no zstd CLI available)." << std::endl;
+    return 0; // Return success - test is skipped, not failed
+  }
+
   bool all_passed = true;
 
   // 1. Small Data (< Batch)
