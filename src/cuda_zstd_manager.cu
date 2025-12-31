@@ -4518,18 +4518,18 @@ ZstdBatchManager::ZstdBatchManager(const CompressionConfig &config) {
 }
 
 ZstdBatchManager::~ZstdBatchManager() {
-  // Ensure all pending CUDA operations complete before destruction
-  // This is critical when the manager is destroyed and immediately
-  // recreated
-  cudaDeviceSynchronize();
+  // FIX: Sync ONLY our own streams before destruction, NOT the entire device.
+  // cudaDeviceSynchronize() causes race conditions in multi-manager scenarios
+  // because it blocks ALL GPU operations across ALL threads/managers.
+  if (pimpl_) {
+    for (auto s : pimpl_->streams) {
+      if (s) {
+        cudaStreamSynchronize(s);
+      }
+    }
+  }
   // Clear any sticky CUDA errors from this compression session
-  cudaGetLastError();
-
-  // CRITICAL FIX: Clear sticky CUDA errors
   (void)cudaGetLastError();
-  // NOTE: Do NOT call reset_for_reuse() here - it causes deadlock in
-  // multi-threaded scenarios where other managers are still allocating
-  // from the global pool. The pool manages its own state correctly.
 }
 
 Status ZstdBatchManager::configure(const CompressionConfig &config) {
