@@ -365,7 +365,9 @@ __global__ void sequential_block_execute_sequences_kernel(
         // pattern
         if (tid == 0) {
           for (u32 j = 0; j < match_length; ++j) {
-            output[output_pos + j] = match_src[j];
+            if (output_pos + j < output_max_size) { // Add bounds check
+              output[output_pos + j] = match_src[j];
+            }
           }
         }
       } else {

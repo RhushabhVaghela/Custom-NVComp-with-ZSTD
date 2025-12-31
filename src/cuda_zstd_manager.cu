@@ -3861,17 +3861,27 @@ private:
     CUDA_CHECK(cudaMemcpy(h_match_lengths, seq_ctx->d_match_lengths,
                           num_sequences * sizeof(u32), cudaMemcpyDeviceToHost));
 
-    // Step 2: Count valid sequences (filter out offset=0 with match_length>0)
+    // Step 2: Count valid sequences (filter out invalid sequences)
+    // Invalid: (ML > 0 && offset == 0) OR (ML > 0 && ML < 3)
     u32 valid_count = 0;
-    u32 offset_zero_count = 0;
+    u32 invalid_count = 0;
     for (u32 i = 0; i < num_sequences; i++) {
-      // printf("[DEBUG] encode_raw: Seq %u: LL=%u ML=%u Off=%u\n",
-      //        i, seq.literal_length, seq.match_length, seq.match_offset);    }
+      bool is_invalid = false;
       if (h_match_lengths[i] > 0 && h_offsets[i] == 0) {
-        offset_zero_count++; // Invalid: match with zero offset
-      } else {
-        valid_count++;
+        is_invalid = true; // Invalid: match with zero offset
       }
+      if (h_match_lengths[i] > 0 && h_match_lengths[i] < 3) {
+        is_invalid = true; // Invalid: ML < MINMATCH (3)
+      }
+      if (is_invalid) {
+        invalid_count++;
+        // Convert to literal-only sequence: discard match data
+        // Don't add ML to LL as it can cause overflow
+        h_match_lengths[i] = 0;
+        h_offsets[i] = 0;
+      }
+      valid_count++; // All sequences kept, but invalid ones converted to
+                     // literal-only
     }
 
     // offset_zero=%u\n",
@@ -3986,27 +3996,50 @@ private:
       cudaFree(d_valid_ml);
 
       return Status::SUCCESS;
-    } else {
-      // All sequences valid - write unfiltered
-      // unfiltered\n",
-      //        num_sequences);
-
-      delete[] h_offsets;
-      delete[] h_literal_lengths;
-      delete[] h_match_lengths;
-
-      u32 array_size = num_sequences * sizeof(u32);
-      if (!writer.write_bytes(seq_ctx->d_literal_lengths, array_size, stream,
-                              true))
-        return Status::ERROR_BUFFER_TOO_SMALL;
-      if (!writer.write_bytes(seq_ctx->d_offsets, array_size, stream, true))
-        return Status::ERROR_BUFFER_TOO_SMALL;
-      if (!writer.write_bytes(seq_ctx->d_match_lengths, array_size, stream,
-                              true))
-        return Status::ERROR_BUFFER_TOO_SMALL;
-
-      return Status::SUCCESS;
     }
+    // Always write from corrected host arrays (validation may have modified
+    // them) Allocate device memory and copy corrected data
+    u32 *d_corrected_ll, *d_corrected_of, *d_corrected_ml;
+    CUDA_CHECK(cudaMalloc(&d_corrected_ll, num_sequences * sizeof(u32)));
+    CUDA_CHECK(cudaMalloc(&d_corrected_of, num_sequences * sizeof(u32)));
+    CUDA_CHECK(cudaMalloc(&d_corrected_ml, num_sequences * sizeof(u32)));
+
+    CUDA_CHECK(cudaMemcpy(d_corrected_ll, h_literal_lengths,
+                          num_sequences * sizeof(u32), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_corrected_of, h_offsets,
+                          num_sequences * sizeof(u32), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_corrected_ml, h_match_lengths,
+                          num_sequences * sizeof(u32), cudaMemcpyHostToDevice));
+
+    delete[] h_offsets;
+    delete[] h_literal_lengths;
+    delete[] h_match_lengths;
+
+    u32 array_size = num_sequences * sizeof(u32);
+    if (!writer.write_bytes(d_corrected_ll, array_size, stream, true)) {
+      cudaFree(d_corrected_ll);
+      cudaFree(d_corrected_of);
+      cudaFree(d_corrected_ml);
+      return Status::ERROR_BUFFER_TOO_SMALL;
+    }
+    if (!writer.write_bytes(d_corrected_of, array_size, stream, true)) {
+      cudaFree(d_corrected_ll);
+      cudaFree(d_corrected_of);
+      cudaFree(d_corrected_ml);
+      return Status::ERROR_BUFFER_TOO_SMALL;
+    }
+    if (!writer.write_bytes(d_corrected_ml, array_size, stream, true)) {
+      cudaFree(d_corrected_ll);
+      cudaFree(d_corrected_of);
+      cudaFree(d_corrected_ml);
+      return Status::ERROR_BUFFER_TOO_SMALL;
+    }
+
+    cudaFree(d_corrected_ll);
+    cudaFree(d_corrected_of);
+    cudaFree(d_corrected_ml);
+
+    return Status::SUCCESS;
   }
 
   Status compress_sequences(const sequence::SequenceContext *seq_ctx,
@@ -4259,7 +4292,7 @@ private:
 
       // Copy match_lengths
       CUDA_CHECK(cudaMemcpyAsync(seq_ctx->d_match_lengths, input + offset,
-                                 array_size, cudaMemcpyDeviceToDevice, stream));
+                                 array_size, cudaMemcpyDefault, stream));
       offset += array_size;
 
       // IMPORTANT: Set tier flag for raw offsets
