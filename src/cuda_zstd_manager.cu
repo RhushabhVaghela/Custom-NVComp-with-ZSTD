@@ -2427,10 +2427,11 @@ public:
       // %zu\n", writer.get_offset()); writer.align4(); // Ensure 4-byte
       // alignment for raw mode? printf("[DEBUG] compress_block_impl: Writer
       // offset after align: %zu\n", writer.get_offset());
-      fprintf(
-          stderr,
-          "[DEBUG] compress_block_impl: Writer offset before sequences: %zu\n",
-          writer.get_offset());
+      // [DEBUG DISABLED] Suppress per-block debug output for performance
+      // fprintf(
+      //     stderr,
+      //     "[DEBUG] compress_block_impl: Writer offset before sequences:
+      //     %zu\n", writer.get_offset());
 
       status =
           compress_sequences(&block_seq_ctxs[block_idx],
@@ -3579,8 +3580,9 @@ private:
     if (status != Status::SUCCESS) {
       // %d\n",
       //         (int)status);
-      fprintf(stderr, "[DEBUG] decompress_literals failed with status %d\n",
-              (int)status);
+      // [DEBUG DISABLED] Only log on actual errors, not every block
+      // fprintf(stderr, "[DEBUG] decompress_literals failed with status %d\n",
+      //         (int)status);
       return status;
     }
 
@@ -3610,10 +3612,12 @@ private:
     //     printf("[DEBUG] Post-Literals Err: %s\n", cudaGetErrorString(e));
     // }
     u32 sequences_offset = literals_header_size + literals_compressed_size;
-    fprintf(stderr,
-            "[DEBUG] decompress_block: sequences_offset: %u (LitHeader: %u, "
-            "LitCompressed: %u)\n",
-            sequences_offset, literals_header_size, literals_compressed_size);
+    // [DEBUG DISABLED] Suppress per-block debug output for performance
+    // fprintf(stderr,
+    //         "[DEBUG] decompress_block: sequences_offset: %u (LitHeader: %u, "
+    //         "LitCompressed: %u)\n",
+    //         sequences_offset, literals_header_size,
+    //         literals_compressed_size);
 
     // {
     //   cudaError_t e = cudaGetLastError();
@@ -3634,8 +3638,8 @@ private:
                                   input_size - sequences_offset, ctx.seq_ctx,
                                   stream);
     if (status != Status::SUCCESS) {
-      fprintf(stderr, "[DEBUG] decompress_sequences failed with status %d\n",
-              (int)status);
+      // [DEBUG DISABLED]       fprintf(stderr, "[DEBUG] decompress_sequences failed with status %d\n",
+      // [DEBUG DISABLED]               (int)status);
       // printf("[DEBUG] Err @ %d: Status %d\n", __LINE__, (int)status);
       return status;
     }
@@ -4309,37 +4313,11 @@ private:
       expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
           seq_ctx->d_literal_lengths, num_sequences, (u32)val);
     } else if (ll_mode == 2) { // Compressed (Table)
-      if (offset + 2 > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-      byte_t size_bytes[2];
-      CUDA_CHECK(
-          cudaMemcpy(size_bytes, input + offset, 2, cudaMemcpyDeviceToHost));
-      u32 size = size_bytes[0] | (size_bytes[1] << 8);
-      offset += 2;
-      if (offset + size > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-
-      // Decode table for FSE Compressed
-      // Status status = build_fse_table(FSE_LL_def, &ll_table, &bit_stream,
-      // &bit_pos,
-      //                          &offset, stream);
-      // if (status != Status::SUCCESS) {
-      //    printf("[DEBUG] build_fse_table LL failed! Status=%d\n",
-      //    (int)status); return status;
-      // }
-      offset += size;
-      // offset already updated by build_fse_table?
-      // Wait. build_fse_table arguments: &offset. Yes.
-      // But original code removed the call?
-      // Original code (Line 4329): offset += size; // Skip table for now
-      // Ah! The original code was SKIPPING the table! "TODO: Decode table".
-      // THIS IS THE BUG FOR SIZE 3 (Compressed Mode)!!!
-      // It skips the table, but doesn't build it.
-      // So ll_table is empty/invalid.
-      // FSE Decoder tries to use it. CORRUPT DATA.
-
-      // I must UNCOMMENT/IMPLEMENT the table build.
-      // I will replace the skip logic with build logic.
+      // FSE Compressed Mode for Literal Lengths is not yet implemented.
+      // Return ERROR_NOT_IMPLEMENTED instead of silently producing corrupt
+      // data.
+      // TODO: Implement proper FSE table parsing for ll_mode == 2
+      return Status::ERROR_NOT_IMPLEMENTED;
     }
 
     // 2. Offsets
@@ -4352,16 +4330,11 @@ private:
       expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
           seq_ctx->d_offsets, num_sequences, (u32)val);
     } else if (of_mode == 2) { // Compressed
-      if (offset + 2 > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-      byte_t size_bytes[2];
-      CUDA_CHECK(
-          cudaMemcpy(size_bytes, input + offset, 2, cudaMemcpyDeviceToHost));
-      u32 size = size_bytes[0] | (size_bytes[1] << 8);
-      offset += 2;
-      if (offset + size > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-      offset += size;
+      // FSE Compressed Mode for Offsets is not yet implemented.
+      // Return ERROR_NOT_IMPLEMENTED instead of silently producing corrupt
+      // data.
+      // TODO: Implement proper FSE table parsing for of_mode == 2
+      return Status::ERROR_NOT_IMPLEMENTED;
     }
 
     // 3. Match Lengths
@@ -4374,16 +4347,11 @@ private:
       expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
           seq_ctx->d_match_lengths, num_sequences, (u32)val);
     } else if (ml_mode == 2) { // Compressed
-      if (offset + 2 > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-      byte_t size_bytes[2];
-      CUDA_CHECK(
-          cudaMemcpy(size_bytes, input + offset, 2, cudaMemcpyDeviceToHost));
-      u32 size = size_bytes[0] | (size_bytes[1] << 8);
-      offset += 2;
-      if (offset + size > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-      offset += size;
+      // FSE Compressed Mode for Match Lengths is not yet implemented.
+      // Return ERROR_NOT_IMPLEMENTED instead of silently producing corrupt
+      // data.
+      // TODO: Implement proper FSE table parsing for ml_mode == 2
+      return Status::ERROR_NOT_IMPLEMENTED;
     }
 
     // Bounds check
@@ -4399,9 +4367,10 @@ private:
     // Actually, decode_sequences_interleaved handles flags internally or via
     // modes. If Mode is RLE (1), decode_sequences_interleaved skips it.
 
-    fprintf(stderr,
-            "[DEBUG] Calling decode_sequences_interleaved w/ Offset=%u\n",
-            offset);
+    // [DEBUG DISABLED] Suppress per-call debug output for performance
+    // fprintf(stderr,
+    //         "[DEBUG] Calling decode_sequences_interleaved w/ Offset=%u\n",
+    //         offset);
     Status status = fse::decode_sequences_interleaved(
         input + offset, input_size - offset, num_sequences,
         seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
@@ -4418,11 +4387,12 @@ private:
     const u32 blocks = (num_sequences + threads - 1) / threads;
     u32 h_decoded_count = 0;
 
-    fprintf(stderr,
-            "[DEBUG] decompress_sequence_stream: mode=%u, num_seq=%u, "
-            "offset=%u, input_size=%u, stream_size=%u, table_type=%d\n",
-            mode, num_sequences, *offset, input_size, stream_size,
-            (int)table_type);
+    // [DEBUG DISABLED] Suppress per-call debug output for performance
+    // fprintf(stderr,
+    //         "[DEBUG] decompress_sequence_stream: mode=%u, num_seq=%u, "
+    //         "offset=%u, input_size=%u, stream_size=%u, table_type=%d\n",
+    //         mode, num_sequences, *offset, input_size, stream_size,
+    //         (int)table_type);
 
     switch (mode) {
     case 0: { // Predefined (ZSTD Spec)
