@@ -4,30 +4,39 @@ project(cuda_zstd LANGUAGES CXX CUDA C)
 # ==============================================================================
 # DEPENDENCIES: ZSTD (for CPU Smart Router)
 # ==============================================================================
-# Suppress ZSTD compiler flag checks that fail on GCC/NVCC
-set(C_FLAG_QUNUSED_ARGUMENTS 0 CACHE INTERNAL "Suppress check")
-set(CXX_FLAG_QUNUSED_ARGUMENTS 0 CACHE INTERNAL "Suppress check")
+# Use system-installed zstd library (faster builds, no git dependency issues)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ZSTD libzstd)
 
-# Suppress deprecation warnings (e.g. from ZSTD legacy CMake)
-set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
-
-include(FetchContent)
-FetchContent_Declare(
-    zstd
-    SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/zstd_dep
-    SOURCE_SUBDIR  build/cmake
-)
-FetchContent_MakeAvailable(zstd)
-FetchContent_GetProperties(zstd)
-include_directories(${zstd_SOURCE_DIR}/lib)
-
-# Suppress warnings from ZSTD legacy code
-if(TARGET libzstd_static)
-    target_compile_options(libzstd_static PRIVATE -Wno-maybe-uninitialized)
+if(NOT ZSTD_FOUND)
+    message(FATAL_ERROR
+        "\n"
+        "=========================================================================\n"
+        " ERROR: Zstandard (libzstd) development library not found!\n"
+        "=========================================================================\n"
+        "\n"
+        " This project requires the zstd library for CPU compression fallback.\n"
+        "\n"
+        " To install on Ubuntu/Debian/WSL:\n"
+        "     sudo apt update && sudo apt install libzstd-dev\n"
+        "\n"
+        " To install on Fedora/RHEL:\n"
+        "     sudo dnf install libzstd-devel\n"
+        "\n"
+        " To install on Arch Linux:\n"
+        "     sudo pacman -S zstd\n"
+        "\n"
+        " To install on macOS (Homebrew):\n"
+        "     brew install zstd\n"
+        "\n"
+        " After installation, re-run cmake.\n"
+        "=========================================================================\n"
+    )
 endif()
-if(TARGET libzstd_shared)
-    target_compile_options(libzstd_shared PRIVATE -Wno-maybe-uninitialized)
-endif()
+
+message(STATUS "Found zstd: ${ZSTD_VERSION}")
+include_directories(${ZSTD_INCLUDE_DIRS})
+link_directories(${ZSTD_LIBRARY_DIRS})
 
 # CUDA Configuration
 set(CMAKE_CUDA_STANDARD 17)
@@ -106,7 +115,7 @@ set_target_properties(cuda_zstd_static PROPERTIES
     CUDA_RESOLVE_DEVICE_SYMBOLS ON
     OUTPUT_NAME "cuda_zstd"
 )
-target_link_libraries(cuda_zstd_static PUBLIC CUDA::cudart Threads::Threads libzstd_static)
+target_link_libraries(cuda_zstd_static PUBLIC CUDA::cudart Threads::Threads ${ZSTD_LIBRARIES})
 if(DEFINED CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
     target_include_directories(cuda_zstd_static PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
@@ -118,7 +127,7 @@ set_target_properties(cuda_zstd_shared PROPERTIES
     OUTPUT_NAME "cuda_zstd"
     VERSION 1.0.0
 )
-target_link_libraries(cuda_zstd_shared PUBLIC CUDA::cudart Threads::Threads libzstd_static)
+target_link_libraries(cuda_zstd_shared PUBLIC CUDA::cudart Threads::Threads ${ZSTD_LIBRARIES})
 if(DEFINED CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
     target_include_directories(cuda_zstd_shared PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
@@ -294,7 +303,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         src/cuda_zstd_lz77.cu
         src/cuda_zstd_huffman.cu
     )
-    target_link_libraries(benchmark_phase3 PRIVATE libzstd_static ${CUDA_LIBRARIES})
+    target_link_libraries(benchmark_phase3 PRIVATE ${ZSTD_LIBRARIES} ${CUDA_LIBRARIES})
     set_target_properties(benchmark_phase3 PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     add_test(NAME benchmark_phase3 COMMAND benchmark_phase3)
     set_property(TEST benchmark_phase3 PROPERTY LABELS "benchmark")

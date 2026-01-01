@@ -528,20 +528,130 @@ CompressionWorkspace (7-10 MB for 128KB block):
 
 ### Software Requirements
 
-#### Required
-- **CUDA Toolkit**: 11.0 or newer (tested up to 12.8)
-  - Download: https://developer.nvidia.com/cuda-downloads
-- **CMake**: 3.18 or newer
-- **C++ Compiler**: C++14 compatible
-  - **Linux**: GCC 7.0+ or Clang 5.0+
-  - **Windows**: Visual Studio 2017+ (MSVC 19.10+)
-  - **WSL**: GCC 7.0+ with CUDA toolkit in WSL2
+#### Required Dependencies
 
-#### Optional
-- **NVIDIA Nsight Systems**: For performance profiling
-- **NVIDIA Nsight Compute**: For kernel-level analysis
-- **CTest**: For running test suite (included with CMake)
-- **Doxygen**: For generating API documentation
+| Dependency | Version | Required | Purpose |
+|------------|---------|----------|---------|
+| **CUDA Toolkit** | 11.0+ | ✅ Yes | GPU compilation and runtime |
+| **CMake** | 3.18+ | ✅ Yes | Build system |
+| **C++ Compiler** | C++17 | ✅ Yes | Host code compilation |
+| **libzstd-dev** | 1.4.0+ | ✅ Yes | CPU compression fallback (Smart Router) |
+| **pkg-config** | Any | ✅ Yes | Library detection |
+
+#### Installation by Platform
+
+<details>
+<summary><b>🐧 Ubuntu / Debian / WSL2</b></summary>
+
+```bash
+# Install all prerequisites
+sudo apt update && sudo apt install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    libzstd-dev \
+    nvidia-cuda-toolkit \
+    nvidia-cuda-dev
+
+# Verify installations
+nvcc --version          # Should show CUDA version
+cmake --version         # Should show 3.18+
+pkg-config --modversion libzstd  # Should show 1.4.0+
+```
+
+</details>
+
+<details>
+<summary><b>🎩 Fedora / RHEL / CentOS</b></summary>
+
+```bash
+# Install prerequisites
+sudo dnf install -y \
+    gcc-c++ \
+    cmake \
+    pkgconf \
+    libzstd-devel \
+    cuda  # Requires NVIDIA CUDA repo configured
+
+# Verify
+nvcc --version
+cmake --version
+pkg-config --modversion libzstd
+```
+
+</details>
+
+<details>
+<summary><b>🏔️ Arch Linux</b></summary>
+
+```bash
+# Install prerequisites
+sudo pacman -S \
+    base-devel \
+    cmake \
+    pkgconf \
+    zstd \
+    cuda
+
+# Verify
+nvcc --version
+cmake --version
+pkg-config --modversion libzstd
+```
+
+</details>
+
+<details>
+<summary><b>🪟 Windows (Visual Studio)</b></summary>
+
+1. **Install Visual Studio 2019/2022** with "Desktop development with C++" workload
+2. **Install CUDA Toolkit** from [NVIDIA Downloads](https://developer.nvidia.com/cuda-downloads)
+3. **Install vcpkg** and zstd:
+   ```cmd
+   git clone https://github.com/Microsoft/vcpkg.git
+   cd vcpkg && bootstrap-vcpkg.bat
+   vcpkg install zstd:x64-windows
+   ```
+4. **Set environment**:
+   ```cmd
+   set CMAKE_TOOLCHAIN_FILE=C:\path\to\vcpkg\scripts\buildsystems\vcpkg.cmake
+   ```
+
+</details>
+
+<details>
+<summary><b>🍎 macOS (Not Supported)</b></summary>
+
+**CUDA is not available on macOS.** This project requires NVIDIA GPU hardware.
+
+For development/testing only (no GPU acceleration):
+```bash
+# This will NOT work for actual compression - CPU only
+brew install cmake zstd
+```
+
+</details>
+
+#### Compiler Requirements
+
+| Compiler | Minimum Version | Recommended |
+|----------|-----------------|-------------|
+| **GCC** | 7.0+ | 11.0+ |
+| **Clang** | 5.0+ | 14.0+ |
+| **MSVC** | 19.10+ (VS 2017) | 19.29+ (VS 2022) |
+| **NVCC** | 11.0+ | 12.0+ |
+
+#### CUDA Architecture Support
+
+| GPU Architecture | Compute Capability | Status |
+|------------------|-------------------|--------|
+| Pascal (GTX 10xx) | 6.0, 6.1 | ✅ Supported |
+| Volta (V100) | 7.0 | ✅ Supported |
+| Turing (RTX 20xx) | 7.5 | ✅ Supported |
+| Ampere (RTX 30xx, A100) | 8.0, 8.6 | ✅ Supported |
+| Ada Lovelace (RTX 40xx) | 8.9 | ✅ Supported |
+| Hopper (H100) | 9.0 | ✅ Supported |
+| Blackwell (RTX 50xx) | 10.0 | ⚠️ Requires CUDA 12.8+ |
 
 ### Operating System Support
 
@@ -551,9 +661,36 @@ CompressionWorkspace (7-10 MB for 128KB block):
 | **CentOS 7+** | ✅ Supported | Tested on CentOS 8 |
 | **RHEL 8+** | ✅ Supported | Enterprise Linux |
 | **Debian 11+** | ✅ Supported | Community tested |
+| **Fedora 36+** | ✅ Supported | Latest packages |
 | **Windows 10/11** | ✅ Supported | Requires Visual Studio 2017+ |
 | **WSL2** | ✅ Supported | CUDA 11.0+ in WSL2 |
 | **macOS** | ❌ Not Supported | CUDA unavailable on macOS |
+
+### Verification Checklist
+
+Run these commands to verify your system is ready:
+
+```bash
+# 1. Check CUDA
+nvcc --version
+# Expected: Cuda compilation tools, release 11.0+
+
+# 2. Check CMake
+cmake --version
+# Expected: cmake version 3.18+
+
+# 3. Check zstd library
+pkg-config --modversion libzstd
+# Expected: 1.4.0+ (any version works)
+
+# 4. Check compiler
+g++ --version   # or clang++ --version
+# Expected: GCC 7.0+ or Clang 5.0+
+
+# 5. Check GPU
+nvidia-smi
+# Expected: Shows your GPU model and driver version
+```
 
 ---
 
