@@ -14,8 +14,7 @@ set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 include(FetchContent)
 FetchContent_Declare(
     zstd
-    GIT_REPOSITORY https://github.com/facebook/zstd.git
-    GIT_TAG        v1.5.5
+    SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/zstd_dep
     SOURCE_SUBDIR  build/cmake
 )
 FetchContent_MakeAvailable(zstd)

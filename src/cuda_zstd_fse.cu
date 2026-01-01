@@ -1317,14 +1317,13 @@ __host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
   bool auto_table_log = true;
   [[maybe_unused]] bool accurate_norm = true;
 
-  // Safeguard: table must be large enough for all unique symbols
-  // We need table_size > unique_symbols (at least 2x for good
-  // distribution)
-  while ((1u << table_log) <= stats.unique_symbols &&
-         table_log < FSE_MAX_TABLELOG) {
-    table_log++;
+  // Analyze input statistics
+  FSEStats stats;
+  Status status = analyze_block_statistics(d_input, input_size, &stats, stream);
+  if (status != Status::SUCCESS) {
+    return status;
   }
-  table_log = FSE_MAX_TABLELOG;
+  u32 table_log = stats.recommended_log;
 
   [[maybe_unused]] u32 table_size = 1u << table_log;
 
@@ -1743,97 +1742,96 @@ __host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
                              stream));
 
   CUDA_CHECK(cudaMemsetAsync(d_output + header_size, 0, total_bytes, stream));
-}
 
-// 5. Launch Merge Kernel
-u32 merge_grid_size = (num_chunks + 256 - 1) / 256;
-fse_merge_bitstreams_kernel<<<merge_grid_size, 256, 0, stream>>>(
-    d_bitstreams,        // Input buffers (padded)
-    d_chunk_bit_counts,  // Exact bits
-    d_chunk_bit_offsets, // Bit offsets (Prefix Sum)
+  // 5. Launch Merge Kernel
+  u32 merge_grid_size = (num_chunks + 256 - 1) / 256;
+  fse_merge_bitstreams_kernel<<<merge_grid_size, 256, 0, stream>>>(
+      d_bitstreams,        // Input buffers (padded)
+      d_chunk_bit_counts,  // Exact bits
+      d_chunk_bit_offsets, // Bit offsets (Prefix Sum)
 
-    d_output + header_size, // Final output
-    num_chunks,
-    max_chunk_stream_size // Buffer stride
-);
-auto kerr3 = cudaGetLastError();
-if (kerr3 != cudaSuccess) {
-  printf("[CRASH] fse_merge_bitstreams_kernel failed: %s\n",
-         cudaGetErrorString(kerr3));
-}
-CUDA_CHECK(cudaStreamSynchronize(stream));
-
-// 6. Update Output Size
-if (d_output_size) {
-  // Host update (if pointer is host)?
-  // Benchmark usually passes HOST pointer for d_output_size in
-  // current API? Wait, signature is `u32* d_output_size`. Usually
-  // device pointer. But verify if caller expects host or device?
-  // ZstdManager expects Host?
-  // Function is `encode_fse_advanced`.
-  // Let's assume it might be Device pointer in full pipeline, but
-  // here for benchmark... Benchmark passes `d_output_size` allocated
-  // with `cudaMalloc`. So we use cudaMemcpy.
-  u32 size_val = header_size + total_bytes;
-
-  cudaPointerAttributes attrs;
-  cudaError_t attr_err = cudaPointerGetAttributes(&attrs, d_output_size);
-  // Clear error if not a device pointer (cudaPointerGetAttributes
-  // returns invalid value for host pointers)
-  if (attr_err != cudaSuccess)
-    cudaGetLastError();
-
-  if (attr_err == cudaSuccess && attrs.type == cudaMemoryTypeDevice) {
-    CUDA_CHECK(cudaMemcpyAsync(d_output_size, &size_val, sizeof(u32),
-                               cudaMemcpyHostToDevice, stream));
-  } else {
-    // Host pointer
-    *d_output_size = size_val;
-    // Ensure host is updated before returning if stream is involved?
-    // Since it's a host write, it happens immediately on CPU.
-    // Ideally we should sync stream if the size depends on GPU work?
-    // But size is calculated on CPU here (total_bytes from
-    // h_bit_counts). So it's fine.
+      d_output + header_size, // Final output
+      num_chunks,
+      max_chunk_stream_size // Buffer stride
+  );
+  auto kerr3 = cudaGetLastError();
+  if (kerr3 != cudaSuccess) {
+    printf("[CRASH] fse_merge_bitstreams_kernel failed: %s\n",
+           cudaGetErrorString(kerr3));
   }
-}
+  CUDA_CHECK(cudaStreamSynchronize(stream));
 
-// Cleanup
-// printf("[DEBUG] Cleanup Start\n");
-// fflush(stdout);
+  // 6. Update Output Size
+  if (d_output_size) {
+    // Host update (if pointer is host)?
+    // Benchmark usually passes HOST pointer for d_output_size in
+    // current API? Wait, signature is `u32* d_output_size`. Usually
+    // device pointer. But verify if caller expects host or device?
+    // ZstdManager expects Host?
+    // Function is `encode_fse_advanced`.
+    // Let's assume it might be Device pointer in full pipeline, but
+    // here for benchmark... Benchmark passes `d_output_size` allocated
+    // with `cudaMalloc`. So we use cudaMemcpy.
+    u32 size_val = header_size + total_bytes;
 
-// CRITICAL FIX: Always hand over offsets if requested, regardless of
-// context usage
-if (d_offsets_out) {
-  *d_offsets_out =
-      d_chunk_bit_offsets; // Hand over BIT offsets (caller must free)
-} else {
-  cudaFree(d_chunk_bit_offsets); // Not requested, free immediately
-}
+    cudaPointerAttributes attrs;
+    cudaError_t attr_err = cudaPointerGetAttributes(&attrs, d_output_size);
+    // Clear error if not a device pointer (cudaPointerGetAttributes
+    // returns invalid value for host pointers)
+    if (attr_err != cudaSuccess)
+      cudaGetLastError();
 
-// Cleanup: Only free if NOT using context
-if (!ctx) {
-  cudaFree(d_chunk_start_states);
-  cudaFree(d_bitstreams);
-  cudaFree(d_chunk_bit_counts);
-  cudaFree(d_chunk_offsets); // Byte offsets always freed
-  cudaFree(d_ctable_for_encoder);
+    if (attr_err == cudaSuccess && attrs.type == cudaMemoryTypeDevice) {
+      CUDA_CHECK(cudaMemcpyAsync(d_output_size, &size_val, sizeof(u32),
+                                 cudaMemcpyHostToDevice, stream));
+    } else {
+      // Host pointer
+      *d_output_size = size_val;
+      // Ensure host is updated before returning if stream is involved?
+      // Since it's a host write, it happens immediately on CPU.
+      // Ideally we should sync stream if the size depends on GPU work?
+      // But size is calculated on CPU here (total_bytes from
+      // h_bit_counts). So it's fine.
+    }
+  }
 
-  // Also free table arrays (Sequential allocs above)
-  cudaFree(d_dev_symbol_table);
-  cudaFree(d_dev_next_state);
-  cudaFree(d_dev_nbBits_table);
-  cudaFree(d_dev_next_state_vals);
-  cudaFree(d_dev_initial_states);
-}
-// printf("[DEBUG] N4: ctable freed\n");
-// fflush(stdout);
-// delete[] h_ctable.d_nbBits_table;
-// delete[] h_ctable.d_next_state_vals;
+  // Cleanup
+  // printf("[DEBUG] Cleanup Start\n");
+  // fflush(stdout);
 
-// printf("[DEBUG] Point N: Cleanup Done. Returning SUCCESS.\n");
-// fflush(stdout);
+  // CRITICAL FIX: Always hand over offsets if requested, regardless of
+  // context usage
+  if (d_offsets_out) {
+    *d_offsets_out =
+        d_chunk_bit_offsets; // Hand over BIT offsets (caller must free)
+  } else {
+    cudaFree(d_chunk_bit_offsets); // Not requested, free immediately
+  }
 
-return Status::SUCCESS;
+  // Cleanup: Only free if NOT using context
+  if (!ctx) {
+    cudaFree(d_chunk_start_states);
+    cudaFree(d_bitstreams);
+    cudaFree(d_chunk_bit_counts);
+    cudaFree(d_chunk_offsets); // Byte offsets always freed
+    cudaFree(d_ctable_for_encoder);
+
+    // Also free table arrays (Sequential allocs above)
+    cudaFree(d_dev_symbol_table);
+    cudaFree(d_dev_next_state);
+    cudaFree(d_dev_nbBits_table);
+    cudaFree(d_dev_next_state_vals);
+    cudaFree(d_dev_initial_states);
+  }
+  // printf("[DEBUG] N4: ctable freed\n");
+  // fflush(stdout);
+  // delete[] h_ctable.d_nbBits_table;
+  // delete[] h_ctable.d_next_state_vals;
+
+  // printf("[DEBUG] Point N: Cleanup Done. Returning SUCCESS.\n");
+  // fflush(stdout);
+
+  return Status::SUCCESS;
 }
 
 // ==============================================================================
