@@ -1612,12 +1612,12 @@ __host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
 
   u32 chunk_size = 64 * 1024; // 64KB chunks (tunable)
 
-  // If caller did not request offsets, force single chunk
-  if (d_offsets_out == nullptr) {
-    chunk_size = input_size;
-    if (chunk_size == 0)
-      chunk_size = 1;
-  }
+  // OPTIMIZATION: Always use multi-chunk parallel encoding for large inputs.\n
+  // // The previous code forced single-chunk mode when d_offsets_out ==
+  // nullptr,\n  // which caused 64MB+ data to encode with 1 thread at 0.005
+  // GB/s.\n  // Multi-chunk encoding works correctly without returning
+  // offsets.\n  // If caller DOES request offsets, we'll provide them from the
+  // parallel path.
 
   u32 num_chunks = (input_size + chunk_size - 1) / chunk_size;
   if (num_chunks == 0)
