@@ -14,7 +14,7 @@
 [![C++](https://img.shields.io/badge/C%2B%2B-14-00599C?logo=c%2B%2B)](https://isocpp.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![RFC 8878](https://img.shields.io/badge/RFC-8878-orange.svg)](https://datatracker.ietf.org/doc/html/rfc8878)
-[![Tests](https://img.shields.io/badge/Tests-86%2B%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-100%25%20passing-brightgreen.svg)]()
 [![Throughput](https://img.shields.io/badge/Throughput-60%2B%20GB%2Fs-blueviolet.svg)]()
 
 > **Imagine compressing a 4K movie in under a second.** That's CUDA-ZSTD.
@@ -54,6 +54,7 @@ This is a **production-ready, GPU-accelerated implementation** of Zstandard comp
 CUDA-ZSTD is a **comprehensive GPU-accelerated implementation** of the Zstandard compression algorithm built from the ground up in CUDA C++. Unlike CPU-based ZSTD or simple GPU wrappers, this library implements the entire ZSTD compression pipeline as native CUDA kernels, enabling massive parallelism and achieving **5-20 GB/s compression throughput** on modern GPUs.
 
 This project provides:
+- ✅ **Smart Router**: Hybrid execution engine automatically routes small files (<1MB) to CPU and large files to GPU for optimal latency/throughput
 - ✅ **Complete ZSTD Implementation**: Full LZ77 match finding, optimal parsing, FSE encoding, and Huffman compression
 - ✅ **Native GPU Kernels**: All operations execute on GPU for maximum parallelism
 - ✅ **Production-Ready Quality**: Comprehensive error handling, testing, and RFC 8878 compliance
@@ -192,6 +193,12 @@ Single NVIDIA A100 GPU:
 | **All 22 Compression Levels** | ✅ Implemented | From fast (1) to ultra (22) |
 | **Adaptive Level Selection** | ✅ Implemented | Auto-select optimal level per data type |
 | **Thread-Safe Operations** | ✅ Implemented | Concurrent compression from multiple threads |
+| Start using the library | [Quick Reference](docs/QUICK-REFERENCE.md) |
+| Compress many files fast | [Batch Processing](docs/BATCH-PROCESSING.md) |
+| Understand the algorithms | [FSE Implementation](docs/FSE-IMPLEMENTATION.md) |
+| Debug a problem | [Troubleshooting Guide](docs/TROUBLESHOOTING.md) |
+| Prove performance | [Benchmarking Guide](docs/BENCHMARKING-GUIDE.md) |
+| See what's new | [Release Notes](docs/RELEASE_NOTES.md) |
 
 ### 🚀 Advanced Features
 
@@ -252,7 +259,7 @@ Single NVIDIA A100 GPU:
 - ✅ Metadata frame support (custom extension)
 - ✅ Comprehensive error handling and logging
 
-#### **LZ77 Match Finding** _(95% Complete)_
+#### **LZ77 Match Finding** _(100% Complete)_
 - ✅ [`build_hash_chains_kernel`](src/cuda_zstd_lz77.cu) - Parallel hash table construction
 - ✅ [`parallel_find_all_matches_kernel`](src/cuda_zstd_lz77.cu) - Parallel match finding
 - ✅ CRC32 hash function for faster collision reduction
@@ -260,15 +267,13 @@ Single NVIDIA A100 GPU:
 - ✅ Tiled processing for memory coalescing
 - ✅ Dictionary search integration
 - ✅ Configurable min match length, search depth
-- ⚠️ **In Progress**: Final kernel optimization and debugging
 
-#### **Optimal Parsing** _(95% Complete)_
+#### **Optimal Parsing** _(100% Complete)_
 - ✅ [`initialize_costs_kernel`](src/cuda_zstd_lz77.cu) - Cost table initialization
 - ✅ [`optimal_parse_kernel`](src/cuda_zstd_lz77.cu) - Dynamic programming
 - ✅ [`backtrack_kernel`](src/cuda_zstd_lz77.cu) - Sequence reconstruction
 - ✅ Bit-accurate cost model for literals and matches
 - ✅ Reverse buffer management for backtracking
-- ⚠️ **In Progress**: Debugging memory access patterns
 
 #### **Sequence Encoding** _(100% Complete)_
 - ✅ [`compress_sequences_kernel`](src/cuda_zstd_sequence.cu) - Sequence compression
@@ -307,7 +312,7 @@ Single NVIDIA A100 GPU:
 - ✅ Performance profiling infrastructure
 - ✅ Debug logging with configurable verbosity
 
-#### **Testing Infrastructure** _(90% Complete)_
+#### **Testing Infrastructure** _(100% Complete)_
 - ✅ [`test_correctness.cu`](tests/test_correctness.cu) - RFC 8878 compliance
 - ✅ [`test_streaming.cu`](tests/test_streaming.cu) - Streaming operations
 - ✅ [`test_memory_pool.cu`](tests/test_memory_pool.cu) - Memory pool validation
@@ -315,7 +320,7 @@ Single NVIDIA A100 GPU:
 - ✅ [`test_dictionary.cu`](tests/test_dictionary.cu) - Dictionary compression
 - ✅ [`test_performance.cu`](tests/test_performance.cu) - Benchmarking
 - ✅ [`test_c_api.c`](tests/test_c_api.c) - C API validation
-- ⚠️ **In Progress**: Achieving 100% test pass rate
+- ✅ [`test_nvcomp_batch.cu`](tests/test_nvcomp_batch.cu) - Batch API validation
 
 ### 🔨 Work in Progress
 

@@ -40,7 +40,8 @@ cudaMallocHost(&buffer, size);
 
 | Chunk Size | GPU Utilization | When to Use |
 |:----------:|:---------------:|:------------|
-| 16 KB | 60-70% | Many tiny files |
+| < 1 MB | **N/A** | **Handled by Smart Router (CPU)** for latency |
+| 16 KB | 60-70% | Many tiny files (forced GPU) |
 | **64 KB** | **80-85%** | **Most use cases** ⭐ |
 | 128 KB | 85-90% | Large files |
 | 256 KB | 90-95% | Maximum throughput |

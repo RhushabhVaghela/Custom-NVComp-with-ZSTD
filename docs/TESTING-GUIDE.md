@@ -54,7 +54,8 @@ ctest -j8 --output-on-failure
 | Test File | What It Checks | Tests |
 |:----------|:---------------|:-----:|
 | `test_streaming.cu` | Chunk-by-chunk compression | 12 |
-| `test_nvcomp_batch.cu` | Batch processing | 6 |
+| `test_nvcomp_batch.cu` | Batch API validation | 6 |
+| `test_scale_repro.cu` | High-concurrency scalability | 3 |
 
 ### 🔧 Components
 | Test File | What It Checks | Tests |

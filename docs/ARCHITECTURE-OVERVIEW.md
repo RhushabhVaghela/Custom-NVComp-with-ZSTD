@@ -55,6 +55,27 @@ Think of it like a well-organized company:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+
+## 🧠 Smart Router (Hybrid Execution)
+
+To achieve the best latency *and* throughput, the Manager intelligently routes workloads:
+
+```
+Input Data
+    │
+    ▼
+[ < 1MB? ] ──YES──▶ [ CPU (libzstd) ] ──▶ Low Latency for Small Files
+    │
+    NO
+    │
+    ▼
+[ GPU Pipeline ] ──▶ High Throughput for Large Files
+```
+
+- **Small Files (<1MB)**: Processed on CPU to avoid PCIe/Kernel launch overhead.
+- **Large Files (>1MB)**: Processed on GPU to leverage massive parallelism.
+- **Batches**: Always processed on GPU for aggregate throughput.
+
 ---
 
 ## 🔄 The Compression Journey
