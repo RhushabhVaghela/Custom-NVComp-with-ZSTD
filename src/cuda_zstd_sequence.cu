@@ -430,6 +430,10 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   }
 
   if (num_sequences == 0) {
+    if (literal_count == 1 || literal_count == 0) {
+      printf("[DEBUG] execute_sequences: num_sequences=0, literal_count=%u\n",
+             literal_count);
+    }
     // No sequences, just copy literals
     if (literal_count > 0) {
       CUDA_CHECK(cudaMemcpyAsync(d_output, d_literals, literal_count,

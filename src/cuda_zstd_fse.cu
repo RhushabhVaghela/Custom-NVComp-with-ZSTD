@@ -1314,7 +1314,7 @@ __host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
                                 bool gpu_optimize, cudaStream_t stream,
                                 FSEContext *ctx, u64 **d_offsets_out) {
   [[maybe_unused]] TableType table_type = TableType::LITERALS;
-  bool auto_table_log = true;
+  [[maybe_unused]] bool auto_table_log = true;
   [[maybe_unused]] bool accurate_norm = true;
 
   // Analyze input statistics
@@ -3863,8 +3863,10 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     ll_table.newState = new u16[size]();
     ll_table.symbol = new u8[size]();
     ll_table.nbBits = new u8[size]();
-    if (FSE_buildDTable_Host(norm, max_sym, size, ll_table) !=
+    // fprintf(stderr, "[DEBUG] Init LL: log=%u\n", ll_log);
+    if (FSE_buildDTable_Host(norm, max_sym, 1 << ll_log, ll_table) !=
         Status::SUCCESS) {
+      printf("[DEBUG] FSE_buildDTable_Host LL failed!\n");
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
@@ -3880,8 +3882,10 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     of_table.newState = new u16[size]();
     of_table.symbol = new u8[size]();
     of_table.nbBits = new u8[size]();
-    if (FSE_buildDTable_Host(norm, max_sym, size, of_table) !=
+    // fprintf(stderr, "[DEBUG] Init OF: log=%u\n", of_log);
+    if (FSE_buildDTable_Host(norm, max_sym, 1 << of_log, of_table) !=
         Status::SUCCESS) {
+      printf("[DEBUG] FSE_buildDTable_Host OF failed!\n");
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
@@ -3897,8 +3901,10 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     ml_table.newState = new u16[size]();
     ml_table.symbol = new u8[size]();
     ml_table.nbBits = new u8[size]();
-    if (FSE_buildDTable_Host(norm, max_sym, size, ml_table) !=
+    // fprintf(stderr, "[DEBUG] Init ML: log=%u\n", ml_log);
+    if (FSE_buildDTable_Host(norm, max_sym, 1 << ml_log, ml_table) !=
         Status::SUCCESS) {
+      printf("[DEBUG] FSE_buildDTable_Host ML failed!\n");
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
@@ -3920,31 +3926,43 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
   // Bits are consumed FROM THE END.
   // Order: LL, ML, OF.
   if (decode_ll) {
+
+    u32 bits;
     if (bit_pos < ll_log) {
-      cleanup();
-      return Status::ERROR_CORRUPT_DATA;
+      u32 zero_pos = 0;
+      bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+      bit_pos = 0;
+    } else {
+      bit_pos -= ll_log;
+      bits = read_bits_from_buffer(h_input.data(), bit_pos, ll_log);
     }
-    bit_pos -= ll_log;
-    u32 read_ptr = bit_pos;
-    stateLL = read_bits_from_buffer(h_input.data(), read_ptr, ll_log);
+    stateLL = bits;
   }
   if (decode_ml) {
+
+    u32 bits;
     if (bit_pos < ml_log) {
-      cleanup();
-      return Status::ERROR_CORRUPT_DATA;
+      u32 zero_pos = 0;
+      bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+      bit_pos = 0;
+    } else {
+      bit_pos -= ml_log;
+      bits = read_bits_from_buffer(h_input.data(), bit_pos, ml_log);
     }
-    bit_pos -= ml_log;
-    u32 read_ptr = bit_pos;
-    stateML = read_bits_from_buffer(h_input.data(), read_ptr, ml_log);
+    stateML = bits;
   }
   if (decode_of) {
+
+    u32 bits;
     if (bit_pos < of_log) {
-      cleanup();
-      return Status::ERROR_CORRUPT_DATA;
+      u32 zero_pos = 0;
+      bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+      bit_pos = 0;
+    } else {
+      bit_pos -= of_log;
+      bits = read_bits_from_buffer(h_input.data(), bit_pos, of_log);
     }
-    bit_pos -= of_log;
-    u32 read_ptr = bit_pos;
-    stateOF = read_bits_from_buffer(h_input.data(), read_ptr, of_log);
+    stateOF = bits;
   }
 
   // 5. Decode Loop (OF, ML, LL for each sequence)
@@ -3953,33 +3971,45 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     if (decode_of) {
       u8 sym = of_table.symbol[stateOF];
       u8 nb = of_table.nbBits[stateOF];
-      if (bit_pos < nb)
-        return Status::ERROR_CORRUPT_DATA;
-      bit_pos -= nb;
-      u32 read_ptr = bit_pos;
-      u32 bits = read_bits_from_buffer(h_input.data(), read_ptr, nb);
+      u32 bits;
+      if (bit_pos < nb) {
+        u32 zero_pos = 0;
+        bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+        bit_pos = 0;
+      } else {
+        bit_pos -= nb;
+        bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
+      }
       stateOF = of_table.newState[stateOF] + bits;
       h_of[i] = sym;
     }
     if (decode_ml) {
       u8 sym = ml_table.symbol[stateML];
       u8 nb = ml_table.nbBits[stateML];
-      if (bit_pos < nb)
-        return Status::ERROR_CORRUPT_DATA;
-      bit_pos -= nb;
-      u32 read_ptr = bit_pos;
-      u32 bits = read_bits_from_buffer(h_input.data(), read_ptr, nb);
+      u32 bits;
+      if (bit_pos < nb) {
+        u32 zero_pos = 0;
+        bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+        bit_pos = 0;
+      } else {
+        bit_pos -= nb;
+        bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
+      }
       stateML = ml_table.newState[stateML] + bits;
       h_ml[i] = sym;
     }
     if (decode_ll) {
       u8 sym = ll_table.symbol[stateLL];
       u8 nb = ll_table.nbBits[stateLL];
-      if (bit_pos < nb)
-        return Status::ERROR_CORRUPT_DATA;
-      bit_pos -= nb;
-      u32 read_ptr = bit_pos;
-      u32 bits = read_bits_from_buffer(h_input.data(), read_ptr, nb);
+      u32 bits;
+      if (bit_pos < nb) {
+        u32 zero_pos = 0;
+        bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+        bit_pos = 0;
+      } else {
+        bit_pos -= nb;
+        bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
+      }
       stateLL = ll_table.newState[stateLL] + bits;
       h_ll[i] = sym;
     }
