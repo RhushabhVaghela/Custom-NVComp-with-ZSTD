@@ -580,7 +580,7 @@ struct FrameHeaderDescriptor {
     return (fhd & 0x04) != 0; // Bit 2
   }
 
-  bool is_single_segment() const { return (fhd & 0x40) != 0; }
+  bool is_single_segment() const { return (fhd & 0x20) != 0; }
 
   u32 get_dictionary_id_size() const {
     u32 did = (fhd >> 0) & 0x03;
@@ -2829,7 +2829,6 @@ public:
                                    &block_size, &block_header_size);
 
         if (status != Status::SUCCESS) {
-
           return status;
         }
 
@@ -2860,13 +2859,16 @@ public:
               d_output + write_offset, block_size, rle_byte);
           read_offset += 1;
           write_offset += block_size;
+          // read_offset += block_size; // FIX: Don't add decompressed size to
+          // input offset!
         } else {
           CUDA_CHECK(cudaMemcpyAsync(d_output + write_offset,
                                      d_input + read_offset, block_size,
                                      cudaMemcpyDeviceToDevice, stream));
           write_offset += block_size;
+          read_offset += block_size;
         }
-        read_offset += block_size;
+        // read_offset increment handled in each branch now
         if (is_last_block)
           break;
       }
@@ -3229,7 +3231,6 @@ private:
     // This fixes compatibility with decompressors that expect block headers.
     // fhd |= 0x20;
     fhd &= ~0x20; // FORCE Single Segment OFF
-    // fhd);
 
     // Determine FCS Field Size (Bits 7-6)
     // 00: 1 byte (if Single Segment) or 0 (Unknown)
@@ -3459,6 +3460,9 @@ private:
     u32 block_type = use_compressed ? 2 : 0; // 2=Compressed, 0=Raw
     u32 block_size = use_compressed ? compressed_size : original_size;
     const byte_t *src_data = use_compressed ? compressed_data : original_data;
+
+    printf("[DEBUG] WRITE_BLOCK: size=%u, orig=%u, type=%u, is_last=%d\n",
+           compressed_size, original_size, block_type, is_last);
 
     // FIX: Detect RLE block (Size 4) and avoid double-wrapping
     if (compressed_size == 4 && use_compressed) {
@@ -3720,11 +3724,11 @@ private:
     CUDA_CHECK(cudaMemcpyAsync(output_size, d_output_size, sizeof(u32),
                                cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream));
-    // if (*output_size == 0 && literals_decompressed_size > 0) {
-    //   printf("[DEBUG] decompress_block: output_size=0 BUT literals=%u! "
-    //          "num_sequences=%u\n",
-    //          literals_decompressed_size, ctx.seq_ctx->num_sequences);
-    // }
+    if (*output_size == 0 && literals_decompressed_size > 0) {
+      printf("[DEBUG] decompress_block: output_size=0 BUT literals=%u! "
+             "num_sequences=%u\n",
+             literals_decompressed_size, ctx.seq_ctx->num_sequences);
+    }
 
     cudaFree(d_output_size);
 
@@ -4079,8 +4083,8 @@ private:
       }
 
       // Let's implement full RFC logic
-      if (size_format == 0) {
-        // Format 00: 1 byte header. Size uses 5 bits (bits 3-7).
+      if (size_format == 0 || size_format == 2) {
+        // Format 00 or 10: 1 byte header. Size uses 5 bits (bits 3-7).
         *h_header_size = 1;
         *h_decompressed_size = (h_header[0] >> 3) & 0x1F;
       } else if (size_format == 1) {

@@ -187,6 +187,13 @@ __device__ __forceinline__ u32 get_actual_offset(
  * resolve the rep-code dependencies. It runs very fast as it does
  * no memory copies, only calculates offsets.
  */
+__global__ void set_value_kernel(u32 *ptr, u32 value) {
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    printf("[KERNEL] set_value_kernel: Writing %u to %p\n", value, ptr);
+    *ptr = value;
+  }
+}
+
 __global__ void compute_sequence_details_kernel(
     const Sequence *sequences, u32 num_sequences, u32 total_literal_count,
     u32 *d_actual_offsets,     // Output: The true offset for each sequence
@@ -388,22 +395,28 @@ __global__ void sequential_block_execute_sequences_kernel(
 
   // --- 3. Copy Trailing Literals ---
   // Calculate total literals used by sequences
+  // --- 3. Copy Trailing Literals ---
+  // Calculate total literals used by sequences
+  u32 used_literals = 0;
+  u32 used_output = 0;
+
   if (num_sequences > 0) {
     u32 last_lit_offset = d_literal_offsets[num_sequences - 1];
     u32 last_lit_len = d_sequences[num_sequences - 1].literal_length;
-    u32 used_literals = last_lit_offset + last_lit_len;
+    used_literals = last_lit_offset + last_lit_len;
 
     u32 last_out_offset = d_output_offsets[num_sequences - 1];
     u32 last_match_len = d_sequences[num_sequences - 1].match_length;
-    u32 used_output = last_out_offset + last_lit_len + last_match_len;
+    used_output = last_out_offset + last_lit_len + last_match_len;
+  }
 
-    if (total_literal_count > used_literals) {
-      u32 trailing_count = total_literal_count - used_literals;
+  // Copy remaining literals (or ALL literals if num_sequences == 0)
+  if (total_literal_count > used_literals) {
+    u32 trailing_count = total_literal_count - used_literals;
 
-      for (u32 j = tid; j < trailing_count; j += block_dim) {
-        if (used_output + j < output_max_size) {
-          output[used_output + j] = d_literals[used_literals + j];
-        }
+    for (u32 j = tid; j < trailing_count; j += block_dim) {
+      if (used_output + j < output_max_size) {
+        output[used_output + j] = d_literals[used_literals + j];
       }
     }
   }
@@ -430,7 +443,7 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   }
 
   if (num_sequences == 0) {
-    if (literal_count == 1 || literal_count == 0) {
+    if (literal_count == 1 || literal_count == 0 || literal_count == 4) {
       printf("[DEBUG] execute_sequences: num_sequences=0, literal_count=%u\n",
              literal_count);
     }
@@ -439,13 +452,10 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
       CUDA_CHECK(cudaMemcpyAsync(d_output, d_literals, literal_count,
                                  cudaMemcpyDeviceToDevice, stream));
     }
-    CUDA_CHECK(cudaMemcpyAsync(d_output_size, &literal_count, sizeof(u32),
-                               cudaMemcpyHostToDevice, stream));
-    // (NEW) CRITICAL: Synchronize after all kernels complete
-    // before host reads d_output_size
-    CUDA_CHECK(cudaStreamSynchronize(stream));
 
-    // Now d_output_size is guaranteed to have the correct value on device
+    // Use kernel to set size on device to ensure improved stream ordering
+    // safety without forcing host synchronization
+    set_value_kernel<<<1, 1, 0, stream>>>(d_output_size, literal_count);
 
     return Status::SUCCESS;
   }

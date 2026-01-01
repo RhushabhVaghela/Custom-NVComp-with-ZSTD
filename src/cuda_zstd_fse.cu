@@ -1493,8 +1493,7 @@ __host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
 
   // PARALLEL ENCODING THRESHOLD
   // For small inputs, use sequential encoder (simpler, verified)
-  // For large inputs, use parallel encoder with new Zstd-compatible
-  // kernels
+  // For large inputs, use parallel encoder with new Zstd-compatible kernels
   const u32 PARALLEL_THRESHOLD = 64 * 1024; // 64KB to match Decoder Chunk Size
 
   if (input_size <= PARALLEL_THRESHOLD) {
@@ -1612,12 +1611,10 @@ __host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
 
   u32 chunk_size = 64 * 1024; // 64KB chunks (tunable)
 
-  // OPTIMIZATION: Always use multi-chunk parallel encoding for large inputs.\n
-  // // The previous code forced single-chunk mode when d_offsets_out ==
-  // nullptr,\n  // which caused 64MB+ data to encode with 1 thread at 0.005
-  // GB/s.\n  // Multi-chunk encoding works correctly without returning
-  // offsets.\n  // If caller DOES request offsets, we'll provide them from the
-  // parallel path.
+  // OPTIMIZATION: Always use multi-chunk parallel encoding for large inputs.
+  // The previous code forced single-chunk mode when d_offsets_out == nullptr,
+  // which caused 64MB+ data to encode with 1 thread at 0.005 GB/s.
+  // Multi-chunk encoding works correctly without returning offsets.
 
   u32 num_chunks = (input_size + chunk_size - 1) / chunk_size;
   if (num_chunks == 0)
