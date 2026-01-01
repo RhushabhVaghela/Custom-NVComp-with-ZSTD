@@ -316,6 +316,17 @@ encode_fse_advanced(const byte_t *d_input, u32 input_size, byte_t *d_output,
  * @brief Decodes a stream using a predefined Zstd table.
  * THIS IS THE CORRECTED DECLARATION.
  */
+/**
+ * @brief Decodes 3 interleaved FSE streams (LL, OF, ML) from a single
+ * bitstream. Used for Standard ZSTD sequence decoding. Handles Predefined and
+ * FSE Compressed modes.
+ */
+Status decode_sequences_interleaved(const byte_t *d_input, u32 input_size,
+                                    u32 num_sequences, u32 *d_ll_out,
+                                    u32 *d_of_out, u32 *d_ml_out, u32 ll_mode,
+                                    u32 of_mode, u32 ml_mode,
+                                    cudaStream_t stream);
+
 __host__ Status decode_fse_predefined(
     const byte_t *d_input, // <-- ADDED: The bitstream to read from
     u32 input_size,        // <-- ADDED: The size of the bitstream

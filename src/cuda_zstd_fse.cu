@@ -2443,21 +2443,17 @@ namespace predefined {
 
 // FIXED: Removed ... and added (u16)
 // casts
-const u16 default_ll_norm[36] = {
-    4, 3, 2, 2, 2, 2, 2, 2, 2,       2,       2,       2,
-    2, 1, 1, 1, 2, 2, 2, 2, 2,       2,       2,       2,
-    2, 3, 2, 1, 1, 1, 1, 1, (u16)-1, (u16)-1, (u16)-1, (u16)-1};
+const u16 default_ll_norm[36] = {4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2,
+                                 2, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-const u16 default_of_norm[29] = {
-    1, 1, 1, 1, 1, 1, 2, 2, 2, 1,       1,       1,       1,       1,      1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, (u16)-1, (u16)-1, (u16)-1, (u16)-1, (u16)-1};
+const u16 default_of_norm[29] = {1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-const u16 default_ml_norm[53] = {
-    1, 4, 3,       2,       2,       2,       2,       2,       2,      1, 1,
-    1, 1, 1,       1,       1,       1,       1,       1,       1,      1, 1,
-    1, 1, 1,       1,       1,       1,       1,       1,       1,      1, 1,
-    1, 1, 1,       1,       1,       1,       1,       1,       1,      1, 1,
-    1, 1, (u16)-1, (u16)-1, (u16)-1, (u16)-1, (u16)-1, (u16)-1, (u16)-1};
+const u16 default_ml_norm[53] = {1, 4, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 } // namespace predefined
 
@@ -3801,7 +3797,206 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     }
   }
 
-  CUDA_CHECK(cudaGetLastError());
+  // ... (previous function implementation) ...
+  return Status::SUCCESS;
+}
+
+/**
+ * @brief Decodes 3 interleaved FSE streams (LL, OF, ML) from a single
+ * bitstream.
+ */
+__host__ Status decode_sequences_interleaved(const byte_t *d_input,
+                                             u32 input_size, u32 num_sequences,
+                                             u32 *d_ll_out, u32 *d_of_out,
+                                             u32 *d_ml_out, u32 ll_mode,
+                                             u32 of_mode, u32 ml_mode,
+                                             cudaStream_t stream) {
+
+  if (input_size == 0 && num_sequences > 0)
+    return Status::ERROR_CORRUPT_DATA;
+
+  // 1. Copy input to host
+  std::vector<byte_t> h_input(input_size + 16, 0); // Padding for safety
+  CUDA_CHECK(cudaMemcpyAsync(h_input.data(), d_input, input_size,
+                             cudaMemcpyDeviceToHost, stream));
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+
+  // 2. Prepare Tables
+  FSEDecodeTable ll_table, of_table, ml_table;
+  memset(&ll_table, 0, sizeof(FSEDecodeTable));
+  memset(&of_table, 0, sizeof(FSEDecodeTable));
+  memset(&ml_table, 0, sizeof(FSEDecodeTable));
+
+  u32 ll_log = 0, of_log = 0, ml_log = 0;
+  u32 max_sym = 0;
+
+  bool decode_ll = (ll_mode == 0); // Only Predefined supported for now
+  bool decode_of = (of_mode == 0);
+  bool decode_ml = (ml_mode == 0);
+
+  auto cleanup = [&]() {
+    if (ll_table.newState) {
+      delete[] ll_table.newState;
+      delete[] ll_table.symbol;
+      delete[] ll_table.nbBits;
+    }
+    if (of_table.newState) {
+      delete[] of_table.newState;
+      delete[] of_table.symbol;
+      delete[] of_table.nbBits;
+    }
+    if (ml_table.newState) {
+      delete[] ml_table.newState;
+      delete[] ml_table.symbol;
+      delete[] ml_table.nbBits;
+    }
+  };
+
+  if (decode_ll) {
+    const u16 *norm =
+        get_predefined_norm(TableType::LITERALS, &max_sym, &ll_log);
+    if (!norm) {
+      cleanup();
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+    u32 size = 1u << ll_log;
+    ll_table.newState = new u16[size]();
+    ll_table.symbol = new u8[size]();
+    ll_table.nbBits = new u8[size]();
+    if (FSE_buildDTable_Host(norm, max_sym, size, ll_table) !=
+        Status::SUCCESS) {
+      cleanup();
+      return Status::ERROR_CORRUPT_DATA;
+    }
+  }
+  if (decode_of) {
+    const u16 *norm =
+        get_predefined_norm(TableType::OFFSETS, &max_sym, &of_log);
+    if (!norm) {
+      cleanup();
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+    u32 size = 1u << of_log;
+    of_table.newState = new u16[size]();
+    of_table.symbol = new u8[size]();
+    of_table.nbBits = new u8[size]();
+    if (FSE_buildDTable_Host(norm, max_sym, size, of_table) !=
+        Status::SUCCESS) {
+      cleanup();
+      return Status::ERROR_CORRUPT_DATA;
+    }
+  }
+  if (decode_ml) {
+    const u16 *norm =
+        get_predefined_norm(TableType::MATCH_LENGTHS, &max_sym, &ml_log);
+    if (!norm) {
+      cleanup();
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+    u32 size = 1u << ml_log;
+    ml_table.newState = new u16[size]();
+    ml_table.symbol = new u8[size]();
+    ml_table.nbBits = new u8[size]();
+    if (FSE_buildDTable_Host(norm, max_sym, size, ml_table) !=
+        Status::SUCCESS) {
+      cleanup();
+      return Status::ERROR_CORRUPT_DATA;
+    }
+  }
+
+  // 3. Allocate Host Outputs
+  std::vector<u32> h_ll(num_sequences), h_of(num_sequences),
+      h_ml(num_sequences);
+
+  // 4. Initialize States
+  u32 bit_pos = input_size * 8;
+  u32 stateLL = 0, stateOF = 0, stateML = 0;
+
+  // Read initial states (LL, then ML, then OF) - Read BACKWARDS from end
+  if (bit_pos < ll_log + ml_log + of_log) { // Approximate check
+                                            // Too strict if some disabled?
+  }
+
+  // Bits are consumed FROM THE END.
+  // Order: LL, ML, OF.
+  if (decode_ll) {
+    if (bit_pos < ll_log) {
+      cleanup();
+      return Status::ERROR_CORRUPT_DATA;
+    }
+    bit_pos -= ll_log;
+    u32 read_ptr = bit_pos;
+    stateLL = read_bits_from_buffer(h_input.data(), read_ptr, ll_log);
+  }
+  if (decode_ml) {
+    if (bit_pos < ml_log) {
+      cleanup();
+      return Status::ERROR_CORRUPT_DATA;
+    }
+    bit_pos -= ml_log;
+    u32 read_ptr = bit_pos;
+    stateML = read_bits_from_buffer(h_input.data(), read_ptr, ml_log);
+  }
+  if (decode_of) {
+    if (bit_pos < of_log) {
+      cleanup();
+      return Status::ERROR_CORRUPT_DATA;
+    }
+    bit_pos -= of_log;
+    u32 read_ptr = bit_pos;
+    stateOF = read_bits_from_buffer(h_input.data(), read_ptr, of_log);
+  }
+
+  // 5. Decode Loop (OF, ML, LL for each sequence)
+  for (int i = num_sequences - 1; i >= 0; i--) {
+
+    if (decode_of) {
+      u8 sym = of_table.symbol[stateOF];
+      u8 nb = of_table.nbBits[stateOF];
+      if (bit_pos < nb)
+        return Status::ERROR_CORRUPT_DATA;
+      bit_pos -= nb;
+      u32 read_ptr = bit_pos;
+      u32 bits = read_bits_from_buffer(h_input.data(), read_ptr, nb);
+      stateOF = of_table.newState[stateOF] + bits;
+      h_of[i] = sym;
+    }
+    if (decode_ml) {
+      u8 sym = ml_table.symbol[stateML];
+      u8 nb = ml_table.nbBits[stateML];
+      if (bit_pos < nb)
+        return Status::ERROR_CORRUPT_DATA;
+      bit_pos -= nb;
+      u32 read_ptr = bit_pos;
+      u32 bits = read_bits_from_buffer(h_input.data(), read_ptr, nb);
+      stateML = ml_table.newState[stateML] + bits;
+      h_ml[i] = sym;
+    }
+    if (decode_ll) {
+      u8 sym = ll_table.symbol[stateLL];
+      u8 nb = ll_table.nbBits[stateLL];
+      if (bit_pos < nb)
+        return Status::ERROR_CORRUPT_DATA;
+      bit_pos -= nb;
+      u32 read_ptr = bit_pos;
+      u32 bits = read_bits_from_buffer(h_input.data(), read_ptr, nb);
+      stateLL = ll_table.newState[stateLL] + bits;
+      h_ll[i] = sym;
+    }
+  }
+
+  // 6. Copy Back
+  if (decode_ll)
+    CUDA_CHECK(cudaMemcpyAsync(d_ll_out, h_ll.data(), num_sequences * 4,
+                               cudaMemcpyHostToDevice, stream));
+  if (decode_of)
+    CUDA_CHECK(cudaMemcpyAsync(d_of_out, h_of.data(), num_sequences * 4,
+                               cudaMemcpyHostToDevice, stream));
+  if (decode_ml)
+    CUDA_CHECK(cudaMemcpyAsync(d_ml_out, h_ml.data(), num_sequences * 4,
+                               cudaMemcpyHostToDevice, stream));
+
+  cleanup();
   return Status::SUCCESS;
 }
 
@@ -3887,6 +4082,10 @@ __host__ Status decode_fse_predefined(const byte_t *d_input, u32 input_size,
   // Decode symbols in reverse
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
     if (state >= table_size) {
+      fprintf(stderr,
+              "[DEBUG] decode_fse_predefined: state(%u) >= table_size(%u) at "
+              "iteration %d, table_type=%d\n",
+              state, table_size, i, (int)table_type);
       delete[] h_table.newState;
       delete[] h_table.symbol;
       delete[] h_table.nbBits;
