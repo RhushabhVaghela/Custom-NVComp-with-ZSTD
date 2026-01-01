@@ -1251,28 +1251,17 @@ public:
     // Create effective config with validated block size
     CompressionConfig effective_config = config;
     effective_config.block_size = effective_block_size;
-    effective_config.cpu_threshold = 0; // FORCE GPU FOR DEBUGGING (REMOVED:
-    // Respect config)
+    effective_config.cpu_threshold = config.cpu_threshold;
 
     if (!ctx_initialized) {
-      // context...\n");
       auto status = initialize_context();
       if (status != Status::SUCCESS) {
-        //                 fprintf(stderr, "[ERROR] compress: initialize_context
-        //                 failed with status %d\n", (int)status);
         return status;
       }
     }
 
-    // (OPTIMIZATION) Reuse seq_ctx if allocated
     if (!ctx.seq_ctx) {
       ctx.seq_ctx = new sequence::SequenceContext();
-    } else {
-      // Just clear/reset if needed, but SequenceContext is mostly pointers to
-      // device buffers which are set up later. The struct itself is
-      // lightweight. memset is risky if it has std containers, but it's a POD
-      // struct usually. Checking SequenceContext definition (not shown) but
-      // strictly, avoiding new/delete is improved.
     }
 
     // Ensure stream is clean - OPTIMIZATION: Removed synchronization for
@@ -1281,14 +1270,8 @@ public:
     cudaGetLastError(); // Just clear previous errors
 
     // ======================================================================
-    // SMART ROUTER: CPU vs GPU Selection
+    // Hybrid Execution: Route small payloads (<1MB) to CPU to avoid overhead
     // ======================================================================
-    // Based on benchmarks, small payloads (<1MB) are faster on CPU
-    // due to PCIe transfer overhead and kernel launch latency.
-    // fprintf(stderr, "[SmartRouter] Input: %zu, Threshold: %u\n",
-    // uncompressed_size, config.cpu_threshold);
-    // ======================================================================
-    // SMART ROUTER: CPU vs GPU vs Chunk Parallel
     // ======================================================================
 
     auto exec_path = ZstdBatchManager::select_execution_path(
@@ -1321,39 +1304,6 @@ public:
                                    uncompressed_size, cudaMemcpyDefault,
                                    stream));
       }
-      // Check for RLE (heuristics)
-      // bool h_is_rle = false;
-      // byte_t h_rle_byte = 0;
-
-      // DISABLE RLE KERNEL FOR DEBUGGING
-
-      /*
-      check_rle_kernel<<<blocks, threads, 0, stream>>>(
-          d_input + block_idx * block_size, // Input
-          current_block_size_val,               // Size
-          (int *)block_ws.d_lz77_temp       // Use temp for result
-      );
-      */
-
-      /*
-      // Copy result back (4 bytes int + 1 byte char)
-      // The first int is the "is_rle" flag
-      // The next byte is the repeated value if flag is set
-      int is_rle_val = 0;
-      CUDA_CHECK(cudaMemcpyAsync(&is_rle_val, block_ws.d_lz77_temp,
-                                 sizeof(int), cudaMemcpyDeviceToHost,
-                                 stream));
-      CUDA_CHECK(cudaStreamSynchronize(stream));
-      h_is_rle = (is_rle_val != 0);
-
-      if (h_is_rle) {
-           CUDA_CHECK(cudaMemcpyAsync(&h_rle_byte,
-                                     (int *)block_ws.d_lz77_temp + 1, 1,
-                                     cudaMemcpyDeviceToHost, stream));
-           CUDA_CHECK(cudaStreamSynchronize(stream));
-      }
-      */
-      CUDA_CHECK(cudaStreamSynchronize(stream)); // Wait for input copy
 
       // 3. Compress on CPU
       size_t cSize =
@@ -1361,12 +1311,8 @@ public:
                         h_input.size(), effective_config.level);
 
       if (ZSTD_isError(cSize)) {
-        // fprintf(stderr, "[SmartRouter] ZSTD_compress failed: %s\n",
-        // ZSTD_getErrorName(cSize));
         return Status::ERROR_COMPRESSION;
       }
-      // fprintf(stderr, "[SmartRouter] CPU compression success: %zu
-      // bytes\n", cSize);
 
       // 4. Copy output from Host to Device
       err = cudaPointerGetAttributes(&attrs, compressed_data);
@@ -1391,9 +1337,7 @@ public:
       cudaGetLastError(); // Clear potential error (e.g. invalid
                           // value for host ptr)
 
-    // START FIX: Declare device_workspace at function scope for
-    // cleanup visibility void *device_workspace = nullptr; // MOVED
-    // TO TOP OF FUNCTION
+    // Validate input/temp pointers
 
     if (temp_attr_err != cudaSuccess ||
         temp_attrs.type != cudaMemoryTypeDevice) {

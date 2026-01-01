@@ -297,13 +297,13 @@ decode_fse(const byte_t *d_input, u32 input_size, byte_t *d_output,
            const u64 *d_chunk_offsets = nullptr, // Optional: Device ptr
            cudaStream_t stream = 0, FSEDecodeContext *ctx = nullptr);
 
-// Debug version
-__host__ Status encode_fse_advanced_debug(const byte_t *d_input, u32 input_size,
-                                          byte_t *d_output, u32 *d_output_size,
-                                          bool gpu_optimize = true,
-                                          cudaStream_t stream = 0,
-                                          FSEContext *ctx = nullptr,
-                                          u64 **d_offsets_out = nullptr);
+// Core implementation (internal)
+__host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
+                                byte_t *d_output, u32 *d_output_size,
+                                bool gpu_optimize = true,
+                                cudaStream_t stream = 0,
+                                FSEContext *ctx = nullptr,
+                                u64 **d_offsets_out = nullptr);
 
 // Production version (wrapper)
 __host__ Status

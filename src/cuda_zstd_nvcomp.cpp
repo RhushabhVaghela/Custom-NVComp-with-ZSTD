@@ -305,16 +305,12 @@ Status NvcompV5BatchManager::compress_async(
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  // DEBUG PRINT
-  // printf("[NvcompV5] compress_async: chunks=%zu temp=%zu stream=%p\n",
-  // num_chunks, temp_storage_bytes, (void *)stream);
-
   std::vector<BatchItem> items(num_chunks);
   std::vector<size_t> h_uncompressed_sizes(num_chunks);
   std::vector<void *> h_uncompressed_ptrs(num_chunks);
   std::vector<void *> h_compressed_ptrs(num_chunks);
 
-  // === FIX: Use async memcpy with explicit synchronization ===
+  // Copy input sizes to host (async)
   // Check if d_uncompressed_sizes is device or host
   cudaPointerAttributes patts;
   cudaError_t attr_err = cudaPointerGetAttributes(&patts, d_uncompressed_sizes);
@@ -373,7 +369,7 @@ Status NvcompV5BatchManager::compress_async(
            num_chunks * sizeof(void *));
   }
 
-  // === FIX: CRITICAL - Synchronize stream before using host copies ===
+  // Synchronize stream before using host copies
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   // Output sizes (used as input capacity)
@@ -400,18 +396,14 @@ Status NvcompV5BatchManager::compress_async(
   for (size_t i = 0; i < num_chunks; ++i) {
     items[i].input_ptr = const_cast<void *>(h_uncompressed_ptrs[i]);
     items[i].input_size = h_uncompressed_sizes[i];
-    items[i].output_ptr = h_compressed_ptrs[i];
     items[i].output_size = h_compressed_sizes[i]; // Set capacity
-    // printf("[NvcompV5] Chunk %zu: input=%p size=%zu output=%p cap=%zu\n", i,
-    // items[i].input_ptr, items[i].input_size, items[i].output_ptr,
-    // items[i].output_size);
   }
 
   // Call the batch manager
   Status status = pimpl_->manager->compress_batch(items, d_temp_storage,
                                                   temp_storage_bytes, stream);
 
-  // === FIX: Update output sizes with proper synchronization ===
+  // Update output sizes with proper synchronization
   // std::vector<size_t> h_compressed_sizes(num_chunks); // Already declared
   for (size_t i = 0; i < num_chunks; ++i) {
     h_compressed_sizes[i] = items[i].output_size;
@@ -459,8 +451,7 @@ Status NvcompV5BatchManager::decompress_async(
   std::vector<void *> h_compressed_ptrs(num_chunks);
   std::vector<void *> h_uncompressed_ptrs(num_chunks);
 
-  // === FIX: Use async memcpy with explicit synchronization and pointer
-  // attributes check ===
+  // Use async memcpy with explicit synchronization and pointer attributes check
 
   // 1. Compressed Sizes
   cudaPointerAttributes patts;
@@ -555,7 +546,7 @@ Status NvcompV5BatchManager::decompress_async(
            num_chunks * sizeof(size_t));
   }
 
-  // === FIX: CRITICAL - Synchronize before using host arrays ===
+  // Synchronize before using host arrays
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   // Now safe to access h_* arrays
@@ -570,7 +561,7 @@ Status NvcompV5BatchManager::decompress_async(
   Status status = pimpl_->manager->decompress_batch(items, d_temp_storage,
                                                     temp_storage_bytes, stream);
 
-  // === FIX: Synchronize after decompression ===
+  // Synchronize after decompression
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   // Update output sizes
@@ -616,7 +607,7 @@ Status get_metadata_async(const void *d_compressed_data, size_t compressed_size,
   if (!h_metadata)
     return Status::ERROR_INVALID_PARAMETER;
 
-  // (FIX) metadata extraction requires reading the header.
+  // Metadata extraction requires reading the header.
   // If d_compressed_data is on device, we must copy the header to host.
   // We copy enough for skippable frames + Zstd header.
   size_t header_peek_size = std::min(compressed_size, (size_t)128);
