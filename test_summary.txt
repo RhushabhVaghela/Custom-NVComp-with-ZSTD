@@ -1,0 +1,2626 @@
+Test project /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+      Start  1: test_adaptive_level
+ 1/70 Test  #1: test_adaptive_level ......................   Passed    0.48 sec
+      Start  2: test_alternative_allocation_strategies
+ 2/70 Test  #2: test_alternative_allocation_strategies ...   Passed    0.40 sec
+      Start  3: test_c_api_edge_cases
+ 3/70 Test  #3: test_c_api_edge_cases ....................   Passed    0.36 sec
+      Start  4: test_checksum_validation
+ 4/70 Test  #4: test_checksum_validation .................   Passed    0.54 sec
+      Start  5: test_comprehensive_fallback
+ 5/70 Test  #5: test_comprehensive_fallback ..............   Passed    0.77 sec
+      Start  6: test_compressible_data
+ 6/70 Test  #6: test_compressible_data ...................   Passed    0.01 sec
+      Start  7: test_concurrency_repro
+ 7/70 Test  #7: test_concurrency_repro ...................   Passed    0.48 sec
+      Start  8: test_correctness
+ 8/70 Test  #8: test_correctness .........................***Failed    1.29 sec
+========================================
+CUDA ZSTD Correctness Tests
+========================================
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+
+[TEST] Identity Property: decompress(compress(data)) == data
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] test_identity_property: Decompression failed
+
+[TEST] Various Input Sizes Round-trip
+  [INFO] Testing 39 different sizes
+[DEBUG] execute_sequences: num_sequences=0, literal_count=0
+  [FAIL] Size 1 (Decompress Status: 0, Size: 0)
+    Mismatch at byte 1: expected 1, got 0
+  [FAIL] Size 2 (Data Mismatch)
+status 6
+  [FAIL] Size 3 (Decompress Status: 6, Size: 3)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+  [FAIL] Size 7 (Decompress Status: 6, Size: 7)
+  [FAIL] Size 15 (Decompress Status: 0, Size: 10)
+    Mismatch at byte 1: expected 1, got 0
+  [FAIL] Size 16 (Data Mismatch)
+  [FAIL] Size 17 (Decompress Status: 0, Size: 13)
+  [FAIL] Size 31 (Decompress Status: 0, Size: 25)
+[DEBUG] execute_sequences: num_sequences=0, literal_count=0
+  [FAIL] Size 32 (Decompress Status: 0, Size: 0)
+  [FAIL] Size 33 (Decompress Status: 0, Size: 29)
+  [FAIL] Size 63 (Decompress Status: 0, Size: 65)
+[DEBUG] execute_sequences: num_sequences=0, literal_count=0
+  [FAIL] Size 64 (Decompress Status: 0, Size: 0)
+  [FAIL] Size 65 (Decompress Status: 0, Size: 69)
+  [FAIL] Size 127 (Decompress Status: 0, Size: 81)
+[DEBUG] execute_sequences: num_sequences=0, literal_count=0
+  [FAIL] Size 128 (Decompress Status: 0, Size: 0)
+  [FAIL] Size 129 (Decompress Status: 0, Size: 85)
+  [FAIL] Size 255 (Decompress Status: 0, Size: 177)
+[DEBUG] execute_sequences: num_sequences=0, literal_count=0
+  [FAIL] Size 256 (Decompress Status: 0, Size: 0)
+  [FAIL] Size 257 (Decompress Status: 0, Size: 128)
+  [FAIL] Size 511 (Decompress Status: 0, Size: 133)
+  [FAIL] Size 512 (Decompress Status: 0, Size: 133)
+  [FAIL] Size 513 (Decompress Status: 0, Size: 133)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+  [FAIL] Size 1023 (Decompress Status: 6, Size: 1023)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+  [FAIL] Size 1024 (Decompress Status: 6, Size: 1024)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+  [FAIL] Size 1025 (Decompress Status: 6, Size: 1025)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 4095 (Decompress Status: 6, Size: 4095)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 4096 (Decompress Status: 6, Size: 4096)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 4097 (Decompress Status: 6, Size: 4097)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 8191 (Decompress Status: 6, Size: 8191)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 8192 (Decompress Status: 6, Size: 8192)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 8193 (Decompress Status: 6, Size: 8193)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 16383 (Decompress Status: 6, Size: 16383)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 16384 (Decompress Status: 6, Size: 16384)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 16385 (Decompress Status: 6, Size: 16385)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 32767 (Decompress Status: 6, Size: 32767)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 32768 (Decompress Status: 6, Size: 32768)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] Size 32769 (Decompress Status: 6, Size: 32769)
+  [FAIL] Size 65535 (Decompress Status: 0, Size: 133)
+  [FAIL] Size 65536 (Decompress Status: 0, Size: 133)
+  [INFO] Passed: 0/39
+  [FAIL] test_various_sizes_roundtrip: Some size tests failed
+
+[TEST] Random Inputs Round-trip (1000 tests)
+status 24
+status 24
+status 24
+status 24
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+status 24
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=4
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 6
+status 24
+status 24
+status 6
+status 24
+status 24
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=5
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=5
+[DEBUG] build_sequences failed with status 4
+status 4
+status 24
+status 24
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+status 6
+status 24
+status 24
+status 24
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=5
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+status 24
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=1
+status 6
+[DEBUG] build_sequences failed with status 4
+status 4
+status 24
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+status 24
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 24
+status 24
+status 24
+status 24
+status 6
+status 24
+status 24
+status 6
+status 24
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=4
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+status 24
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=1
+status 6
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=5
+status 6
+status 24
+status 24
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [INFO] Passed: 0/100
+  [FAIL] test_random_inputs_roundtrip: Some random tests failed
+
+[TEST] All Compression Levels (1-22)
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+status 24
+
+  Level | Ratio   | Status
+  ------|---------|--------
+  [PASS] All Compression Levels
+
+[TEST] ZSTD Frame Format Validation
+  [INFO] Magic number: 0xfd2fb528
+  [INFO] ✓ Valid ZSTD magic number
+  [INFO] Compressed size: 19 bytes
+  [INFO] ✓ Frame format appears valid
+  [PASS] Frame Format Validation
+
+[TEST] Checksum Validation
+  [INFO] Compressed data size: 276 bytes
+  [INFO] Note: Checksum validation via decompression round-trip
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=4
+  [FAIL] test_checksum_validation: Decompression failed
+
+[TEST] Special Data Patterns
+  [INFO] Testing: All zeros
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+  [FAIL] test_special_patterns: All zeros decompression failed
+
+[TEST] Byte Alignment and Padding
+status 6
+[DEBUG] execute_sequences: num_sequences=0, literal_count=0
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+  [INFO] Passed: 0/10 unaligned sizes
+  [FAIL] test_byte_alignment: Some alignment tests failed
+
+[TEST] Deterministic Compression
+  [INFO] First compression: 32778 bytes
+  [INFO] Second compression: 32778 bytes
+  [INFO] ✓ Compression is deterministic (bit-exact)
+  [PASS] Deterministic Compression
+========================================
+TEST RESULTS
+========================================
+Passed: 3/9
+Failed: 6/9
+
+✗ SOME TESTS FAILED
+========================================
+
+      Start  9: test_coverage_gaps
+ 9/70 Test  #9: test_coverage_gaps .......................   Passed    0.47 sec
+      Start 10: test_cuda_zstd_utils_dedicated
+10/70 Test #10: test_cuda_zstd_utils_dedicated ...........   Passed    0.43 sec
+      Start 11: test_data_integrity_comprehensive
+11/70 Test #11: test_data_integrity_comprehensive ........   Passed    0.66 sec
+      Start 12: test_dictionary
+12/70 Test #12: test_dictionary ..........................   Passed    0.54 sec
+      Start 13: test_dictionary_compression
+13/70 Test #13: test_dictionary_compression ..............***Failed    0.48 sec
+
+==================================================
+  Test: Dictionary Compression Feature
+==================================================
+
+--- Dictionary Training ---
+  [1;32m✓ PASSED[0m: Dictionary trained. Size: 16384 bytes, ID: 451183595
+
+--- Correctness Test (Round-trip) ---
+  [1;31m✗ FAILED[0m: Round-trip data mismatch.
+
+      Start 14: test_dual_mode_roundtrip
+14/70 Test #14: test_dual_mode_roundtrip .................   Passed    0.67 sec
+      Start 15: test_error_context
+15/70 Test #15: test_error_context .......................   Passed    0.01 sec
+      Start 16: test_error_handling
+16/70 Test #16: test_error_handling ......................Subprocess aborted***Exception:   4.13 sec
+
+========================================
+CUDA ZSTD - Error Handling Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+CUDA Version: 12080
+
+========================================
+SUITE 1: Error Code Coverage
+========================================
+
+[TEST] All Error Code Messages
+  [INFO] Testing 18 error codes
+  [INFO] Status::SUCCESS (0)
+  [INFO] Status::ERROR_INVALID_PARAMETER (2)
+  [INFO] Status::ERROR_BUFFER_TOO_SMALL (7)
+  [INFO] Status::ERROR_OUT_OF_MEMORY (3)
+  [INFO] Status::ERROR_COMPRESSION (12)
+  [INFO] Status::ERROR_DECOMPRESSION (13)
+  [INFO] Status::ERROR_CORRUPT_DATA (6)
+  [INFO] Status::ERROR_UNSUPPORTED_VERSION (8)
+  [INFO] Status::ERROR_DICTIONARY_MISMATCH (9)
+  [INFO] Status::ERROR_CUDA_ERROR (4)
+  [INFO] Status::UNKNOWN_ERROR (19)
+  [INFO] Status::UNKNOWN_ERROR (20)
+  [INFO] Status::UNKNOWN_ERROR (21)
+  [INFO] Status::UNKNOWN_ERROR (22)
+  [INFO] Status::UNKNOWN_ERROR (23)
+  [INFO] Status::UNKNOWN_ERROR (24)
+  [INFO] Status::UNKNOWN_ERROR (25)
+  [INFO] Status::UNKNOWN_ERROR (26)
+  [PASS] All Error Code Messages
+
+[TEST] Error Message Validation
+  [INFO] Error messages are descriptive
+  [PASS] Error Message Validation
+
+========================================
+SUITE 2: Input Validation
+========================================
+
+[TEST] Null Pointer Detection
+  [INFO] ✓ Null input detected
+  [INFO] ✓ Null output detected
+  [INFO] ✓ Null size pointer detected
+  [INFO] ✓ Null workspace detected
+  [PASS] Null Pointer Detection
+
+[TEST] Invalid Size Parameters
+  [INFO] ✓ Zero input size detected
+[WARN] Workspace size 202914184931835904 exceeds limit 34359738368. Clamping.
+  [INFO] ✓ Huge size rejected (Buffer Too Small)
+  [INFO] ✓ Overflow size detected
+  [INFO] ✓ Insufficient workspace detected
+  [INFO] ✓ Huge size rejected (Buffer Too Small)
+  [PASS] Invalid Size Parameters
+
+[TEST] Invalid Compression Levels
+  [INFO] ✓ Level 0 rejected
+  [INFO] ✓ Level 23 rejected
+  [INFO] ✓ Negative level rejected
+  [INFO] ✓ Large level rejected
+  [INFO] ✓ All valid levels (1-22) accepted
+  [PASS] Invalid Compression Levels
+
+[TEST] Invalid Workspace Size
+  [INFO] Required workspace: 52428800 bytes
+  [INFO] ✓ Insufficient workspace detected
+terminate called after throwing an instance of 'std::bad_alloc'
+  what():  std::bad_alloc
+
+      Start 17: test_extended_validation
+17/70 Test #17: test_extended_validation .................   Passed    3.73 sec
+      Start 18: test_fallback_strategies
+18/70 Test #18: test_fallback_strategies .................   Passed    5.47 sec
+      Start 19: test_find_matches_small
+19/70 Test #19: test_find_matches_small ..................   Passed    0.31 sec
+      Start 20: test_fse_comprehensive
+20/70 Test #20: test_fse_comprehensive ...................***Failed    0.43 sec
+
+========================================
+FSE Comprehensive Test Suite
+(Consolidated from 16 FSE test files)
+========================================
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: Basic FSE Operations
+========================================
+
+[TEST] MultiTableFSE Initialization
+  [PASS] test_multitable_fse_init
+
+[TEST] FSE Frequency Normalization
+  [PASS] test_fse_normalization
+
+========================================
+SUITE 2: FSE Roundtrip Tests
+========================================
+
+[TEST] FSE Roundtrip (Small Data)
+  [FAIL] test_fse_roundtrip_small: Data mismatch
+  Encoded 11 bytes -> 30 bytes
+
+[TEST] FSE Roundtrip (Large Data)
+  [FAIL] test_fse_roundtrip_large: Data verification failed
+  Encoded 262144 bytes -> 248149 bytes (1.06x compression)
+  Mismatch at 0: got 0x30, expected 0x1F
+  Mismatch at 1: got 0x33, expected 0x0B
+  Mismatch at 2: got 0x31, expected 0x33
+  Mismatch at 3: got 0x0D, expected 0x2E
+  Mismatch at 4: got 0x1E, expected 0x3B
+  Total mismatches: 259811
+
+========================================
+SUITE 3: Entropy Distribution Tests
+========================================
+
+[TEST] FSE Single Symbol (RLE-like)
+  Single symbol: 1024 -> 146 bytes
+  [PASS] test_fse_single_symbol
+
+[TEST] FSE Two Symbols (50/50)
+  Two symbols: 1024 -> 276 bytes
+  [PASS] test_fse_two_symbols
+
+[TEST] FSE Full Alphabet (256 symbols)
+  Full alphabet: 262144 -> 248262 bytes (1.06x)
+  [PASS] test_fse_full_alphabet
+
+========================================
+SUITE 4: Manager Integration
+========================================
+
+[TEST] FSE Manager Integration
+[Pipeline] NumBlocks=8 PerBlock=1581568 TotalNeeded=12652544 Available=66976256
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4811
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4724
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4114
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4769
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4998
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4068
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4714
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4389
+  Manager compress: 1048576 -> 84113 bytes (12.47x)
+  [PASS] test_fse_manager_integration
+
+========================================
+RESULTS: 6/8 tests passed
+========================================
+
+      Start 21: test_gpu_bitstream
+21/70 Test #21: test_gpu_bitstream .......................   Passed    0.34 sec
+      Start 22: test_gpu_simple
+22/70 Test #22: test_gpu_simple ..........................   Passed    0.35 sec
+      Start 23: test_hash_chain_only
+23/70 Test #23: test_hash_chain_only .....................   Passed    0.39 sec
+      Start 24: test_hash_comprehensive
+24/70 Test #24: test_hash_comprehensive ..................   Passed    0.29 sec
+      Start 25: test_huffman
+25/70 Test #25: test_huffman .............................   Passed    2.27 sec
+      Start 26: test_inference_api
+26/70 Test #26: test_inference_api .......................***Failed    0.49 sec
+
+========================================
+CUDA ZSTD - Inference-Ready API Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: decompress_to_preallocated Tests
+========================================
+
+[TEST] decompress_to_preallocated Basic
+  [INFO] Compressed: 262144 -> 66 bytes
+  [FAIL] test_decompress_to_preallocated_basic: Output size mismatch
+
+[TEST] decompress_to_preallocated Buffer Reuse (Zipper Pattern)
+  [INFO] Allocated single Zipper Buffer: 131072 bytes
+  [INFO] Pre-compressed 5 layers
+  [FAIL] test_decompress_to_preallocated_buffer_reuse: Layer 0 size mismatch
+
+========================================
+SUITE 2: decompress_batch_preallocated Tests
+========================================
+
+[TEST] decompress_batch_preallocated Basic
+  [INFO] Prepared 4 batch items with pre-allocated outputs
+  [FAIL] test_decompress_batch_preallocated_basic: Item 0 size mismatch
+
+========================================
+SUITE 3: decompress_async_no_sync Tests
+========================================
+
+[TEST] decompress_async_no_sync Basic
+  [INFO] Launch returned in 1.37 ms
+  [INFO] Total time (with sync): 1.41 ms
+    Mismatch at byte 1
+  [FAIL] test_decompress_async_no_sync_basic: Data verification failed
+
+========================================
+SUITE 4: Inference Integration Tests
+========================================
+
+[TEST] Inference Workspace Allocation
+  [INFO] Workspace size for 1MB compressed / 4MB output: 6291456 bytes
+  [INFO] ✓ Allocated 6291456 bytes of workspace
+  [INFO] ✓ Workspace freed
+  [PASS] Inference Workspace Allocation
+
+[TEST] Full Inference Simulation (Multi-Layer)
+  [INFO] Allocated inference workspace: 5242880 bytes
+  [INFO] Allocated double buffer (2 x 524288 bytes)
+  [INFO] Pre-compressed 10 layers
+    Mismatch at byte 0
+  [FAIL] test_full_inference_simulation: Layer 0 data verification failed
+
+========================================
+SUITE 5: Error Handling Tests
+========================================
+
+[TEST] Null Parameter Handling
+  [INFO] ✓ Null compressed_data handled
+  [INFO] ✓ Null output handled
+  [INFO] ✓ Null actual_size handled
+  [PASS] Null Parameter Handling
+
+[TEST] Buffer Too Small Handling
+  [INFO] ✓ Zero capacity handled
+  [PASS] Buffer Too Small Handling
+
+========================================
+RESULTS: 3/8 tests passed
+========================================
+
+      Start 27: test_integration
+27/70 Test #27: test_integration .........................***Failed    6.89 sec
+
+========================================
+CUDA ZSTD - Integration & Stress Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: End-to-End Pipeline Tests
+========================================
+
+[TEST] Complete Compression Pipeline
+  [INFO] Testing complete pipeline: input -> compress -> decompress -> verify
+  [INFO] Allocating memory...
+  [INFO] Copying input to device...
+  [INFO] Creating manager...
+  [INFO] Getting temp size...
+  [INFO] Temp size: 106954752
+  [INFO] Compressing...
+[Pipeline] NumBlocks=8 PerBlock=1581568 TotalNeeded=12652544 Available=66976256
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4040
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4994
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3838
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5373
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4190
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3969
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4742
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4303
+  [INFO] ✓ Compression: 1048576 -> 83047 bytes
+  [INFO] ✓ Decompression: 83047 -> 1048576 bytes
+  [INFO] ✓ Data verified correctly
+  [PASS] Complete Compression Pipeline
+
+[TEST] Dictionary Integration
+  [INFO] ✓ Dictionary trained (16384 bytes)
+  [INFO] ✓ Compressed with dictionary: 131072 -> 67
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+  [FAIL] test_dictionary_integration: Dictionary decompression failed
+
+[TEST] Batch Processing with Memory Pool
+  [INFO] Processing 10 items of 64 KB each
+  [INFO] ✓ Batch compressed
+  [INFO] Item 0: 65536 -> 52 bytes
+  [INFO] Item 1: 65536 -> 65 bytes
+  [INFO] Item 2: 65536 -> 52 bytes
+  [INFO] Item 3: 65536 -> 65 bytes
+  [INFO] Item 4: 65536 -> 52 bytes
+  [INFO] Item 5: 65536 -> 65 bytes
+  [INFO] Item 6: 65536 -> 52 bytes
+  [INFO] Item 7: 65536 -> 65 bytes
+  [INFO] Item 8: 65536 -> 52 bytes
+  [INFO] Item 9: 65536 -> 65 bytes
+  [INFO] Pool stats - Allocations: 21, Hit rate: 76.1905%
+  [PASS] Batch Processing with Memory Pool
+
+========================================
+SUITE 2: Large File Tests
+========================================
+
+[TEST] Large File Compression (100MB)
+  [INFO] File size: 100 MB
+  [INFO] Processing in 4 MB chunks
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4111
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4336
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4909
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4498
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4710
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3750
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4964
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4187
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5029
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4174
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4933
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4871
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4179
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3854
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4709
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4464
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4555
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4836
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4635
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4872
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3462
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4378
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3781
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4773
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4579
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3620
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3683
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3812
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3812
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3853
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3963
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4201
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3849
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4454
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3674
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4741
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4581
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4441
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5351
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4385
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3527
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4811
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4363
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4023
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4520
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3532
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4773
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4553
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3748
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4455
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4393
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4041
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4741
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4681
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4078
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4646
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3840
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4234
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4137
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4043
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4248
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4933
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3652
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4520
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3972
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4424
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4068
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3626
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3752
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4265
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4549
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3821
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3626
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4295
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4524
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4274
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4036
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4665
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3955
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4657
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4741
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5349
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4736
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4659
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4578
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4110
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3941
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3972
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4773
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4068
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4010
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4305
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4401
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5161
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4074
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4456
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4057
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4518
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4232
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3370
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4303
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4403
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4301
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3965
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4200
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5252
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4174
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3972
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3981
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4306
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4243
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4206
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4399
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4302
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4416
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4390
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4776
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4678
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4209
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3364
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3556
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4129
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4792
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4272
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4571
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4326
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3833
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3588
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4997
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3760
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4458
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4881
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4777
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4390
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4546
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4334
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3569
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4401
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4328
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4275
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4746
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4695
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5001
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5544
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4706
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4896
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3622
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4036
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4264
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4359
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3973
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4498
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4367
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4176
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3719
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3782
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4189
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3524
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4581
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3234
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4152
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4549
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4036
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4258
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3965
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3945
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3969
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4114
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4997
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5637
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4623
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4224
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3428
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4528
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4408
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4482
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4681
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4709
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4431
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4339
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4549
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4208
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4016
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4204
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4965
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4677
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4454
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3619
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3913
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3558
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4278
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4125
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4649
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4274
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3748
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3946
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4560
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4571
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4786
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4413
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3748
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4246
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4385
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4085
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4626
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3940
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4325
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4231
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5127
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4423
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4202
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4598
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4484
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4368
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4396
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4233
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3527
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3988
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3556
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3908
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4701
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4745
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3916
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4616
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4601
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4015
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4655
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4142
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3765
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5061
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4966
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4450
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4325
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4592
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4581
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5040
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4198
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5093
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4135
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3910
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4487
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4995
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4265
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4779
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3993
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4304
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4320
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4274
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4616
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4371
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4016
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4850
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4394
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4297
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4567
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4870
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5061
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4885
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4238
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4754
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4103
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4871
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3765
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3830
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4743
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3877
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4352
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4520
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5171
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4405
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4247
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4677
+  [INFO] Progress: 10/25 chunks, 3 MB compressed
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4389
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4472
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4745
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4009
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5125
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4709
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4759
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3820
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5701
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4389
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3652
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4518
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4265
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4300
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4015
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4534
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4711
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4262
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4305
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3836
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4455
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4599
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4232
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4055
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3812
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4488
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5286
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4105
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5189
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4184
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3940
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3985
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4676
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3597
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4351
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4351
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4263
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4044
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4294
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4255
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4068
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3553
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4063
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3780
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4520
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4482
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3855
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3697
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4370
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4102
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3414
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3812
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3908
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3944
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4623
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4240
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3575
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4463
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4809
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4409
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4729
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5222
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4597
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4203
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3986
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4677
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4352
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4335
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4500
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3815
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4869
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5127
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4074
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3769
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4264
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5189
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4837
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5223
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4069
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4560
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3684
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4164
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4144
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4045
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4115
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4370
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4102
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4865
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4782
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4895
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5074
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4649
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4691
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5041
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4651
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4618
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4445
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4463
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4345
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4389
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4202
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4192
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4386
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4805
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3717
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4504
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4117
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3525
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3994
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4036
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4425
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4416
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3949
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4102
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4696
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3876
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3908
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3505
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3940
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4677
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4843
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3755
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4822
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3947
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4263
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4456
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3976
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4935
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4614
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3429
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4674
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3877
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4902
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4437
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3877
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4234
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4060
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4977
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4026
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4232
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3754
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4246
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4917
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3716
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4972
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4095
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4205
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4703
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4934
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4210
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4905
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4128
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4123
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3377
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3989
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3895
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4337
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4205
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4467
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4405
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4524
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4368
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4023
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5137
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3652
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4170
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4234
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3732
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5134
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3940
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4107
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4038
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4272
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4488
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4146
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4967
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4394
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4297
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4388
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4970
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4262
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4371
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4741
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4838
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3719
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4621
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3924
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3876
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4005
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4581
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5157
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4677
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4743
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4655
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4292
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4384
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4104
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4456
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4545
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4045
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5061
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4069
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4325
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3536
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4131
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4313
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3653
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4805
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4525
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4128
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3621
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4306
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3748
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3440
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3777
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3716
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4773
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4657
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4679
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3934
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4162
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3744
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4498
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5383
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3953
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3977
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3850
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3916
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4425
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4966
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3653
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4169
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4799
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4065
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5029
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4179
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5365
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4741
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5098
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4016
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4174
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4298
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5149
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4234
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4647
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4466
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4166
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4422
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3980
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4039
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4771
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4023
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4625
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5130
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4140
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4329
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3876
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3317
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4162
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4744
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3729
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4358
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3767
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4900
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3972
+  [INFO] Progress: 20/25 chunks, 6 MB compressed
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3656
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4325
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4465
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4557
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3768
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3693
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4837
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4068
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3764
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4292
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3813
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4816
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4268
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5068
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4022
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4456
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4241
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4263
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4997
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4279
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4514
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4192
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3995
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3895
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4492
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4388
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4337
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4997
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3448
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4230
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3998
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4157
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4390
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4188
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4389
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3687
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4389
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4617
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4358
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4516
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4258
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4822
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3851
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4389
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4402
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4038
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5002
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4030
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4103
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4677
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3940
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4044
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3684
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5041
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4686
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4397
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4586
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4521
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4294
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4256
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4683
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4743
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4168
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4709
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4998
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5157
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3781
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4849
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4198
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4230
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4125
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4716
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4333
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4290
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4077
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4773
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3918
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4199
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4006
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4036
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3398
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4390
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5283
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3719
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4419
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4549
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4741
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4748
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4151
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4042
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5078
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4360
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5326
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4171
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4134
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4881
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4798
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4232
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4036
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4579
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4231
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4712
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4198
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3652
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4755
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4242
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4008
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4556
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4358
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5355
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4199
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4037
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4710
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4815
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4271
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3930
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4765
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4290
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5112
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5285
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4047
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3975
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4044
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3996
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5344
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5233
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4575
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4143
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3705
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4815
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4933
+  [INFO] Progress: 25/25 chunks, 7 MB compressed
+  [INFO] Total compressed: 7 MB
+  [INFO] Compression ratio: 12.74:1
+  [INFO] Time: 2.76 seconds
+  [INFO] Throughput: 36.3 MB/s
+  [PASS] Large File Compression
+
+[TEST] Memory Efficiency for Large Files
+  [INFO] Free memory before: 14961 MB
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3913
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3677
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3240
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3532
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3025
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3734
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3243
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2991
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3857
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3440
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2990
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3559
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3605
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3898
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3736
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3076
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3503
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3231
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3764
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2858
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3513
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3167
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3429
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3198
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3894
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3725
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2705
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2699
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3462
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3509
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3272
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3207
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3204
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3097
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3418
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3747
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3453
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3161
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2893
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3185
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3607
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3108
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3318
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2925
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3812
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3171
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3731
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3470
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3611
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2987
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3851
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3070
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3351
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3330
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3541
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3932
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3446
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3201
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3127
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3727
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3714
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3263
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3136
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3468
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3667
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3262
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3079
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3382
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3119
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3013
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4255
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3107
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3266
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3262
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3028
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3084
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3218
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3112
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3289
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4402
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3408
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3895
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3269
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3820
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3329
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3184
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3848
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3214
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3702
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3148
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3564
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3111
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3296
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3449
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2932
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3498
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3114
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3433
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3562
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3739
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3540
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2855
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3450
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3556
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3006
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3209
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3372
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3587
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3391
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3401
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3558
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3761
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3415
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2951
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3737
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3478
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3501
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3150
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3772
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2615
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3276
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3195
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3326
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3169
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3624
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3580
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3839
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3152
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3358
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3109
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3694
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3367
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3145
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3327
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3297
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3685
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3949
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3526
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3774
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3981
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3860
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2849
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3659
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3266
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2871
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3311
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3710
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3378
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3763
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3263
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3674
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3053
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3480
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3605
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3336
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4025
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3218
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4117
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3353
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3214
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2897
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3849
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3362
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3174
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3329
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3719
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3738
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3187
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3056
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3926
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3299
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3567
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3162
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3231
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4073
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3557
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3335
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3454
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3060
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3208
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3472
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3749
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3274
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3565
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3810
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3363
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2932
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4372
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3516
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3173
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3149
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3009
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3868
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3316
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4074
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3192
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3327
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2836
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3191
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3570
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3869
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3199
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3754
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3267
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2913
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3853
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3869
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3135
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3796
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3506
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2814
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3691
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2715
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3665
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3685
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3980
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3429
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2983
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3668
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3671
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3951
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3418
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3222
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3129
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3662
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3906
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3328
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3742
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2865
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3188
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3186
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2721
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3906
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4046
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3003
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3122
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3116
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2831
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3203
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3443
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3524
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2725
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3406
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2998
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4146
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3130
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3405
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3865
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3489
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3074
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2936
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3703
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3924
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3208
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3060
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3371
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3819
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3008
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2967
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3444
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3488
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3205
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3077
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3002
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3694
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3671
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2970
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3086
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3828
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3732
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3358
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3642
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2739
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3162
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3084
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3697
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3190
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3910
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3591
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3310
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3053
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3935
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3831
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3376
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3786
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3375
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3434
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3174
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3669
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3577
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3816
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3518
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3238
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3394
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3212
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3257
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3203
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3170
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3470
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3237
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4224
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3232
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3286
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3892
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3347
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3156
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3665
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3792
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2895
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3498
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2907
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2569
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3265
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3616
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3190
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3994
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3696
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2941
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3738
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3566
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3013
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3899
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3230
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3495
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3722
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3387
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3405
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3458
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3193
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3730
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3255
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3676
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3561
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3434
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4137
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2919
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3094
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3591
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2789
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3062
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3599
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3574
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3346
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3679
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3179
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3816
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2908
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3062
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3346
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3084
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3092
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3047
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3350
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3673
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3356
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3827
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3258
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3216
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3378
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3623
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3461
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3326
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3589
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4209
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3434
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3310
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3843
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3389
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3561
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3513
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3092
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3668
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3042
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3905
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2785
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3227
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3286
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3134
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3091
+[Pipeline] NumBlocks=16 PerBlock=1581568 TotalNeeded=25305088 Available=100530432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3043
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2695
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3439
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3193
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3142
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2999
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3893
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3781
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3091
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3371
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3083
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 2895
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3604
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3710
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3225
+  [INFO] Free memory after: 14957 MB
+  [INFO] Memory delta: 4 MB
+  [INFO] ✓ No significant memory leaks
+  [PASS] Memory Efficiency for Large Files
+
+========================================
+SUITE 3: Multi-threaded Tests
+========================================
+
+[SKIP] test_concurrent_compression - Timeout (concurrent GPU needs work)
+
+[TEST] Race Condition Detection
+  [INFO] Testing 8 threads with shared resources
+  [INFO] Level changes: 800
+  [INFO] ✓ No crashes or deadlocks detected
+  [PASS] Race Condition Detection
+
+========================================
+SUITE 4: Edge Cases
+========================================
+
+[TEST] Corrupted Data Handling
+  [INFO] Testing: all_zeros
+[DEBUG] decompress: Temp buffer too small! temp=1024, required=5242880
+  [INFO]   ✓ Detected as corrupted
+  [INFO] Testing: bad_magic
+  [INFO]   ✓ Detected as corrupted
+  [INFO] Testing: truncated
+[DEBUG] decompress: Temp buffer too small! temp=1024, required=5242880
+  [INFO]   ✓ Detected as corrupted
+  [PASS] Corrupted Data Handling
+
+[TEST] Buffer Boundary Conditions
+  [INFO] ✓ Size 16 bytes: OK
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+  [FAIL] test_buffer_boundary_conditions: Size 4095 decompression failed
+
+========================================
+TEST RESULTS
+========================================
+Passed: 7/9
+Failed: 2/9
+
+✗ SOME TESTS FAILED
+========================================
+
+
+      Start 28: test_lz77_comprehensive
+28/70 Test #28: test_lz77_comprehensive ..................***Failed    0.34 sec
+========================================
+Comprehensive LZ77 Testing
+========================================
+Test: Random 1MB (1048576 bytes)... Status error at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_lz77_comprehensive.cu:135 code=1
+
+      Start 29: test_memory_pool
+29/70 Test #29: test_memory_pool .........................   Passed    3.79 sec
+      Start 30: test_metadata_roundtrip
+30/70 Test #30: test_metadata_roundtrip ..................   Passed    0.45 sec
+      Start 31: test_nvcomp_batch
+31/70 Test #31: test_nvcomp_batch ........................***Failed    0.34 sec
+
+========================================
+  Test: NvcompV5BatchManager C++ API
+========================================
+
+Created NvcompV5BatchManager with level 5
+Allocated 401408 KB temp workspace.
+Compressing batch of 8 items...
+  ✗ FAILED: Batch compress returned ERROR_GENERIC
+
+      Start 32: test_nvcomp_interface
+32/70 Test #32: test_nvcomp_interface ....................***Failed    0.60 sec
+========================================
+NVCOMP v5.0 Interface Validation Tests
+========================================
+
+Objective: Validate NV COMP compatibility layer works correctly
+
+
+=== Test 1: Manager Creation ===
+✅ Manager created successfully
+✅ C API manager creation/destruction successful
+
+=== Test 2: Single Block Round-trip ===
+✅ Compressed 65536 bytes to 57 bytes (1149.75:1 ratio)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+❌ Decompression failed: 6
+
+=== Test 3: Batch Operations ===
+❌ Batch compression failed: 1
+
+=== Test 4: C API Compatibility ===
+✅ C API compression successful: 56 bytes
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+❌ C API decompression failed: 6
+
+=== Test 5: Error Handling ===
+✅ NULL pointer check passed
+✅ Buffer size validation (skipped - requires actual compression)
+✅ Error handling tests passed
+
+========================================
+Results: 2/5 tests passed
+========================================
+
+❌ Some tests failed
+
+
+      Start 33: test_parallel_backtracking
+33/70 Test #33: test_parallel_backtracking ...............   Passed    1.16 sec
+      Start 34: test_parallel_compression
+34/70 Test #34: test_parallel_compression ................   Passed    0.66 sec
+      Start 35: test_parallel_setup
+35/70 Test #35: test_parallel_setup ......................   Passed    0.41 sec
+      Start 36: test_performance
+36/70 Test #36: test_performance .........................***Failed    1.37 sec
+
+========================================
+CUDA ZSTD - Performance & Profiling Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: Component Timing
+========================================
+
+[TEST] Compression Timing Breakdown
+[Pipeline] NumBlocks=8 PerBlock=1581568 TotalNeeded=12652544 Available=66976256
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4121
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3916
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4440
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5093
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4997
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4778
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3431
+  [INFO] === Timing Breakdown ===
+  [INFO] Total time: 104.45 ms
+  [INFO] LZ77 time: 0.00 ms
+  [INFO] FSE encode time: 0.00 ms
+  [INFO] Huffman encode time: 0.00 ms
+  [INFO] Sequence generation: 0.00 ms
+  [INFO] Component sum: 0.00 ms
+  [INFO] Overhead: 104.45 ms
+  [PASS] Compression Timing Breakdown
+
+[SKIP] test_decompression_timing - depends on stub PerformanceProfiler
+
+========================================
+SUITE 2: Throughput Metrics
+========================================
+
+[TEST] Compression Throughput Across Levels
+
+  Level | Time (ms) | Throughput (MB/s) | Ratio | Size (KB)
+  ------|-----------|-------------------|-------|----------
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=128579456
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4933
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4488
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3726
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3940
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4559
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4027
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3812
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4325
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4019
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4741
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4112
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4198
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3911
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4488
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4133
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4873
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4677
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4264
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3950
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4051
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4997
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3652
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4544
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5127
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5285
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4549
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3982
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4286
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4485
+      1 |     53.42 |              74.9 | 12.73 |      321
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4428
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5061
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3872
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5061
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5048
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4165
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4336
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3891
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4807
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5036
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4234
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4566
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4153
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4135
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4705
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4140
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4304
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4581
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3851
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4004
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4428
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4036
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3972
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4070
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4395
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3972
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4360
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3803
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5093
+[ERROR] Block 31: write_block failed with status 7
+      3 | ERROR | - | - | -
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4616
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4176
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5274
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4541
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4241
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4359
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4403
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4016
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4583
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4711
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4069
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4434
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4933
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3657
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3748
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4758
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4202
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4841
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4842
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4069
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4613
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3764
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4523
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4519
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4222
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3965
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3973
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4006
+      5 |     57.65 |              69.4 | 12.73 |      321
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=126744448
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3932
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3716
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3960
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4421
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4071
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4293
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4225
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3923
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4135
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3940
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4210
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4070
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3973
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4328
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4654
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3514
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4023
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4016
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4176
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4015
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3853
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4239
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4400
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4294
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4134
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4431
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4327
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4132
+      9 |     45.43 |              88.0 | 12.93 |      316
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=122550144
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4689
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4546
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4125
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4325
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4813
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4230
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3572
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4357
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4454
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4005
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3699
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3909
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4199
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3774
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4677
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4231
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4383
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3855
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4488
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4517
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3800
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4742
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3900
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3793
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3688
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4201
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4639
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3780
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3620
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3995
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3227
+     15 |     82.17 |              48.7 | 12.96 |      315
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=120452992
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4213
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4703
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4965
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4038
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4869
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4427
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4773
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3913
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4229
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4487
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4424
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4054
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4595
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3978
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3783
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4119
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4333
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4176
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4101
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4432
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4645
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4530
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4802
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4486
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3940
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4745
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3958
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4741
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4682
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4243
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3793
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4125
+[ERROR] Block 31: write_block failed with status 7
+     19 | ERROR | - | - | -
+  [PASS] Compression Throughput
+
+[TEST] Decompression Throughput
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[WARN] Workspace size 308281344 exceeds limit 268435456. Clamping.
+[Pipeline] NumBlocks=32 PerBlock=1581568 TotalNeeded=50610176 Available=127793024
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 5020
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4770
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4111
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4103
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4840
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4844
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3908
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4684
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4427
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3652
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4230
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4650
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4709
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4325
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4121
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4005
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4174
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4228
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 3974
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4110
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4901
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4997
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4709
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4197
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4869
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4703
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4777
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4805
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4806
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4261
+[DEBUG] BlockBufferWriter: Writing 0xFF at offset 4071
+  [INFO] Average decompression time: 37.47 ms
+  [INFO] Decompression throughput: 106.7 MB/s
+  [PASS] Decompression Throughput
+
+[TEST] Memory Bandwidth Measurement
+[WARN] Workspace size 1113587712 exceeds limit 1073741824. Clamping.
+[WARN] Workspace size 1113587712 exceeds limit 1073741824. Clamping.
+  [FAIL] test_memory_bandwidth: Compression failed
+
+========================================
+SUITE 3: Profiling API Tests
+========================================
+
+[SKIP] Profiler tests - PerformanceProfiler is a stub implementation
+
+========================================
+SUITE 4: Optimization Validation
+========================================
+
+[SKIP] test_memory_pool_performance_impact - Block 15 write_block status 7
+
+========================================
+TEST RESULTS
+========================================
+Passed: 10/11
+Failed: 1/11
+
+✗ SOME TESTS FAILED
+========================================
+
+
+      Start 37: test_pipeline_integration
+37/70 Test #37: test_pipeline_integration ................   Passed   13.24 sec
+      Start 38: test_roundtrip
+38/70 Test #38: test_roundtrip ...........................   Passed    0.48 sec
+      Start 39: test_scale_repro
+39/70 Test #39: test_scale_repro .........................   Passed    0.47 sec
+      Start 40: test_sequence_encoder
+40/70 Test #40: test_sequence_encoder ....................   Passed    0.42 sec
+      Start 41: test_stream_pool
+41/70 Test #41: test_stream_pool .........................   Passed    0.55 sec
+      Start 42: test_streaming
+42/70 Test #42: test_streaming ...........................***Failed    0.60 sec
+
+========================================
+CUDA ZSTD - Streaming Compression Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: Basic Streaming Tests
+========================================
+
+[TEST] Single Chunk Streaming
+  [INFO] Input size: 65536 bytes
+  [INFO] Compressed size: 1070 bytes
+  [INFO] Compression ratio: 61.25:1
+  [FAIL] test_single_chunk_streaming: Decompressed size mismatch
+
+[TEST] Multi-Chunk Streaming (5 chunks)
+  [INFO] Chunk size: 16384 bytes
+  [INFO] Number of chunks: 5
+  [INFO] Total size: 81920 bytes
+  [INFO] Chunk 0: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 1: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 2: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 3: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 4: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Total compressed: 320 bytes
+  [INFO] Overall ratio: 256.00:1
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+  [FAIL] test_multi_chunk_streaming: decompress_chunk 0 failed Status: ERROR_CORRUPT_DATA
+
+[TEST] Variable Chunk Sizes
+  [INFO] Testing with 5 chunks of varying sizes
+  [INFO] Total size: 88064 bytes
+  [INFO] Chunk 0: 1024 -> 276 bytes
+  [INFO] Chunk 1: 4096 -> 276 bytes
+  [INFO] Chunk 2: 16384 -> 276 bytes
+  [INFO] Chunk 3: 65536 -> 277 bytes
+  [INFO] Chunk 4: 1024 -> 276 bytes
+  [INFO] Total: 88064 -> 1381 bytes
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+  [FAIL] test_variable_chunk_sizes: Variable chunk 0 decompression failed Status: ERROR_CORRUPT_DATA
+
+========================================
+SUITE 2: Window Management Tests
+========================================
+
+[TEST] Cross-Chunk LZ77 Matching
+  [INFO] Testing cross-chunk pattern matching
+  [INFO] Pattern: "This pattern repeats across chunks! "
+  [INFO] Chunk size: 8192 bytes
+  [INFO] Chunk 0: 55 bytes (ratio: 148.95:1)
+  [INFO] Chunk 1: 55 bytes (ratio: 148.95:1)
+  [INFO] Chunk 2: 55 bytes (ratio: 148.95:1)
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+  [FAIL] test_cross_chunk_matching: Cross-chunk decompression failed at chunk 0 Status: ERROR_CORRUPT_DATA
+
+========================================
+SUITE 3: Edge Cases
+========================================
+
+[TEST] Very Small Chunks (<100 bytes)
+  [INFO] Testing chunk size: 1 bytes
+  [INFO]   Compressed to 10 bytes
+[DEBUG] execute_sequences: num_sequences=0, literal_count=0
+  [FAIL] test_very_small_chunks: Size mismatch for tiny chunk
+
+[TEST] Large File Streaming (10MB in 100 chunks)
+  [INFO] Total size: 9 MB
+  [INFO] Chunk size: 100 KB
+  [INFO] Number of chunks: 100
+  [INFO] Progress: 0/100 chunks, 0 MB compressed
+  [INFO] Progress: 20/100 chunks, 0 MB compressed
+  [INFO] Progress: 40/100 chunks, 0 MB compressed
+  [INFO] Progress: 60/100 chunks, 0 MB compressed
+  [INFO] Progress: 80/100 chunks, 0 MB compressed
+  [INFO] Total compressed: 0 MB
+  [INFO] Compression ratio: 92.16:1
+  [PASS] Large File Streaming
+
+[TEST] Incompressible Data Streaming
+  [INFO] Testing random (incompressible) data
+  [INFO] Chunk 0: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Chunk 1: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Chunk 2: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Chunk 3: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Chunk 4: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Overall ratio: 118.725:1
+  [PASS] Incompressible Data Streaming
+
+[TEST] Mixed Compressibility Across Chunks
+  [INFO] Testing alternating data patterns
+  [INFO] Chunk 0 (repetitive): 16384 -> 295 bytes (ratio: 55.54:1)
+  [INFO] Chunk 1 (random): 16384 -> 276 bytes (ratio: 59.36:1)
+  [INFO] Chunk 2 (text): 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 3 (sequential): 16384 -> 276 bytes (ratio: 59.36:1)
+  [INFO] Chunk 4 (repetitive): 16384 -> 295 bytes (ratio: 55.54:1)
+  [PASS] Mixed Compressibility
+
+========================================
+TEST RESULTS
+========================================
+Passed: 3/8
+Failed: 5/8
+
+✗ SOME TESTS FAILED
+========================================
+
+
+      Start 43: test_streaming_integration
+43/70 Test #43: test_streaming_integration ...............***Failed    0.67 sec
+
+[INTEGRATION TEST] Multi-Chunk Streaming (5 chunks)
+  [INFO] Total compressed: 320 bytes, Ratio: 256:1
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=5
+  [FAIL] test_multi_chunk_streaming: decompress_chunk failed
+
+[INTEGRATION TEST] Large File Streaming (10MB)
+  [INFO] Total compressed: 167840 bytes
+  [PASS] Large File Streaming
+
+Integration Tests: 1/2 passed.
+
+      Start 44: test_streaming_unit
+44/70 Test #44: test_streaming_unit ......................***Failed    0.51 sec
+
+[UNIT TEST] API Parameter Validation
+  [PASS] API Parameter Validation
+
+[UNIT TEST] Initialization State Verification
+  [PASS] Initialization State Verification
+
+[UNIT TEST] Basic Single Chunk Roundtrip
+status 6
+[ERROR] execute_sequences: Validation failed with error_flag=1
+  [FAIL] test_basic_single_chunk: Decompression failed Status: 6
+
+Unit Tests: 2/3 passed.
+
+      Start 45: test_two_phase_unit
+45/70 Test #45: test_two_phase_unit ......................   Passed    0.41 sec
+      Start 46: test_utils
+46/70 Test #46: test_utils ...............................   Passed    0.53 sec
+      Start 47: test_workspace_patterns
+47/70 Test #47: test_workspace_patterns ..................   Passed    0.39 sec
+      Start 48: test_workspace_usage
+48/70 Test #48: test_workspace_usage .....................   Passed    0.37 sec
+      Start 49: test_c_api
+49/70 Test #49: test_c_api ...............................   Passed    0.37 sec
+      Start 50: fixed_benchmark
+50/70 Test #50: fixed_benchmark ..........................   Passed   54.55 sec
+      Start 51: limited_benchmark
+51/70 Test #51: limited_benchmark ........................   Passed   45.17 sec
+      Start 52: comprehensive_benchmark
+52/70 Test #52: comprehensive_benchmark ..................   Passed  243.61 sec
+      Start 53: benchmark_lz77
+53/70 Test #53: benchmark_lz77 ...........................   Passed    3.97 sec
+      Start 54: benchmark_parallel_throughput
+54/70 Test #54: benchmark_parallel_throughput ............   Passed    0.52 sec
+      Start 55: benchmark_memory_alloc
+55/70 Test #55: benchmark_memory_alloc ...................   Passed    0.42 sec
+      Start 56: benchmark_pipeline
+56/70 Test #56: benchmark_pipeline .......................   Passed    6.20 sec
+      Start 57: benchmark_fse_parallel
+57/70 Test #57: benchmark_fse_parallel ...................   Passed   12.90 sec
+      Start 58: benchmark_batch_fse
+58/70 Test #58: benchmark_batch_fse ......................   Passed  103.77 sec
+      Start 59: benchmark_phase3
+59/70 Test #59: benchmark_phase3 .........................   Passed    0.88 sec
+      Start 60: benchmark_fse_gpu
+60/70 Test #60: benchmark_fse_gpu ........................   Passed   41.92 sec
+      Start 61: benchmark_pipeline_streaming
+61/70 Test #61: benchmark_pipeline_streaming .............   Passed  356.15 sec
+      Start 62: benchmark_dictionary_compression
+62/70 Test #62: benchmark_dictionary_compression .........   Passed   42.62 sec
+      Start 63: benchmark_xxhash
+63/70 Test #63: benchmark_xxhash .........................   Passed    8.13 sec
+      Start 64: benchmark_adaptive
+64/70 Test #64: benchmark_adaptive .......................   Passed   48.89 sec
+      Start 65: benchmark_stream_pool
+65/70 Test #65: benchmark_stream_pool ....................   Passed    0.34 sec
+      Start 66: run_performance_suite
+66/70 Test #66: run_performance_suite ....................   Passed  948.86 sec
+      Start 67: benchmark_nvcomp_interface
+67/70 Test #67: benchmark_nvcomp_interface ...............   Passed    2.86 sec
+      Start 68: benchmark_c_api
+68/70 Test #68: benchmark_c_api ..........................   Passed    3.03 sec
+      Start 69: benchmark_streaming
+69/70 Test #69: benchmark_streaming ......................   Passed   41.90 sec
+      Start 70: benchmark_batch_throughput
+70/70 Test #70: benchmark_batch_throughput ...............   Passed    0.82 sec
+
+81% tests passed, 13 tests failed out of 70
+
+Label Time Summary:
+benchmark    = 1967.53 sec*proc (21 tests)
+unittest     =  60.82 sec*proc (49 tests)
+
+Total Test time (real) = 2029.46 sec
+
+The following tests FAILED:
+	  8 - test_correctness (Failed)
+	 13 - test_dictionary_compression (Failed)
+	 16 - test_error_handling (Subprocess aborted)
+	 20 - test_fse_comprehensive (Failed)
+	 26 - test_inference_api (Failed)
+	 27 - test_integration (Failed)
+	 28 - test_lz77_comprehensive (Failed)
+	 31 - test_nvcomp_batch (Failed)
+	 32 - test_nvcomp_interface (Failed)
+	 36 - test_performance (Failed)
+	 42 - test_streaming (Failed)
+	 43 - test_streaming_integration (Failed)
+	 44 - test_streaming_unit (Failed)
+Errors while running CTest

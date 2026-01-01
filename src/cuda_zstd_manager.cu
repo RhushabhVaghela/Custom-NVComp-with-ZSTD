@@ -403,10 +403,11 @@ public:
       _overflow = true;
       return false;
     }
-    if (value == 0xFF) {
-      printf("[DEBUG] BlockBufferWriter: Writing 0xFF at offset %zu\n",
-             _offset);
-    }
+    // [DEBUG DISABLED] This print was causing excessive output
+    // if (value == 0xFF) {
+    //   printf("[DEBUG] BlockBufferWriter: Writing 0xFF at offset %zu\n",
+    //          _offset);
+    // }
     // Use synchronous copy for single byte to ensure safety of stack variable
     // address
     if (cudaMemcpy(_base + _offset, &value, 1, cudaMemcpyHostToDevice) !=
@@ -3638,8 +3639,8 @@ private:
                                   input_size - sequences_offset, ctx.seq_ctx,
                                   stream);
     if (status != Status::SUCCESS) {
-      // [DEBUG DISABLED]       fprintf(stderr, "[DEBUG] decompress_sequences failed with status %d\n",
-      // [DEBUG DISABLED]               (int)status);
+      // [DEBUG DISABLED]       fprintf(stderr, "[DEBUG] decompress_sequences
+      // failed with status %d\n", [DEBUG DISABLED]               (int)status);
       // printf("[DEBUG] Err @ %d: Status %d\n", __LINE__, (int)status);
       return status;
     }
