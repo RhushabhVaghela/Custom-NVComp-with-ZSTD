@@ -305,9 +305,12 @@ Status NvcompV5BatchManager::compress_async(
     return Status::ERROR_INVALID_PARAMETER;
   }
 
+  // DEBUG PRINT
+  // printf("[NvcompV5] compress_async: chunks=%zu temp=%zu stream=%p\n",
+  // num_chunks, temp_storage_bytes, (void *)stream);
+
   std::vector<BatchItem> items(num_chunks);
   std::vector<size_t> h_uncompressed_sizes(num_chunks);
-
   std::vector<void *> h_uncompressed_ptrs(num_chunks);
   std::vector<void *> h_compressed_ptrs(num_chunks);
 
@@ -399,6 +402,9 @@ Status NvcompV5BatchManager::compress_async(
     items[i].input_size = h_uncompressed_sizes[i];
     items[i].output_ptr = h_compressed_ptrs[i];
     items[i].output_size = h_compressed_sizes[i]; // Set capacity
+    // printf("[NvcompV5] Chunk %zu: input=%p size=%zu output=%p cap=%zu\n", i,
+    // items[i].input_ptr, items[i].input_size, items[i].output_ptr,
+    // items[i].output_size);
   }
 
   // Call the batch manager
@@ -414,7 +420,6 @@ Status NvcompV5BatchManager::compress_async(
   // Ensure compression is complete before copying sizes back
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
-  // Copy result sizes to device
   // Copy result sizes to device
   attr_err = cudaPointerGetAttributes(&patts, d_compressed_sizes);
   // Clear sticky error if pointer is invalid/host

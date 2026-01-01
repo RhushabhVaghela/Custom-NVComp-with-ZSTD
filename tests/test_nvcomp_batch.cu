@@ -8,7 +8,6 @@
 #include <iostream>
 #include <vector>
 
-
 using namespace cuda_zstd;
 using namespace cuda_zstd::nvcomp_v5;
 
@@ -17,15 +16,7 @@ int main() {
   std::cout << "  Test: NvcompV5BatchManager C++ API\n";
   std::cout << "========================================\n\n";
 
-  // SKIP: Batch API pipeline debugging in progress
-  // The 3-stream pipeline in compress_batch has intermittent failures
-  // that require deeper debugging. Skipping for now.
-  std::cout << "  [SKIP] Batch API under debugging (pipeline sync issue)\n";
-  std::cout << "\nTest complete. Result: SKIPPED\n";
-  return 0;
-
-  // Original test code below (preserved for later re-enablement):
-
+  // Test enabled
   const int batch_size = 8;
   const size_t chunk_size = 64 * 1024; // 64 KB
 
@@ -113,6 +104,15 @@ int main() {
                  batch_size * sizeof(size_t),
                  cudaMemcpyHostToDevice) != cudaSuccess) {
     std::cerr << "cudaMemcpy failed for d_input_sizes\n";
+    return 1;
+  }
+
+  // Initialize output sizes with capacity
+  std::vector<size_t> h_output_sizes_vec(batch_size, max_comp_size);
+  if (cudaMemcpy(d_output_sizes, h_output_sizes_vec.data(),
+                 batch_size * sizeof(size_t),
+                 cudaMemcpyHostToDevice) != cudaSuccess) {
+    std::cerr << "cudaMemcpy failed for d_output_sizes\n";
     return 1;
   }
 

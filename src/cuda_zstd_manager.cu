@@ -4684,6 +4684,10 @@ Status ZstdBatchManager::compress_batch(const std::vector<BatchItem> &items,
         compute_stream // Use dedicated compute stream
     );
 
+    if (item.status != Status::SUCCESS) {
+      all_success = false;
+    }
+
     // Record event when compression completes
     cudaEventRecord(compute_complete_events[i], compute_stream);
 

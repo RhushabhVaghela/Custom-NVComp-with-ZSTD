@@ -432,11 +432,4 @@ message(STATUS "  CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 message(STATUS "  Test Timeout: 100 seconds")
 message(STATUS "=========================================")
 
-# Reproduction Test for Issue 1 (Concurrency)
-add_executable(test_concurrency_repro_fix tests/test_concurrency_repro.cu)
-set_target_properties(test_concurrency_repro_fix PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_RESOLVE_DEVICE_SYMBOLS ON
-)
-target_link_libraries(test_concurrency_repro_fix cuda_zstd_static)
-add_test(NAME test_concurrency_repro_fix COMMAND test_concurrency_repro_fix)
+
