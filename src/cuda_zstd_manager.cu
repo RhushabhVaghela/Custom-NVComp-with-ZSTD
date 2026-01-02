@@ -237,6 +237,21 @@ struct CustomMetadataFrame {
 // HELPER KERNELS AND FUNCTIONS
 // ==============================================================================
 
+// Forward declaration
+Status parse_frame_header(const byte_t *input, u32 input_size, u32 *header_size,
+                          u32 *content_size, bool *is_single_segment,
+                          bool *has_checksum);
+
+__global__ void debug_inspect_memory(const byte_t *ptr, u32 size,
+                                     const char *label) {
+  if (size > 0 && ptr) {
+    printf("[DEBUG_GPU] %s: ptr=%p [0]=0x%02X [1]=0x%02X [2]=0x%02X\n", label,
+           ptr, ptr[0], (size > 1 ? ptr[1] : 0), (size > 2 ? ptr[2] : 0));
+  } else {
+    printf("[DEBUG_GPU] %s: ptr=%p size=%u\n", label, ptr, size);
+  }
+}
+
 // Kernel: Check if a block is RLE (all bytes identical)
 // Returns: *d_is_rle = 1 if RLE, 0 otherwise
 //          *d_rle_byte = value of the repeated byte
@@ -2295,6 +2310,10 @@ public:
 
       // Copy sequences from workspace to seq_ctx buffers
       u32 num_seq = block_num_sequences[block_idx];
+      if (current_block_size_val <= 10) {
+        printf("[DEBUG] Block %u: size=%u, num_seq=%u\n", block_idx,
+               current_block_size_val, num_seq);
+      }
       if (num_seq > 0) {
         // (PHASE 2a) Async Reduction using custom kernel (outputs to device
         // memory)
@@ -2309,6 +2328,10 @@ public:
         cudaMemcpy(&block_literals_sizes[block_idx],
                    &d_block_literals_sizes[block_idx], sizeof(u32),
                    cudaMemcpyDeviceToHost);
+        if (current_block_size_val <= 10) {
+          printf("[DEBUG] Block %u: literals_size=%u (from seq reduction)\n",
+                 block_idx, block_literals_sizes[block_idx]);
+        }
 
         if (has_dummy) {
           block_num_sequences[block_idx]--;
@@ -2325,6 +2348,11 @@ public:
         CUDA_CHECK(cudaMemcpyAsync(block_seq_ctxs[block_idx].d_literals_buffer,
                                    block_input, current_block_size_val,
                                    cudaMemcpyDeviceToDevice, stream));
+        if (current_block_size_val <= 10) {
+          printf("[DEBUG] Block %u: literals_size=%u (no sequences, all "
+                 "literals)\n",
+                 block_idx, current_block_size_val);
+        }
       }
 
       // Calculate output ptr for Phase 2b (used to init writer later)
@@ -2752,20 +2780,40 @@ public:
     u32 header_size = 0;
     u32 frame_content_size = 0;
     bool is_single_segment = false;
+    bool has_checksum = false;
 
-    auto status =
-        parse_frame_header(d_input, h_compressed_size_remaining, &header_size,
-                           &frame_content_size, &is_single_segment);
+    // DEBUG ENTRY LOG
+    fprintf(stderr, "[DEBUG] DECOMPRESS ENTRY. CompressedSize=%zu\n",
+            h_compressed_size_remaining);
+    fflush(stderr);
+
+    auto status = parse_frame_header(d_input, h_compressed_size_remaining,
+                                     &header_size, &frame_content_size,
+                                     &is_single_segment, &has_checksum);
     if (status != Status::SUCCESS) {
-
       return status;
+    }
+
+    // HEX DUMP PROBE
+    {
+      byte_t h_buf[32];
+      size_t dump_size =
+          std::min((size_t)32, (size_t)h_compressed_size_remaining);
+      cudaMemcpy(h_buf, d_input, dump_size, cudaMemcpyDeviceToHost);
+      printf("[DEBUG] RAW HEX: ");
+      for (size_t i = 0; i < dump_size; i++)
+        printf("%02X ", h_buf[i]);
+      printf("\n[DEBUG] INFO: Head=%u, Content=%u, Single=%d, Checksum=%d\n",
+             header_size, frame_content_size, is_single_segment, has_checksum);
+      fflush(stdout);
     }
 
     // Validate the output buffer size if content size is present
     if (frame_content_size > 0) {
       if (d_output_max_size < frame_content_size) {
         fprintf(stderr,
-                "[DEBUG] decompress: Output buffer too small! max=%zu, "
+                "[DEBUG] decompress: Output buffer too small! "
+                "max=%zu, "
                 "content=%u\n",
                 d_output_max_size, frame_content_size);
         return Status::ERROR_BUFFER_TOO_SMALL;
@@ -2778,22 +2826,78 @@ public:
     u32 write_offset = 0;          // Where we write decompressed data
 
     if (is_single_segment) {
-      // Single Segment: Entire content is one Compressed Block WITHOUT Block
-      // Header input_size = remaining
+      fprintf(stderr, "[DEBUG] Path: Single Segment. Size=%u\n",
+              h_compressed_size_remaining);
+      fflush(stderr);
+      // Single Segment: Entire content is one Compressed Block
+      // WITHOUT Block Header input_size = remaining
       u32 block_size = h_compressed_size_remaining - read_offset;
       // Note: Checksum might be at end?
-      if (config.checksum == ChecksumPolicy::COMPUTE_AND_VERIFY) {
-        if (block_size >= 8)
-          block_size -= 8; // Adjust for checksum
+      // RFC 8878: If Content_Checksum_Flag is set, a 4-byte
+      // checksum follows the Frame Content. We must strip it for
+      // Single Segment (Raw Content). We do this REGARDLESS of
+      // config.checksum verification policy.
+      if (has_checksum) {
+        if (block_size >= 4) {
+          block_size -= 4; // Strip checksum from content
+        } else {
+          fprintf(stderr, "[ERROR] Block too small for checksum! Size=%u\n",
+                  block_size);
+          return Status::ERROR_CORRUPT_DATA;
+        }
       }
 
       u32 decompressed_size = 0;
 
       // Handle case where block_size is 0 (empty frame)
       if (block_size > 0) {
-        status = decompress_block(d_input + read_offset, block_size,
-                                  d_output + write_offset, &decompressed_size,
-                                  d_output, d_output_max_size, stream);
+        // FIX: Single Segment frames from libzstd may include a block header
+        // Check if there's a block header (3 bytes) and handle Raw blocks
+        bool has_block_header = false;
+        bool is_raw_block = false;
+        u32 actual_data_offset = read_offset;
+        u32 actual_data_size = block_size;
+
+        if (block_size >= 3) {
+          // Try to parse block header to detect Raw blocks
+          byte_t h_block_header[3];
+          CUDA_CHECK(cudaMemcpy(h_block_header, d_input + read_offset, 3,
+                                cudaMemcpyDeviceToHost));
+          u32 block_header_val = h_block_header[0] | (h_block_header[1] << 8) |
+                                 (h_block_header[2] << 16);
+          u32 block_type = (block_header_val >> 1) & 0x3;
+
+          // If block type is 0 (Raw) or 1 (RLE), assume there's a block header
+          if (block_type == 0 || block_type == 1) {
+            has_block_header = true;
+            is_raw_block = (block_type == 0);
+            u32 header_block_size = block_header_val >> 3;
+            actual_data_offset = read_offset + 3;
+            actual_data_size = header_block_size;
+
+            fprintf(
+                stderr,
+                "[DEBUG] Single Segment with block header: type=%u, size=%u\n",
+                block_type, header_block_size);
+          }
+        }
+
+        if (is_raw_block) {
+          // Raw block: direct copy without decompression
+          fprintf(stderr,
+                  "[DEBUG] Single Segment Raw Block: copying %u bytes\n",
+                  actual_data_size);
+          CUDA_CHECK(cudaMemcpyAsync(
+              d_output + write_offset, d_input + actual_data_offset,
+              actual_data_size, cudaMemcpyDeviceToDevice, stream));
+          decompressed_size = actual_data_size;
+        } else {
+          // Compressed block: use decompress_block
+          status =
+              decompress_block(d_input + actual_data_offset, actual_data_size,
+                               d_output + write_offset, &decompressed_size,
+                               d_output, d_output_max_size, stream);
+        }
         if (status != Status::SUCCESS) {
           fprintf(stderr, "status %d\n", (int)status);
           return status;
@@ -2828,6 +2932,19 @@ public:
                                    &is_last_block, &is_compressed, &is_rle,
                                    &block_size, &block_header_size);
 
+        if (status == Status::SUCCESS) {
+          fprintf(stderr,
+                  "[DEBUG] Path: Multi Block. Last=%d, "
+                  "Compr=%d, Size=%u\n",
+                  is_last_block, is_compressed, block_size);
+        }
+
+        // DEBUG TRACE
+        {
+          fprintf(stderr, "[DEBUG] Block: compr=%d, rle=%d, size=%u\n",
+                  is_compressed, is_rle, block_size);
+        }
+
         if (status != Status::SUCCESS) {
           return status;
         }
@@ -2859,12 +2976,20 @@ public:
               d_output + write_offset, block_size, rle_byte);
           read_offset += 1;
           write_offset += block_size;
-          // read_offset += block_size; // FIX: Don't add decompressed size to
-          // input offset!
+          // read_offset += block_size; // FIX: Don't add
+          // decompressed size to input offset!
         } else {
+          fprintf(stderr, "[DEBUG] Path: Raw Block Copy. Size=%u\n",
+                  block_size);
           CUDA_CHECK(cudaMemcpyAsync(d_output + write_offset,
                                      d_input + read_offset, block_size,
                                      cudaMemcpyDeviceToDevice, stream));
+
+          debug_inspect_memory<<<1, 1, 0, stream>>>(
+              d_input + read_offset, block_size, "RawBlock_Input");
+          debug_inspect_memory<<<1, 1, 0, stream>>>(
+              d_output + write_offset, block_size, "RawBlock_Output");
+
           write_offset += block_size;
           read_offset += block_size;
         }
@@ -2908,8 +3033,8 @@ public:
     // === Update statistics ===
     stats.bytes_decompressed += write_offset;
 
-    // FIX: Clear borrowed pointers from ctx to prevent double-free in
-    // cleanup_context
+    // FIX: Clear borrowed pointers from ctx to prevent
+    // double-free in cleanup_context
     ctx.d_temp_buffer = nullptr;
     if (ctx.seq_ctx) {
       ctx.seq_ctx->d_literals_buffer = nullptr;
@@ -3300,9 +3425,10 @@ private:
   Status parse_frame_header(
       const byte_t *input, // Device pointer to compressed data
       u32 input_size,
-      u32 *header_size,       // Output: total header size (host)
-      u32 *content_size,      // Output: decompressed size if present (host)
-      bool *is_single_segment // Output: single segment flag
+      u32 *header_size,        // Output: total header size (host)
+      u32 *content_size,       // Output: decompressed size if present (host)
+      bool *is_single_segment, // Output: single segment flag
+      bool *has_checksum       // Output: checksum flag
   ) {
     // input_size=%u\n", input_size);
     if (input_size < 5) {
@@ -3329,9 +3455,13 @@ private:
 
     bool single_segment = (fhd >> 5) & 0x01;
     bool has_dict_id = (fhd & 0x03) != 0;
+    bool checksum_flag = (fhd >> 2) & 0x01;
 
     if (is_single_segment)
       *is_single_segment = single_segment;
+
+    if (has_checksum)
+      *has_checksum = checksum_flag;
     // single_segment=%d, has_dict_id=%d\n",
     // //                 single_segment, has_dict_id);
 
@@ -3463,18 +3593,6 @@ private:
 
     printf("[DEBUG] WRITE_BLOCK: size=%u, orig=%u, type=%u, is_last=%d\n",
            compressed_size, original_size, block_type, is_last);
-
-    // FIX: Detect RLE block (Size 4) and avoid double-wrapping
-    if (compressed_size == 4 && use_compressed) {
-      // RLE block already has a header (Type 1) written by
-      // write_rle_block_kernel. Just copy the 4 bytes (Header + Payload).
-      if (*compressed_offset + 4 > max_size)
-        return Status::ERROR_BUFFER_TOO_SMALL;
-      CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset, compressed_data,
-                                 4, cudaMemcpyDeviceToDevice, stream));
-      *compressed_offset += 4;
-      return Status::SUCCESS;
-    }
 
     if (*compressed_offset + 3 + block_size > max_size) {
       return Status::ERROR_BUFFER_TOO_SMALL;
