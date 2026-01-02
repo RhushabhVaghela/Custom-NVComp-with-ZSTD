@@ -3963,10 +3963,13 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
   }
 
   // 5. Decode Loop (OF, ML, LL for each sequence)
+  // Decoder Read Order: OF State, ML State, LL State, LL Extra, ML Extra, OF
+  // Extra
   for (int i = num_sequences - 1; i >= 0; i--) {
-
+    // 1. Decode States (OF, ML, LL)
+    u8 of_sym = 0;
     if (decode_of) {
-      u8 sym = of_table.symbol[stateOF];
+      of_sym = of_table.symbol[stateOF];
       u8 nb = of_table.nbBits[stateOF];
       u32 bits;
       if (bit_pos < nb) {
@@ -3978,10 +3981,11 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
         bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
       }
       stateOF = of_table.newState[stateOF] + bits;
-      h_of[i] = sym;
     }
+
+    u8 ml_sym = 0;
     if (decode_ml) {
-      u8 sym = ml_table.symbol[stateML];
+      ml_sym = ml_table.symbol[stateML];
       u8 nb = ml_table.nbBits[stateML];
       u32 bits;
       if (bit_pos < nb) {
@@ -3993,10 +3997,11 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
         bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
       }
       stateML = ml_table.newState[stateML] + bits;
-      h_ml[i] = sym;
     }
+
+    u8 ll_sym = 0;
     if (decode_ll) {
-      u8 sym = ll_table.symbol[stateLL];
+      ll_sym = ll_table.symbol[stateLL];
       u8 nb = ll_table.nbBits[stateLL];
       u32 bits;
       if (bit_pos < nb) {
@@ -4008,7 +4013,56 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
         bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
       }
       stateLL = ll_table.newState[stateLL] + bits;
-      h_ll[i] = sym;
+    }
+
+    // 2. Read Extra Bits (LL, ML, OF)
+    if (decode_ll) {
+      u32 extra_bits = sequence::ZstdSequence::get_lit_len_extra_bits(ll_sym);
+      u32 extra = 0;
+      if (extra_bits > 0) {
+        if (bit_pos < extra_bits) {
+          u32 zero_pos = 0;
+          extra = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+          bit_pos = 0;
+        } else {
+          bit_pos -= extra_bits;
+          extra = read_bits_from_buffer(h_input.data(), bit_pos, extra_bits);
+        }
+      }
+      h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + extra;
+    }
+
+    if (decode_ml) {
+      u32 extra_bits = sequence::ZstdSequence::get_match_len_extra_bits(ml_sym);
+      u32 extra = 0;
+      if (extra_bits > 0) {
+        if (bit_pos < extra_bits) {
+          u32 zero_pos = 0;
+          extra = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+          bit_pos = 0;
+        } else {
+          bit_pos -= extra_bits;
+          extra = read_bits_from_buffer(h_input.data(), bit_pos, extra_bits);
+        }
+      }
+      h_ml[i] = sequence::ZstdSequence::get_match_len(ml_sym) + extra;
+    }
+
+    if (decode_of) {
+      u32 extra_bits =
+          sequence::ZstdSequence::get_offset_code_extra_bits(of_sym);
+      u32 extra = 0;
+      if (extra_bits > 0) {
+        if (bit_pos < extra_bits) {
+          u32 zero_pos = 0;
+          extra = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+          bit_pos = 0;
+        } else {
+          bit_pos -= extra_bits;
+          extra = read_bits_from_buffer(h_input.data(), bit_pos, extra_bits);
+        }
+      }
+      h_of[i] = sequence::ZstdSequence::get_offset(of_sym) + extra;
     }
   }
 

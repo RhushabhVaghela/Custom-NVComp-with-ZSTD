@@ -4429,9 +4429,9 @@ private:
     const u32 threads = 256;
     const u32 blocks = (num_sequences + threads - 1) / threads;
 
-    // fprintf(stderr,
-    //         "[DEBUG] Modes Parsing Done. LL=%u, OF=%u, ML=%u. Offset=%u\n",
-    //         ll_mode, of_mode, ml_mode, offset);
+    fprintf(stderr,
+            "[DEBUG] Modes Parsing Done. LL=%u, OF=%u, ML=%u. Offset=%u\n",
+            ll_mode, of_mode, ml_mode, offset);
     // Helper to process headers logic (Skipping/Parsing)
     // 1. Literal Lengths
     if (ll_mode == 1) { // RLE
