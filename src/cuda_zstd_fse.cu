@@ -3808,6 +3808,10 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
                                              u32 *d_ml_out, u32 ll_mode,
                                              u32 of_mode, u32 ml_mode,
                                              cudaStream_t stream) {
+  // [DEBUG] Entry
+  fprintf(stderr,
+          "[DEBUG] decode_sequences_interleaved: L%u, O%u, M%u. Size=%u\n",
+          ll_mode, of_mode, ml_mode, input_size);
 
   if (input_size == 0 && num_sequences > 0)
     return Status::ERROR_CORRUPT_DATA;
@@ -3886,6 +3890,9 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
+    if (input_size > 3)
+      fprintf(stderr, "[DEBUG] Check 3 (OF Build): h_input[3]=0x%02x\n",
+              h_input[3]);
   }
   if (decode_ml) {
     const u16 *norm =
@@ -3905,6 +3912,9 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
+    if (input_size > 3)
+      fprintf(stderr, "[DEBUG] Check 4 (ML Build): h_input[3]=0x%02x\n",
+              h_input[3]);
   }
 
   // 3. Allocate Host Outputs
@@ -3912,7 +3922,21 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
       h_ml(num_sequences);
 
   // 4. Initialize States
-  u32 bit_pos = input_size * 8;
+  // Align bitstream to the highest set bit of the last byte (Sentinel)
+  u32 bit_pos = 0;
+  if (input_size > 0) {
+    u8 last_byte = h_input[input_size - 1];
+    if (last_byte == 0) {
+      return Status::ERROR_CORRUPT_DATA; // Zstd stream last byte cannot be 0
+    }
+    int hb = 7;
+    while (hb >= 0 && !((last_byte >> hb) & 1)) {
+      hb--;
+    }
+    bit_pos = (input_size - 1) * 8 + hb;
+  } else {
+    bit_pos = 0;
+  }
   u32 stateLL = 0, stateOF = 0, stateML = 0;
 
   // Read initial states (LL, then ML, then OF) - Read BACKWARDS from end
@@ -3920,10 +3944,11 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
                                             // Too strict if some disabled?
   }
 
-  // Bits are consumed FROM THE END.
-  // Order: LL, ML, OF.
-  if (decode_ll) {
+  fprintf(stderr, "[DEBUG] Logs: LL=%u, OF=%u, ML=%u. Start BitPos=%u\n",
+          ll_log, of_log, ml_log, bit_pos);
 
+  // Read initial states (LL, then ML, then OF) - Read BACKWARDS from end
+  if (decode_ll) { // LL is last in stream (first read)
     u32 bits;
     if (bit_pos < ll_log) {
       u32 zero_pos = 0;
@@ -3931,25 +3956,16 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
       bit_pos = 0;
     } else {
       bit_pos -= ll_log;
-      bits = read_bits_from_buffer(h_input.data(), bit_pos, ll_log);
+      u32 read_pos = bit_pos; // Use temp to avoid side-effect increment
+      bits = read_bits_from_buffer(h_input.data(), read_pos, ll_log);
     }
     stateLL = bits;
-  }
-  if (decode_ml) {
-
-    u32 bits;
-    if (bit_pos < ml_log) {
-      u32 zero_pos = 0;
-      bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-      bit_pos = 0;
-    } else {
-      bit_pos -= ml_log;
-      bits = read_bits_from_buffer(h_input.data(), bit_pos, ml_log);
-    }
-    stateML = bits;
+    if (input_size > 3)
+      fprintf(stderr, "[DEBUG] Check 5 (Init LL): h_input[3]=0x%02x\n",
+              h_input[3]);
   }
   if (decode_of) {
-
+    fprintf(stderr, "[DEBUG] Reading OF. BitPos=%u, Log=%u\n", bit_pos, of_log);
     u32 bits;
     if (bit_pos < of_log) {
       u32 zero_pos = 0;
@@ -3957,9 +3973,36 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
       bit_pos = 0;
     } else {
       bit_pos -= of_log;
-      bits = read_bits_from_buffer(h_input.data(), bit_pos, of_log);
+      u32 read_pos = bit_pos;
+      bits = read_bits_from_buffer(h_input.data(), read_pos, of_log);
     }
     stateOF = bits;
+    if (input_size > 3)
+      fprintf(stderr, "[DEBUG] Check 6 (Init OF): h_input[3]=0x%02x\n",
+              h_input[3]);
+  }
+  if (decode_ml) {
+    fprintf(stderr, "[DEBUG] Reading ML. BitPos=%u, Log=%u\n", bit_pos, ml_log);
+    u32 bits;
+    if (bit_pos < ml_log) {
+      u32 zero_pos = 0;
+      bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+      bit_pos = 0;
+    } else {
+      bit_pos -= ml_log;
+      u32 read_pos = bit_pos;
+      u32 byte_off = read_pos / 8;
+      u32 bit_off = read_pos % 8;
+      fprintf(stderr,
+              "[DEBUG] Init ML Read: Pos=%u, ByteOff=%u, BitOff=%u, "
+              "ByteVal=0x%02x\n",
+              read_pos, byte_off, bit_off, h_input[byte_off]);
+      bits = read_bits_from_buffer(h_input.data(), read_pos, ml_log);
+    }
+    stateML = bits;
+    if (stateML == 62)
+      fprintf(stderr, "[DEBUG] ML State 62 maps to Symbol %u\n",
+              ml_table.symbol[62]);
   }
 
   // 5. Decode Loop (OF, ML, LL for each sequence)
@@ -3970,6 +4013,7 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     u8 of_sym = 0;
     if (decode_of) {
       of_sym = of_table.symbol[stateOF];
+      // printf("[DEBUG] Seq %d: StateOF=%u -> SymOF=%u\n", i, stateOF, of_sym);
       u8 nb = of_table.nbBits[stateOF];
       u32 bits;
       if (bit_pos < nb) {
@@ -3978,7 +4022,8 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
         bit_pos = 0;
       } else {
         bit_pos -= nb;
-        bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
+        u32 read_pos = bit_pos;
+        bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
       }
       stateOF = of_table.newState[stateOF] + bits;
     }
@@ -3986,6 +4031,8 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     u8 ml_sym = 0;
     if (decode_ml) {
       ml_sym = ml_table.symbol[stateML];
+      // printf("[DEBUG] Seq %d: StateML=%u -> SymML=%u\n", i, stateML, ml_sym);
+
       u8 nb = ml_table.nbBits[stateML];
       u32 bits;
       if (bit_pos < nb) {
@@ -3994,7 +4041,8 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
         bit_pos = 0;
       } else {
         bit_pos -= nb;
-        bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
+        u32 read_pos = bit_pos;
+        bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
       }
       stateML = ml_table.newState[stateML] + bits;
     }
@@ -4010,7 +4058,8 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
         bit_pos = 0;
       } else {
         bit_pos -= nb;
-        bits = read_bits_from_buffer(h_input.data(), bit_pos, nb);
+        u32 read_pos = bit_pos;
+        bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
       }
       stateLL = ll_table.newState[stateLL] + bits;
     }
@@ -4026,7 +4075,8 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
           bit_pos = 0;
         } else {
           bit_pos -= extra_bits;
-          extra = read_bits_from_buffer(h_input.data(), bit_pos, extra_bits);
+          u32 read_pos = bit_pos;
+          extra = read_bits_from_buffer(h_input.data(), read_pos, extra_bits);
         }
       }
       h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + extra;
@@ -4042,7 +4092,8 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
           bit_pos = 0;
         } else {
           bit_pos -= extra_bits;
-          extra = read_bits_from_buffer(h_input.data(), bit_pos, extra_bits);
+          u32 read_pos = bit_pos;
+          extra = read_bits_from_buffer(h_input.data(), read_pos, extra_bits);
         }
       }
       h_ml[i] = sequence::ZstdSequence::get_match_len(ml_sym) + extra;
@@ -4059,7 +4110,8 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
           bit_pos = 0;
         } else {
           bit_pos -= extra_bits;
-          extra = read_bits_from_buffer(h_input.data(), bit_pos, extra_bits);
+          u32 read_pos = bit_pos;
+          extra = read_bits_from_buffer(h_input.data(), read_pos, extra_bits);
         }
       }
       h_of[i] = sequence::ZstdSequence::get_offset(of_sym) + extra;

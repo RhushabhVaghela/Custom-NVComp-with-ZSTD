@@ -2859,6 +2859,11 @@ public:
         u32 actual_data_size = block_size;
 
         if (block_size >= 3) {
+          // RFC 8878: Single Segment frame content cannot be a Raw Block (Type
+          // 0) with Header? "The block header is OMITTED." Previous heuristic
+          // to detect headers violates RFC and causes Data Corruption (Size
+          // 511) where valid data (28 B5 2F) is parsed as a Type 2 Header.
+
           // Try to parse block header to detect block types
           byte_t h_block_header[3];
           CUDA_CHECK(cudaMemcpy(h_block_header, d_input + read_offset, 3,
@@ -2868,18 +2873,19 @@ public:
           u32 block_type = (block_header_val >> 1) & 0x3;
           u32 header_block_size = block_header_val >> 3;
 
-          // All valid Zstd block types (0=Raw, 1=RLE, 2=Compressed) have a
-          // block header Only type 3 (Reserved) is invalid
-          if (block_type <= 2) {
+          // Align with libzstd quirk for small Raw blocks (Size 3) which
+          // include Type 0 header But reject Type 2 (Compressed) as false
+          // positive from data (Size 511)
+          if (block_type == 0) {
             has_block_header = true;
             is_raw_block = (block_type == 0);
             actual_data_offset = read_offset + 3;
             actual_data_size = header_block_size;
 
-            fprintf(
-                stderr,
-                "[DEBUG] Single Segment with block header: type=%u, size=%u\n",
-                block_type, header_block_size);
+            fprintf(stderr,
+                    "[DEBUG] Single Segment with RAW block header (Type 0): "
+                    "size=%u\n",
+                    header_block_size);
           }
         }
 
@@ -3736,12 +3742,11 @@ private:
     //     printf("[DEBUG] Post-Literals Err: %s\n", cudaGetErrorString(e));
     // }
     u32 sequences_offset = literals_header_size + literals_compressed_size;
-    // [DEBUG DISABLED] Suppress per-block debug output for performance
-    // fprintf(stderr,
-    //         "[DEBUG] decompress_block: sequences_offset: %u (LitHeader: %u, "
-    //         "LitCompressed: %u)\n",
-    //         sequences_offset, literals_header_size,
-    //         literals_compressed_size);
+    // [DEBUG ENABLED] Log sequence offset
+    fprintf(stderr,
+            "[DEBUG] decompress_block: sequences_offset: %u (LitHeader: %u, "
+            "LitCompressed: %u)\n",
+            sequences_offset, literals_header_size, literals_compressed_size);
 
     // {
     //   cudaError_t e = cudaGetLastError();

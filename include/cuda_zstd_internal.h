@@ -269,31 +269,41 @@ struct ZstdSequence {
 
   __device__ __host__ static __forceinline__ u32
   get_lit_len_extra_bits(u32 code) {
-    if (code < 20)
+    if (code < 16)
       return 0;
-    if (code < 24)
+    if (code < 20)
       return 1;
-    if (code < 28)
+    if (code < 24)
       return 2;
-    if (code < 32)
+    if (code < 28)
       return 3;
-    if (code < 36)
+    if (code < 32)
       return 4;
     return 5;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_match_len_extra_bits(u32 code) {
-    if (code < 36)
+    if (code < 32)
       return 0;
-    if (code < 40)
+    if (code < 36)
       return 1;
-    if (code < 44)
+    if (code < 38)
       return 2;
-    if (code < 48)
+    if (code < 40)
       return 3;
-    if (code < 52)
+    if (code < 42)
       return 4;
+    if (code < 44)
+      return 5;
+    if (code < 46)
+      return 6;
+    if (code < 48)
+      return 7;
+    if (code < 50)
+      return 8;
+    if (code < 52)
+      return 9;
     if (code == 52)
       return 16;
     return 0;
