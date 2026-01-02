@@ -2330,7 +2330,7 @@ public:
                    cudaMemcpyDeviceToHost);
         if (current_block_size_val <= 10) {
           printf("[DEBUG] Block %u: literals_size=%u (from seq reduction)\n",
-                 block_idx, block_literals_sizes[block_idx]);
+                 block_idx, (u32)block_literals_sizes[block_idx]);
         }
 
         if (has_dummy) {
