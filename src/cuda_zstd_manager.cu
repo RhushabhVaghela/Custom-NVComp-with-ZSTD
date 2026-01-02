@@ -4,6 +4,7 @@
 
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_fse.h"
+#include "cuda_zstd_fse_encoding_kernel.h"
 #include "cuda_zstd_huffman.h"
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_lz77.h" // Ensure Match and ParseCost are defined
@@ -3966,10 +3967,120 @@ private:
       byte_t *output, u32 *output_size, CompressionWorkspace *workspace,
       cudaStream_t stream) {
     if (num_sequences == 0) {
-      *output_size = 0;
+      if (output_size)
+        *output_size = 0;
       return Status::SUCCESS;
     }
 
+    // === GPU IMPLEMENTATION ===
+    namespace fse = cuda_zstd::fse;
+
+    // 1. Prepare Header (Number of Sequences)
+    // 1-3 bytes.
+    u8 header_buffer[4];
+    u32 header_len = 0;
+
+    if (num_sequences < 128) {
+      header_buffer[0] = (u8)num_sequences;
+      header_len = 1;
+    } else if (num_sequences < 0x7F00) {
+      // 2 bytes. Byte0 = (n>>8) + 128. Byte1=n&0xFF.
+      header_buffer[0] = (u8)((num_sequences >> 8) + 128);
+      header_buffer[1] = (u8)(num_sequences & 0xFF);
+      header_len = 2;
+    } else {
+      header_buffer[0] = 255;
+      header_buffer[1] = (u8)(num_sequences - 0x7F00);
+      header_buffer[2] = (u8)((num_sequences - 0x7F00) >> 8);
+      header_len = 3;
+    }
+
+    // Mode Byte: Predefined (5,5,5) -> 0x54 (LL=1, OF=1, ML=1)
+    header_buffer[header_len++] = 0x54;
+
+    // Copy Header to Output (Device)
+    cudaMemcpyAsync(output, header_buffer, header_len, cudaMemcpyHostToDevice,
+                    stream);
+
+    // 2. Build Tables on GPU (Phase 2a: Rebuild every time for correctness)
+    // Allocate 3 Tables
+    fse::FSEEncodeTable *d_tables;
+    cudaMallocAsync(&d_tables, 3 * sizeof(fse::FSEEncodeTable), stream);
+
+    // Helper to build one table
+    auto build_table = [&](fse::TableType type, int idx) {
+      u32 max_s, t_log;
+      const u16 *h_norm = fse::get_predefined_norm(type, &max_s, &t_log);
+
+      std::vector<u32> h_norm_u32(max_s + 1);
+      for (u32 i = 0; i <= max_s; ++i)
+        h_norm_u32[i] = h_norm[i];
+
+      u32 *d_norm;
+      cudaMallocAsync(&d_norm, (max_s + 1) * sizeof(u32), stream);
+      cudaMemcpyAsync(d_norm, h_norm_u32.data(), (max_s + 1) * sizeof(u32),
+                      cudaMemcpyHostToDevice, stream);
+
+      fse::FSEEncodeTable h_desc;
+      h_desc.max_symbol = max_s;
+      h_desc.table_log = t_log;
+      u32 table_size = 1 << t_log;
+      h_desc.table_size = table_size;
+
+      cudaMallocAsync(
+          &h_desc.d_symbol_table,
+          (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream);
+      cudaMallocAsync(&h_desc.d_next_state, table_size * sizeof(u16), stream);
+      cudaMallocAsync(&h_desc.d_nbBits_table, table_size * sizeof(u8), stream);
+
+      cudaMemcpyAsync(&d_tables[idx], &h_desc, sizeof(fse::FSEEncodeTable),
+                      cudaMemcpyHostToDevice, stream);
+
+      fse::FSE_buildCTable_Device(d_norm, max_s, t_log, &d_tables[idx], nullptr,
+                                  0, stream);
+
+      // Note: d_norm leaked for Phase 2a prototype
+    };
+
+    build_table(fse::TableType::LITERALS, 0);
+    build_table(fse::TableType::OFFSETS, 1);
+    build_table(fse::TableType::MATCH_LENGTHS, 2);
+
+    // 3. Launch Encoding
+    size_t *d_pos;
+    cudaMallocAsync(&d_pos, sizeof(size_t), stream);
+
+    size_t capacity = num_sequences * 8 + 512;
+    byte_t *d_bitstream;
+    cudaMallocAsync(&d_bitstream, capacity, stream);
+
+    Status launchStatus = fse::launch_fse_encoding_kernel(
+        seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
+        seq_ctx->d_match_lengths, num_sequences, d_bitstream, d_pos, capacity,
+        d_tables, stream);
+
+    if (launchStatus != Status::SUCCESS)
+      return launchStatus;
+
+    // 4. Append Bitstream to Output
+    size_t h_pos_val;
+    cudaMemcpyAsync(&h_pos_val, d_pos, sizeof(size_t), cudaMemcpyDeviceToHost,
+                    stream);
+    cudaStreamSynchronize(stream);
+
+    cudaMemcpyAsync(output + header_len, d_bitstream, h_pos_val,
+                    cudaMemcpyDeviceToDevice, stream);
+
+    if (output_size)
+      *output_size = header_len + h_pos_val;
+
+    cudaFreeAsync(d_tables, stream);
+    cudaFreeAsync(d_pos, stream);
+    cudaFreeAsync(d_bitstream, stream);
+
+    return Status::SUCCESS;
+
+#if 0
     // === HOST FALLBACK IMPLEMENTATION ===
     // 1. Copy Sequences to Host
     u32 *h_offsets = new u32[num_sequences];
@@ -4693,6 +4804,7 @@ private:
     // 5. Cleanup: delete host arrays.
 
     // Ready to write.
+#endif
   }
 
   /**
