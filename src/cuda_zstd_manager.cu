@@ -3812,6 +3812,13 @@ private:
       }
 
       // build_sequences completed successfully\n");
+
+      // Debug: Print first sequence values
+      sequence::Sequence h_seq;
+      cudaMemcpy(&h_seq, ctx.seq_ctx->d_sequences, sizeof(sequence::Sequence),
+                 cudaMemcpyDeviceToHost);
+      fprintf(stderr, "[DEBUG] First Sequence: ll=%u, ml=%u, offset=%u\n",
+              h_seq.literal_length, h_seq.match_length, h_seq.match_offset);
     }
 
     // === Execute Sequences ===
@@ -3819,9 +3826,8 @@ private:
     CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(u32)));
     CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
 
-    // sequences, literal_count=%u\n",
-    // //                 ctx.seq_ctx->num_sequences,
-    // literals_decompressed_size);
+    fprintf(stderr, "[DEBUG] execute_sequences: num_seq=%u, literalsSize=%u\n",
+            ctx.seq_ctx->num_sequences, literals_decompressed_size);
 
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
