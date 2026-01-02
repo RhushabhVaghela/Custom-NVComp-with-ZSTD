@@ -2859,19 +2859,20 @@ public:
         u32 actual_data_size = block_size;
 
         if (block_size >= 3) {
-          // Try to parse block header to detect Raw blocks
+          // Try to parse block header to detect block types
           byte_t h_block_header[3];
           CUDA_CHECK(cudaMemcpy(h_block_header, d_input + read_offset, 3,
                                 cudaMemcpyDeviceToHost));
           u32 block_header_val = h_block_header[0] | (h_block_header[1] << 8) |
                                  (h_block_header[2] << 16);
           u32 block_type = (block_header_val >> 1) & 0x3;
+          u32 header_block_size = block_header_val >> 3;
 
-          // If block type is 0 (Raw) or 1 (RLE), assume there's a block header
-          if (block_type == 0 || block_type == 1) {
+          // All valid Zstd block types (0=Raw, 1=RLE, 2=Compressed) have a
+          // block header Only type 3 (Reserved) is invalid
+          if (block_type <= 2) {
             has_block_header = true;
             is_raw_block = (block_type == 0);
-            u32 header_block_size = block_header_val >> 3;
             actual_data_offset = read_offset + 3;
             actual_data_size = header_block_size;
 
