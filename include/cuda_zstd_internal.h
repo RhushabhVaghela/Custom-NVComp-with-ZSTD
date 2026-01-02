@@ -2,14 +2,14 @@
 #define CUDA_ZSTD_INTERNAL_H_
 
 #include <iostream>
+#include <vector>
 #ifdef _MSC_VER
 #include <intrin.h> // For _BitScanReverse
 #endif
 #include "cuda_zstd_debug.h" // Debug configuration
-#include "cuda_zstd_huffman.h" // Adds HuffmanCode, CanonicalHuffmanCode, MAX_HUFFMAN_SYMBOLS
-#include "cuda_zstd_nvcomp.h"   // For Status
-#include "cuda_zstd_sequence.h" // Adds Sequence
-#include "cuda_zstd_types.h"    // Added for u32 and DictSegment
+#include "cuda_zstd_huffman.h"
+#include "cuda_zstd_sequence.h"
+#include "cuda_zstd_types.h"
 #include "cuda_zstd_utils.h"
 
 namespace cuda_zstd {
@@ -39,6 +39,30 @@ struct Dmer {
   }
 };
 } // namespace dictionary
+
+namespace fse {
+
+/**
+ * @brief Reads an FSE header from the input stream.
+ *
+ * Scans the FSE header (Accuracy Log + Normalized Counts) from the bitstream
+ * as per RFC 8878. Populates the `normalized_counts` vector, which can then
+ * be used to build a decoding table.
+ *
+ * @param input Pointer to the start of the FSE header.
+ * @param input_size Remaining size of the input buffer.
+ * @param normalized_counts Output vector for normalized counts.
+ * @param max_symbol Pointer to output the maximum symbol found.
+ * @param table_log Pointer to output the accuracy log (table log).
+ * @param bytes_read Pointer to output the number of bytes consumed.
+ * @return Status SUCCESS on valid header, or error code.
+ */
+__host__ Status read_fse_header(const byte_t *input, u32 input_size,
+                                std::vector<u16> &normalized_counts,
+                                u32 *max_symbol, u32 *table_log,
+                                u32 *bytes_read);
+
+} // namespace fse
 
 namespace huffman {
 

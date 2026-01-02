@@ -2,59 +2,28 @@
 // cuda_zstd_types.h - Core Types and Definitions
 // ============================================================================
 
-#ifndef CUDA_ZSTD_TYPES_H_
-#define CUDA_ZSTD_TYPES_H_
+#ifndef CUDA_ZSTD_TYPES_H_FIXED_
+#define CUDA_ZSTD_TYPES_H_FIXED_
 
-#ifdef __cplusplus
+#include <stdint.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
-#else
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-#endif
+#include "cuda_zstd_primitives.h"
 #include <cuda_runtime.h>
 
-#ifdef __cplusplus
 namespace cuda_zstd {
-#endif
 
 // ============================================================================
 // Basic Types
 // ============================================================================
 
-#ifdef __cplusplus
-using u8 = uint8_t;
-using u16 = uint16_t;
-using u32 = uint32_t;
-using u64 = uint64_t;
-using i8 = int8_t;
-using i16 = int16_t;
-using i32 = int32_t;
-using f32 = float;
-using i64 = int64_t;
-using f64 = double;
-using byte_t = unsigned char;
-#else
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef float f32;
-typedef int64_t i64;
-typedef double f64;
-typedef unsigned char byte_t;
-#endif
+// Basic Types defined in primitives.h
 
-#ifdef __cplusplus
 // ============================================================================
 // Hash Structures
 // ============================================================================
@@ -487,10 +456,6 @@ Status free_compression_workspace(CompressionWorkspace &workspace);
     }                                                                          \
   } while (0)
 #endif
-#endif // __cplusplus
-
-#ifdef __cplusplus
 } // namespace cuda_zstd
-#endif
 
-#endif // CUDA_ZSTD_TYPES_H
+#endif // CUDA_ZSTD_TYPES_H_FIXED_

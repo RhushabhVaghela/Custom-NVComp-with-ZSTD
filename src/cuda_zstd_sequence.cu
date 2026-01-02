@@ -443,18 +443,19 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   }
 
   if (num_sequences == 0) {
-    if (literal_count == 1 || literal_count == 0 || literal_count == 4) {
-      printf("[DEBUG] execute_sequences: num_sequences=0, literal_count=%u, "
-             "d_literals=%p\n",
-             literal_count, d_literals);
+    // Disabled debug prints
+    // if (literal_count == 1 || literal_count == 0 || literal_count == 4) {
+    //   printf("[DEBUG] execute_sequences: num_sequences=0, literal_count=%u, "
+    //          "d_literals=%p\n",
+    //          literal_count, d_literals);
 
-      // Inspect Literal Content
-      if (literal_count > 0 && literal_count < 16) {
-        byte_t first_byte = 0;
-        cudaMemcpy(&first_byte, d_literals, 1, cudaMemcpyDeviceToHost);
-        printf("[DEBUG] execute_sequences: literal[0]=0x%02X\n", first_byte);
-      }
-    }
+    //   // Inspect Literal Content
+    //   if (literal_count > 0 && literal_count < 16) {
+    //     byte_t first_byte = 0;
+    //     cudaMemcpy(&first_byte, d_literals, 1, cudaMemcpyDeviceToHost);
+    //     printf("[DEBUG] execute_sequences: literal[0]=0x%02X\n", first_byte);
+    //   }
+    // }
     // No sequences, just copy literals
     if (literal_count > 0) {
       CUDA_CHECK(cudaMemcpyAsync(d_output, d_literals, literal_count,

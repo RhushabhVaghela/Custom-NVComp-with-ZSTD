@@ -8,7 +8,8 @@
 #ifndef CUDA_ZSTD_SEQUENCE_H_
 #define CUDA_ZSTD_SEQUENCE_H_
 
-#include "cuda_zstd_internal.h"
+// #include "cuda_zstd_internal.h"
+
 #include "cuda_zstd_types.h"
 #include <cuda_runtime.h>
 

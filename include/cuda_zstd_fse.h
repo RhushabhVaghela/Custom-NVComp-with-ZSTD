@@ -321,11 +321,11 @@ encode_fse_advanced(const byte_t *d_input, u32 input_size, byte_t *d_output,
  * bitstream. Used for Standard ZSTD sequence decoding. Handles Predefined and
  * FSE Compressed modes.
  */
-Status decode_sequences_interleaved(const byte_t *d_input, u32 input_size,
-                                    u32 num_sequences, u32 *d_ll_out,
-                                    u32 *d_of_out, u32 *d_ml_out, u32 ll_mode,
-                                    u32 of_mode, u32 ml_mode,
-                                    cudaStream_t stream);
+Status decode_sequences_interleaved(
+    const byte_t *d_input, u32 input_size, u32 num_sequences, u32 *d_ll_out,
+    u32 *d_of_out, u32 *d_ml_out, u32 ll_mode, u32 of_mode, u32 ml_mode,
+    const FSEDecodeTable *ll_table, const FSEDecodeTable *of_table,
+    const FSEDecodeTable *ml_table, cudaStream_t stream);
 
 __host__ Status decode_fse_predefined(
     const byte_t *d_input, // <-- ADDED: The bitstream to read from
@@ -335,6 +335,12 @@ __host__ Status decode_fse_predefined(
     u32 *h_decoded_count, // <-- Host pointer for the count of decoded symbols
     TableType table_type, // <-- Which predefined table to use
     cudaStream_t stream = 0);
+
+__host__ const u16 *get_predefined_norm(TableType type, u32 *max_symbol_value,
+                                        u32 *table_log);
+
+__host__ Status FSE_buildCTable_Host(const u16 *h_normalized, u32 max_symbol,
+                                     u32 table_size, FSEEncodeTable &h_table);
 
 /**
  * @brief (NEW) Encodes sequences using FSE tables (Tier 1).

@@ -237,7 +237,7 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   }
 
   // ===== STEP 2: Extract Normalized Frequencies =====
-  [[maybe_unused]] u32 table_size = 1u << table_log;
+  u32 table_size = 1u << table_log;
   u32 header_size = 12 + (max_symbol + 1) * 2;
 
   if (encoded_size_bytes < header_size) {
@@ -853,7 +853,7 @@ __host__ Status FSE_buildCTable_Host(
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  [[maybe_unused]] u32 table_size = 1u << table_log;
+  u32 table_size = 1u << table_log;
   // === Step 1: Allocate output table ===
   h_table->table_log = table_log;
   h_table->table_size = table_size;
@@ -1313,9 +1313,6 @@ __host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
                                 byte_t *d_output, u32 *d_output_size,
                                 bool gpu_optimize, cudaStream_t stream,
                                 FSEContext *ctx, u64 **d_offsets_out) {
-  [[maybe_unused]] TableType table_type = TableType::LITERALS;
-  [[maybe_unused]] bool auto_table_log = true;
-  [[maybe_unused]] bool accurate_norm = true;
 
   // Analyze input statistics
   FSEStats stats;
@@ -1325,7 +1322,7 @@ __host__ Status encode_fse_impl(const byte_t *d_input, u32 input_size,
   }
   u32 table_log = stats.recommended_log;
 
-  [[maybe_unused]] u32 table_size = 1u << table_log;
+  u32 table_size = 1u << table_log;
 
   // Step 3: Normalize frequencies
   std::vector<u16> h_normalized(stats.max_symbol + 1);
@@ -3590,7 +3587,7 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
     delete[] h_table.nbBits;
   } else {
     // === GPU PARALLEL PATH ===
-    [[maybe_unused]] u32 table_size = 1u << table_log;
+    u32 table_size = 1u << table_log;
     u32 header_table_size = (max_symbol + 1) * sizeof(u16);
     u32 header_size =
         (sizeof(u32) * 3) +
@@ -3802,16 +3799,15 @@ __host__ Status decode_fse(const byte_t *d_input, u32 input_size,
  * @brief Decodes 3 interleaved FSE streams (LL, OF, ML) from a single
  * bitstream.
  */
-__host__ Status decode_sequences_interleaved(const byte_t *d_input,
-                                             u32 input_size, u32 num_sequences,
-                                             u32 *d_ll_out, u32 *d_of_out,
-                                             u32 *d_ml_out, u32 ll_mode,
-                                             u32 of_mode, u32 ml_mode,
-                                             cudaStream_t stream) {
-  // [DEBUG] Entry
-  fprintf(stderr,
-          "[DEBUG] decode_sequences_interleaved: L%u, O%u, M%u. Size=%u\n",
-          ll_mode, of_mode, ml_mode, input_size);
+__host__ Status decode_sequences_interleaved(
+    const byte_t *d_input, u32 input_size, u32 num_sequences, u32 *d_ll_out,
+    u32 *d_of_out, u32 *d_ml_out, u32 ll_mode, u32 of_mode, u32 ml_mode,
+    const FSEDecodeTable *p_ll_table, const FSEDecodeTable *p_of_table,
+    const FSEDecodeTable *p_ml_table, cudaStream_t stream) {
+  // [DEBUG] Entry (disabled)
+  // fprintf(stderr,
+  //         "[DEBUG] decode_sequences_interleaved: L%u, O%u, M%u. Size=%u\n",
+  //         ll_mode, of_mode, ml_mode, input_size);
 
   if (input_size == 0 && num_sequences > 0)
     return Status::ERROR_CORRUPT_DATA;
@@ -3831,29 +3827,49 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
   u32 ll_log = 0, of_log = 0, ml_log = 0;
   u32 max_sym = 0;
 
-  bool decode_ll = (ll_mode == 0); // Only Predefined supported for now
-  bool decode_of = (of_mode == 0);
-  bool decode_ml = (ml_mode == 0);
+  bool decode_ll = (ll_mode == 0 || ll_mode == 1 || ll_mode == 2);
+  bool decode_of = (of_mode == 0 || of_mode == 1 || of_mode == 2);
+  bool decode_ml = (ml_mode == 0 || ml_mode == 1 || ml_mode == 2);
+
+  u32 header_off = 0;
+  u8 ll_rle = 0, of_rle = 0, ml_rle = 0;
+
+  if (ll_mode == 1) {
+    if (header_off >= input_size)
+      return Status::ERROR_CORRUPT_DATA;
+    ll_rle = h_input[header_off++];
+  }
+  if (of_mode == 1) {
+    if (header_off >= input_size)
+      return Status::ERROR_CORRUPT_DATA;
+    of_rle = h_input[header_off++];
+  }
+  if (ml_mode == 1) {
+    if (header_off >= input_size)
+      return Status::ERROR_CORRUPT_DATA;
+    ml_rle = h_input[header_off++];
+  }
 
   auto cleanup = [&]() {
-    if (ll_table.newState) {
+    // Only free tables if we allocated them (Mode 0)
+    if (ll_mode == 0 && ll_table.newState) {
       delete[] ll_table.newState;
       delete[] ll_table.symbol;
       delete[] ll_table.nbBits;
     }
-    if (of_table.newState) {
+    if (of_mode == 0 && of_table.newState) {
       delete[] of_table.newState;
       delete[] of_table.symbol;
       delete[] of_table.nbBits;
     }
-    if (ml_table.newState) {
+    if (ml_mode == 0 && ml_table.newState) {
       delete[] ml_table.newState;
       delete[] ml_table.symbol;
       delete[] ml_table.nbBits;
     }
   };
 
-  if (decode_ll) {
+  if (ll_mode == 0) {
     const u16 *norm =
         get_predefined_norm(TableType::LITERALS, &max_sym, &ll_log);
     if (!norm) {
@@ -3864,15 +3880,19 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     ll_table.newState = new u16[size]();
     ll_table.symbol = new u8[size]();
     ll_table.nbBits = new u8[size]();
-    // fprintf(stderr, "[DEBUG] Init LL: log=%u\n", ll_log);
     if (FSE_buildDTable_Host(norm, max_sym, 1 << ll_log, ll_table) !=
         Status::SUCCESS) {
-      printf("[DEBUG] FSE_buildDTable_Host LL failed!\n");
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
+  } else if (ll_mode == 2) {
+    if (!p_ll_table)
+      return Status::ERROR_INVALID_PARAMETER;
+    ll_table = *p_ll_table;
+    ll_log = ll_table.table_log;
   }
-  if (decode_of) {
+
+  if (of_mode == 0) {
     const u16 *norm =
         get_predefined_norm(TableType::OFFSETS, &max_sym, &of_log);
     if (!norm) {
@@ -3883,18 +3903,22 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     of_table.newState = new u16[size]();
     of_table.symbol = new u8[size]();
     of_table.nbBits = new u8[size]();
-    // fprintf(stderr, "[DEBUG] Init OF: log=%u\n", of_log);
     if (FSE_buildDTable_Host(norm, max_sym, 1 << of_log, of_table) !=
         Status::SUCCESS) {
-      printf("[DEBUG] FSE_buildDTable_Host OF failed!\n");
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
-    if (input_size > 3)
-      fprintf(stderr, "[DEBUG] Check 3 (OF Build): h_input[3]=0x%02x\n",
-              h_input[3]);
+    // if (input_size > 3)
+    //   fprintf(stderr, "[DEBUG] Check 3 (OF Build): h_input[3]=0x%02x\n",
+    //           h_input[3]);
+  } else if (of_mode == 2) {
+    if (!p_of_table)
+      return Status::ERROR_INVALID_PARAMETER;
+    of_table = *p_of_table;
+    of_log = of_table.table_log;
   }
-  if (decode_ml) {
+
+  if (ml_mode == 0) {
     const u16 *norm =
         get_predefined_norm(TableType::MATCH_LENGTHS, &max_sym, &ml_log);
     if (!norm) {
@@ -3905,16 +3929,16 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     ml_table.newState = new u16[size]();
     ml_table.symbol = new u8[size]();
     ml_table.nbBits = new u8[size]();
-    // fprintf(stderr, "[DEBUG] Init ML: log=%u\n", ml_log);
     if (FSE_buildDTable_Host(norm, max_sym, 1 << ml_log, ml_table) !=
         Status::SUCCESS) {
-      printf("[DEBUG] FSE_buildDTable_Host ML failed!\n");
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
-    if (input_size > 3)
-      fprintf(stderr, "[DEBUG] Check 4 (ML Build): h_input[3]=0x%02x\n",
-              h_input[3]);
+  } else if (ml_mode == 2) {
+    if (!p_ml_table)
+      return Status::ERROR_INVALID_PARAMETER;
+    ml_table = *p_ml_table;
+    ml_log = ml_table.table_log;
   }
 
   // 3. Allocate Host Outputs
@@ -3944,8 +3968,8 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
                                             // Too strict if some disabled?
   }
 
-  fprintf(stderr, "[DEBUG] Logs: LL=%u, OF=%u, ML=%u. Start BitPos=%u\n",
-          ll_log, of_log, ml_log, bit_pos);
+  // fprintf(stderr, "[DEBUG] Logs: LL=%u, OF=%u, ML=%u. Start BitPos=%u\n",
+  //         ll_log, of_log, ml_log, bit_pos);
 
   // Read initial states (LL, then ML, then OF) - Read BACKWARDS from end
   if (decode_ll) { // LL is last in stream (first read)
@@ -3960,12 +3984,13 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
       bits = read_bits_from_buffer(h_input.data(), read_pos, ll_log);
     }
     stateLL = bits;
-    if (input_size > 3)
-      fprintf(stderr, "[DEBUG] Check 5 (Init LL): h_input[3]=0x%02x\n",
-              h_input[3]);
+    // if (input_size > 3)
+    //   fprintf(stderr, "[DEBUG] Check 5 (Init LL): h_input[3]=0x%02x\n",
+    //           h_input[3]);
   }
   if (decode_of) {
-    fprintf(stderr, "[DEBUG] Reading OF. BitPos=%u, Log=%u\n", bit_pos, of_log);
+    // fprintf(stderr, "[DEBUG] Reading OF. BitPos=%u, Log=%u\n", bit_pos,
+    // of_log);
     u32 bits;
     if (bit_pos < of_log) {
       u32 zero_pos = 0;
@@ -3977,12 +4002,13 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
       bits = read_bits_from_buffer(h_input.data(), read_pos, of_log);
     }
     stateOF = bits;
-    if (input_size > 3)
-      fprintf(stderr, "[DEBUG] Check 6 (Init OF): h_input[3]=0x%02x\n",
-              h_input[3]);
+    // if (input_size > 3)
+    //   fprintf(stderr, "[DEBUG] Check 6 (Init OF): h_input[3]=0x%02x\n",
+    //           h_input[3]);
   }
   if (decode_ml) {
-    fprintf(stderr, "[DEBUG] Reading ML. BitPos=%u, Log=%u\n", bit_pos, ml_log);
+    // fprintf(stderr, "[DEBUG] Reading ML. BitPos=%u, Log=%u\n", bit_pos,
+    // ml_log);
     u32 bits;
     if (bit_pos < ml_log) {
       u32 zero_pos = 0;
@@ -3993,16 +4019,16 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
       u32 read_pos = bit_pos;
       u32 byte_off = read_pos / 8;
       u32 bit_off = read_pos % 8;
-      fprintf(stderr,
-              "[DEBUG] Init ML Read: Pos=%u, ByteOff=%u, BitOff=%u, "
-              "ByteVal=0x%02x\n",
-              read_pos, byte_off, bit_off, h_input[byte_off]);
+      // fprintf(stderr,
+      //         "[DEBUG] Init ML Read: Pos=%u, ByteOff=%u, BitOff=%u, "
+      //         "ByteVal=0x%02x\n",
+      //         read_pos, byte_off, bit_off, h_input[byte_off]);
       bits = read_bits_from_buffer(h_input.data(), read_pos, ml_log);
     }
     stateML = bits;
-    if (stateML == 62)
-      fprintf(stderr, "[DEBUG] ML State 62 maps to Symbol %u\n",
-              ml_table.symbol[62]);
+    // if (stateML == 62)
+    //   fprintf(stderr, "[DEBUG] ML State 62 maps to Symbol %u\n",
+    //           ml_table.symbol[62]);
   }
 
   // 5. Decode Loop (OF, ML, LL for each sequence)
@@ -4012,56 +4038,69 @@ __host__ Status decode_sequences_interleaved(const byte_t *d_input,
     // 1. Decode States (OF, ML, LL)
     u8 of_sym = 0;
     if (decode_of) {
-      of_sym = of_table.symbol[stateOF];
-      // printf("[DEBUG] Seq %d: StateOF=%u -> SymOF=%u\n", i, stateOF, of_sym);
-      u8 nb = of_table.nbBits[stateOF];
-      u32 bits;
-      if (bit_pos < nb) {
-        u32 zero_pos = 0;
-        bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-        bit_pos = 0;
+      if (of_mode == 1) {
+        of_sym = of_rle;
       } else {
-        bit_pos -= nb;
-        u32 read_pos = bit_pos;
-        bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        of_sym = of_table.symbol[stateOF];
+        // printf("[DEBUG] Seq %d: StateOF=%u -> SymOF=%u\n", i, stateOF,
+        // of_sym);
+        u8 nb = of_table.nbBits[stateOF];
+        u32 bits;
+        if (bit_pos < nb) {
+          u32 zero_pos = 0;
+          bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+          bit_pos = 0;
+        } else {
+          bit_pos -= nb;
+          u32 read_pos = bit_pos;
+          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        }
+        stateOF = of_table.newState[stateOF] + bits;
       }
-      stateOF = of_table.newState[stateOF] + bits;
     }
 
     u8 ml_sym = 0;
     if (decode_ml) {
-      ml_sym = ml_table.symbol[stateML];
-      // printf("[DEBUG] Seq %d: StateML=%u -> SymML=%u\n", i, stateML, ml_sym);
-
-      u8 nb = ml_table.nbBits[stateML];
-      u32 bits;
-      if (bit_pos < nb) {
-        u32 zero_pos = 0;
-        bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-        bit_pos = 0;
+      if (ml_mode == 1) {
+        ml_sym = ml_rle;
       } else {
-        bit_pos -= nb;
-        u32 read_pos = bit_pos;
-        bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        ml_sym = ml_table.symbol[stateML];
+        // printf("[DEBUG] Seq %d: StateML=%u -> SymML=%u\n", i, stateML,
+        // ml_sym);
+        u8 nb = ml_table.nbBits[stateML];
+        u32 bits;
+        if (bit_pos < nb) {
+          u32 zero_pos = 0;
+          bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+          bit_pos = 0;
+        } else {
+          bit_pos -= nb;
+          u32 read_pos = bit_pos;
+          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        }
+        stateML = ml_table.newState[stateML] + bits;
       }
-      stateML = ml_table.newState[stateML] + bits;
     }
 
     u8 ll_sym = 0;
     if (decode_ll) {
-      ll_sym = ll_table.symbol[stateLL];
-      u8 nb = ll_table.nbBits[stateLL];
-      u32 bits;
-      if (bit_pos < nb) {
-        u32 zero_pos = 0;
-        bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-        bit_pos = 0;
+      if (ll_mode == 1) {
+        ll_sym = ll_rle;
       } else {
-        bit_pos -= nb;
-        u32 read_pos = bit_pos;
-        bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        ll_sym = ll_table.symbol[stateLL];
+        u8 nb = ll_table.nbBits[stateLL];
+        u32 bits;
+        if (bit_pos < nb) {
+          u32 zero_pos = 0;
+          bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
+          bit_pos = 0;
+        } else {
+          bit_pos -= nb;
+          u32 read_pos = bit_pos;
+          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        }
+        stateLL = ll_table.newState[stateLL] + bits;
       }
-      stateLL = ll_table.newState[stateLL] + bits;
     }
 
     // 2. Read Extra Bits (LL, ML, OF)
@@ -4178,7 +4217,7 @@ __host__ Status decode_fse_predefined(const byte_t *d_input, u32 input_size,
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  [[maybe_unused]] u32 table_size = 1u << table_log;
+  u32 table_size = 1u << table_log;
 
   // === Step 2: Build DTable ===
   FSEDecodeTable h_table;
@@ -4468,5 +4507,360 @@ Status free_fse_decoder_table(FSEDecoderTable *table, cudaStream_t stream) {
   return Status::SUCCESS;
 }
 
+/**
+ * @brief Helper Bit Reader for FSE Header (Forward Reading)
+ * FSE Header logic generally follows Forward parsing of variable-bit values,
+ * unlike the Reverse bitstream used for compressed data.
+ */
+struct FSEHeaderBitReader {
+  const byte_t *ptr;
+  const byte_t *end;
+  u64 accumulator;
+  int bits_available;
+
+  __host__ FSEHeaderBitReader(const byte_t *p, u32 size)
+      : ptr(p), end(p + size), accumulator(0), bits_available(0) {}
+
+  // Ensures at least num_bits are in the accumulator
+  __host__ bool fill(int num_bits) {
+    while (bits_available < num_bits && ptr < end) {
+      accumulator |= ((u64)(*ptr++)) << bits_available;
+      bits_available += 8;
+    }
+    return bits_available >= num_bits;
+  }
+
+  __host__ u32 read(int num_bits) {
+    if (!fill(num_bits))
+      return 0; // Or handle error
+    u32 val = (u32)(accumulator & ((1ULL << num_bits) - 1));
+    accumulator >>= num_bits;
+    bits_available -= num_bits;
+    return val;
+  }
+
+  __host__ u32 bytes_read(const byte_t *start) const {
+    // Current ptr - start - unconsumed full bytes?
+    // Zstd header parsing usually consumes full bytes touched.
+    return (u32)(ptr - start);
+  }
+};
+
+/**
+ * @brief Reads an FSE header from the input stream.
+ */
+__host__ Status read_fse_header(const byte_t *input, u32 input_size,
+                                std::vector<u16> &normalized_counts,
+                                u32 *max_symbol, u32 *table_log,
+                                u32 *bytes_read) {
+  if (input_size < 1)
+    return Status::ERROR_CORRUPT_DATA;
+
+  FSEHeaderBitReader reader(input, input_size);
+
+  // 1. Read Accuracy Log (4 bits)
+  u32 accuracy_log = reader.read(4);
+  *table_log = accuracy_log + 5;
+
+  if (*table_log > 15)
+    return Status::ERROR_CORRUPT_DATA; // Max allowed by spec generally 15? Zstd
+                                       // max is 15-22?
+  // RFC 8878: FSE_Accuracy_Log is 4 bits -> 0..15 -> TableLog 5..20. Max Zstd
+  // is 15? No, max FSE log typically restricted. Let's assume valid range.
+
+  u32 remaining = 1u << *table_log;
+  (void)(1u << *table_log); // threshold - unused for now
+  u32 symbol = 0;
+
+  normalized_counts.clear();
+  normalized_counts.reserve(256); // Typical max
+
+  while (remaining > 0 && symbol <= 255) {
+    if (reader.bits_available < 1 && reader.ptr >= reader.end) {
+      // Ran out of data?
+      return Status::ERROR_CORRUPT_DATA;
+    }
+
+    // Calculate variable bit width
+    // nbBits = highBit(remaining + 1)
+    u32 n = 0;
+    u32 tmp = remaining + 1;
+    while (tmp >>= 1)
+      n++;
+    u32 nbBits = n + 1; // HighBit index -> 1-based count?
+    // Ex: remaining=4 (100). +1=5 (101). HighBit=2 (0..2). nbBits=3. Correct.
+
+    u32 small_thresh = ((1u << nbBits) - 1) - (remaining + 1);
+
+    // Read n-1 bits first to check threshold
+    u32 val = reader.read(nbBits - 1);
+
+    if (val < small_thresh) {
+      // Small value: count encoded in n-1 bits
+      // count = val
+    } else {
+      // Large value: read 1 more bit
+      u32 extra = reader.read(1);
+      val += (extra << (nbBits - 1));
+      val -= small_thresh;
+    }
+
+    // Convert val to probability
+    (void)((int)val - 1); // count - used in comments only
+    // Wait.
+    // RFC: "Value 0 means Not Present (Prob 0)."
+    // "Value 1 means Prob -1 (Count 1)."
+    // "Value > 1 means Prob val."
+    // BUT `val` decoded above is slightly different.
+    // `val` from stream:
+    // Zstd `FSE_readNCount`:
+    //   if (val < small) count = val; else count = val - small;
+    //   if (count == -1) { prob = 1; remaining -= 1; }
+    //   else if (count == 0) { prob = 0; // Repeat logic }
+    //   else { prob = count; remaining -= count; }
+
+    // My `val` calculation matched `count` in Zstd ref effectively?
+    // Zstd: `count = val` or `val - small`.
+    // NOTE: `val` was the raw bits. `small` is the threshold.
+    // If `raw < small`: `count = raw`.
+    // Else: `raw` (read with n bits) includes the extra bit logic.
+    // My logic: `val` (decoded) IS the `count` from Zstd ref.
+
+    u32 prob = 0;
+    if (val == 0xFFFFFFFF) { // -1 cast to u32? No.
+                             // `val` is u32. `count` can be -1?
+      // Zstd `FSE_readNCount`: `short normalizedCounter`.
+      // `val` is read from bits. It is unsigned.
+      // How can it be -1?
+      // The decoding logic above produces non-negative `val`.
+      // Where does -1 come from?
+      // Ah, FSE table allows `val` to effectively represent `freq`.
+      // The mapping is:
+      // Encoded 0 -> Prob 1 (Count 1).
+      // Encoded 1 -> Prob 0 (Zero/Repeat).
+      // Encoded >> 1 -> Prob `val-1`? No.
+    }
+
+    // Check `libzstd` `FSE_decodeSymbolValue` (conceptual):
+    //   case 0: return 1; (Count 1)
+    //   case 1: return 0; (Count 0 -> Repeat?)
+    //   default: return val;? No.
+
+    // Let's defer to `FSE_readNCount` logic:
+    /*
+      val = FSE_readBits(...)
+      if (val < small) ...
+      nCount = val - 1;
+      if (nCount == -1) // val was 0
+         return 1;
+      if (nCount == 0) // val was 1
+         return 0; // Repeat logic
+    */
+
+    // Implementation:
+    int nCount = (int)val - 1;
+
+    if (nCount == -1) { // val == 0
+      prob = 1;
+      remaining -= 1;
+      normalized_counts.push_back((u16)prob);
+      symbol++;
+    } else if (nCount == 0) { // val == 1 -> Count 0 (Repeat)
+      // Repeat loop
+      u32 repeat = 0;
+      while (true) {
+        u32 r_enc = reader.read(2);
+        repeat += r_enc;
+        if (r_enc < 3)
+          break;
+        // If 3, read 2 more...
+      }
+      // Pad 0s
+      for (u32 k = 0; k < repeat; k++) {
+        normalized_counts.push_back(0);
+      }
+      symbol += repeat;
+    } else { // val > 1 -> Prob = val - 1 (?)
+      // Zstd: `nCount = val - 1`.
+      // `prob = nCount`.
+      prob = nCount;
+      remaining -= prob;
+      normalized_counts.push_back((u16)prob);
+      symbol++;
+    }
+  } // End while
+
+  // Pad remaining symbols
+  // "Last symbol prob is `remaining`"
+  // If `remaining > 0`?
+  // Zstd says: "The last symbol is NOT encoded."
+  // It takes the rest of `remaining`.
+  // BUT we must verify `remaining` is valid (not huge?).
+  if (remaining > 0 && symbol <= 255) {
+    if (remaining > (1u << *table_log))
+      return Status::ERROR_CORRUPT_DATA;
+    normalized_counts.push_back((u16)remaining);
+    symbol++;
+  }
+
+  *max_symbol = symbol - 1; // Max index
+  *bytes_read = reader.bytes_read(input);
+
+  return Status::SUCCESS;
+}
+
+// ============================================================================
+// FSE_buildCTable_Host Implementation
+// ============================================================================
+
+__host__ Status FSE_buildCTable_Host(const u16 *h_normalized, u32 max_symbol,
+                                     u32 table_size, FSEEncodeTable &h_table) {
+  // 1. Allocate Host Memory for Table Construction
+  // We need intermediate arrays for spreading symbols before writing to the
+  // final table
+  std::vector<u8> tableU8(table_size);
+  (void)(table_size - 1); // highThreshold - not used in current impl
+  u32 *cumul = new u32[max_symbol + 2];
+  cumul[0] = 0;
+
+  // 2. Spread Symbols (Step Function)
+  // This matches Zstd's spread logic to ensure compatibility
+  // const u32 tableMask = table_size - 1;
+  u32 position = 0;
+  u32 step = (table_size >> 1) + (table_size >> 3) + 3;
+  u32 mask = table_size - 1;
+
+  for (u32 s = 0; s <= max_symbol; s++) {
+    int n = h_normalized[s];
+    if (n == 0)
+      continue;
+    for (int i = 0; i < n; i++) {
+      tableU8[position] = (u8)s;
+      position = (position + step) & mask;
+    }
+  }
+
+  // 3. Build CTable Symbols (deltaNbBits, deltaFindState)
+  // Re-use h_table's device pointers?
+  // WARN: FSEEncodeTable has DEVICE pointers (d_symbol_table).
+  // We cannot write to them directly from Host.
+  // We must build on Host, then CUDA Memcpy.
+
+  // Allocate Host-side mirrors of the FSEEncodeTable structures
+  FSEEncodeTable::FSEEncodeSymbol *h_symbolTT =
+      new FSEEncodeTable::FSEEncodeSymbol[max_symbol + 1];
+  u16 *h_nextState = new u16[table_size]; // tableU16 in Zstd
+
+  // 3a. Calculate Symbol Transformation Table (deltaNbBits, deltaFindState)
+  u32 total = 0;
+  for (u32 s = 0; s <= max_symbol; s++) {
+    u32 proba = h_normalized[s]; // normalized frequency
+    cumul[s] = total;
+    if (proba == 0) {
+      // If a symbol has 0 probability, it shouldn't be used.
+      // In Zstd, this might be handled by max_symbol or explicit checks.
+      h_symbolTT[s].deltaNbBits = (u32)((-1) << 16); // Signal invalid?
+      h_symbolTT[s].deltaFindState = 0;
+      continue;
+    }
+
+    // Calculate bits required: highest bit set in proba?
+    // Zstd uses: nbBitsOut = tableLog - bitWeight(proba)
+    // where bitWeight is actually log2(proba).
+    // Zstd logic:
+    // u32 minBitsOut = tableLog - BIT_highbit32(proba);
+    // u32 minStatePlus = (u32)proba << minBitsOut;
+
+    // We need table_log. derived from table_size.
+    u32 tableLog = 0;
+    while ((1u << tableLog) < table_size)
+      tableLog++;
+
+    u32 minBitsOut = tableLog - (31 - __builtin_clz(proba));
+    u32 minStatePlus = proba << minBitsOut;
+
+    h_symbolTT[s].deltaNbBits = (minBitsOut << 16) - minStatePlus;
+    h_symbolTT[s].deltaFindState =
+        total - 1; // Base offset for this symbol's state range
+
+    total += proba;
+  }
+  cumul[max_symbol + 1] = total;
+
+  // 3b. Build tableU16 (nextStateTable)
+  // This maps a State Index [0..table_size-1] to the next state for the symbol
+  // at that index. The 'symbol' at index 'u' is tableU8[u]. The state
+  // transition is: nextState = stateTable[ state ] But wait, Zstd encoding
+  // state transition is: state = stateTable[ current_state + deltaFindState ] ?
+  // No. Zstd Encoding: state = nextStateTable[ state + deltaFindState ] >>
+  // nbBits ? No.
+
+  // Zstd Encoding Logic:
+  // nbBits = (state + deltaNbBits) >> 16;
+  // dst[bitPos...] = state & mask[nbBits];
+  // sub = state >> nbBits;
+  // state = nextStateTable[ sub + deltaFindState ];
+
+  // To support this, 'nextStateTable' must map (sub + delta) -> nextState.
+  // In our Build approach:
+  // We iterate through tableU8. Position 'u' in tableU8 corresponds to a state.
+  // Actually, tableU8[u] tells us which symbol is assigned to state 'u'.
+  // But for ENCODING, we need the reverse: meaningful states for a symbol.
+
+  // Zstd BuildCTable loop:
+  // Iterate u from 0 to table_size-1.
+  // symbol s = tableU8[u];
+  // We are finding the specific state value for the N-th occurrence of symbol
+  // s. v = cumul[s]++; tableU16[v] = u; // Map (Symbol Base + Offset) ->
+  // Initial State (u)
+
+  for (u32 u = 0; u < table_size; u++) {
+    u32 s = tableU8[u];
+    // h_nextState[ cumul[s]++ ] = (u16) (table_size + u); // Zstd adds
+    // table_size? Zstd: tableU16[cumul[s]++] = (u16) (table_size + u); Why
+    // table_size + u? Because regular states are 0..table_size-1.
+    //
+    // FSE_encodeSymbol:
+    // state = tableCTable[ state + deltaFindState ];
+    // Here 'state' index is calculated.
+    //
+    // If we strictly follow Zstd:
+    h_nextState[cumul[s]++] = (u16)(table_size + u);
+  }
+
+  // 4. CUDA Memcpy to Device
+  // We assume h_table already has allocated device pointers (d_symbol_table,
+  // d_next_state) This function takes FSEEncodeTable& which has device
+  // pointers.
+
+  cudaError_t err;
+  err = cudaMemcpy(h_table.d_symbol_table, h_symbolTT,
+                   (max_symbol + 1) * sizeof(FSEEncodeTable::FSEEncodeSymbol),
+                   cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    delete[] cumul;
+    delete[] h_symbolTT;
+    delete[] h_nextState;
+    return Status::ERROR_CUDA_ERROR;
+  }
+
+  err = cudaMemcpy(h_table.d_next_state, h_nextState, table_size * sizeof(u16),
+                   cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    delete[] cumul;
+    delete[] h_symbolTT;
+    delete[] h_nextState;
+    return Status::ERROR_CUDA_ERROR;
+  }
+
+  // 5. Cleanup
+  delete[] cumul;
+  delete[] h_symbolTT;
+  delete[] h_nextState;
+
+  return Status::SUCCESS;
+}
+
 } // namespace fse
+
 } // namespace cuda_zstd

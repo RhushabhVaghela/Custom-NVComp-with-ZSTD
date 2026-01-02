@@ -7,6 +7,7 @@
 #include "cuda_zstd_memory_pool.h"
 #include "cuda_zstd_stacktrace.h"
 #include <cstdio>
+#include <iostream>
 #include <mutex>
 
 namespace cuda_zstd {
