@@ -3599,8 +3599,9 @@ private:
     u32 block_size = use_compressed ? compressed_size : original_size;
     const byte_t *src_data = use_compressed ? compressed_data : original_data;
 
-    printf("[DEBUG] WRITE_BLOCK: size=%u, orig=%u, type=%u, is_last=%d\n",
-           compressed_size, original_size, block_type, is_last);
+    //     printf("[DEBUG] WRITE_BLOCK: size=%u, orig=%u, type=%u,
+    //     is_last=%d\n",
+    //            compressed_size, original_size, block_type, is_last);
 
     if (*compressed_offset + 3 + block_size > max_size) {
       return Status::ERROR_BUFFER_TOO_SMALL;
@@ -5184,9 +5185,16 @@ private:
     } else if (ll_mode == 2) { // Compressed (Table)
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
-      Status st = fse::read_fse_header(input + offset, input_size - offset,
-                                       normalized_counts, &max_symbol,
-                                       &table_log, &bytes_read);
+
+      // Fix: Copy FSE header to host before parsing
+      byte_t h_header_buf[512];
+      u32 copy_size = std::min((u32)sizeof(h_header_buf), input_size - offset);
+      CUDA_CHECK(cudaMemcpy(h_header_buf, input + offset, copy_size,
+                            cudaMemcpyDeviceToHost));
+
+      Status st =
+          fse::read_fse_header(h_header_buf, copy_size, normalized_counts,
+                               &max_symbol, &table_log, &bytes_read);
       if (st != Status::SUCCESS)
         return st;
       offset += bytes_read;
@@ -5210,9 +5218,16 @@ private:
     } else if (of_mode == 2) { // Compressed
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
-      Status st = fse::read_fse_header(input + offset, input_size - offset,
-                                       normalized_counts, &max_symbol,
-                                       &table_log, &bytes_read);
+
+      // Fix: Copy FSE header to host before parsing
+      byte_t h_header_buf[512];
+      u32 copy_size = std::min((u32)sizeof(h_header_buf), input_size - offset);
+      CUDA_CHECK(cudaMemcpy(h_header_buf, input + offset, copy_size,
+                            cudaMemcpyDeviceToHost));
+
+      Status st =
+          fse::read_fse_header(h_header_buf, copy_size, normalized_counts,
+                               &max_symbol, &table_log, &bytes_read);
       if (st != Status::SUCCESS)
         return st;
       offset += bytes_read;
@@ -5236,9 +5251,16 @@ private:
     } else if (ml_mode == 2) { // Compressed
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
-      Status st = fse::read_fse_header(input + offset, input_size - offset,
-                                       normalized_counts, &max_symbol,
-                                       &table_log, &bytes_read);
+
+      // Fix: Copy FSE header to host before parsing
+      byte_t h_header_buf[512];
+      u32 copy_size = std::min((u32)sizeof(h_header_buf), input_size - offset);
+      CUDA_CHECK(cudaMemcpy(h_header_buf, input + offset, copy_size,
+                            cudaMemcpyDeviceToHost));
+
+      Status st =
+          fse::read_fse_header(h_header_buf, copy_size, normalized_counts,
+                               &max_symbol, &table_log, &bytes_read);
       if (st != Status::SUCCESS)
         return st;
       offset += bytes_read;

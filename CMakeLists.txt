@@ -318,6 +318,16 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     add_test(NAME benchmark_fse_gpu COMMAND benchmark_fse_gpu)
     set_property(TEST benchmark_fse_gpu PROPERTY LABELS "benchmark")
 
+    # FSE Host Fallback Benchmark (measures encode_sequences_with_predefined_fse)
+    add_executable(benchmark_fse_host_fallback benchmarks/benchmark_fse_host_fallback.cu)
+    set_target_properties(benchmark_fse_host_fallback PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_fse_host_fallback cuda_zstd_static)
+    add_test(NAME benchmark_fse_host_fallback COMMAND benchmark_fse_host_fallback)
+    set_property(TEST benchmark_fse_host_fallback PROPERTY LABELS "benchmark")
+
     # Pipelined Streaming Benchmark
     add_executable(benchmark_pipeline_streaming benchmarks/benchmark_pipeline.cu)
     set_target_properties(benchmark_pipeline_streaming PROPERTIES
