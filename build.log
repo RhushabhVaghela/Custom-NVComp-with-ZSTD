@@ -1,0 +1,57 @@
+[ 11%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_fse.cu.o
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(113): warning #177-D: variable "byte_off" was declared but never referenced
+      u32 byte_off = bit_pos / 8;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(114): warning #177-D: variable "bit_off" was declared but never referenced
+      u32 bit_off = bit_pos % 8;
+          ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(113): warning #177-D: variable "byte_off" was declared but never referenced
+      u32 byte_off = bit_pos / 8;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(114): warning #177-D: variable "bit_off" was declared but never referenced
+      u32 bit_off = bit_pos % 8;
+          ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(113): warning #177-D: variable "byte_off" was declared but never referenced
+      u32 byte_off = bit_pos / 8;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(114): warning #177-D: variable "bit_off" was declared but never referenced
+      u32 bit_off = bit_pos % 8;
+          ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(113): warning #177-D: variable "byte_off" was declared but never referenced
+      u32 byte_off = bit_pos / 8;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(114): warning #177-D: variable "bit_off" was declared but never referenced
+      u32 bit_off = bit_pos % 8;
+          ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(113): warning #177-D: variable "byte_off" was declared but never referenced
+      u32 byte_off = bit_pos / 8;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/include/cuda_zstd_internal.h(114): warning #177-D: variable "bit_off" was declared but never referenced
+      u32 bit_off = bit_pos % 8;
+          ^
+
+[ 22%] Linking CUDA device code CMakeFiles/cuda_zstd_static.dir/cmake_device_link.o
+[ 22%] Linking CXX static library libcuda_zstd.a
+[ 88%] Built target cuda_zstd_static
+[ 88%] Linking CUDA device code CMakeFiles/test_rfc8878_integration.dir/cmake_device_link.o
+[100%] Linking CXX executable test_rfc8878_integration
+[100%] Built target test_rfc8878_integration

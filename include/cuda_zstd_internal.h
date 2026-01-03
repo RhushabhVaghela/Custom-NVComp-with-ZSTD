@@ -86,6 +86,7 @@ struct FSEBitStreamReader {
   const byte_t *stream_ptr;
   u64 bit_container;
   i32 bits_remaining;
+  u32 bit_pos; // For tracking total bits read
 
   __device__ __host__ static __forceinline__ u32 bswap32(u32 x) {
 #ifdef __CUDA_ARCH__
@@ -100,33 +101,78 @@ struct FSEBitStreamReader {
 #endif
   }
 
-  __device__ void init(const byte_t *stream_end, size_t stream_size) {
+  __device__ __host__ FSEBitStreamReader()
+      : stream_start(nullptr), stream_ptr(nullptr), bit_container(0),
+        bits_remaining(0), bit_pos(0) {}
+
+  __device__ __host__ FSEBitStreamReader(const byte_t *input,
+                                         u32 start_bit_pos) {
+    bit_pos = start_bit_pos;
+    stream_start = input;
+    // Align to byte boundary
+    u32 byte_off = bit_pos / 8;
+    u32 bit_off = bit_pos % 8;
+
+    // In Zstd, we read backwards. For simplicity in the reader, let's just use
+    // read_bits logic if needed, but the FSE reader normally pulls 32-64 bits
+    // at a time. For debugging, let's just initialize it such that 'read'
+    // works.
+    init_at_bit(input, start_bit_pos);
+  }
+
+  __device__ __host__ void init_at_bit(const byte_t *input, u32 start_bit_pos) {
+    bit_pos = start_bit_pos;
+    stream_start = input;
+
+    // In Zstd, we read backwards from the sentinel.
+    // The 'bit_pos' here is the index of the sentinel bit.
+    // We want 'read(nb)' to take the next 'nb' bits below 'bit_pos'.
+  }
+
+  __device__ __host__ void init(const byte_t *stream_end, size_t stream_size) {
     stream_ptr = stream_end - 4;
     stream_start = stream_end - stream_size;
-    // Read and swap bytes to match reverse writer order
     bit_container = bswap32(*reinterpret_cast<const u32 *>(stream_ptr));
 
-// Find the highest set bit (terminator bit)
 #ifdef __CUDA_ARCH__
     int clz = __clz(bit_container);
-#else
+#elif defined(__GNUC__) || defined(__clang__)
     int clz = __builtin_clz(bit_container);
+#else
+    int clz = 0;
+    u32 temp = bit_container;
+    while (temp && !(temp & 0x80000000)) {
+      temp <<= 1;
+      clz++;
+    }
+    if (!temp)
+      clz = 32;
 #endif
 
     bits_remaining = 31 - clz;
   }
 
-  __device__ u32 read(u8 num_bits) {
-    if (bits_remaining < num_bits) {
-      stream_ptr -= 4;
-      // Read and swap bytes
-      u64 next_bits = bswap32(*reinterpret_cast<const u32 *>(stream_ptr));
-      bit_container |= (next_bits << bits_remaining);
-      bits_remaining += 32;
+  __device__ __host__ u32 read(u8 num_bits) {
+    if (num_bits == 0)
+      return 0;
+    if (bit_pos < num_bits)
+      return 0; // Should not happen in valid stream
+
+    bit_pos -= num_bits;
+
+    // Direct read using bit_pos
+    u32 byte_offset = bit_pos / 8;
+    u32 bit_offset = bit_pos % 8;
+
+    u64 data = 0;
+    // Load up to 8 bytes to cover the span
+    // For simplicity and correctness on host/device, we use a simple loop
+    // or we can optimize if needed.
+    for (int i = 0; i < 8; ++i) {
+      data |= ((u64)stream_start[byte_offset + i] << (i * 8));
     }
-    u32 val = bit_container & ((1U << num_bits) - 1);
-    bit_container >>= num_bits;
-    bits_remaining -= num_bits;
+
+    u32 val = (u32)((data >> bit_offset) & ((1ULL << num_bits) - 1));
     return val;
   }
 };
@@ -295,16 +341,24 @@ struct ZstdSequence {
   get_lit_len_extra_bits(u32 code) {
     if (code < 16)
       return 0;
-    return (code >> 1) - 7;
+    static const u8 LL_bits[36] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, // 0-15
+        1, 1, 1, 1, 2, 2, 3, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    return LL_bits[code];
   }
 
   __device__ __host__ static __forceinline__ u32
   get_match_len_extra_bits(u32 code) {
     if (code < 32)
       return 0;
-    if (code == 52)
-      return 16;
-    return (code >> 1) - 15;
+    // Official Zstd pattern: every 4 codes, 1 more bit.
+    static const u8 ML_bits[53] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16-31
+        1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, // 32-47
+        5, 5, 5, 5, 16                                  // 48-52
+    };
+    return ML_bits[code];
   }
 
   __device__ __host__ static __forceinline__ u32
@@ -314,139 +368,55 @@ struct ZstdSequence {
 
   __device__ __host__ static __forceinline__ u32
   get_offset_extra_bits(u32 offset, u32 code) {
-    // ZSTD RFC: extra bits are the remainder after subtracting base
-    // Base = (1 << code), so extra = offset - base
     if (code <= 1)
       return 0;
     u32 base = (1u << code);
     return offset - base;
   }
 
-  // --- Base Values (Decoder) ---
+  // --- Base Values ---
 
   __device__ __host__ static __forceinline__ u32 get_lit_len(u32 code) {
     if (code < 16)
       return code;
-    switch (code) {
-    case 16:
-      return 16;
-    case 17:
-      return 18;
-    case 18:
-      return 20;
-    case 19:
-      return 22;
-    case 20:
-      return 24;
-    case 21:
-      return 28;
-    case 22:
-      return 32;
-    case 23:
-      return 40;
-    case 24:
-      return 48;
-    case 25:
-      return 64;
-    case 26:
-      return 80;
-    case 27:
-      return 112;
-    case 28:
-      return 144;
-    case 29:
-      return 208;
-    case 30:
-      return 272;
-    case 31:
-      return 400;
-    case 32:
-      return 528;
-    case 33:
-      return 784;
-    case 34:
-      return 1040;
-    case 35:
-      return 1552;
-    default:
-      return 1552;
-    }
+    static const u32 LL_base[36] = {
+        0,  1,  2,   3,   4,   5,    6,    7,    8,    9,     10,    11,
+        12, 13, 14,  15,  16,  18,   20,   22,   24,   28,    32,    40,
+        48, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
+    return LL_base[code];
   }
 
-  __device__ static __forceinline__ u32
+  __device__ __host__ static __forceinline__ u32 get_match_len(u32 code) {
+    if (code < 32)
+      return code + 3;
+    if (code == 52)
+      return 3;
+    // Calculated from bits: base[idx] = base[idx-1] + (1 << bits[idx-1])
+    static const u32 ML_base[53] = {
+        0,  0,  0,  0,   0,   0,   0,   0,   0,   0,   0,  0,  0,  0,
+        0,  0,  0,  0,   0,   0,   0,   0,   0,   0,   0,  0,  0,  0,
+        0,  0,  0,  0,   35,  37,  39,  41,  43,  47,  51, 55, 59, 67,
+        75, 83, 91, 107, 123, 139, 155, 187, 219, 251, 3};
+    return ML_base[code];
+  }
+
+  __device__ __host__ static __forceinline__ u32
   get_lit_len_bits(u32 symbol, FSEBitStreamReader &reader) {
     u32 num_bits = get_lit_len_extra_bits(symbol);
     return (num_bits > 0) ? reader.read(num_bits) : 0;
   }
 
-  // --- (NEW) Match Length __device__ Helpers ---
-
-  __device__ __host__ static __forceinline__ u32 get_match_len(u32 symbol) {
-    if (symbol < 32)
-      return symbol + 3;
-    if (symbol == 52)
-      return 3;
-
-    switch (symbol) {
-    case 32:
-      return 35;
-    case 33:
-      return 37;
-    case 34:
-      return 39;
-    case 35:
-      return 43;
-    case 36:
-      return 47;
-    case 37:
-      return 55;
-    case 38:
-      return 63;
-    case 39:
-      return 79;
-    case 40:
-      return 95;
-    case 41:
-      return 127;
-    case 42:
-      return 159;
-    case 43:
-      return 223;
-    case 44:
-      return 287;
-    case 45:
-      return 415;
-    case 46:
-      return 543;
-    case 47:
-      return 799;
-    case 48:
-      return 1055;
-    case 49:
-      return 1567;
-    case 50:
-      return 2079;
-    case 51:
-      return 3103;
-    default:
-      return symbol + 3;
-    }
-  }
-
-  __device__ static __forceinline__ u32
+  __device__ __host__ static __forceinline__ u32
   get_match_len_bits(u32 symbol, FSEBitStreamReader &reader) {
     u32 num_bits = get_match_len_extra_bits(symbol);
     return (num_bits > 0) ? reader.read(num_bits) : 0;
   }
 
-  // --- (NEW) Offset __device__ Helpers ---
-
   __device__ __host__ static __forceinline__ u32 get_offset(u32 code) {
-    // ZSTD RFC 8878: Offset_Base = (1 << offsetCode)
     return (1u << code);
   }
 
-  __device__ static __forceinline__ u32
+  __device__ __host__ static __forceinline__ u32
   get_offset_bits(u32 symbol, FSEBitStreamReader &reader) {
     return reader.read(symbol);
   }
