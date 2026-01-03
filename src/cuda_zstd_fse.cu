@@ -35,7 +35,7 @@ namespace cuda_zstd {
 namespace fse {
 
 // Forward declarations for host functions
-__host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
+__host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
                                      u32 table_size, FSEDecodeTable &h_table);
 
 __host__ Status FSE_buildCTable_Host(const u16 *h_normalized, u32 max_symbol,
@@ -1165,8 +1165,9 @@ __global__ void fse_parallel_encode_setup_kernel(
 
 /**
  * @brief Builds the FSE Decoding Table (DTable) on the host.
+ * @note Handles -1 (low-probability) symbols by placing them at highThreshold.
  */
-__host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
+__host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
                                      u32 table_size, FSEDecodeTable &h_table) {
   if (!h_normalized) {
     return Status::ERROR_INVALID_PARAMETER;
@@ -1218,7 +1219,7 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
   }
   cumulative_freq[max_symbol + 1] = total_freq;
 
-  // === DECODER: ZSTD SPREAD ALGORITHM ===
+  // === DECODER: RFC 8878 Section 4.1.1 SPREAD ALGORITHM ===
   fprintf(stderr, "[DEBUG] FSE_buildDTable_Host: log=%u size=%u max_sym=%u\n",
           table_log, table_size, max_symbol);
   fprintf(stderr, "[DEBUG] Freqs: ");
@@ -1226,22 +1227,48 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
     fprintf(stderr, "%d ", (int)h_normalized[s]);
   fprintf(stderr, "\n");
 
-  // Spread symbols sequentially (matches official Zstd)
-  u32 position = 0;
-  for (u32 s = 0; s <= max_symbol; s++) {
-    if (h_normalized[s] == 0)
-      continue;
-    for (u32 i = 0; i < (u32)h_normalized[s]; i++) {
+  // RFC 8878: step = (tableSize >> 1) + (tableSize >> 3) + 3
+  // Note: SPREAD_STEP is already defined above with this formula
 
-      spread_symbol[position] = (u8)s;
-      position = (position + SPREAD_STEP) & table_mask;
+  // === RFC 8878 / LIBZSTD SPREAD ALGORITHM WITH -1 HANDLING ===
+  // Reference: fse_decompress.c FSE_buildDTable_internal()
+
+  // Phase 1: Place low-probability (-1) symbols at highThreshold positions
+  u32 highThreshold = table_size - 1;
+  for (u32 s = 0; s <= max_symbol; s++) {
+    if (h_normalized[s] == -1) {
+      h_table.symbol[highThreshold--] = (u8)s;
     }
   }
 
-  // Assign symbols from spread table
-  for (u32 state = 0; state < table_size; state++) {
-    h_table.symbol[state] = spread_symbol[state];
+  fprintf(stderr, "[DEBUG] FSE DTable: highThreshold after lowprob = %u\n",
+          highThreshold);
+
+  // Phase 2: Spread regular symbols using step-and-skip algorithm
+  // Skip any positions already occupied by low-probability symbols (>
+  // highThreshold)
+  u32 position = 0;
+  for (u32 s = 0; s <= max_symbol; s++) {
+    i16 count = h_normalized[s];
+    if (count <= 0)
+      continue; // Skip -1 (low-prob) and 0 (unused) symbols
+
+    for (i16 i = 0; i < count; i++) {
+      h_table.symbol[position] = (u8)s;
+      position = (position + SPREAD_STEP) & table_mask;
+      // Skip positions occupied by low-probability symbols
+      while (position > highThreshold) {
+        position = (position + SPREAD_STEP) & table_mask;
+      }
+    }
   }
+
+  // Verify position wrapped back to 0
+  if (position != 0) {
+    fprintf(stderr, "[ERROR] FSE spread: position=%u != 0 after spread\n",
+            position);
+  }
+
   // printf("[DEC_SPREAD] sym[70]=%u sym[71]=%u sym[72]=%u\n",
   //        (u32)spread_symbol[70], (u32)spread_symbol[71],
   //        (u32)spread_symbol[72]);
@@ -1251,7 +1278,8 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
   // at 1
   std::vector<u32> symbolNext(max_symbol + 1);
   for (u32 s = 0; s <= max_symbol; s++) {
-    symbolNext[s] = h_normalized[s]; // Start at frequency (Zstd standard)
+    // For -1 symbols, symbolNext starts at 1 (they count as 1 occurrence)
+    symbolNext[s] = (h_normalized[s] == -1) ? 1 : (u32)h_normalized[s];
   }
 
   // Build DTable using official Zstd formula
@@ -1291,6 +1319,17 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
   fflush(stdout);
 
   return Status::SUCCESS;
+}
+
+/**
+ * @brief Backward-compatible overload that accepts u16*.
+ * @note Casts to i16* - caller responsible for correct signed semantics if
+ * needed.
+ */
+__host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
+                                     u32 table_size, FSEDecodeTable &h_table) {
+  return FSE_buildDTable_Host(reinterpret_cast<const i16 *>(h_normalized),
+                              max_symbol, table_size, h_table);
 }
 
 // ==============================================================================
@@ -2424,11 +2463,12 @@ __host__ void free_multi_table(MultiTableFSE &multi_table) {
 
 namespace predefined {
 
-// FIXED: Removed ... and added (u16)
-// casts
-const u16 default_ll_norm[36] = {4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                                 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2,
-                                 2, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+// RFC 8878: Predefined LL normalization with -1 for low-probability symbols
+// Symbols 32-35 have probability "less than 1" represented as -1
+// Note: Using i16 (signed) to support -1 values
+const i16 default_ll_norm[36] = {4, 3, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,
+                                 2, 1, 1, 1, 2, 2, 2, 2, 2,  2,  2,  2,
+                                 2, 3, 2, 1, 1, 1, 1, 1, -1, -1, -1, -1};
 
 const u16 default_of_norm[29] = {1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1,
                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
@@ -4036,7 +4076,9 @@ __host__ const u16 *get_predefined_norm(TableType table_type, u32 *max_symbol,
   case TableType::LITERALS:
     *max_symbol = 35;
     *table_log = 6; // Zstd default
-    return predefined::default_ll_norm;
+    // Cast to u16* for legacy compatibility (FSE_buildDTable_Host handles i16
+    // internally)
+    return reinterpret_cast<const u16 *>(predefined::default_ll_norm);
   case TableType::MATCH_LENGTHS:
     *max_symbol = 52;
     *table_log = 6; // Zstd default

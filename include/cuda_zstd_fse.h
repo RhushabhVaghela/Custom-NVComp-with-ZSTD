@@ -415,7 +415,7 @@ __host__ void free_multi_table(MultiTableFSE &multi_table);
 // ==============================================================================
 
 namespace predefined {
-extern const u16 default_ll_norm[36];
+extern const i16 default_ll_norm[36]; // RFC 8878: i16 for -1 low-prob symbols
 extern const u16 default_of_norm[29];
 extern const u16 default_ml_norm[53];
 } // namespace predefined
