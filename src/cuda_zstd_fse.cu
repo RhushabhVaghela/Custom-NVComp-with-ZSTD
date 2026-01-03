@@ -3944,17 +3944,6 @@ __host__ Status decode_sequences_interleaved(
   u32 stateOF = decode_of ? reader.read(of_log) : 0;
   u32 stateML = decode_ml ? reader.read(ml_log) : 0;
 
-  // DEBUG: Print actual state assignments
-  if (num_sequences > 0) {
-    fprintf(
-        stderr,
-        "[SEQ_DBG] After LL,OF,ML read: stateLL=%u, stateOF=%u, stateML=%u\n",
-        stateLL, stateOF, stateML);
-    u32 test_ll_sym = ll_table.symbol[stateLL];
-    fprintf(stderr, "[SEQ_DBG] Test lookup: ll_table.symbol[%u] = %u\n",
-            stateLL, test_ll_sym);
-  }
-
   // 5. Decode Loop
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
     u32 ll_sym = decode_ll ? ll_table.symbol[stateLL % (1u << ll_log)] : 0;
@@ -3977,15 +3966,6 @@ __host__ Status decode_sequences_interleaved(
     h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;
     h_ml[i] = sequence::ZstdSequence::get_match_len(ml_sym) + ml_extra;
     h_of[i] = sequence::ZstdSequence::get_offset(of_sym) + of_extra;
-
-    // DEBUG: First sequence only
-    if (i == (int)num_sequences - 1) {
-      fprintf(
-          stderr,
-          "[SEQ_DBG] Seq %d: ll_sym=%u, ll_base=%u, ll_extra=%u, LL_total=%u\n",
-          i, ll_sym, sequence::ZstdSequence::get_lit_len(ll_sym), ll_extra,
-          h_ll[i]);
-    }
 
     // Update States (Skip for the very last sequence i=0)
     if (i > 0) {
