@@ -4017,8 +4017,6 @@ __host__ Status decode_sequences_interleaved(
     } else {
       bit_pos -= ml_log;
       u32 read_pos = bit_pos;
-      u32 byte_off = read_pos / 8;
-      u32 bit_off = read_pos % 8;
       // fprintf(stderr,
       //         "[DEBUG] Init ML Read: Pos=%u, ByteOff=%u, BitOff=%u, "
       //         "ByteVal=0x%02x\n",

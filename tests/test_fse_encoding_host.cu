@@ -1,12 +1,13 @@
 
 #include "cuda_zstd_fse.h"
+#include "cuda_zstd_types.h"
 #include <cassert>
 #include <iostream>
 #include <vector>
 
-
 // Test Stub
 void test_build_ctable_simple() {
+  using namespace cuda_zstd;
   using namespace cuda_zstd::fse;
 
   // Normalized counts for a simple distribution

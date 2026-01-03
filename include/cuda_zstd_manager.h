@@ -91,6 +91,15 @@ public:
 
   static ExecutionPath select_execution_path(size_t size,
                                              int cpu_threshold = 65536);
+
+  // Optimization: Pre-allocate/Pre-compute tables for persistent reusable
+  // managers
+  virtual Status preallocate_tables(cudaStream_t stream = 0) {
+    return Status::SUCCESS;
+  }
+  virtual Status free_tables(cudaStream_t stream = 0) {
+    return Status::SUCCESS;
+  }
 };
 
 // ==============================================================================
@@ -274,7 +283,7 @@ public:
   ~ZstdStreamingManager();
 
   // Initialization
-  Status init_compression(cudaStream_t stream = 0);
+  Status init_compression(cudaStream_t stream = 0, size_t max_chunk_size = 0);
   Status init_decompression(cudaStream_t stream = 0);
 
   // Streaming compression

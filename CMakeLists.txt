@@ -88,6 +88,7 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_manager.cu
     src/cuda_zstd_lz77.cu
     src/cuda_zstd_fse.cu
+    src/cuda_zstd_fse_encoding_kernel.cu
     src/cuda_zstd_huffman.cu
     src/cuda_zstd_dictionary.cu
     src/cuda_zstd_sequence.cu
@@ -282,6 +283,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     # Compile dependencies directly to access internal functions (encode_fse_advanced)
     add_executable(benchmark_phase3 benchmarks/benchmark_phase3.cu 
         src/cuda_zstd_fse.cu 
+        src/cuda_zstd_fse_encoding_kernel.cu
         src/cuda_zstd_utils.cu 
         src/cuda_zstd_manager.cu
         src/cuda_zstd_c_api.cpp
@@ -328,15 +330,6 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     add_test(NAME benchmark_fse_host_fallback COMMAND benchmark_fse_host_fallback)
     set_property(TEST benchmark_fse_host_fallback PROPERTY LABELS "benchmark")
 
-    # Pipelined Streaming Benchmark
-    add_executable(benchmark_pipeline_streaming benchmarks/benchmark_pipeline.cu)
-    set_target_properties(benchmark_pipeline_streaming PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON
-        CUDA_RESOLVE_DEVICE_SYMBOLS ON
-    )
-    target_link_libraries(benchmark_pipeline_streaming cuda_zstd_static)
-    add_test(NAME benchmark_pipeline_streaming COMMAND benchmark_pipeline_streaming)
-    set_property(TEST benchmark_pipeline_streaming PROPERTY LABELS "benchmark")
 
     # Dictionary Compression Benchmark
     add_executable(benchmark_dictionary_compression benchmarks/benchmark_dictionary_compression.cu)
@@ -417,6 +410,16 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     target_link_libraries(benchmark_streaming cuda_zstd_static)
     add_test(NAME benchmark_streaming COMMAND benchmark_streaming)
     set_property(TEST benchmark_streaming PROPERTY LABELS "benchmark")
+
+    # Pipeline Streaming Benchmark (Phase 2b)
+    add_executable(benchmark_pipeline_streaming benchmarks/benchmark_pipeline_streaming.cu)
+    set_target_properties(benchmark_pipeline_streaming PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_pipeline_streaming cuda_zstd_static)
+    add_test(NAME benchmark_pipeline_streaming COMMAND benchmark_pipeline_streaming)
+    set_property(TEST benchmark_pipeline_streaming PROPERTY LABELS "benchmark")
 
 
     # Batch Throughput Benchmark
