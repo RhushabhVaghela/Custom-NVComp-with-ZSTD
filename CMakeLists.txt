@@ -220,6 +220,8 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     target_link_libraries(comprehensive_benchmark cuda_zstd_static)
+    # Export PROJECT_ROOT so CSV files go to project root, not build folder
+    target_compile_definitions(comprehensive_benchmark PRIVATE PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
     add_test(NAME comprehensive_benchmark COMMAND comprehensive_benchmark)
     set_property(TEST comprehensive_benchmark PROPERTY LABELS "benchmark")
 
@@ -259,6 +261,16 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     target_link_libraries(benchmark_pipeline cuda_zstd_static)
     add_test(NAME benchmark_pipeline COMMAND benchmark_pipeline)
     set_property(TEST benchmark_pipeline PROPERTY LABELS "benchmark")
+
+    # FSE Decoding Benchmark (Phase 3)
+    add_executable(benchmark_fse_decode benchmarks/benchmark_fse_decode.cu)
+    set_target_properties(benchmark_fse_decode PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_fse_decode cuda_zstd_static)
+    add_test(NAME benchmark_fse_decode COMMAND benchmark_fse_decode)
+    set_property(TEST benchmark_fse_decode PROPERTY LABELS "benchmark")
 
     add_executable(benchmark_fse_parallel tests/benchmark_fse_parallel.cu)
     set_target_properties(benchmark_fse_parallel PROPERTIES

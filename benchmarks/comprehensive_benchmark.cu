@@ -268,11 +268,18 @@ int main() {
 
   std::vector<bool> parallel_modes = {false, true}; // Serial, Parallel
 
-  std::ofstream csv_file("benchmark_results.csv", std::ios::app);
+  // Output to project root directory (not build folder)
+#ifndef PROJECT_ROOT
+#define PROJECT_ROOT "."
+#endif
+  std::string csv_path = std::string(PROJECT_ROOT) + "/benchmark_results.csv";
+  std::string log_path = std::string(PROJECT_ROOT) + "/benchmark_errors.log";
+
+  std::ofstream csv_file(csv_path, std::ios::app);
   csv_file
       << "Formula,InputSize,BlockSize,Parallel,TimeMS,ThroughputMBps,Success\n";
 
-  std::ofstream error_log("benchmark_errors.log");
+  std::ofstream error_log(log_path);
 
   int total_tests = (block_sizes.size() + formulas.size()) *
                     input_sizes.size() * parallel_modes.size();
@@ -480,8 +487,7 @@ int main() {
   error_log.flush();
   error_log.close();
 
-  std::cout
-      << "\nBenchmark completed. Results saved to benchmark_results.csv\n";
-  std::cout << "Errors logged to benchmark_errors.log (if any)\n";
+  std::cout << "\nBenchmark completed. Results saved to " << csv_path << "\n";
+  std::cout << "Errors logged to " << log_path << " (if any)\n";
   return 0;
 }

@@ -58,6 +58,24 @@ void benchmark_decode(size_t input_size, int iterations) {
   CHECK(cudaMalloc(&d_output, input_size));
   CHECK(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
+  printf("[BENCH] d_compressed: %p\n", d_compressed);
+
+  // PROBE: Touch the problematic address (Offset 131085 = 0x2000d)
+  {
+    char *problematic_ptr = ((char *)d_compressed) + 131085;
+    char probe_val;
+    printf("[BENCH] Probing %p...\n", problematic_ptr);
+    cudaError_t err =
+        cudaMemcpy(&probe_val, problematic_ptr, 1, cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+      printf("[BENCH] FATAL: Initial Probe Failed: %s\n",
+             cudaGetErrorString(err));
+      return;
+    }
+    printf("[BENCH] Initial Probe Success! Val=%02X\n",
+           (unsigned char)probe_val);
+  }
+  // printf("[BENCH] d_temp allocated size: %zu\n", compress_temp_size);
 
   // Create manager
   auto manager = create_manager(3);
@@ -82,6 +100,19 @@ void benchmark_decode(size_t input_size, int iterations) {
   double compression_ratio = (double)input_size / compressed_size;
   std::cout << "Compressed: " << compressed_size
             << " bytes (ratio: " << compression_ratio << "x)" << std::endl;
+
+  // DEBUG: Dump first 32 bytes of compressed data
+  {
+    std::vector<byte_t> header_bytes(32);
+    CHECK(cudaMemcpy(header_bytes.data(), d_compressed, 32,
+                     cudaMemcpyDeviceToHost));
+    printf("[DEBUG] First 32 bytes of compressed data:\n");
+    for (int i = 0; i < 32; i++) {
+      printf("%02X ", header_bytes[i]);
+      if ((i + 1) % 16 == 0)
+        printf("\n");
+    }
+  }
 
   // Reallocate workspace for decompression with proper size
   CHECK(cudaFree(d_temp));

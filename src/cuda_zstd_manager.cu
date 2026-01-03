@@ -139,6 +139,31 @@ __global__ void k_record_size(u32 *ptr, u32 val) {
 }
 
 // ==============================================================================
+// READ 3 BYTES SAFELY (Fixes Unaligned Access)
+// ==============================================================================
+__global__ void k_read_3bytes(const byte_t *src, u32 *dst) {
+  if (threadIdx.x == 0) {
+    uintptr_t addr = (uintptr_t)src;
+    uintptr_t aligned_addr = addr & ~3; // Align to 4 bytes
+    u32 offset = addr & 3;
+
+    const u32 *base = (const u32 *)aligned_addr;
+    // Read two words to cover all offset cases (0, 1, 2, 3)
+    // Little Endian assumption
+    u32 w0 = base[0];
+    u32 w1 = base[1];
+
+    u64 combined = ((u64)w1 << 32) | w0;
+    u64 shifted = combined >> (offset * 8);
+
+    // printf("[K] Aligned Read: %p (Off=%u) -> %08X %08X -> %06X\n",
+    // (void*)aligned_addr, offset, w0, w1, (u32)(shifted & 0xFFFFFF));
+
+    *dst = (u32)(shifted & 0xFFFFFF);
+  }
+}
+
+// ==============================================================================
 // ASYNC SUM REDUCE KERNEL (replaces sync thrust::reduce)
 // Reduces array of u32 to single sum, writes to device memory (no sync needed)
 // ==============================================================================
@@ -1167,6 +1192,11 @@ public:
 
     // 1. Input (compressed) buffer
     total += align_to_boundary(compressed_size, GPU_MEMORY_ALIGNMENT);
+
+    // 1b. Checksum & Header Scratch
+    total += align_to_boundary(sizeof(u64), GPU_MEMORY_ALIGNMENT); // Checksum
+    total +=
+        align_to_boundary(sizeof(u32), GPU_MEMORY_ALIGNMENT); // Header Scratch
 
     // 2. Output buffer (REMOVED)
     // decompress() writes directly to the user-provided output buffer.
@@ -2798,19 +2828,41 @@ public:
     if (h_compressed_size_remaining < 4) {
       return Status::ERROR_CORRUPT_DATA;
     }
+    printf("[DEBUG] Decompress Workspace: %p (size=%zu)\n", temp_workspace,
+           temp_size);
 
     // === Partition the temp_workspace ===
     byte_t *workspace_ptr = static_cast<byte_t *>(temp_workspace);
     size_t alignment = 128;
 
     // Allocate device input buffer
-    byte_t *d_input = workspace_ptr;
-    workspace_ptr =
-        align_ptr(workspace_ptr + h_compressed_size_remaining, alignment);
+    // FIX: Use input directly. d_input must point to the START of the Frame.
+    const byte_t *d_input = h_compressed_data_ptr;
+    printf("[DEBUG] decompress d_input (src): %p\n", d_input);
+
+    // PROBE: Start of Decompress
+    {
+      const byte_t *prob_ptr = d_input + 131085;
+      byte_t val = 0;
+      cudaError_t err = cudaMemcpy(&val, prob_ptr, 1, cudaMemcpyDeviceToHost);
+      if (err == cudaSuccess)
+        printf("[DEBUG] Entry Probe 0x2000d SUCCESS. Val=%02X\n", val);
+      else
+        printf("[FATAL] Entry Probe 0x2000d FAILED: %s\n",
+               cudaGetErrorString(err));
+    }
+
+    // ...
 
     // Allocate checksum verification buffer
     u64 *d_checksum = reinterpret_cast<u64 *>(workspace_ptr);
     workspace_ptr = align_ptr(workspace_ptr + sizeof(u64), alignment);
+
+    // ...
+
+    // Allocate scratch for header reading (aligned u32)
+    u32 *d_header_scratch = reinterpret_cast<u32 *>(workspace_ptr);
+    workspace_ptr = align_ptr(workspace_ptr + sizeof(u32), alignment);
 
     // Allocate persistent buffers from workspace
     ctx.d_temp_buffer = workspace_ptr;
@@ -2842,12 +2894,6 @@ public:
 
     byte_t *d_output = static_cast<byte_t *>(uncompressed_data);
     size_t d_output_max_size = *uncompressed_size;
-
-    // === Copy compressed data to device ===
-    // FIX: compressed_data is on device, so copy DeviceToDevice
-    CUDA_CHECK(cudaMemcpyAsync(d_input, h_compressed_data_ptr + data_offset,
-                               h_compressed_size_remaining,
-                               cudaMemcpyDeviceToDevice, stream));
 
     // === Parse Frame Header (RFC 8878) ===
     u32 header_size = 0;
@@ -2898,6 +2944,8 @@ public:
     // === Decompress Blocks ===
     u32 read_offset = header_size; // Start after frame header
     u32 write_offset = 0;          // Where we write decompressed data
+    // printf("[DEBUG] Loop Start: read_offset=%u, header_size=%u\n",
+    // read_offset, header_size);
 
     if (is_single_segment) {
       // fprintf(stderr, "[DEBUG] Path: Single Segment. Size=%u\n",
@@ -3008,10 +3056,11 @@ public:
             break;
         }
 
-        status = read_block_header(d_input + read_offset,
-                                   h_compressed_size_remaining - read_offset,
-                                   &is_last_block, &is_compressed, &is_rle,
-                                   &block_size, &block_header_size);
+        status = read_block_header(
+            d_input + read_offset, h_compressed_size_remaining - read_offset,
+            d_header_scratch, stream, // Pass scratch & stream
+            &is_last_block, &is_compressed, &is_rle, &block_size,
+            &block_header_size);
 
         if (status == Status::SUCCESS) {
           // fprintf(stderr,
@@ -3697,23 +3746,57 @@ private:
   Status
   read_block_header(const byte_t *input, // Device pointer
                     u32 input_size,
-                    bool *is_last,       // Output: is last block?
-                    bool *is_compressed, // Output: is compressed?
-                    bool *is_rle,        // Output: is RLE?
-                    u32 *size,           // Output: block size
-                    u32 *header_size     // Output: header size (always 3 bytes)
+                    u32 *d_header_scratch, // Scratch buffer
+                    cudaStream_t stream,   // Stream
+                    bool *is_last,         // Output: is last block?
+                    bool *is_compressed,   // Output: is compressed?
+                    bool *is_rle,          // Output: is RLE?
+                    u32 *size,             // Output: block size
+                    u32 *header_size // Output: header size (always 3 bytes)
   ) {
     if (input_size < 3) {
-      //         input_size);
       return Status::ERROR_CORRUPT_DATA;
     }
+    printf("[DEBUG] Reading header via kernel from %p (input_size=%u)\n", input,
+           input_size);
 
-    // Read 3-byte block header from device
+    // Verify previous ops
+    cudaStreamSynchronize(stream);
+
+    printf("[DEBUG] READ_BLK: input=%p, scratch=%p, input_end_if_1MB=%p\n",
+           input, d_header_scratch,
+           (void *)((char *)input - input_size + 1048600));
+
+    // (Probe Removed)
+
+    // Read 3-byte block header safely (avoid unaligned access crash)
+    // TEST: Use direct cudaMemcpy instead of custom kernel
+    u32 h_header_val = 0;
+    cudaError_t k_err =
+        cudaMemcpy(&h_header_val, input, 4, cudaMemcpyDeviceToHost);
+    if (k_err != cudaSuccess) {
+      printf("[FATAL] cudaMemcpy header failed: %s (addr=%p)\n",
+             cudaGetErrorString(k_err), input);
+      return Status::ERROR_CUDA_ERROR;
+    }
+    // Store to scratch for compatibility with later code
+    cudaError_t s_err =
+        cudaMemcpy(d_header_scratch, &h_header_val, 4, cudaMemcpyHostToDevice);
+    if (s_err != cudaSuccess) {
+      printf("[FATAL] cudaMemcpy to scratch failed: %s\n",
+             cudaGetErrorString(s_err));
+      return Status::ERROR_CUDA_ERROR;
+    }
+
     u32 header = 0;
-    CUDA_CHECK(cudaMemcpy(&header, input, 3, cudaMemcpyDeviceToHost));
-
-    // (input=%p, input_size=%u)\n",
-    // //                 header & 0xFFFFFF, input, input_size);
+    // Read 4 bytes (u32) from scratch to host
+    cudaError_t m_err = cudaMemcpyAsync(&header, d_header_scratch, 4,
+                                        cudaMemcpyDeviceToHost, stream);
+    if (m_err != cudaSuccess) {
+      printf("[FATAL] cudaMemcpyAsync failed: %s\n", cudaGetErrorString(m_err));
+      return Status::ERROR_CUDA_ERROR;
+    }
+    CUDA_CHECK(cudaStreamSynchronize(stream));
 
     // === Parse Block Header ===
     // Bit 0: last_block flag
@@ -3728,7 +3811,9 @@ private:
     // 3 = Reserved
 
     if (block_type == 3) {
-      // Reserved
+      printf(
+          "[ERROR] read_block_header: Reserved block_type=3. header=0x%08X\n",
+          header);
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -3741,8 +3826,10 @@ private:
     // last=%d, type=%u, size=%u\n",
     // //                 *is_last, block_type, *size);
 
-    // Validate block size against remaining input
     if (*size > 0 && *size > input_size - 3) {
+      printf("[ERROR] read_block_header: block_size(%u) > "
+             "input_remaining(%zu). header=0x%08X\n",
+             *size, input_size - 3, header);
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -3783,11 +3870,8 @@ private:
         input, input_size, d_decompressed_literals, &literals_header_size,
         &literals_compressed_size, &literals_decompressed_size, stream);
     if (status != Status::SUCCESS) {
-      // %d\n",
-      //         (int)status);
-      // [DEBUG DISABLED] Only log on actual errors, not every block
-      // fprintf(stderr, "[DEBUG] decompress_literals failed with status %d\n",
-      //         (int)status);
+      printf("[ERROR] decompress_literals failed: status=%d, input_size=%u\n",
+             (int)status, input_size);
       return status;
     }
 
@@ -3830,9 +3914,10 @@ private:
     //     printf("[DEBUG] Pre-Sequences Err: %s\n", cudaGetErrorString(e));
     // }
     if (sequences_offset > input_size) {
-      // fprintf(stderr,
-      //         %u)\n", sequences_offset, input_size);
-      // printf("[DEBUG] Err @ %d\n", __LINE__);
+      printf("[ERROR] sequences_offset(%u) > input_size(%u). LitHdr=%u, "
+             "LitComp=%u\n",
+             sequences_offset, input_size, literals_header_size,
+             literals_compressed_size);
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -3843,9 +3928,7 @@ private:
                                   input_size - sequences_offset, ctx.seq_ctx,
                                   stream);
     if (status != Status::SUCCESS) {
-      // [DEBUG DISABLED]       fprintf(stderr, "[DEBUG] decompress_sequences
-      // failed with status %d\n", [DEBUG DISABLED]               (int)status);
-      // printf("[DEBUG] Err @ %d: Status %d\n", __LINE__, (int)status);
+      printf("[ERROR] decompress_sequences failed: status=%d\n", (int)status);
       return status;
     }
 
