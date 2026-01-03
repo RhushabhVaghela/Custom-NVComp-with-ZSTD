@@ -257,6 +257,9 @@ __global__ void compute_sequence_details_kernel(
       if (d_error_flag) {
         *d_error_flag = 5; // Error: Total literals exceed input
       }
+      printf("[KERNEL ERROR] Literals overflow at seq %u: Check=%u + %u > "
+             "Limit=%u\n",
+             i, total_literals, lit_len, total_literal_count);
       return;
     }
     total_literals += lit_len;

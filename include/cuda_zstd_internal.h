@@ -295,49 +295,21 @@ struct ZstdSequence {
   get_lit_len_extra_bits(u32 code) {
     if (code < 16)
       return 0;
-    if (code < 20)
-      return 1;
-    if (code < 24)
-      return 2;
-    if (code < 28)
-      return 3;
-    if (code < 32)
-      return 4;
-    return 5;
+    return (code >> 1) - 7;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_match_len_extra_bits(u32 code) {
     if (code < 32)
       return 0;
-    if (code < 36)
-      return 1;
-    if (code < 38)
-      return 2;
-    if (code < 40)
-      return 3;
-    if (code < 42)
-      return 4;
-    if (code < 44)
-      return 5;
-    if (code < 46)
-      return 6;
-    if (code < 48)
-      return 7;
-    if (code < 50)
-      return 8;
-    if (code < 52)
-      return 9;
     if (code == 52)
       return 16;
-    return 0;
+    return (code >> 1) - 15;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_offset_code_extra_bits(u32 code) {
-    if (code <= 3)
-      return 0;
-    return code - 3;
+    return code;
   }
 
   __device__ __host__ static __forceinline__ u32
@@ -412,6 +384,9 @@ struct ZstdSequence {
   __device__ __host__ static __forceinline__ u32 get_match_len(u32 symbol) {
     if (symbol < 32)
       return symbol + 3;
+    if (symbol == 52)
+      return 3;
+
     switch (symbol) {
     case 32:
       return 35;
@@ -420,77 +395,60 @@ struct ZstdSequence {
     case 34:
       return 39;
     case 35:
-      return 41;
-    case 36:
       return 43;
-    case 37:
+    case 36:
       return 47;
+    case 37:
+      return 55;
     case 38:
-      return 51;
+      return 63;
     case 39:
-      return 59;
+      return 79;
     case 40:
-      return 67;
+      return 95;
     case 41:
-      return 83;
+      return 127;
     case 42:
-      return 99;
+      return 159;
     case 43:
-      return 131;
+      return 223;
     case 44:
-      return 163;
+      return 287;
     case 45:
-      return 227;
+      return 415;
     case 46:
-      return 291;
+      return 543;
     case 47:
-      return 419;
+      return 799;
     case 48:
-      return 547;
+      return 1055;
     case 49:
-      return 803;
+      return 1567;
     case 50:
-      return 1059;
+      return 2079;
     case 51:
-      return 1571;
-    case 52:
-      return 2083;
+      return 3103;
     default:
-      return 2083;
+      return symbol + 3;
     }
   }
 
   __device__ static __forceinline__ u32
   get_match_len_bits(u32 symbol, FSEBitStreamReader &reader) {
-    // (Implementation of Zstd ML_defaultExtra)
-    u32 num_bits = 0;
-    if (symbol >= 32)
-      num_bits = 1 + (symbol - 32);
-    if (symbol >= 36)
-      num_bits = 3 + (symbol - 36);
-    if (symbol >= 40)
-      num_bits = 5 + (symbol - 40);
-    if (symbol >= 44)
-      num_bits = 7 + (symbol - 44);
-    if (symbol >= 48)
-      num_bits = 9 + (symbol - 48);
-    return reader.read(num_bits);
+    u32 num_bits = get_match_len_extra_bits(symbol);
+    return (num_bits > 0) ? reader.read(num_bits) : 0;
   }
 
   // --- (NEW) Offset __device__ Helpers ---
 
   __device__ __host__ static __forceinline__ u32 get_offset(u32 code) {
-    // ZSTD RFC 8878: Offset_Value = (1 << (offsetCode-1)) + extraBits
-    if (code <= 1)
-      return 1;
-    return (1 << (code - 1));
+    // ZSTD RFC 8878: Offset_Base = (1 << offsetCode)
+    return (1u << code);
   }
 
   __device__ static __forceinline__ u32
   get_offset_bits(u32 symbol, FSEBitStreamReader &reader) {
-    // (Implementation of Zstd OF_defaultExtra)
-    u32 num_bits = (symbol == 0) ? 0 : symbol - 1;
-    return reader.read(num_bits);
+    return reader.read(symbol);
   }
 };
 

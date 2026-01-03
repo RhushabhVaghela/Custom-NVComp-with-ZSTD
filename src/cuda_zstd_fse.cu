@@ -435,51 +435,24 @@ write_bits_to_buffer(byte_t *buffer,
 /**
  * @brief Read bits from buffer with proper masking
  */
-__host__ u64 read_bits_from_buffer(
-    const byte_t *buffer,
-    u32 &bit_position, // Current position in bits
-    u32 num_bits       // How many bits to read
-) {
+__host__ u64 read_bits_from_buffer(const byte_t *buffer, u32 &bit_position,
+                                   u32 num_bits) {
   if (num_bits == 0)
     return 0;
 
-  u32 byte_offset = bit_position / 8;
-  u32 bit_offset = bit_position % 8;
+  u32 byte_off = bit_position / 8;
+  u32 bit_off = bit_position % 8;
 
+  u64 val = 0;
+  // Read up to 8 bytes to safely cover any 32-bit read starting at any
+  // bit_offset. Safety padding of 16 bytes in h_input ensures this is safe.
+  for (int i = 0; i < 8; i++) {
+    val |= ((u64)buffer[byte_off + i]) << (i * 8);
+  }
+
+  u64 mask = ((u64)1 << num_bits) - 1;
+  u64 result = (val >> bit_off) & mask;
   bit_position += num_bits;
-
-  u64 result = 0;
-  u64 bits_read = 0;
-
-  // Case 1: All bits in current byte
-  if (bit_offset + num_bits <= 8) {
-    result = (buffer[byte_offset] >> bit_offset) & ((1u << num_bits) - 1);
-    return result;
-  }
-
-  // Case 2: Bits span multiple bytes
-  u32 bits_in_first_byte = 8 - bit_offset;
-  u32 mask = (1u << bits_in_first_byte) - 1;
-
-  result = (buffer[byte_offset] >> bit_offset) & mask;
-  bits_read = bits_in_first_byte;
-  byte_offset++;
-  num_bits -= bits_in_first_byte;
-
-  // Read complete bytes
-  while (num_bits >= 8) {
-    result |= ((u64)buffer[byte_offset] << bits_read);
-    bits_read += 8;
-    num_bits -= 8;
-    byte_offset++;
-  }
-
-  // Read remaining bits
-  if (num_bits > 0) {
-    mask = (1u << num_bits) - 1;
-    result |= (((u64)buffer[byte_offset] & mask) << bits_read);
-  }
-
   return result;
 }
 
@@ -1294,6 +1267,15 @@ __host__ Status FSE_buildDTable_Host(const u16 *h_normalized, u32 max_symbol,
     // Zstd formula: newState = (nextState << nbBits) - tableSize
     h_table.nbBits[state] = (u8)nbBits;
     h_table.newState[state] = (u16)((nextState << nbBits) - table_size);
+
+    if (table_size == 2048 && state == 316) {
+      printf("[DEBUG] Tbl[316]: sym=%u, nb=%u, next=%u. NormFreq[0..5]: %u %u "
+             "%u %u %u %u\n",
+             h_table.symbol[state], h_table.nbBits[state],
+             h_table.newState[state], h_normalized[0], h_normalized[1],
+             h_normalized[2], h_normalized[3], h_normalized[4],
+             h_normalized[5]);
+    }
   }
 
   // printf("[DECODER] Using Zstd SPREAD + symbolNext baseline (Phase
@@ -3383,7 +3365,14 @@ __host__ static Status FSE_buildDTable_Internal(const u16 *normalized_freqs,
     d_table.nbBits[state] = (u8)nb_bits;
     d_table.newState[state] = new_state;
 
-    // DEBUG DISABLED: [TBL_CPU] print removed
+    // DEBUG: Dump State 316 if this is the failing LL table (size 2048)
+    if (table_size == 2048 && state == 316) {
+      printf("[DEBUG] Tbl[316]: sym=%u, nb=%u, next=%u. NormFreq[0..5]: %u %u "
+             "%u %u %u %u\n",
+             symbol, nb_bits, new_state, normalized_freqs[0],
+             normalized_freqs[1], normalized_freqs[2], normalized_freqs[3],
+             normalized_freqs[4], normalized_freqs[5]);
+    }
   }
 
   return Status::SUCCESS;
@@ -3827,28 +3816,12 @@ __host__ Status decode_sequences_interleaved(
   u32 ll_log = 0, of_log = 0, ml_log = 0;
   u32 max_sym = 0;
 
-  bool decode_ll = (ll_mode == 0 || ll_mode == 1 || ll_mode == 2);
-  bool decode_of = (of_mode == 0 || of_mode == 1 || of_mode == 2);
-  bool decode_ml = (ml_mode == 0 || ml_mode == 1 || ml_mode == 2);
+  // Bits are present in bitstream if Mode is not RLE (1)
+  bool decode_ll = (ll_mode == 0 || ll_mode == 2 || ll_mode == 3);
+  bool decode_of = (of_mode == 0 || of_mode == 2 || of_mode == 3);
+  bool decode_ml = (ml_mode == 0 || ml_mode == 2 || ml_mode == 3);
 
-  u32 header_off = 0;
-  u8 ll_rle = 0, of_rle = 0, ml_rle = 0;
-
-  if (ll_mode == 1) {
-    if (header_off >= input_size)
-      return Status::ERROR_CORRUPT_DATA;
-    ll_rle = h_input[header_off++];
-  }
-  if (of_mode == 1) {
-    if (header_off >= input_size)
-      return Status::ERROR_CORRUPT_DATA;
-    of_rle = h_input[header_off++];
-  }
-  if (ml_mode == 1) {
-    if (header_off >= input_size)
-      return Status::ERROR_CORRUPT_DATA;
-    ml_rle = h_input[header_off++];
-  }
+  // No RLE reading here. It's handled by caller and offset is adjusted.
 
   auto cleanup = [&]() {
     // Only free tables if we allocated them (Mode 0)
@@ -3963,9 +3936,8 @@ __host__ Status decode_sequences_interleaved(
   }
   u32 stateLL = 0, stateOF = 0, stateML = 0;
 
-  // Read initial states (LL, then ML, then OF) - Read BACKWARDS from end
-  if (bit_pos < ll_log + ml_log + of_log) { // Approximate check
-                                            // Too strict if some disabled?
+  u32 bit_start = 0;
+  if (bit_pos < bit_start + ll_log + ml_log + of_log) { // Approximate check
   }
 
   // fprintf(stderr, "[DEBUG] Logs: LL=%u, OF=%u, ML=%u. Start BitPos=%u\n",
@@ -3974,10 +3946,10 @@ __host__ Status decode_sequences_interleaved(
   // Read initial states (LL, then ML, then OF) - Read BACKWARDS from end
   if (decode_ll) { // LL is last in stream (first read)
     u32 bits;
-    if (bit_pos < ll_log) {
-      u32 zero_pos = 0;
-      bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-      bit_pos = 0;
+    if (bit_pos < bit_start + ll_log) {
+      bits =
+          read_bits_from_buffer(h_input.data(), bit_start, bit_pos - bit_start);
+      bit_pos = bit_start;
     } else {
       bit_pos -= ll_log;
       u32 read_pos = bit_pos; // Use temp to avoid side-effect increment
@@ -3988,145 +3960,76 @@ __host__ Status decode_sequences_interleaved(
     //   fprintf(stderr, "[DEBUG] Check 5 (Init LL): h_input[3]=0x%02x\n",
     //           h_input[3]);
   }
+  if (decode_ml) {
+    u32 bits;
+    // fprintf(stderr, "[DEBUG] Reading ML. BitPos=%u, Log=%u\n", bit_pos,
+    // ml_log);
+    if (bit_pos < bit_start + ml_log) {
+      bits =
+          read_bits_from_buffer(h_input.data(), bit_start, bit_pos - bit_start);
+      bit_pos = bit_start;
+    } else {
+      bit_pos -= ml_log;
+      u32 read_pos = bit_pos;
+      bits = read_bits_from_buffer(h_input.data(), read_pos, ml_log);
+    }
+    stateML = bits;
+  }
   if (decode_of) {
+    u32 bits;
     // fprintf(stderr, "[DEBUG] Reading OF. BitPos=%u, Log=%u\n", bit_pos,
     // of_log);
-    u32 bits;
-    if (bit_pos < of_log) {
-      u32 zero_pos = 0;
-      bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-      bit_pos = 0;
+    if (bit_pos < bit_start + of_log) {
+      bits =
+          read_bits_from_buffer(h_input.data(), bit_start, bit_pos - bit_start);
+      bit_pos = bit_start;
     } else {
       bit_pos -= of_log;
       u32 read_pos = bit_pos;
       bits = read_bits_from_buffer(h_input.data(), read_pos, of_log);
     }
     stateOF = bits;
-    // if (input_size > 3)
-    //   fprintf(stderr, "[DEBUG] Check 6 (Init OF): h_input[3]=0x%02x\n",
-    //           h_input[3]);
-  }
-  if (decode_ml) {
-    // fprintf(stderr, "[DEBUG] Reading ML. BitPos=%u, Log=%u\n", bit_pos,
-    // ml_log);
-    u32 bits;
-    if (bit_pos < ml_log) {
-      u32 zero_pos = 0;
-      bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-      bit_pos = 0;
-    } else {
-      bit_pos -= ml_log;
-      u32 read_pos = bit_pos;
-      // fprintf(stderr,
-      //         "[DEBUG] Init ML Read: Pos=%u, ByteOff=%u, BitOff=%u, "
-      //         "ByteVal=0x%02x\n",
-      //         read_pos, byte_off, bit_off, h_input[byte_off]);
-      bits = read_bits_from_buffer(h_input.data(), read_pos, ml_log);
-    }
-    stateML = bits;
-    // if (stateML == 62)
-    //   fprintf(stderr, "[DEBUG] ML State 62 maps to Symbol %u\n",
-    //           ml_table.symbol[62]);
   }
 
-  // 5. Decode Loop (OF, ML, LL for each sequence)
-  // Decoder Read Order: OF State, ML State, LL State, LL Extra, ML Extra, OF
-  // Extra
+  // 5. Decode Loop (Order from RFC 8878 Section 3.1.1.3.2.1.2)
+  // For each sequence (last to first):
+  // 1. Read Offset_extra_bits
+  // 2. Read Match_Length_extra_bits
+  // 3. Read Literal_Length_extra_bits
+  // 4. Update Match_Length_State
+  // 5. Update Offset_State
+  // 6. Update Literal_Length_State
   for (int i = num_sequences - 1; i >= 0; i--) {
-    // 1. Decode States (OF, ML, LL)
-    u8 of_sym = 0;
+    // 1. Offset Extra Bits
     if (decode_of) {
-      if (of_mode == 1) {
-        of_sym = of_rle;
-      } else {
-        of_sym = of_table.symbol[stateOF];
-        // printf("[DEBUG] Seq %d: StateOF=%u -> SymOF=%u\n", i, stateOF,
-        // of_sym);
-        u8 nb = of_table.nbBits[stateOF];
-        u32 bits;
-        if (bit_pos < nb) {
-          u32 zero_pos = 0;
-          bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-          bit_pos = 0;
-        } else {
-          bit_pos -= nb;
-          u32 read_pos = bit_pos;
-          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
-        }
-        stateOF = of_table.newState[stateOF] + bits;
-      }
-    }
-
-    u8 ml_sym = 0;
-    if (decode_ml) {
-      if (ml_mode == 1) {
-        ml_sym = ml_rle;
-      } else {
-        ml_sym = ml_table.symbol[stateML];
-        // printf("[DEBUG] Seq %d: StateML=%u -> SymML=%u\n", i, stateML,
-        // ml_sym);
-        u8 nb = ml_table.nbBits[stateML];
-        u32 bits;
-        if (bit_pos < nb) {
-          u32 zero_pos = 0;
-          bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-          bit_pos = 0;
-        } else {
-          bit_pos -= nb;
-          u32 read_pos = bit_pos;
-          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
-        }
-        stateML = ml_table.newState[stateML] + bits;
-      }
-    }
-
-    u8 ll_sym = 0;
-    if (decode_ll) {
-      if (ll_mode == 1) {
-        ll_sym = ll_rle;
-      } else {
-        ll_sym = ll_table.symbol[stateLL];
-        u8 nb = ll_table.nbBits[stateLL];
-        u32 bits;
-        if (bit_pos < nb) {
-          u32 zero_pos = 0;
-          bits = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-          bit_pos = 0;
-        } else {
-          bit_pos -= nb;
-          u32 read_pos = bit_pos;
-          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
-        }
-        stateLL = ll_table.newState[stateLL] + bits;
-      }
-    }
-
-    // 2. Read Extra Bits (LL, ML, OF)
-    if (decode_ll) {
-      u32 extra_bits = sequence::ZstdSequence::get_lit_len_extra_bits(ll_sym);
+      u8 of_sym = of_table.symbol[stateOF];
+      u32 extra_bits =
+          sequence::ZstdSequence::get_offset_code_extra_bits(of_sym);
       u32 extra = 0;
       if (extra_bits > 0) {
-        if (bit_pos < extra_bits) {
-          u32 zero_pos = 0;
-          extra = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-          bit_pos = 0;
+        if (bit_pos < bit_start + extra_bits) {
+          extra = read_bits_from_buffer(h_input.data(), bit_start,
+                                        bit_pos - bit_start);
+          bit_pos = bit_start;
         } else {
           bit_pos -= extra_bits;
           u32 read_pos = bit_pos;
           extra = read_bits_from_buffer(h_input.data(), read_pos, extra_bits);
         }
       }
-      h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + extra;
+      h_of[i] = sequence::ZstdSequence::get_offset(of_sym) + extra;
     }
 
+    // 2. Match Length Extra Bits
     if (decode_ml) {
+      u8 ml_sym = ml_table.symbol[stateML];
       u32 extra_bits = sequence::ZstdSequence::get_match_len_extra_bits(ml_sym);
       u32 extra = 0;
       if (extra_bits > 0) {
-        if (bit_pos < extra_bits) {
-          u32 zero_pos = 0;
-          extra = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-          bit_pos = 0;
+        if (bit_pos < bit_start + extra_bits) {
+          extra = read_bits_from_buffer(h_input.data(), bit_start,
+                                        bit_pos - bit_start);
+          bit_pos = bit_start;
         } else {
           bit_pos -= extra_bits;
           u32 read_pos = bit_pos;
@@ -4136,33 +4039,93 @@ __host__ Status decode_sequences_interleaved(
       h_ml[i] = sequence::ZstdSequence::get_match_len(ml_sym) + extra;
     }
 
-    if (decode_of) {
-      u32 extra_bits =
-          sequence::ZstdSequence::get_offset_code_extra_bits(of_sym);
+    // 3. Literal Length Extra Bits
+    if (decode_ll) {
+      u8 ll_sym = ll_table.symbol[stateLL];
+      u32 extra_bits = sequence::ZstdSequence::get_lit_len_extra_bits(ll_sym);
       u32 extra = 0;
       if (extra_bits > 0) {
-        if (bit_pos < extra_bits) {
-          u32 zero_pos = 0;
-          extra = read_bits_from_buffer(h_input.data(), zero_pos, bit_pos);
-          bit_pos = 0;
+        if (bit_pos < bit_start + extra_bits) {
+          extra = read_bits_from_buffer(h_input.data(), bit_start,
+                                        bit_pos - bit_start);
+          bit_pos = bit_start;
         } else {
           bit_pos -= extra_bits;
           u32 read_pos = bit_pos;
           extra = read_bits_from_buffer(h_input.data(), read_pos, extra_bits);
         }
       }
-      h_of[i] = sequence::ZstdSequence::get_offset(of_sym) + extra;
+      h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + extra;
+      if (i == 51) {
+        printf(
+            "[DEBUG] Seq 51: stateLL=%u, sym=%u, extra=%u, val=%u. BitPos=%u\n",
+            stateLL, ll_sym, extra, h_ll[i], bit_pos);
+      }
+    }
+
+    // 4. Update Offset State
+    if (decode_of && of_mode != 1) { // Not RLE
+      u8 nb = of_table.nbBits[stateOF];
+      u32 bits = 0;
+      if (nb > 0) {
+        if (bit_pos < bit_start + nb) {
+          bits = read_bits_from_buffer(h_input.data(), bit_start,
+                                       bit_pos - bit_start);
+          bit_pos = bit_start;
+        } else {
+          bit_pos -= nb;
+          u32 read_pos = bit_pos;
+          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        }
+      }
+      stateOF = of_table.newState[stateOF] + bits;
+    }
+
+    // 5. Update Match Length State
+    if (decode_ml && ml_mode != 1) { // Not RLE
+      u8 nb = ml_table.nbBits[stateML];
+      u32 bits = 0;
+      if (nb > 0) {
+        if (bit_pos < bit_start + nb) {
+          bits = read_bits_from_buffer(h_input.data(), bit_start,
+                                       bit_pos - bit_start);
+          bit_pos = bit_start;
+        } else {
+          bit_pos -= nb;
+          u32 read_pos = bit_pos;
+          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        }
+      }
+      stateML = ml_table.newState[stateML] + bits;
+    }
+
+    // 6. Update Literal Length State
+    if (decode_ll && ll_mode != 1) { // Not RLE
+      u8 nb = ll_table.nbBits[stateLL];
+      u32 bits = 0;
+      if (nb > 0) {
+        if (bit_pos < bit_start + nb) {
+          bits = read_bits_from_buffer(h_input.data(), bit_start,
+                                       bit_pos - bit_start);
+          bit_pos = bit_start;
+        } else {
+          bit_pos -= nb;
+          u32 read_pos = bit_pos;
+          bits = read_bits_from_buffer(h_input.data(), read_pos, nb);
+        }
+      }
+      stateLL = ll_table.newState[stateLL] + bits;
     }
   }
 
   // 6. Copy Back
-  if (decode_ll)
+  if (decode_ll && ll_mode != 1)
     CUDA_CHECK(cudaMemcpyAsync(d_ll_out, h_ll.data(), num_sequences * 4,
                                cudaMemcpyHostToDevice, stream));
-  if (decode_of)
+  if (decode_of && of_mode != 1)
     CUDA_CHECK(cudaMemcpyAsync(d_of_out, h_of.data(), num_sequences * 4,
                                cudaMemcpyHostToDevice, stream));
-  if (decode_ml)
+  if (decode_ml && ml_mode != 1)
     CUDA_CHECK(cudaMemcpyAsync(d_ml_out, h_ml.data(), num_sequences * 4,
                                cudaMemcpyHostToDevice, stream));
 
