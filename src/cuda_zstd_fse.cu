@@ -3938,11 +3938,20 @@ __host__ Status decode_sequences_interleaved(
     hb--;
   u32 sentinel_pos = (input_size - 1) * 8 + hb;
 
-  // RFC 8878: States read LL, OF, ML from backward stream (below sentinel)
   sequence::FSEBitStreamReader reader(h_input.data(), sentinel_pos);
   u32 stateLL = decode_ll ? reader.read(ll_log) : 0;
   u32 stateOF = decode_of ? reader.read(of_log) : 0;
   u32 stateML = decode_ml ? reader.read(ml_log) : 0;
+
+  // DEBUG: Dump LL DTable symbols for first block
+  if (num_sequences == 1) {
+    fprintf(stderr, "[DTABLE_DBG] LL table (log=%u, size=%u) symbols: ", ll_log,
+            ll_table.table_size);
+    for (u32 s = 0; s < ll_table.table_size && s < 64; s++) {
+      fprintf(stderr, "%u ", ll_table.symbol[s]);
+    }
+    fprintf(stderr, "\n");
+  }
 
   // 5. Decode Loop
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
@@ -3951,6 +3960,19 @@ __host__ Status decode_sequences_interleaved(
     u32 ml_sym = decode_ml ? ml_table.symbol[stateML % (1u << ml_log)] : 0;
 
     u32 ll_extra = 0, of_extra = 0, ml_extra = 0;
+
+    // DEBUG: Trace bit positions for first sequence
+    if (i == (int)num_sequences - 1) {
+      fprintf(stderr,
+              "[BIT_DBG] Before extra bits: bit_pos=%u, stateLL=%u, "
+              "stateOF=%u, stateML=%u\n",
+              reader.bit_pos, stateLL, stateOF, stateML);
+      fprintf(stderr, "[BIT_DBG] Symbols: ll_sym=%u, of_sym=%u, ml_sym=%u\n",
+              ll_sym, of_sym, ml_sym);
+      fprintf(stderr, "[BIT_DBG] Extra bit counts: OF=%u, ML=%u, LL=%u\n",
+              of_sym, sequence::ZstdSequence::get_match_len_extra_bits(ml_sym),
+              sequence::ZstdSequence::get_lit_len_extra_bits(ll_sym));
+    }
 
     // RFC 8878 Order: 1. OF bits, 2. ML bits, 3. LL bits
     of_extra =
@@ -3961,6 +3983,14 @@ __host__ Status decode_sequences_interleaved(
     ll_extra = decode_ll
                    ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
                    : 0;
+
+    // DEBUG: Trace after extra bits
+    if (i == (int)num_sequences - 1) {
+      fprintf(stderr,
+              "[BIT_DBG] After extra bits: bit_pos=%u, of_extra=%u, "
+              "ml_extra=%u, ll_extra=%u\n",
+              reader.bit_pos, of_extra, ml_extra, ll_extra);
+    }
 
     // Convert symbols and extras to final values
     h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;

@@ -3803,7 +3803,12 @@ private:
     // }
     u32 sequences_offset = literals_header_size + literals_compressed_size;
 
-    // [DEBUG DISABLED] Log sequence offset
+    // DEBUG: Trace sequence offset calculation
+    fprintf(stderr,
+            "[DEBUG] decompress_block: sequences_offset=%u (LitHdr=%u + "
+            "LitComp=%u), LitDecomp=%u\n",
+            sequences_offset, literals_header_size, literals_compressed_size,
+            literals_decompressed_size);
     // fprintf(stderr,
     //         "[DEBUG] decompress_block: sequences_offset: %u (LitHeader: %u, "
     //         "LitCompressed: %u)\n",
