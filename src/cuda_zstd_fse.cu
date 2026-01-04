@@ -4015,14 +4015,25 @@ __host__ Status decode_sequences_interleaved(
   while (hb >= 0 && !((last_byte >> hb) & 1))
     hb--;
   u32 sentinel_pos = (input_size - 1) * 8 + hb;
+  sequence::FSEBitStreamReader reader(h_input.data(), sentinel_pos, input_size);
 
-  sequence::FSEBitStreamReader reader(h_input.data(), sentinel_pos);
+  // DEBUG: Trace FSE initialization
+  fprintf(stderr,
+          "[FSE_DBG] Logs: LL=%u, OF=%u, ML=%u. Sentinel=%u. InputSize=%u. "
+          "NumSeq=%u. "
+          "Offset=%p\n",
+          ll_log, of_log, ml_log, sentinel_pos, input_size, num_sequences,
+          h_input.data());
+
   // RFC 8878 3.1.1.3.2.1.1: Bits are read in sequence: ML, OF, LL
   // RFC 8878: Predefined Mode (0) uses a specific table but standard FSE
   // stream decoding So we MUST read the initial state from the stream.
   u32 stateML = (decode_ml && ml_mode != 1) ? reader.read(ml_log) : 0;
   u32 stateOF = (decode_of && of_mode != 1) ? reader.read(of_log) : 0;
   u32 stateLL = (decode_ll && ll_mode != 1) ? reader.read(ll_log) : 0;
+
+  fprintf(stderr, "[FSE_DBG] InitStates: ML=%u, OF=%u, LL=%u. ReaderPos=%d\n",
+          stateML, stateOF, stateLL, reader.bit_pos);
 
   // 5. Decode Loop
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
@@ -4032,27 +4043,50 @@ __host__ Status decode_sequences_interleaved(
 
     u32 ll_extra = 0, of_extra = 0, ml_extra = 0;
 
-    // RFC 8878 Order (Reverse for Backward Reader): 1. LL bits, 2. OF
-    // bits, 3. ML bits
-    ll_extra = decode_ll
-                   ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
-                   : 0;
-    of_extra =
-        decode_of ? sequence::ZstdSequence::get_offset_bits(of_sym, reader) : 0;
+    // --- (FIX) Zstd sequence decoding order (RFC 8878 Section 3.1.1.3.2.1.1)
+    // --- Order from end-of-bitstream:
+    // 1. ML extra bits
+    // 2. Offset extra bits
+    // 3. LL extra bits
+    // (Then, optionally for i > 0):
+    // 4. ML state transition
+    // 5. Offset state transition
+    // 6. LL state transition
+
     ml_extra = decode_ml
                    ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
                    : 0;
+    of_extra =
+        decode_of ? sequence::ZstdSequence::get_offset_bits(of_sym, reader) : 0;
+    ll_extra = decode_ll
+                   ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
+                   : 0;
 
     // Convert symbols and extras to final values
-    h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;
-    h_ml[i] = sequence::ZstdSequence::get_match_len(ml_sym) + ml_extra;
-    h_of[i] = sequence::ZstdSequence::get_offset(of_sym) + of_extra;
+    if (i < 2)
+      fprintf(stderr, "[PRE-CALC] i=%d. ml_sym=%u. of_sym=%u. ll_sym=%u\n", i,
+              ml_sym, of_sym, ll_sym);
+    u32 calc_ml = sequence::ZstdSequence::get_match_len(ml_sym);
+    u32 calc_of = sequence::ZstdSequence::get_offset(of_sym);
 
-    if (num_sequences < 5) {
-      printf("[SEQ_DBG] i=%d StateLL=%u Sym=%u Extra=%u FinalLL=%u | "
-             "StateML=%u Sym=%u Extra=%u FinalML=%u\n",
-             i, stateLL, ll_sym, ll_extra, h_ll[i], stateML, ml_sym, ml_extra,
-             h_ml[i]);
+    h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;
+    h_ml[i] = calc_ml + ml_extra;
+    h_of[i] = calc_of + of_extra;
+
+    if (i == (int)num_sequences - 1 || i == 0 || i < 5) {
+      fprintf(stderr,
+              "[SEQ_DBG] seq[%d]: States(ML=%u,OF=%u,LL=%u) -> "
+              "Syms(ML=%u,OF=%u,LL=%u) -> Extras(ML=%u,OF=%u,LL=%u) -> "
+              "Base(ML=%u,OF=%u) -> Final(ML=%u, OF=%u, LL=%u) @ %p\n",
+              i, stateML, stateOF, stateLL, ml_sym, of_sym, ll_sym, ml_extra,
+              of_extra, ll_extra, calc_ml, calc_of, h_ml[i], h_of[i], h_ll[i],
+              &h_ml[i]);
+      if (ml_sym == 42) {
+        u32 check = sequence::ZstdSequence::get_match_len(42);
+        fprintf(stderr, "[SANITY] get_match_len(42) = %u. ml_sym=%u.\n", check,
+                ml_sym);
+      }
+      fflush(stderr);
     }
 
     // Update States (Skip for the very last sequence i=0)

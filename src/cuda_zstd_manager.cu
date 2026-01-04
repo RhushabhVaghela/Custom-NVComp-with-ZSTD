@@ -3789,6 +3789,23 @@ private:
            literals_header_size, literals_compressed_size,
            literals_decompressed_size);
 
+    // DEBUG: Dump first 64 bytes of decoded literals
+    {
+      const int DUMP_SIZE = 64;
+      byte_t h_dump[DUMP_SIZE];
+      u32 actual_dump = std::min((u32)DUMP_SIZE, literals_decompressed_size);
+      CUDA_CHECK(cudaMemcpy(h_dump, d_decompressed_literals, actual_dump,
+                            cudaMemcpyDeviceToHost));
+      printf("[DEBUG_LITS] Literals Dump (%u bytes):\n", actual_dump);
+      for (int i = 0; i < actual_dump; i++) {
+        printf("%02x ", h_dump[i]);
+        if ((i + 1) % 16 == 0)
+          printf("\n");
+      }
+      printf("\n");
+      fflush(stdout);
+    }
+
     // === Decompress Sequences ===
     // {
     //   cudaError_t e = cudaGetLastError();
@@ -5211,16 +5228,18 @@ private:
 
     const byte_t *d_data_start = input + *h_header_size;
 
-    if (literals_type == 2) { // FSE
-      u32 h_fse_output_size = 0;
-      return fse::decode_fse(d_data_start, *h_compressed_size, output,
-                             &h_fse_output_size, nullptr, stream);
-    } else { // Huffman
-      size_t h_huff_output_size = 0;
-      return huffman::decode_huffman(d_data_start, *h_compressed_size,
-                                     *ctx.huff_ctx, output, &h_huff_output_size,
-                                     *h_decompressed_size, stream);
-    }
+    // RFC 8878 Section 3.1.1.3:
+    // - Type 2: Compressed_Literals_Block (Huffman with embedded tree)
+    // - Type 3: Treeless_Literals_Block (Huffman reusing previous tree)
+    // Both use Huffman encoding, NOT FSE.
+
+    // Use RFC 8878-compliant Huffman decoder for standard Zstandard format
+    // size_format >= 1 means 4-stream format
+    bool four_streams = (size_format >= 1);
+    size_t h_huff_output_size = 0;
+    return huffman::decode_huffman_rfc8878(
+        d_data_start, *h_compressed_size, output, &h_huff_output_size,
+        *h_decompressed_size, four_streams, stream);
   }
 
   Status decompress_sequences(const byte_t *input, u32 input_size,

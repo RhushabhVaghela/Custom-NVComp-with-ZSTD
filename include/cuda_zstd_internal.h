@@ -86,7 +86,8 @@ struct FSEBitStreamReader {
   const byte_t *stream_ptr;
   u64 bit_container;
   i32 bits_remaining;
-  u32 bit_pos; // For tracking total bits read
+  u32 bit_pos;     // For tracking total bits read
+  u32 stream_size; // TRACKING BOUNDS
 
   __device__ __host__ static __forceinline__ u32 bswap32(u32 x) {
 #ifdef __CUDA_ARCH__
@@ -103,12 +104,13 @@ struct FSEBitStreamReader {
 
   __device__ __host__ FSEBitStreamReader()
       : stream_start(nullptr), stream_ptr(nullptr), bit_container(0),
-        bits_remaining(0), bit_pos(0) {}
+        bits_remaining(0), bit_pos(0), stream_size(0) {}
 
-  __device__ __host__ FSEBitStreamReader(const byte_t *input,
-                                         u32 start_bit_pos) {
+  __device__ __host__ FSEBitStreamReader(const byte_t *input, u32 start_bit_pos,
+                                         u32 size) {
     bit_pos = start_bit_pos;
     stream_start = input;
+    stream_size = size;
     // Align to byte boundary
     // Align to byte boundary
     // u32 byte_off = bit_pos / 8; // Unused
@@ -151,6 +153,7 @@ struct FSEBitStreamReader {
 #endif
 
     bits_remaining = 31 - clz;
+    this->stream_size = (u32)stream_size;
   }
 
   __device__ __host__ u32 read(u8 num_bits) {
@@ -166,11 +169,14 @@ struct FSEBitStreamReader {
     u32 bit_offset = bit_pos % 8;
 
     u64 data = 0;
-    // Load up to 8 bytes to cover the span
-    // For simplicity and correctness on host/device, we use a simple loop
-    // or we can optimize if needed.
+    // Load up to 8 bytes, staying within the buffer [stream_start, stream_end)
+    // We assume stream_ptr + 8 is safe if we have enough padding,
+    // but let's be explicit and use the known stream count.
     for (int i = 0; i < 8; ++i) {
-      data |= ((u64)stream_start[byte_offset + i] << (i * 8));
+      // Simple safety: if we go beyond the provided section, stop loading
+      if (byte_offset + i < stream_size) {
+        data |= ((u64)stream_start[byte_offset + i] << (i * 8));
+      }
     }
 
     u32 val = (u32)((data >> bit_offset) & ((1ULL << num_bits) - 1));
@@ -352,14 +358,12 @@ struct ZstdSequence {
   get_match_len_extra_bits(u32 code) {
     if (code < 32)
       return 0;
-    // Official Zstd pattern: every 4 codes, 1 more bit.
-    static const u8 ML_bits[53] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16-31
-        1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, // 32-47
-        5, 5, 5, 5, 16                                  // 48-52
-    };
-    return ML_bits[code];
+    // RFC 8878 Table 12
+    static const u8 ML_bits[53] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                   0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3,
+                                   3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 16};
+    return (code < 53) ? ML_bits[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32
@@ -380,25 +384,24 @@ struct ZstdSequence {
   __device__ __host__ static __forceinline__ u32 get_lit_len(u32 code) {
     if (code < 16)
       return code;
+    // RFC 8878 Table 9
     static const u32 LL_base[36] = {
-        0,  1,  2,   3,   4,   5,    6,    7,    8,    9,     10,    11,
-        12, 13, 14,  15,  16,  18,   20,   22,   24,   28,    32,    40,
-        48, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
-    return LL_base[code];
+        0,  1,  2,  3,   4,   5,   6,   7,   8,   9,   10,   11,
+        12, 13, 14, 15,  16,  18,  20,  22,  24,  28,  32,   40,
+        48, 64, 80, 112, 144, 208, 272, 400, 528, 784, 1040, 65536};
+    return (code < 36) ? LL_base[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32 get_match_len(u32 code) {
     if (code < 32)
       return code + 3;
-    if (code == 52)
-      return 3;
-    // Calculated from bits: base[idx] = base[idx-1] + (1 << bits[idx-1])
+    // RFC 8878 Table 11
     static const u32 ML_base[53] = {
-        0,  0,  0,  0,   0,   0,   0,   0,   0,   0,   0,  0,  0,  0,
-        0,  0,  0,  0,   0,   0,   0,   0,   0,   0,   0,  0,  0,  0,
-        0,  0,  0,  0,   35,  37,  39,  41,  43,  47,  51, 55, 59, 67,
-        75, 83, 91, 107, 123, 139, 155, 187, 219, 251, 3};
-    return ML_base[code];
+        3,  4,  5,  6,   7,   8,   9,   10,  11,  12,  13,    14, 15, 16,
+        17, 18, 19, 20,  21,  22,  23,  24,  25,  26,  27,    28, 29, 30,
+        31, 32, 33, 34,  35,  37,  39,  41,  43,  47,  51,    55, 59, 67,
+        75, 83, 91, 107, 123, 139, 155, 187, 219, 251, 131075};
+    return (code < 53) ? ML_base[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32

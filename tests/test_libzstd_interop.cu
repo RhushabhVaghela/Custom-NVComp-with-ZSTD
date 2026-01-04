@@ -79,22 +79,44 @@ int main() {
                (memcmp(output.data(), expected.data(), expected_size) == 0);
 
   if (match) {
-    std::cout << "[PASS] Output matches expected!" << std::endl;
+    printf("[PASS] Output matches expected!\n");
   } else {
-    std::cerr << "[FAIL] Output mismatch!" << std::endl;
+    printf("[FAIL] Output mismatch!\n");
     if (output_size != expected_size) {
-      std::cerr << "Size: got " << output_size << ", expected " << expected_size
-                << std::endl;
+      printf("Size: got %zu, expected %zu\n", output_size, expected_size);
     }
+    // Dump first 64 bytes of both to see where divergence starts
+    printf("GOT (first 64):\n");
+    for (int i = 0; i < std::min((int)output_size, 64); i++) {
+      printf("%02X ", output[i]);
+    }
+    printf("\n");
+    // Print as char
+    for (int i = 0; i < std::min((int)output_size, 64); i++) {
+      printf("%c", (output[i] >= 32 && output[i] <= 126) ? output[i] : '.');
+    }
+    printf("\n");
+
+    printf("EXPECTED (first 64):\n");
+    for (int i = 0; i < std::min((int)expected_size, 64); i++) {
+      printf("%02X ", expected[i]);
+    }
+    printf("\n");
+    // Print as char
+    for (int i = 0; i < std::min((int)expected_size, 64); i++) {
+      printf("%c",
+             (expected[i] >= 32 && expected[i] <= 126) ? expected[i] : '.');
+    }
+    printf("\n");
   }
 
   cudaFree(d_input);
   cudaFree(d_output);
   cudaFree(d_temp);
 
-  std::cout << "\n========================================" << std::endl;
-  std::cout << "Result: " << (match ? "PASS" : "FAIL") << std::endl;
-  std::cout << "========================================" << std::endl;
+  printf("\n========================================\n");
+  printf("Result: %s\n", match ? "PASS" : "FAIL");
+  printf("========================================\n");
 
   return match ? 0 : 1;
 }
