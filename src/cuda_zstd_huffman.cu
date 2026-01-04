@@ -212,6 +212,391 @@ __host__ Status deserialize_huffman_table(const byte_t *h_input, u32 input_size,
 }
 
 // ============================================================================
+// RFC 8878 Huffman Weight Decoding (Standard Zstandard Format)
+// ============================================================================
+
+/**
+ * @brief Decode Huffman weights from direct 4-bit representation.
+ * RFC 8878 Section 4.2.1.1: When headerByte >= 128, weights are stored
+ * as 4-bit nibbles (2 weights per byte).
+ *
+ * @param h_input Input buffer starting at first weight byte
+ * @param header_byte The header byte value (determines number of symbols)
+ * @param h_weights Output: decoded weights (0-11 range)
+ * @param num_symbols Output: number of decoded symbols
+ * @return Status::SUCCESS on success
+ */
+__host__ Status decode_huffman_weights_direct(const byte_t *h_input,
+                                              u32 header_byte, u8 *h_weights,
+                                              u32 *num_symbols) {
+  if (header_byte < 128) {
+    return Status::ERROR_CORRUPT_DATA; // Not direct format
+  }
+
+  *num_symbols =
+      header_byte - 127; // RFC 8878: Number_of_Symbols = headerByte - 127
+
+  // Read 4-bit weights, 2 per byte
+  // RFC 8878: Weight[0] = (Byte[0] >> 4), Weight[1] = (Byte[0] & 0xf), etc.
+  u32 num_bytes = (*num_symbols + 1) / 2;
+
+  for (u32 i = 0; i < *num_symbols; i++) {
+    u32 byte_idx = i / 2;
+    if (i % 2 == 0) {
+      h_weights[i] = (h_input[byte_idx] >> 4) & 0x0F;
+    } else {
+      h_weights[i] = h_input[byte_idx] & 0x0F;
+    }
+  }
+
+  return Status::SUCCESS;
+}
+
+/**
+ * @brief Decode Huffman weights from FSE-compressed format.
+ * RFC 8878 Section 4.2.1.2: When headerByte < 128, weights are FSE-encoded.
+ * Uses two interleaved FSE states sharing one distribution table.
+ *
+ * @param h_input Input buffer starting at FSE table
+ * @param compressed_size Size of compressed weights (= headerByte)
+ * @param h_weights Output: decoded weights (0-11 range)
+ * @param num_symbols Output: number of decoded symbols
+ * @return Status::SUCCESS on success
+ */
+__host__ Status decode_huffman_weights_fse(const byte_t *h_input,
+                                           u32 compressed_size, u8 *h_weights,
+                                           u32 *num_symbols) {
+  // RFC 8878 Section 4.2.1.2: FSE Compression of Huffman Weights
+  // - Two interleaved FSE states sharing one distribution table
+  // - Bitstream is read backward (like all Zstd FSE bitstreams)
+  // - Max accuracy log is 6 for weight encoding
+
+  // RFC 8878 Section 4.2.1.2: FSE Compression of Huffman Weights
+  // For Huffman weights, Max_Accuracy_Log is 6.
+  // EMPIRICAL FINDING: libzstd bitstreams for Huffman Weights appear to OMIT
+  // the Accuracy Log field (or use a default), starting the counts immediately.
+  // Reading the first nibble as AL yields invalid values (e.g. 13).
+  // We strictly enforcing AL=6 and starting from bit 0 matches libzstd
+  // behavior.
+
+  u32 accuracy_log = 6;
+
+  constexpr u32 MAX_HUF_ALPHABET = 12; // weights 0-11
+  constexpr u32 MAX_TABLE_SIZE = 64;   // 2^6
+
+  u32 table_size = 1 << accuracy_log;
+  i16 norm_counts[MAX_HUF_ALPHABET] = {0};
+  u32 bit_pos_header = 0; // Start at 0, skipping explicit AL read
+  i32 remaining = table_size;
+  u32 symbol = 0;
+
+  auto read_bits_header = [&](u32 nbits) -> u32 {
+    u32 result = 0;
+    for (u32 i = 0; i < nbits; i++) {
+      if (bit_pos_header / 8 >= compressed_size)
+        break;
+      if (h_input[bit_pos_header / 8] & (1 << (bit_pos_header % 8))) {
+        result |= (1 << i);
+      }
+      bit_pos_header++;
+    }
+    return result;
+  };
+
+  while (remaining > 0 && symbol < MAX_HUF_ALPHABET) {
+    u32 nb_bits = 0;
+    u32 temp = remaining + 1;
+    while (temp >>= 1)
+      nb_bits++;
+    nb_bits++; // Log2(remaining + 1) + 1
+
+    u32 threshold = (1 << nb_bits) - 1 - (remaining + 1);
+    u32 v = read_bits_header(nb_bits - 1);
+    i16 count;
+    if (v < threshold) {
+      count = (i16)v - 1;
+    } else {
+      v = (v << 1) | read_bits_header(1);
+      count = (i16)v - 1 - (i16)threshold;
+    }
+
+    norm_counts[symbol++] = count;
+    if (count == -1)
+      remaining -= 1;
+    else if (count > 0)
+      remaining -= count;
+  }
+
+  u32 num_fse_symbols = symbol;
+  u8 table_symbol[MAX_TABLE_SIZE] = {0};
+  u32 step = (table_size >> 1) + (table_size >> 3) + 3;
+  u32 mask = table_size - 1;
+  u32 pos = 0;
+
+  for (u32 s = 0; s < num_fse_symbols; s++) {
+    if (norm_counts[s] > 0) {
+      for (i32 i = 0; i < norm_counts[s]; i++) {
+        table_symbol[pos & mask] = s;
+        pos = (pos + step) & mask;
+      }
+    }
+  }
+  for (u32 s = 0; s < num_fse_symbols; s++) {
+    if (norm_counts[s] == -1) {
+      while (table_symbol[pos & mask] != 0 || (pos & mask) == 0) {
+        if (table_symbol[pos & mask] == 0)
+          break;
+        pos = (pos + step) & mask;
+      }
+      table_symbol[pos & mask] = s;
+      pos = (pos + step) & mask;
+    }
+  }
+
+  // Build the decoder table
+  u8 fse_symbol[MAX_TABLE_SIZE];
+  u8 fse_nbits[MAX_TABLE_SIZE];
+  u16 fse_newstate[MAX_TABLE_SIZE];
+  u32 symbol_next_idx[MAX_HUF_ALPHABET];
+  for (u32 s = 0; s < num_fse_symbols; s++) {
+    if (norm_counts[s] == -1)
+      symbol_next_idx[s] = 1;
+    else if (norm_counts[s] > 0)
+      symbol_next_idx[s] = norm_counts[s];
+    else
+      symbol_next_idx[s] = 0;
+  }
+
+  for (u32 i = 0; i < table_size; i++) {
+    u32 s = table_symbol[i];
+    fse_symbol[i] = (u8)s;
+    i16 count = norm_counts[s];
+    if (count == -1) {
+      fse_nbits[i] = (u8)accuracy_log;
+      // Fixed: Do NOT subtract table_size. We want state >= table_size.
+      // idx=1. (1<<AL) = table_size.
+      fse_newstate[i] = (u16)((symbol_next_idx[s]++) << accuracy_log);
+    } else {
+      u32 s_base = symbol_next_idx[s]++;
+      u32 n_bits_entry = 0;
+      u32 temp = s_base;
+      while (temp >>= 1)
+        n_bits_entry++;
+      u32 nb = (u8)(accuracy_log - n_bits_entry);
+      fse_nbits[i] = (u8)nb;
+      fse_newstate[i] = (u16)(s_base << nb);
+    }
+  }
+
+  u32 bitstream_start = (bit_pos_header + 7) / 8;
+  if (bitstream_start >= compressed_size)
+    return Status::ERROR_CORRUPT_DATA;
+
+  const byte_t *bitstream = h_input + bitstream_start;
+  u32 bitstream_size = compressed_size - bitstream_start;
+  u32 bit_pos = bitstream_size * 8;
+
+  while (bit_pos > 0) {
+    if (bitstream[(bit_pos - 1) / 8] & (1 << ((bit_pos - 1) % 8))) {
+      bit_pos--;
+      break;
+    }
+    bit_pos--;
+  }
+
+  if (bit_pos < 2 * accuracy_log)
+    return Status::ERROR_CORRUPT_DATA;
+
+  auto read_bits_backward = [&](u32 nbits) -> u32 {
+    if (bit_pos < nbits)
+      return 0;
+    u32 result = 0;
+    for (u32 i = 0; i < nbits; i++) {
+      bit_pos--;
+      if (bitstream[bit_pos / 8] & (1 << (bit_pos % 8))) {
+        result |= (1 << (nbits - 1 - i));
+      }
+    }
+    return result;
+  };
+
+  u32 state2 = read_bits_backward(accuracy_log) + table_size;
+  u32 state1 = read_bits_backward(accuracy_log) + table_size;
+
+  printf("[DEBUG] FSE Initial States: S1=%u, S2=%u (table_size=%u, "
+         "bit_pos=%u)\n",
+         state1, state2, table_size, bit_pos);
+
+  u32 out_idx = 0;
+  constexpr u32 MAX_WEIGHTS = 255;
+  while (out_idx < MAX_WEIGHTS) {
+    if (state1 < table_size || state1 >= 2 * table_size) {
+      printf("[ERROR] FSE state1 out of bounds: %u\n", state1);
+      return Status::ERROR_CORRUPT_DATA;
+    }
+    h_weights[out_idx++] = fse_symbol[state1 - table_size];
+    u32 nb1 = fse_nbits[state1 - table_size];
+    state1 = fse_newstate[state1 - table_size] + read_bits_backward(nb1);
+
+    if (bit_pos == 0 || out_idx >= MAX_WEIGHTS)
+      break;
+
+    if (state2 < table_size || state2 >= 2 * table_size) {
+      printf("[ERROR] FSE state2 out of bounds: %u\n", state2);
+      return Status::ERROR_CORRUPT_DATA;
+    }
+    h_weights[out_idx++] = fse_symbol[state2 - table_size];
+    u32 nb2 = fse_nbits[state2 - table_size];
+    state2 = fse_newstate[state2 - table_size] + read_bits_backward(nb2);
+
+    if (bit_pos == 0)
+      break;
+  }
+
+  *num_symbols = out_idx;
+  return Status::SUCCESS;
+}
+
+/**
+ * @brief Convert weights to code lengths according to RFC 8878 Section 4.2.1.
+ */
+__host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
+                                        u8 *h_code_lengths, u32 *max_bits) {
+  memset(h_code_lengths, 0, MAX_HUFFMAN_SYMBOLS);
+
+  // First pass: find sum of 2^(Weight-1) to determine Max_Number_of_Bits
+  u32 weight_sum = 0;
+  for (u32 i = 0; i < num_weights; i++) {
+    if (h_weights[i] > 0) {
+      weight_sum += 1 << (h_weights[i] - 1);
+    }
+  }
+
+  if (weight_sum == 0)
+    return Status::ERROR_CORRUPT_DATA;
+
+  // Find next power of 2
+  // MaxBits is the power k such that 2^k >= weight_sum
+  u32 next_power = 1;
+  u32 max_num_bits = 0;
+  while (next_power < weight_sum) {
+    next_power <<= 1;
+    max_num_bits++;
+  }
+  fprintf(stderr, "[DEBUG_HUF] weight_sum=%u, next_power=%u, max_bits=%u\n",
+          weight_sum, next_power, max_num_bits);
+
+  // RFC 8878: The last weight's value is reconstructed so the sum is an exact
+  // power of 2.
+  u32 last_weight_val = next_power - weight_sum;
+  u32 last_weight = 0;
+  if (last_weight_val > 0) {
+    last_weight = 31 - __builtin_clz(last_weight_val) + 1;
+  }
+
+  *max_bits = max_num_bits;
+
+  // Convert weights to code lengths: bits = MaxBits + 1 - Weight
+  for (u32 i = 0; i < num_weights; i++) {
+    if (h_weights[i] > 0) {
+      h_code_lengths[i] = (u8)(max_num_bits + 1 - h_weights[i]);
+    } else {
+      h_code_lengths[i] = 0;
+    }
+  }
+
+  // Add reconstructed last symbol if not 0
+  if (num_weights < MAX_HUFFMAN_SYMBOLS && last_weight > 0) {
+    h_code_lengths[num_weights] = (u8)(max_num_bits + 1 - last_weight);
+  }
+
+  return Status::SUCCESS;
+}
+
+/**
+ * @brief RFC 8878-compliant Huffman table decoder entry point.
+ * Parses Huffman tree description from Zstandard-formatted input.
+ *
+ * @param h_input Input buffer (header byte + weights data)
+ * @param input_size Size of input buffer
+ * @param h_code_lengths Output: code lengths for all 256 symbols
+ * @param header_size Output: bytes consumed from input
+ * @return Status::SUCCESS on success
+ */
+__host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
+                                                  u32 input_size,
+                                                  u8 *h_code_lengths,
+                                                  u32 *header_size) {
+  if (input_size < 1) {
+    return Status::ERROR_CORRUPT_DATA;
+  }
+
+  u8 header_byte = h_input[0];
+  fprintf(stderr, "[DEBUG_HUF] deserialize: header_byte=%u, input_size=%u\n",
+          header_byte, input_size);
+  fflush(stderr);
+  u8 h_weights[MAX_HUFFMAN_SYMBOLS] = {0};
+  u32 num_symbols = 0;
+  Status status;
+
+  if (header_byte >= 128) {
+    // Direct representation (4-bit weights)
+    *header_size = 1 + ((header_byte - 127 + 1) / 2); // header + weight bytes
+    fprintf(stderr,
+            "[DEBUG_HUF] Direct weights: num_symbols=%u, header_size=%u\n",
+            header_byte - 127, *header_size);
+    fflush(stderr);
+
+    if (input_size < *header_size) {
+      return Status::ERROR_CORRUPT_DATA;
+    }
+
+    status = decode_huffman_weights_direct(h_input + 1, header_byte, h_weights,
+                                           &num_symbols);
+  } else {
+    // FSE-compressed representation
+    *header_size = 1 + header_byte; // header + compressed bytes
+    fprintf(stderr, "[DEBUG_HUF] FSE weights: header_byte=%u, header_size=%u\n",
+            header_byte, *header_size);
+    fflush(stderr);
+
+    if (input_size < *header_size) {
+      return Status::ERROR_CORRUPT_DATA;
+    }
+
+    status = decode_huffman_weights_fse(h_input + 1, header_byte, h_weights,
+                                        &num_symbols);
+  }
+
+  if (status != Status::SUCCESS) {
+    return status;
+  }
+
+  fprintf(stderr, "[DEBUG_HUF] Decoded %u weights. First 10: ", num_symbols);
+  for (u32 i = 0; i < std::min(num_symbols, 10u); i++) {
+    fprintf(stderr, "%u ", h_weights[i]);
+  }
+  fprintf(stderr, "\n");
+  fflush(stderr);
+
+  // Convert weights to code lengths
+  u32 max_bits;
+  status = weights_to_code_lengths(h_weights, num_symbols, h_code_lengths,
+                                   &max_bits);
+
+  if (status == Status::SUCCESS) {
+    fprintf(stderr,
+            "[DEBUG_HUF] Max bits: %u. First 10 code lengths: ", max_bits);
+    for (u32 i = 0; i < 10; i++) {
+      fprintf(stderr, "%u:%u ", i, h_code_lengths[i]);
+    }
+    fprintf(stderr, "\n");
+    fflush(stderr);
+  }
+  return status;
+}
+
+// ============================================================================
 // Huffman Encoding (Parallel)
 // ============================================================================
 
@@ -309,7 +694,8 @@ __global__ void huffman_encode_phase2_kernel(const u32 *d_codes,
       u32 local_byte_pos = local_bit_pos >> 3;
       u32 local_bit_offset = local_bit_pos & 7;
 
-      // Write to shared memory (within block, positions don't overlap in bits)
+      // Write to shared memory (within block, positions don't overlap in
+      // bits)
       u64 shifted_code = static_cast<u64>(code) << local_bit_offset;
 
       // Write up to 3 bytes (max for 15-bit code + 7-bit offset)
@@ -547,75 +933,115 @@ __global__ void find_chunk_start_bits_kernel(
 }
 
 /**
- * @brief (REPLACEMENT) Parallel Huffman decoding kernel.
- * Each block decodes one chunk *sequentially within the block*.
+ * @brief Decode Huffman bitstream backward.
  */
-__global__ void parallel_huffman_decode_kernel(
-    const byte_t *input, u32 input_size_bytes, const u32 *d_first_code,
+__device__ u8 decode_huff_symbol(u64 bit_container, u32 bits_available,
+                                 const u32 *d_first_code,
+                                 const u16 *d_symbol_index, const u8 *d_symbols,
+                                 u32 max_len, u32 &consumed) {
+  u32 code = 0;
+  for (u32 len = 1; len <= max_len; ++len) {
+    if (len > bits_available)
+      break;
+    // Bits are read from the top of the container
+    code = (u32)(bit_container >> (bits_available - len)) & ((1U << len) - 1);
+    u32 first_code = d_first_code[len];
+    if (code < (d_first_code[len + 1] >> 1)) {
+      consumed = len;
+      u32 idx = d_symbol_index[len] + (code - first_code);
+      return d_symbols[idx];
+    }
+  }
+  consumed = 0;
+  return 0;
+}
+
+/**
+ * @brief Parallel Huffman 4-stream decoder kernel.
+ * Launched with 4 threads for small blocks, or more for larger ones.
+ * For now, each block handles one stream.
+ */
+__global__ void huffman_decode_rfc8878_kernel(
+    const byte_t *input, u32 input_size, const u32 *d_first_code,
     const u16 *d_symbol_index, const u8 *d_symbols, byte_t *output,
-    u32 decompressed_size,
-    const u32 *d_chunk_start_bits // Input from Pass 1
-) {
-  // This kernel is launched with multiple threads per block
-  // Each thread handles one chunk
-  u32 chunk_id = blockIdx.x * blockDim.x + threadIdx.x;
+    u32 total_regen_size, u32 stream_start_bits, u32 stream_end_bits,
+    u32 output_start_offset, u32 stream_id_debug, u32 num_symbols_to_decode) {
 
-  // We use hardcoded symbols per chunk (4096)
-  u32 total_chunks = (decompressed_size + 4096 - 1) / 4096;
-  if (chunk_id >= total_chunks)
-    return;
-  u32 max_len = d_symbol_index[0]; // Read max_length
+  u32 max_len = d_symbol_index[0];
+  u32 bit_pos = stream_end_bits;
+  u32 num_decoded = 0;
 
-  // --- 1. Find the start and end symbol index for this chunk ---
-  u32 symbols_per_chunk = 4096; // Hardcoded to match host
-  u32 out_idx = chunk_id * symbols_per_chunk;
-  u32 out_idx_end = min((chunk_id + 1) * symbols_per_chunk, decompressed_size);
+  // Find sentinel bit
+  while (bit_pos > stream_start_bits) {
+    u32 byte_idx = (bit_pos - 1) >> 3;
+    u32 bit_idx = (bit_pos - 1) & 7;
+    if (input[byte_idx] & (1 << bit_idx)) {
+      bit_pos--;
+      break;
+    }
+    bit_pos--;
+  }
 
-  if (out_idx >= out_idx_end)
-    return;
+  // Bit container (64-bit)
+  u64 bit_container = 0;
+  u32 bits_available = 0;
 
-  // --- 2. Find the start bit position for this chunk ---
-  u32 bit_pos = d_chunk_start_bits[chunk_id];
-  const u32 end_bit_pos = (chunk_id == total_chunks - 1)
-                              ? (input_size_bytes * 8)
-                              : d_chunk_start_bits[chunk_id + 1];
-
-  // --- 3. Decode this chunk sequentially ---
-  while (out_idx < out_idx_end) {
-    if (bit_pos + max_len > end_bit_pos) {
-      if (bit_pos >= end_bit_pos)
-        break;
+  while (num_decoded < num_symbols_to_decode) {
+    // Refill bit container from the end of the stream (backward)
+    // Add bits to the container such that the first bit read becomes the MSB
+    while (bits_available <= 56 && bit_pos > stream_start_bits) {
+      bit_pos--;
+      u8 b = (input[bit_pos >> 3] >> (bit_pos & 7)) & 1;
+      bit_container = (bit_container << 1) | b;
+      bits_available++;
     }
 
-    u32 byte_pos = bit_pos >> 3;
-    u32 bit_offset = bit_pos & 7;
+    if (bits_available == 0)
+      break;
 
-    u64 value = 0;
-    memcpy(&value, input + byte_pos, min(8u, input_size_bytes - byte_pos));
-    value >>= bit_offset;
+    u32 consumed = 0;
+    // Try to decode a symbol from the top bits of the container
+    for (u32 len = 1; len <= max_len; len++) {
+      if (len > bits_available)
+        break;
+      // Extract top 'len' bits of the available pool
+      u32 code =
+          (u32)(bit_container >> (bits_available - len)) & ((1U << len) - 1);
+      if (code < (d_first_code[len + 1] >> 1)) {
+        u8 symbol = d_symbols[d_symbol_index[len] + (code - d_first_code[len])];
 
-    u32 code = 0;
-    u32 len = 1;
-    u32 normal_code = 0;
-    for (; len <= max_len; ++len) {
-      code = value & ((1U << len) - 1);
-      normal_code = reverse_bits_device(code, len);
-      if (normal_code < (d_first_code[len + 1] >> 1)) {
+        // INTERLEAVING: symbols are decoded in reverse order
+        // The first symbol decoded is the LAST symbol of this stream.
+        // INTERLEAVING FIX: RFC 8878 4-streams are CONCATENATED
+        // The first symbol decoded is the LAST symbol of this stream segment.
+        u32 symbol_idx_within_stream = num_symbols_to_decode - 1 - num_decoded;
+        u32 out_idx = output_start_offset + symbol_idx_within_stream;
+
+        if (out_idx < total_regen_size) {
+          output[out_idx] = symbol;
+        }
+
+        if (num_decoded < 5) {
+          printf("[DEBUG_KER] Stream %u: num_decoded=%u, code=%u, len=%u, "
+                 "symbol=%u, bits_rem=%u\n",
+                 stream_id_debug, num_decoded, code, len, symbol,
+                 bits_available);
+        }
+
+        num_decoded++;
+        // Consume bits from the container
+        bits_available -= len;
+        bit_container &= ((1ULL << bits_available) - 1);
+        consumed = 1;
         break;
       }
     }
-
-    if (len > max_len) {
-      // Corrupt data.
-      return;
+    if (!consumed) {
+      printf("[DEBUG_KER] STALLED Stream %u: num_decoded=%u, "
+             "bits_available=%u, bit_pos=%u\n",
+             stream_id_debug, num_decoded, bits_available, bit_pos);
+      break;
     }
-
-    u32 idx = d_symbol_index[len] + (normal_code - d_first_code[len]);
-    u8 symbol = d_symbols[idx];
-
-    output[out_idx] = symbol;
-    out_idx++;
-    bit_pos += len;
   }
 }
 
@@ -710,8 +1136,9 @@ Status encode_huffman(const byte_t *d_input, u32 input_size,
                                         h_codes // Generate into host buffer
       );
   if (status != Status::SUCCESS) {
-    //         fprintf(stderr, "[ERROR] encode_huffman: generate_canonical_codes
-    //         failed with status %d\n", (int)status);
+    //         fprintf(stderr, "[ERROR] encode_huffman:
+    //         generate_canonical_codes failed with status %d\n",
+    //         (int)status);
     cudaFreeHost(h_frequencies); // FIX: Use cudaFreeHost for pinned memory
     delete[] h_nodes;
     delete[] h_code_lengths;
@@ -721,8 +1148,8 @@ Status encode_huffman(const byte_t *d_input, u32 input_size,
 
   // --- 3. Serialize table header ---
   // Format:
-  // [MaxBits(1)][CodeLengths(256)][ChunkOffsets(NumChunks*4)][Bitstream...] We
-  // need to calculate NumChunks first
+  // [MaxBits(1)][CodeLengths(256)][ChunkOffsets(NumChunks*4)][Bitstream...]
+  // We need to calculate NumChunks first
   u32 chunk_size_symbols = 4096; // HUFFMAN_DECODE_SYMBOLS_PER_CHUNK
   u32 num_chunks = (input_size + chunk_size_symbols - 1) / chunk_size_symbols;
 
@@ -821,8 +1248,8 @@ Status encode_huffman(const byte_t *d_input, u32 input_size,
   cudaFree(d_chunk_offsets);
 
   /*
-  // Switch to atomic-based kernel to avoid race conditions at block boundaries
-  parallel_huffman_encode_kernel<<<blocks, threads, 0, stream>>>(
+  // Switch to atomic-based kernel to avoid race conditions at block
+  boundaries parallel_huffman_encode_kernel<<<blocks, threads, 0, stream>>>(
       d_input, input_size, table.codes, d_bit_offsets,
       d_output, header_size_bits
   );
@@ -876,46 +1303,60 @@ Status encode_huffman(const byte_t *d_input, u32 input_size,
 
 Status decode_huffman(const byte_t *d_input,
                       size_t input_size,         // Full size of compressed data
-                      const HuffmanTable &table, // Not used, table is in stream
+                      const HuffmanTable &table, // Not used
                       byte_t *d_output,
                       size_t *d_output_size, // This is a host pointer
                       u32 decompressed_size, // We know this
                       cudaStream_t stream) {
-  // The 'table' parameter is provided for API compatibility but the table
-  // is serialized in the stream for the current format; it may be ignored
-  // by this implementation. We annotate the parameter in the header with
-  // [[maybe_unused]] (C++17) so no additional suppression is necessary.
-  // --- START REPLACEMENT ---
-  if (!d_input || !d_output || !d_output_size || input_size == 0 ||
-      decompressed_size == 0) {
+  // Use RFC 8878 compliant decoder (assume single stream if called via legacy
+  // API)
+  return decode_huffman_rfc8878(d_input, input_size, d_output, d_output_size,
+                                decompressed_size, false, stream);
+}
+
+/**
+ * @brief RFC 8878-compliant Huffman decode for standard Zstandard format.
+ * Parses Huffman tree from weights (FSE or direct encoded), then decodes
+ * literals using backward bitstream reading per RFC 8878 Section 4.2.
+ *
+ * @param d_input Device pointer to compressed Huffman data (starts with
+ * header)
+ * @param input_size Size of compressed data in bytes
+ * @param d_output Device pointer to output buffer
+ * @param d_output_size Host pointer for output size
+ * @param decompressed_size Expected decompressed size
+ * @param four_streams True if 4-stream format (size_format >= 1)
+ * @param stream CUDA stream
+ * @return Status::SUCCESS on success
+ */
+Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
+                              byte_t *d_output, size_t *d_output_size,
+                              u32 decompressed_size, bool four_streams,
+                              cudaStream_t stream) {
+  if (!d_input || !d_output || !d_output_size || input_size == 0) {
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  // --- 1. Read header ---
-  u8 *h_code_lengths = new u8[MAX_HUFFMAN_SYMBOLS];
-  byte_t *h_input_header = new byte_t[1 + MAX_HUFFMAN_SYMBOLS];
+  // --- 1. Read and Build Huffman Tree ---
+  u8 h_code_lengths[MAX_HUFFMAN_SYMBOLS] = {0};
+  u32 huf_header_size = 0;
 
-  CUDA_CHECK(cudaMemcpyAsync(h_input_header, d_input, 1 + MAX_HUFFMAN_SYMBOLS,
+  // Weights are at the beginning of d_input
+  byte_t *h_weights_data = new byte_t[input_size];
+  CUDA_CHECK(cudaMemcpyAsync(h_weights_data, d_input, input_size,
                              cudaMemcpyDeviceToHost, stream));
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
-  u32 header_size = 0;
-  Status status = deserialize_huffman_table(
-      h_input_header, 1 + MAX_HUFFMAN_SYMBOLS, h_code_lengths, &header_size);
-  delete[] h_input_header;
-  if (status != Status::SUCCESS) {
-    delete[] h_code_lengths;
+  Status status = deserialize_huffman_table_rfc8878(
+      h_weights_data, input_size, h_code_lengths, &huf_header_size);
+  delete[] h_weights_data;
+  if (status != Status::SUCCESS)
     return status;
-  }
 
-  // Calculate number of chunks and offsets size
-  u32 chunk_size_symbols = 4096; // HUFFMAN_DECODE_SYMBOLS_PER_CHUNK
-  u32 num_chunks =
-      (decompressed_size + chunk_size_symbols - 1) / chunk_size_symbols;
-  u32 offsets_size = num_chunks * sizeof(u32);
-  u32 total_header_size = header_size + offsets_size;
+  fprintf(stderr, "[DEBUG_HUF] huf_header_size=%u, input_size=%zu\n",
+          huf_header_size, input_size);
+  fflush(stderr);
 
-  // --- 2. Build decode table on GPU ---
   u8 *d_code_lengths;
   u32 *d_first_code;
   u16 *d_symbol_index;
@@ -930,52 +1371,67 @@ Status decode_huffman(const byte_t *d_input,
                              MAX_HUFFMAN_SYMBOLS * sizeof(u8),
                              cudaMemcpyHostToDevice, stream));
 
-  delete[] h_code_lengths;
-
   build_decode_table_kernel<<<1, 1, 0, stream>>>(
       d_code_lengths, MAX_HUFFMAN_SYMBOLS, d_first_code, d_symbol_index,
       d_symbols);
 
-  // --- 3. Parallel Decode (Indexed Huffman) ---
-  // We already calculated num_chunks above
+  const byte_t *d_bitstream_base = d_input + huf_header_size;
+  u32 bitstream_size_base = (u32)(input_size - huf_header_size);
 
-  u32 *d_chunk_start_bits;
-  CUDA_CHECK(cudaMalloc(&d_chunk_start_bits, offsets_size));
+  if (four_streams) {
+    if (bitstream_size_base < 6)
+      return Status::ERROR_CORRUPT_DATA;
 
-  // Copy chunk offsets directly from input stream (after basic header)
-  // These offsets are relative to the start of the bitstream (after
-  // total_header_size)
-  CUDA_CHECK(cudaMemcpyAsync(d_chunk_start_bits, d_input + header_size,
-                             offsets_size, cudaMemcpyDeviceToDevice, stream));
+    u16 stream_sizes[3];
+    CUDA_CHECK(cudaMemcpyAsync(stream_sizes, d_bitstream_base, 6,
+                               cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaStreamSynchronize(stream));
 
-  // Adjust d_input pointer to point to the bitstream start (after
-  // total_header_size)
-  const byte_t *d_bitstream_start = d_input + total_header_size;
+    u32 L1 = stream_sizes[0];
+    u32 L2 = stream_sizes[1];
+    u32 L3 = stream_sizes[2];
+    if (6 + L1 + L2 + L3 > bitstream_size_base)
+      return Status::ERROR_CORRUPT_DATA;
+    u32 L4 = bitstream_size_base - 6 - L1 - L2 - L3;
 
-  // Calculate bitstream size (excluding header and offsets)
-  u32 bitstream_size = input_size - total_header_size;
+    fprintf(stderr, "[DEBUG_HUF] 4-stream: L1=%u, L2=%u, L3=%u, L4=%u\n", L1,
+            L2, L3, L4);
+    fflush(stderr);
 
-  // Pass 2: Parallel decode (no Pass 1 needed!)
-  u32 threads_per_block = 128;
-  u32 blocks = (num_chunks + threads_per_block - 1) / threads_per_block;
+    u32 N1 = (decompressed_size + 3) / 4;
+    u32 N2 = (decompressed_size + 2) / 4;
+    u32 N3 = (decompressed_size + 1) / 4;
+    u32 N4 = decompressed_size / 4;
 
-  parallel_huffman_decode_kernel<<<blocks, threads_per_block, 0, stream>>>(
-      d_bitstream_start, bitstream_size, d_first_code, d_symbol_index,
-      d_symbols, d_output, decompressed_size, d_chunk_start_bits);
+    const byte_t *d_data = d_bitstream_base + 6;
+    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
+        d_data, input_size, d_first_code, d_symbol_index, d_symbols, d_output,
+        decompressed_size, 0, L1 * 8, 0, 0, N1);
+    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
+        d_data + L1, input_size, d_first_code, d_symbol_index, d_symbols,
+        d_output, decompressed_size, 0, L2 * 8, N1, 1, N2);
+    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
+        d_data + L1 + L2, input_size, d_first_code, d_symbol_index, d_symbols,
+        d_output, decompressed_size, 0, L3 * 8, N1 + N2, 2, N3);
+    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
+        d_data + L1 + L2 + L3, input_size, d_first_code, d_symbol_index,
+        d_symbols, d_output, decompressed_size, 0, L4 * 8, N1 + N2 + N3, 3, N4);
+  } else {
+    fprintf(stderr, "[DEBUG_HUF] 1-stream: L=%u\n", bitstream_size_base);
+    fflush(stderr);
+    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
+        d_bitstream_base, input_size, d_first_code, d_symbol_index, d_symbols,
+        d_output, decompressed_size, 0, bitstream_size_base * 8, 0, 0,
+        decompressed_size);
+  }
 
-  // We know the output size, so just set it.
-  *d_output_size = decompressed_size;
-
-  // Cleanup
   cudaFree(d_code_lengths);
   cudaFree(d_first_code);
   cudaFree(d_symbol_index);
   cudaFree(d_symbols);
-  cudaFree(d_chunk_start_bits);
 
-  CUDA_CHECK(cudaGetLastError());
+  *d_output_size = decompressed_size;
   return Status::SUCCESS;
-  // --- END REPLACEMENT ---
 }
 
 /**
