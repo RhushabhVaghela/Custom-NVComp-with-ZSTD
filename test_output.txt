@@ -1,0 +1,552 @@
+========================================
+CUDA ZSTD Correctness Tests
+========================================
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+
+[TEST] Identity Property: decompress(compress(data)) == data
+[DEBUG] Decompress Workspace: 0x90be00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90ba01000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+
+[TEST] Various Input Sizes Round-trip
+  [INFO] Testing 39 different sizes
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 1
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 2
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 3
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 7
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 15
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 16
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 17
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 31
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 32
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 33
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 63
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 64
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 65
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 127
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 128
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 129
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 255
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 256
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [PASS] Size 257
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 511 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 512 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc5000
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 513 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc5000
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 1023 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc5000
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 1024 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc5200
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 1025 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc5c00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 4095 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc5c00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 4096 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc5e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 4097 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc6c00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 8191 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc6c00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 8192 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc6e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 8193 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc8c00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 16383 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc8c00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 16384 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc8e00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 16385 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbccc00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 32767 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbccc00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 32768 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbcce00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 32769 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbd4c00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 65535 (Decompress Status: 0, Size: 259)
+[DEBUG] Decompress Workspace: 0x903000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbd4c00
+[FATAL] Entry Probe 0x2000d FAILED: invalid argument
+  [FAIL] Size 65536 (Decompress Status: 0, Size: 259)
+  [INFO] Passed: 19/39
+
+[TEST] Random Inputs Round-trip (1000 tests)
+[DEBUG] Decompress Workspace: 0x903400000 (size=17825792)
+[DEBUG] decompress d_input (src): 0x90bbca200
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x903800000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbfc800
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x903c00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc7400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x903e00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x904200000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x904600000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x904a00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903fc0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x904e00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x905200000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x905400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x905800000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x905c00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x906000000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x906400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x906800000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x906a00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x906e00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x907200000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x907600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x907a00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x907c00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x908000000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x908400000 (size=17825792)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x908800000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbfbe00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x908c00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x908e00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x909200000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x909600000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x909a00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x909e00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x90a200000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x90a400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x917400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x917400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x917400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x917400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x917400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x917400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x917800000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x917c00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903fc0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x918000000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x918400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90b7e0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x918600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x918a00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x918e00000 (size=17825792)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x919200000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x919600000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x919800000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x919c00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91a000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91a400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91a800000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91aa00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91ae00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91b200000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91b600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91ba00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91bc00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91c000000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91c400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91c800000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91cc00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91d000000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91d200000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91d600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91da00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903fc0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91de00000 (size=17825792)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91e200000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91e400000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91e800000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91ec00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91f000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91f400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91f600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91fa00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x91fe00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x920200000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x91f7c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x920600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x920a00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x920c00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903fc0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x921000000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031f5400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x921400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x921800000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x921c00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x921e00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x922200000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x903fc0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x922600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x922a00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x922e00000 (size=17825792)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x923200000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x923400000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x923800000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x923c00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x903ff9c00
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x924000000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x924400000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x91f7c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x924600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x924a00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x924e00000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9031c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x925200000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x90bbc4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x925600000 (size=19922944)
+[DEBUG] decompress d_input (src): 0x9047c0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+  [INFO] Passed: 100/100
+  [PASS] Random Inputs Round-trip
+
+[TEST] All Compression Levels (1-22)
+
+  Level | Ratio   | Status
+  ------|---------|--------
+[DEBUG] Decompress Workspace: 0x925a00000 (size=17825792)
+[DEBUG] decompress d_input (src): 0x9247e0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+      1 |  442.81 | FAIL
+
+[TEST] ZSTD Frame Format Validation
+  [INFO] Magic number: 0xfd2fb528
+  [INFO] ✓ Valid ZSTD magic number
+  [INFO] Compressed size: 19 bytes
+  [INFO] ✓ Frame format appears valid
+  [PASS] Frame Format Validation
+
+[TEST] Checksum Validation
+  [INFO] Compressed data size: 276 bytes
+  [INFO] Note: Checksum validation via decompression round-trip
+[DEBUG] Decompress Workspace: 0x926e00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d0000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+
+[TEST] Special Data Patterns
+  [INFO] Testing: All zeros
+[DEBUG] Decompress Workspace: 0x928400000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x90bbd4400
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+
+[TEST] Byte Alignment and Padding
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+[DEBUG] Decompress Workspace: 0x929a00000 (size=18874368)
+[DEBUG] decompress d_input (src): 0x9031d5000
+[DEBUG] Entry Probe 0x2000d SUCCESS. Val=00
+  [INFO] Passed: 10/10 unaligned sizes
+  [PASS] Byte Alignment
+
+[TEST] Deterministic Compression
+  [INFO] First compression: 32778 bytes
+  [INFO] Second compression: 32778 bytes
+  [INFO] ✓ Compression is deterministic (bit-exact)
+  [PASS] Deterministic Compression
+========================================
+TEST RESULTS
+========================================
+Passed: 4/9
+Failed: 5/9
+
+✗ SOME TESTS FAILED
+========================================

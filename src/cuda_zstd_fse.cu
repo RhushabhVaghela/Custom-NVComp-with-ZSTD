@@ -1215,7 +1215,8 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
   u32 total_freq = 0;
   for (u32 s = 0; s <= max_symbol; s++) {
     cumulative_freq[s] = total_freq;
-    total_freq += h_normalized[s];
+    i16 val = h_normalized[s];
+    total_freq += (val == -1) ? 1 : val;
   }
   cumulative_freq[max_symbol + 1] = total_freq;
 
@@ -1244,42 +1245,71 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
   fprintf(stderr, "[DEBUG] FSE DTable: highThreshold after lowprob = %u\n",
           highThreshold);
 
-  // Phase 2: Spread regular symbols using step-and-skip algorithm
-  // Skip any positions already occupied by low-probability symbols (>
-  // highThreshold)
-  u32 position = 0;
-  for (u32 s = 0; s <= max_symbol; s++) {
-    i16 count = h_normalized[s];
-    if (count <= 0)
-      continue; // Skip -1 (low-prob) and 0 (unused) symbols
-
-    for (i16 i = 0; i < count; i++) {
-      h_table.symbol[position] = (u8)s;
-      position = (position + SPREAD_STEP) & table_mask;
-      // Skip positions occupied by low-probability symbols
-      while (position > highThreshold) {
-        position = (position + SPREAD_STEP) & table_mask;
+  // === PHASE 2: SPREAD SYMBOLS (libzstd two-phase for no low-prob case) ===
+  if (highThreshold == table_size - 1) {
+    // Optimized two-phase spread (from libzstd FSE_buildDTable_internal)
+    // Phase 2a: Build spread[] array with symbols laid out sequentially
+    std::vector<u8> spread(table_size);
+    size_t pos = 0;
+    for (u32 s = 0; s <= max_symbol; ++s) {
+      i16 count = h_normalized[s];
+      if (count <= 0)
+        continue;
+      for (i16 i = 0; i < count; ++i) {
+        spread[pos++] = (u8)s;
       }
     }
-  }
 
-  // Verify position wrapped back to 0
-  if (position != 0) {
-    fprintf(stderr, "[ERROR] FSE spread: position=%u != 0 after spread\n",
-            position);
+    // Phase 2b: Scatter spread[] symbols across table using step
+    u32 position = 0;
+    for (size_t s = 0; s < table_size; ++s) {
+      h_table.symbol[position] = spread[s];
+      position = (position + SPREAD_STEP) & table_mask;
+    }
+
+    // Verify position wrapped back to 0
+    if (position != 0) {
+      fprintf(stderr, "[ERROR] FSE spread (optimized): position=%u != 0\n",
+              position);
+    }
+  } else {
+    // Original step-and-skip algorithm for low-prob symbols case
+    u32 position = 0;
+    for (u32 s = 0; s <= max_symbol; s++) {
+      i16 count = h_normalized[s];
+      if (count <= 0)
+        continue;
+
+      for (i16 i = 0; i < count; i++) {
+        h_table.symbol[position] = (u8)s;
+        position = (position + SPREAD_STEP) & table_mask;
+        while (position > highThreshold) {
+          position = (position + SPREAD_STEP) & table_mask;
+        }
+      }
+    }
+
+    if (position != 0) {
+      fprintf(stderr, "[ERROR] FSE spread: position=%u != 0 after spread\n",
+              position);
+    }
   }
 
   // printf("[DEC_SPREAD] sym[70]=%u sym[71]=%u sym[72]=%u\n",
   //        (u32)spread_symbol[70], (u32)spread_symbol[71],
   //        (u32)spread_symbol[72]);
 
-  // Initialize symbolNext counters (Zstd approach)
-  // symbolNext tracks the "next state number" for each symbol, starting
-  // at 1
+  // Initialize symbolNext counters (Zstd approach - EXACT libzstd match)
+  // libzstd: symbolNext[s] = normalizedCounter[s] for regular symbols
+  // libzstd: symbolNext[s] = 1 for -1 (low-probability) symbols
   std::vector<u32> symbolNext(max_symbol + 1);
   for (u32 s = 0; s <= max_symbol; s++) {
-    // For -1 symbols, symbolNext starts at 1 (they count as 1 occurrence)
-    symbolNext[s] = (h_normalized[s] == -1) ? 1 : (u32)h_normalized[s];
+    i16 count = h_normalized[s];
+    if (count == -1) {
+      symbolNext[s] = 1; // Low-probability symbol
+    } else {
+      symbolNext[s] = (u32)count; // Regular symbol - use count directly
+    }
   }
 
   // Build DTable using official Zstd formula
@@ -2464,19 +2494,26 @@ __host__ void free_multi_table(MultiTableFSE &multi_table) {
 namespace predefined {
 
 // RFC 8878: Predefined LL normalization with -1 for low-probability symbols
-// Symbols 32-35 have probability "less than 1" represented as -1
-// Note: Using i16 (signed) to support -1 values
-const i16 default_ll_norm[36] = {4, 3, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,
-                                 2, 1, 1, 1, 2, 2, 2, 2, 2,  2,  2,  2,
-                                 2, 3, 2, 1, 1, 1, 1, 1, -1, -1, -1, -1};
+// Authoritative Default Distributions (Extracted from Zstd 1.5.5 Source)
 
-const u16 default_of_norm[29] = {1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+// ML Distribution (Total 64)
+// 0:1, 1:4, 2:3, 3-8:2, 9-52:1
+extern const i16 default_ml_norm[53] = {
+    1, 4, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-const u16 default_ml_norm[53] = {1, 4, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+// LL Distribution (Total 64)
+// 0:4, 1:3, 2-12:2, 13-15:1, 16-24:2, 25:3, 26:2, 27-35:1
+extern const i16 default_ll_norm[36] = {4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                        2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2,
+                                        2, 3, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
+// OF Distribution (Total 32)
+// 0-7:1, 8-10:2, 11-28:1
+extern const i16 default_of_norm[29] = {1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
+                                        2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 } // namespace predefined
 
@@ -3839,11 +3876,11 @@ __host__ Status decode_sequences_interleaved(
     const byte_t *d_input, u32 input_size, u32 num_sequences, u32 *d_ll_out,
     u32 *d_of_out, u32 *d_ml_out, u32 ll_mode, u32 of_mode, u32 ml_mode,
     const FSEDecodeTable *p_ll_table, const FSEDecodeTable *p_of_table,
-    const FSEDecodeTable *p_ml_table, cudaStream_t stream) {
+    const FSEDecodeTable *p_ml_table, u32 literals_limit, cudaStream_t stream) {
   // [DEBUG] Entry (disabled)
   // fprintf(stderr,
-  //         "[DEBUG] decode_sequences_interleaved: L%u, O%u, M%u. Size=%u\n",
-  //         ll_mode, of_mode, ml_mode, input_size);
+  //         "[DEBUG] decode_sequences_interleaved: L%u, O%u, M%u.
+  //         Size=%u\n", ll_mode, of_mode, ml_mode, input_size);
 
   if (input_size == 0 && num_sequences > 0)
     return Status::ERROR_CORRUPT_DATA;
@@ -3962,6 +3999,7 @@ __host__ Status decode_sequences_interleaved(
   }
 
   // 3. Allocate Host Outputs
+  // 3. Allocate Host Outputs
   std::vector<u32> h_ll(num_sequences), h_of(num_sequences),
       h_ml(num_sequences);
 
@@ -3979,19 +4017,12 @@ __host__ Status decode_sequences_interleaved(
   u32 sentinel_pos = (input_size - 1) * 8 + hb;
 
   sequence::FSEBitStreamReader reader(h_input.data(), sentinel_pos);
-  u32 stateLL = decode_ll ? reader.read(ll_log) : 0;
-  u32 stateOF = decode_of ? reader.read(of_log) : 0;
-  u32 stateML = decode_ml ? reader.read(ml_log) : 0;
-
-  // DEBUG: Dump LL DTable symbols for first block
-  if (num_sequences == 1) {
-    fprintf(stderr, "[DTABLE_DBG] LL table (log=%u, size=%u) symbols: ", ll_log,
-            ll_table.table_size);
-    for (u32 s = 0; s < ll_table.table_size && s < 64; s++) {
-      fprintf(stderr, "%u ", ll_table.symbol[s]);
-    }
-    fprintf(stderr, "\n");
-  }
+  // RFC 8878 3.1.1.3.2.1.1: Bits are read in sequence: ML, OF, LL
+  // RFC 8878: Predefined Mode (0) uses a specific table but standard FSE
+  // stream decoding So we MUST read the initial state from the stream.
+  u32 stateML = (decode_ml && ml_mode != 1) ? reader.read(ml_log) : 0;
+  u32 stateOF = (decode_of && of_mode != 1) ? reader.read(of_log) : 0;
+  u32 stateLL = (decode_ll && ll_mode != 1) ? reader.read(ll_log) : 0;
 
   // 5. Decode Loop
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
@@ -4001,41 +4032,28 @@ __host__ Status decode_sequences_interleaved(
 
     u32 ll_extra = 0, of_extra = 0, ml_extra = 0;
 
-    // DEBUG: Trace bit positions for first sequence
-    if (i == (int)num_sequences - 1) {
-      fprintf(stderr,
-              "[BIT_DBG] Before extra bits: bit_pos=%u, stateLL=%u, "
-              "stateOF=%u, stateML=%u\n",
-              reader.bit_pos, stateLL, stateOF, stateML);
-      fprintf(stderr, "[BIT_DBG] Symbols: ll_sym=%u, of_sym=%u, ml_sym=%u\n",
-              ll_sym, of_sym, ml_sym);
-      fprintf(stderr, "[BIT_DBG] Extra bit counts: OF=%u, ML=%u, LL=%u\n",
-              of_sym, sequence::ZstdSequence::get_match_len_extra_bits(ml_sym),
-              sequence::ZstdSequence::get_lit_len_extra_bits(ll_sym));
-    }
-
-    // RFC 8878 Order: 1. OF bits, 2. ML bits, 3. LL bits
+    // RFC 8878 Order (Reverse for Backward Reader): 1. LL bits, 2. OF
+    // bits, 3. ML bits
+    ll_extra = decode_ll
+                   ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
+                   : 0;
     of_extra =
         decode_of ? sequence::ZstdSequence::get_offset_bits(of_sym, reader) : 0;
     ml_extra = decode_ml
                    ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
                    : 0;
-    ll_extra = decode_ll
-                   ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
-                   : 0;
-
-    // DEBUG: Trace after extra bits
-    if (i == (int)num_sequences - 1) {
-      fprintf(stderr,
-              "[BIT_DBG] After extra bits: bit_pos=%u, of_extra=%u, "
-              "ml_extra=%u, ll_extra=%u\n",
-              reader.bit_pos, of_extra, ml_extra, ll_extra);
-    }
 
     // Convert symbols and extras to final values
     h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;
     h_ml[i] = sequence::ZstdSequence::get_match_len(ml_sym) + ml_extra;
     h_of[i] = sequence::ZstdSequence::get_offset(of_sym) + of_extra;
+
+    if (num_sequences < 5) {
+      printf("[SEQ_DBG] i=%d StateLL=%u Sym=%u Extra=%u FinalLL=%u | "
+             "StateML=%u Sym=%u Extra=%u FinalML=%u\n",
+             i, stateLL, ll_sym, ll_extra, h_ll[i], stateML, ml_sym, ml_extra,
+             h_ml[i]);
+    }
 
     // Update States (Skip for the very last sequence i=0)
     if (i > 0) {
@@ -4051,6 +4069,26 @@ __host__ Status decode_sequences_interleaved(
         u8 nb = ll_table.nbBits[stateLL % (1u << ll_log)];
         stateLL = ll_table.newState[stateLL % (1u << ll_log)] + reader.read(nb);
       }
+    }
+  }
+
+  // 5.b. Verify and Clamp Literal Lengths
+  if (literals_limit > 0) {
+    u64 total_decompressed_literals = 0;
+    for (size_t i = 0; i < num_sequences; i++) {
+      if (total_decompressed_literals + h_ll[i] > literals_limit) {
+        u32 available =
+            (literals_limit > total_decompressed_literals)
+                ? (u32)(literals_limit - total_decompressed_literals)
+                : 0;
+        if (h_ll[i] > available) {
+          printf("[WARN] Clamping LL[%zu]: %u -> %u (Limit %u, Total %llu)\n",
+                 i, h_ll[i], available, literals_limit,
+                 total_decompressed_literals);
+          h_ll[i] = available;
+        }
+      }
+      total_decompressed_literals += h_ll[i];
     }
   }
 
@@ -4076,17 +4114,17 @@ __host__ const u16 *get_predefined_norm(TableType table_type, u32 *max_symbol,
   case TableType::LITERALS:
     *max_symbol = 35;
     *table_log = 6; // Zstd default
-    // Cast to u16* for legacy compatibility (FSE_buildDTable_Host handles i16
-    // internally)
+    // Cast to u16* for legacy compatibility (FSE_buildDTable_Host handles
+    // i16 internally)
     return reinterpret_cast<const u16 *>(predefined::default_ll_norm);
   case TableType::MATCH_LENGTHS:
     *max_symbol = 52;
     *table_log = 6; // Zstd default
-    return predefined::default_ml_norm;
+    return reinterpret_cast<const u16 *>(predefined::default_ml_norm);
   case TableType::OFFSETS:
     *max_symbol = 28;
     *table_log = 5; // Zstd default
-    return predefined::default_of_norm;
+    return reinterpret_cast<const u16 *>(predefined::default_of_norm);
   default:
     *max_symbol = 0;
     *table_log = 0;
@@ -4558,10 +4596,17 @@ __host__ Status read_fse_header(const byte_t *input, u32 input_size,
     // Implementation:
     int nCount = (int)val - 1;
 
-    if (nCount == -1) { // val == 0
+    if (nCount == -1) {
       prob = 1;
+      if (remaining < 1) {
+        fprintf(stderr, "[FSE_READ_ERR] remaining(%u) < 1 at sym %u\n",
+                remaining, symbol);
+        return Status::ERROR_CORRUPT_DATA;
+      }
       remaining -= 1;
-      normalized_counts.push_back((u16)prob);
+      normalized_counts.push_back((u16)-1);
+      fprintf(stderr, "[FSE_READ] sym=%u val=0 prob=-1 rem=%u\n", symbol,
+              remaining);
       symbol++;
     } else if (nCount == 0) { // val == 1 -> Count 0 (Repeat)
       // Repeat loop
@@ -4582,6 +4627,9 @@ __host__ Status read_fse_header(const byte_t *input, u32 input_size,
       // Zstd: `nCount = val - 1`.
       // `prob = nCount`.
       prob = nCount;
+      if (remaining < prob) {
+        return Status::ERROR_CORRUPT_DATA;
+      }
       remaining -= prob;
       normalized_counts.push_back((u16)prob);
       symbol++;

@@ -110,8 +110,9 @@ struct FSEBitStreamReader {
     bit_pos = start_bit_pos;
     stream_start = input;
     // Align to byte boundary
-    u32 byte_off = bit_pos / 8;
-    u32 bit_off = bit_pos % 8;
+    // Align to byte boundary
+    // u32 byte_off = bit_pos / 8; // Unused
+    // u32 bit_off = bit_pos % 8;  // Unused
 
     // In Zstd, we read backwards. For simplicity in the reader, let's just use
     // read_bits logic if needed, but the FSE reader normally pulls 32-64 bits

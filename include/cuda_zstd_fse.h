@@ -325,7 +325,7 @@ Status decode_sequences_interleaved(
     const byte_t *d_input, u32 input_size, u32 num_sequences, u32 *d_ll_out,
     u32 *d_of_out, u32 *d_ml_out, u32 ll_mode, u32 of_mode, u32 ml_mode,
     const FSEDecodeTable *ll_table, const FSEDecodeTable *of_table,
-    const FSEDecodeTable *ml_table, cudaStream_t stream);
+    const FSEDecodeTable *ml_table, u32 literals_limit, cudaStream_t stream);
 
 __host__ Status decode_fse_predefined(
     const byte_t *d_input, // <-- ADDED: The bitstream to read from
@@ -416,8 +416,8 @@ __host__ void free_multi_table(MultiTableFSE &multi_table);
 
 namespace predefined {
 extern const i16 default_ll_norm[36]; // RFC 8878: i16 for -1 low-prob symbols
-extern const u16 default_of_norm[29];
-extern const u16 default_ml_norm[53];
+extern const i16 default_of_norm[29];
+extern const i16 default_ml_norm[53];
 } // namespace predefined
 
 } // namespace fse

@@ -2840,17 +2840,7 @@ public:
     const byte_t *d_input = h_compressed_data_ptr;
     printf("[DEBUG] decompress d_input (src): %p\n", d_input);
 
-    // PROBE: Start of Decompress
-    {
-      const byte_t *prob_ptr = d_input + 131085;
-      byte_t val = 0;
-      cudaError_t err = cudaMemcpy(&val, prob_ptr, 1, cudaMemcpyDeviceToHost);
-      if (err == cudaSuccess)
-        printf("[DEBUG] Entry Probe 0x2000d SUCCESS. Val=%02X\n", val);
-      else
-        printf("[FATAL] Entry Probe 0x2000d FAILED: %s\n",
-               cudaGetErrorString(err));
-    }
+    // PROBE REMOVED (Fixed crash on small inputs)
 
     // ...
 
@@ -3727,12 +3717,13 @@ private:
     *header_size = 3;
 
     // Debug: print block header info
-    fprintf(stderr,
-            "[DEBUG] read_block_header: block_type=%u (%s), is_last=%d, "
-            "block_size=%u\n",
-            block_type,
-            block_type == 0 ? "RAW" : (block_type == 1 ? "RLE" : "COMPRESSED"),
-            *is_last, *size);
+    // Debug: print block header info
+    printf("[DEBUG_BLK] read_block_header: type=%u (%s), last=%d, "
+           "size=%u, input_rem=%u\n",
+           block_type,
+           block_type == 0 ? "RAW" : (block_type == 1 ? "RLE" : "CMP"),
+           *is_last, *size, input_size);
+    fflush(stdout);
 
     return Status::SUCCESS;
   }
@@ -3748,6 +3739,9 @@ private:
     if (!input || !output || !output_size) {
       return Status::ERROR_INVALID_PARAMETER;
     }
+    printf("[DEBUG_BLK] decompress_block: input_size=%u, output_max=%u\n",
+           input_size, output_max_size);
+    fflush(stdout);
 
     // Clear any previous error state to avoid false positives in validation
     (void)cudaGetLastError();
@@ -3762,13 +3756,14 @@ private:
       u32 actual_dump = std::min((u32)DUMP_SIZE, input_size);
       CUDA_CHECK(
           cudaMemcpy(h_dump, input, actual_dump, cudaMemcpyDeviceToHost));
-      fprintf(stderr, "[DEBUG] Block Start Dump (%u bytes):\n", input_size);
+      printf("[DEBUG_BLK] Block Start Dump (%u bytes):\n", input_size);
       for (int i = 0; i < actual_dump; i++) {
-        fprintf(stderr, "%02x ", h_dump[i]);
+        printf("%02x ", h_dump[i]);
         if ((i + 1) % 16 == 0)
-          fprintf(stderr, "\n");
+          printf("\n");
       }
-      fprintf(stderr, "\n");
+      printf("\n");
+      fflush(stdout);
     }
     u32 literals_header_size = 0;
     u32 literals_compressed_size = 0;
@@ -3790,10 +3785,9 @@ private:
       return Status::ERROR_CUDA_ERROR;
     }
 
-    // decompressed. header_size=%u, compressed_size=%u,
-    // decompressed_size=%u\n",
-    // //                 literals_header_size, literals_compressed_size,
-    // literals_decompressed_size);
+    printf("[DEBUG_BLK] literals: header=%u, comp=%u, decomp=%u\n",
+           literals_header_size, literals_compressed_size,
+           literals_decompressed_size);
 
     // === Decompress Sequences ===
     // {
@@ -3804,11 +3798,11 @@ private:
     u32 sequences_offset = literals_header_size + literals_compressed_size;
 
     // DEBUG: Trace sequence offset calculation
-    fprintf(stderr,
-            "[DEBUG] decompress_block: sequences_offset=%u (LitHdr=%u + "
-            "LitComp=%u), LitDecomp=%u\n",
-            sequences_offset, literals_header_size, literals_compressed_size,
-            literals_decompressed_size);
+    // DEBUG: Trace sequence offset calculation
+    printf("[DEBUG_PART] decompress_block: sequences_offset=%u (LitHdr=%u + "
+           "LitComp=%u), LitDecomp=%u, input_size=%u\n",
+           sequences_offset, literals_header_size, literals_compressed_size,
+           literals_decompressed_size, input_size);
     // fprintf(stderr,
     //         "[DEBUG] decompress_block: sequences_offset: %u (LitHeader: %u, "
     //         "LitCompressed: %u)\n",
@@ -3837,14 +3831,14 @@ private:
 
     status = decompress_sequences(input + sequences_offset,
                                   input_size - sequences_offset, ctx.seq_ctx,
-                                  stream);
+                                  literals_decompressed_size, stream);
     if (status != Status::SUCCESS) {
       printf("[ERROR] decompress_sequences failed: status=%d\n", (int)status);
       return status;
     }
 
-    // decompress_sequences completed, num_sequences=%u\n",
-    // //                 ctx.seq_ctx->num_sequences);
+    printf("[DEBUG_BLK] decompress_sequences completed. num_seq=%u\n",
+           ctx.seq_ctx->num_sequences);
 
     // Sync after sequences
     cudaError_t seq_sync_err = cudaStreamSynchronize(stream);
@@ -5099,9 +5093,6 @@ private:
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
                           cudaMemcpyDeviceToHost));
 
-    // fprintf(stderr, "[DEBUG] decompress_literals: InputSize=%u, H=[%02X,
-    // %02X, %02X]\n", input_size, h_header[0], h_header[1], h_header[2]);
-
     u32 literals_type = h_header[0] & 0x03;
     u32 size_format = (h_header[0] >> 2) & 0x03;
 
@@ -5234,7 +5225,7 @@ private:
 
   Status decompress_sequences(const byte_t *input, u32 input_size,
                               sequence::SequenceContext *seq_ctx,
-                              cudaStream_t stream) {
+                              u32 total_literal_count, cudaStream_t stream) {
     if (input_size < 1) {
       seq_ctx->num_sequences = 0;
       // (Debug print removed)
@@ -5589,7 +5580,7 @@ private:
         input + offset, input_size - offset, num_sequences,
         seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
         seq_ctx->d_match_lengths, ll_mode, of_mode, ml_mode, p_ll_table,
-        p_of_table, p_ml_table, stream);
+        p_of_table, p_ml_table, total_literal_count, stream);
     fprintf(stderr, "[DEBUG] decode_sequences_interleaved returned: %d\n",
             (int)status);
     // Debug: Dump first 3 decoded sequences
