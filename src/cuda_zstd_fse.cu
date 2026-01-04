@@ -4041,6 +4041,14 @@ __host__ Status decode_sequences_interleaved(
     u32 of_sym = decode_of ? of_table.symbol[stateOF % (1u << of_log)] : 0;
     u32 ml_sym = decode_ml ? ml_table.symbol[stateML % (1u << ml_log)] : 0;
 
+    if (i < 2) {
+      u32 ml_idx = stateML % (1u << ml_log);
+      fprintf(stderr,
+              "[TBL_DBG] i=%d: stateML=%u, ml_log=%u, idx=%u, symbol[idx]=%u, "
+              "ml_sym=%u\n",
+              i, stateML, ml_log, ml_idx, (u32)ml_table.symbol[ml_idx], ml_sym);
+    }
+
     u32 ll_extra = 0, of_extra = 0, ml_extra = 0;
 
     // --- (FIX) Zstd sequence decoding order (RFC 8878 Section 3.1.1.3.2.1.1)
@@ -4067,6 +4075,9 @@ __host__ Status decode_sequences_interleaved(
       fprintf(stderr, "[PRE-CALC] i=%d. ml_sym=%u. of_sym=%u. ll_sym=%u\n", i,
               ml_sym, of_sym, ll_sym);
     u32 calc_ml = sequence::ZstdSequence::get_match_len(ml_sym);
+    if (i < 2)
+      fprintf(stderr, "[POST-CALC] i=%d, ml_sym=%u, calc_ml=%u\n", i, ml_sym,
+              calc_ml);
     u32 calc_of = sequence::ZstdSequence::get_offset(of_sym);
 
     h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;
