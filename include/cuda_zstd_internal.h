@@ -358,11 +358,14 @@ struct ZstdSequence {
   get_match_len_extra_bits(u32 code) {
     if (code < 32)
       return 0;
-    // RFC 8878 Table 12
+    // RFC 8878 Table 12: Extra bits for match length codes
+    // Codes 32-35: 1 bit, 36-37: 2 bits, 38-39: 3 bits, 40-41: 4 bits
+    // 42-43: 5 bits, 44-45: 6 bits, 46-47: 7 bits, 48-49: 8 bits
+    // 50-51: 9 bits, 52: 16 bits
     static const u8 ML_bits[53] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                   0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3,
-                                   3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 16};
+                                   0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 4, 4,
+                                   5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 16};
     return (code < 53) ? ML_bits[code] : 0;
   }
 
@@ -395,12 +398,22 @@ struct ZstdSequence {
   __device__ __host__ static __forceinline__ u32 get_match_len(u32 code) {
     if (code < 32)
       return code + 3;
-    // RFC 8878 Table 11
+    // RFC 8878 Table 11: Match length baselines
+    // Codes 32-35: 35, 37, 39, 41 (1 extra bit each)
+    // Codes 36-37: 43, 47 (2 extra bits each)
+    // Codes 38-39: 51, 59 (3 extra bits each)
+    // Codes 40-41: 67, 83 (4 extra bits each)
+    // Codes 42-43: 99, 131 (5 extra bits each)
+    // Codes 44-45: 163, 227 (6 extra bits each)
+    // Codes 46-47: 291, 419 (7 extra bits each)
+    // Codes 48-49: 547, 803 (8 extra bits each)
+    // Codes 50-51: 1059, 1571 (9 extra bits each)
+    // Code 52: 2083 (16 extra bits)
     static const u32 ML_base[53] = {
-        3,  4,  5,  6,   7,   8,   9,   10,  11,  12,  13,    14, 15, 16,
-        17, 18, 19, 20,  21,  22,  23,  24,  25,  26,  27,    28, 29, 30,
-        31, 32, 33, 34,  35,  37,  39,  41,  43,  47,  51,    55, 59, 67,
-        75, 83, 91, 107, 123, 139, 155, 187, 219, 251, 131075};
+        3,  4,   5,   6,   7,   8,   9,   10,  11,   12,   13,  14, 15, 16,
+        17, 18,  19,  20,  21,  22,  23,  24,  25,   26,   27,  28, 29, 30,
+        31, 32,  33,  34,  35,  37,  39,  41,  43,   47,   51,  59, 67, 83,
+        99, 131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
     return (code < 53) ? ML_base[code] : 0;
   }
 

@@ -47,9 +47,36 @@ int main() {
 
   // Allocate device memory
   uint8_t *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
-  cudaMalloc(&d_input, comp_size);
-  cudaMalloc(&d_output, expected_size * 2);
-  cudaMemcpy(d_input, compressed.data(), comp_size, cudaMemcpyHostToDevice);
+  cudaError_t err;
+  err = cudaMalloc(&d_input, comp_size);
+  if (err != cudaSuccess) {
+    std::cerr << "Malloc d_input failed: " << cudaGetErrorString(err)
+              << std::endl;
+    return 1;
+  }
+
+  err = cudaMalloc(&d_output, expected_size * 2);
+  if (err != cudaSuccess) {
+    std::cerr << "Malloc d_output failed" << std::endl;
+    return 1;
+  }
+
+  err =
+      cudaMemcpy(d_input, compressed.data(), comp_size, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    std::cerr << "Memcpy d_input failed: " << cudaGetErrorString(err)
+              << std::endl;
+    return 1;
+  }
+
+  // VERIFY d_input content on GPU
+  uint8_t verify_buf[16];
+  cudaMemcpy(verify_buf, d_input, std::min(comp_size, (size_t)16),
+             cudaMemcpyDeviceToHost);
+  printf("[TEST_DBG] d_input first 16 bytes: ");
+  for (int i = 0; i < std::min(comp_size, (size_t)16); ++i)
+    printf("%02X ", verify_buf[i]);
+  printf("\n");
 
   // Use manager API (same as test_correctness.cu)
   auto manager = create_manager(5);
