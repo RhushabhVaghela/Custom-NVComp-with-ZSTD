@@ -430,28 +430,89 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
   u32 out_idx = 0;
   constexpr u32 MAX_WEIGHTS = 255;
   while (out_idx < MAX_WEIGHTS) {
+    // State 1 decode
     if (state1 < table_size || state1 >= 2 * table_size) {
       printf("[ERROR] FSE state1 out of bounds: %u\n", state1);
       return Status::ERROR_CORRUPT_DATA;
     }
-    h_weights[out_idx++] = fse_symbol[state1 - table_size];
-    u32 nb1 = fse_nbits[state1 - table_size];
-    state1 = fse_newstate[state1 - table_size] + read_bits_backward(nb1);
+
+    u32 idx1 = state1 - table_size;
+    u8 symbol1 = fse_symbol[idx1];
+    u32 nb1 = fse_nbits[idx1];
+
+    // Check if we have enough bits for state transition
+    if (bit_pos < nb1) {
+      // Not enough bits - emit current symbol and stop
+      h_weights[out_idx++] = symbol1;
+      if (out_idx < 10) {
+        fprintf(stderr, "[FSE_TRACE] #%u S1: BREAK bit_pos=%u < nb=%u\n",
+                out_idx - 1, bit_pos, nb1);
+      }
+      break;
+    }
+
+    u32 newstate_base1 = fse_newstate[idx1];
+    u32 bits_read1 = read_bits_backward(nb1);
+    u32 new_state1 = newstate_base1 + bits_read1;
+
+    if (out_idx < 10) {
+      fprintf(stderr,
+              "[FSE_TRACE] #%u S1: state=%u idx=%u sym=%u nb=%u newbase=%u "
+              "bits=%u -> new_state=%u (bit_pos=%u)\n",
+              out_idx, state1, idx1, symbol1, nb1, newstate_base1, bits_read1,
+              new_state1, bit_pos);
+    }
+
+    h_weights[out_idx++] = symbol1;
+    state1 = new_state1;
 
     if (bit_pos == 0 || out_idx >= MAX_WEIGHTS)
       break;
 
+    // State 2 decode
     if (state2 < table_size || state2 >= 2 * table_size) {
       printf("[ERROR] FSE state2 out of bounds: %u\n", state2);
       return Status::ERROR_CORRUPT_DATA;
     }
-    h_weights[out_idx++] = fse_symbol[state2 - table_size];
-    u32 nb2 = fse_nbits[state2 - table_size];
-    state2 = fse_newstate[state2 - table_size] + read_bits_backward(nb2);
+
+    u32 idx2 = state2 - table_size;
+    u8 symbol2 = fse_symbol[idx2];
+    u32 nb2 = fse_nbits[idx2];
+
+    // Check if we have enough bits for state transition
+    if (bit_pos < nb2) {
+      // Not enough bits - emit current symbol and stop
+      h_weights[out_idx++] = symbol2;
+      if (out_idx < 10) {
+        fprintf(stderr, "[FSE_TRACE] #%u S2: BREAK bit_pos=%u < nb=%u\n",
+                out_idx - 1, bit_pos, nb2);
+      }
+      break;
+    }
+
+    u32 newstate_base2 = fse_newstate[idx2];
+    u32 bits_read2 = read_bits_backward(nb2);
+    u32 new_state2 = newstate_base2 + bits_read2;
+
+    if (out_idx < 10) {
+      fprintf(stderr,
+              "[FSE_TRACE] #%u S2: state=%u idx=%u sym=%u nb=%u newbase=%u "
+              "bits=%u -> new_state=%u (bit_pos=%u)\n",
+              out_idx, state2, idx2, symbol2, nb2, newstate_base2, bits_read2,
+              new_state2, bit_pos);
+    }
+
+    h_weights[out_idx++] = symbol2;
+    state2 = new_state2;
 
     if (bit_pos == 0)
       break;
   }
+
+  fprintf(stderr,
+          "[FSE_DBG] Decode loop ended. out_idx=%u, bit_pos=%u, state1=%u, "
+          "state2=%u\n",
+          out_idx, bit_pos, state1, state2);
 
   *num_symbols = out_idx;
   return Status::SUCCESS;
