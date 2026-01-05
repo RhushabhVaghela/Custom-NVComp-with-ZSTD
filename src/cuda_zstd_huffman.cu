@@ -328,6 +328,13 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
   }
 
   u32 num_fse_symbols = symbol;
+
+  // Debug: print normalized counts
+  fprintf(stderr, "[FSE_HUF] Parsed %u symbols. NormCounts: ", num_fse_symbols);
+  for (u32 i = 0; i < num_fse_symbols && i < 12; i++) {
+    fprintf(stderr, "%d ", (int)norm_counts[i]);
+  }
+  fprintf(stderr, " (remaining=%d, bit_pos=%u)\n", remaining, bit_pos_header);
   u8 table_symbol[MAX_TABLE_SIZE] = {0};
   u32 step = (table_size >> 1) + (table_size >> 3) + 3;
   u32 mask = table_size - 1;
@@ -513,6 +520,13 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
           "[FSE_DBG] Decode loop ended. out_idx=%u, bit_pos=%u, state1=%u, "
           "state2=%u\n",
           out_idx, bit_pos, state1, state2);
+
+  // Print ALL decoded weights
+  fprintf(stderr, "[FSE_HUF] All %u weights: ", out_idx);
+  for (u32 i = 0; i < out_idx; i++) {
+    fprintf(stderr, "%u ", (unsigned)h_weights[i]);
+  }
+  fprintf(stderr, "\n");
 
   *num_symbols = out_idx;
   return Status::SUCCESS;
