@@ -329,12 +329,23 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
 
   u32 num_fse_symbols = symbol;
 
-  // Debug: print normalized counts
-  fprintf(stderr, "[FSE_HUF] Parsed %u symbols. NormCounts: ", num_fse_symbols);
+  // DEBUG: Verify normalization parsing
+  fprintf(stderr, "[HUF_FSE] Parsed %u symbols, remaining=%d, bit_pos=%u\n",
+          num_fse_symbols, remaining, bit_pos_header);
+  fprintf(stderr, "[HUF_FSE] NormCounts: ");
   for (u32 i = 0; i < num_fse_symbols && i < 12; i++) {
     fprintf(stderr, "%d ", (int)norm_counts[i]);
   }
-  fprintf(stderr, " (remaining=%d, bit_pos=%u)\n", remaining, bit_pos_header);
+  fprintf(stderr, "\n");
+
+  if (remaining != 0) {
+    fprintf(
+        stderr,
+        "[ERROR] FSE normalization sum mismatch: remaining=%d (should be 0)\n",
+        remaining);
+    return Status::ERROR_CORRUPT_DATA;
+  }
+
   u8 table_symbol[MAX_TABLE_SIZE] = {0};
   u32 step = (table_size >> 1) + (table_size >> 3) + 3;
   u32 mask = table_size - 1;
@@ -366,12 +377,7 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
   u16 fse_newstate[MAX_TABLE_SIZE];
   u32 symbol_next_idx[MAX_HUF_ALPHABET];
   for (u32 s = 0; s < num_fse_symbols; s++) {
-    if (norm_counts[s] == -1)
-      symbol_next_idx[s] = 1;
-    else if (norm_counts[s] > 0)
-      symbol_next_idx[s] = norm_counts[s];
-    else
-      symbol_next_idx[s] = 0;
+    symbol_next_idx[s] = 0; // Reset to 0 for state index counting
   }
 
   for (u32 i = 0; i < table_size; i++) {
@@ -379,19 +385,42 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
     fse_symbol[i] = (u8)s;
     i16 count = norm_counts[s];
     if (count == -1) {
+      // Probability -1 symbol: full state reset, read accuracy_log bits
       fse_nbits[i] = (u8)accuracy_log;
-      // Fixed: Do NOT subtract table_size. We want state >= table_size.
-      // idx=1. (1<<AL) = table_size.
-      fse_newstate[i] = (u16)((symbol_next_idx[s]++) << accuracy_log);
+      fse_newstate[i] = 0; // Baseline 0, will wrap around table
     } else {
-      u32 s_base = symbol_next_idx[s]++;
-      u32 n_bits_entry = 0;
-      u32 temp = s_base;
-      while (temp >>= 1)
-        n_bits_entry++;
-      u32 nb = (u8)(accuracy_log - n_bits_entry);
-      fse_nbits[i] = (u8)nb;
-      fse_newstate[i] = (u16)(s_base << nb);
+      // Get state index for this symbol (0, 1, 2... for each occurrence)
+      u32 state_idx = symbol_next_idx[s]++;
+
+      // Per RFC 8878: sort states, compute baseline
+      // For symbol with count N, next power of 2 is P >= N
+      // Lower (P - N) states need 1 more bit, higher states fewer bits
+      u32 n_states = (u32)count;
+      u32 next_pow2 = 1;
+      u32 high_bit = 0;
+      while (next_pow2 < n_states) {
+        next_pow2 <<= 1;
+        high_bit++;
+      }
+
+      u32 extra_states = next_pow2 - n_states; // Lower states needing more bits
+      u32 nb_bits, baseline;
+
+      if (state_idx < extra_states) {
+        // Lower states: need more bits (high_bit + 1)
+        nb_bits = accuracy_log - high_bit;
+        baseline = (state_idx + n_states) << nb_bits;
+      } else {
+        // Higher states: need fewer bits (high_bit)
+        nb_bits = accuracy_log - high_bit - (extra_states > 0 ? 0 : 1);
+        if (high_bit == 0)
+          nb_bits = accuracy_log; // Edge case: count=1
+        baseline = (state_idx - extra_states) << nb_bits;
+      }
+
+      // Wrap baseline to stay within table_size
+      fse_nbits[i] = (u8)nb_bits;
+      fse_newstate[i] = (u16)(baseline & (table_size - 1));
     }
   }
 
@@ -411,122 +440,134 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
     bit_pos--;
   }
 
-  if (bit_pos < 2 * accuracy_log)
+  if (bit_pos < 2 * accuracy_log) {
+    fprintf(stderr, "[ERROR] Not enough bits: bit_pos=%u, need=%u\n", bit_pos,
+            2 * accuracy_log);
     return Status::ERROR_CORRUPT_DATA;
+  }
 
-  auto read_bits_backward = [&](u32 nbits) -> u32 {
-    if (bit_pos < nbits)
-      return 0;
-    u32 result = 0;
-    for (u32 i = 0; i < nbits; i++) {
-      bit_pos--;
-      if (bitstream[bit_pos / 8] & (1 << (bit_pos % 8))) {
-        result |= (1 << (nbits - 1 - i));
+  fprintf(stderr, "[HUF_FSE] Bitstream: start=%u, size=%u, bit_pos=%u\n",
+          bitstream_start, bitstream_size, bit_pos);
+
+  // libzstd BIT_DStream compatible implementation
+  // Load up to 8 bytes from end of bitstream as LE word
+  u64 bit_container = 0;
+  u32 bits_consumed = 0;
+
+  // Load bytes as little-endian (like MEM_readLEST)
+  u32 load_size = (bitstream_size > 8) ? 8 : bitstream_size;
+  for (u32 i = 0; i < load_size; i++) {
+    bit_container |= ((u64)bitstream[bitstream_size - load_size + i])
+                     << (i * 8);
+  }
+
+  // Find and consume sentinel bit (like BIT_initDStream)
+  u8 last_byte = bitstream[bitstream_size - 1];
+  if (last_byte == 0)
+    return Status::ERROR_CORRUPT_DATA; // No sentinel
+
+  // highbit finds the position of sentinel (0-7 for byte values 1-128)
+  u32 sentinel_bit = 0;
+  for (u32 b = 7; b > 0; b--) {
+    if (last_byte & (1 << b)) {
+      sentinel_bit = b;
+      break;
+    }
+  }
+  if (last_byte == 1)
+    sentinel_bit = 0;
+
+  bits_consumed = (8 - sentinel_bit); // Bits consumed including sentinel
+  bits_consumed +=
+      (8 - load_size) * 8; // Account for padding if loaded < 8 bytes
+
+  u32 byte_ptr = bitstream_size - load_size; // Points to next unloaded byte
+
+  auto read_bits = [&](u32 nbits) -> u32 {
+    // BIT_lookBits: extract from position (64 - bitsConsumed - nbits)
+    u32 start = 64 - bits_consumed - nbits;
+    u32 result = (bit_container >> start) & ((1U << nbits) - 1);
+    bits_consumed += nbits;
+
+    // BIT_reloadDStream: refill if needed
+    if (bits_consumed > 56 && byte_ptr > 0) {
+      u32 refill = (byte_ptr > 8) ? 8 : byte_ptr;
+      u64 new_container = 0;
+      for (u32 i = 0; i < refill; i++) {
+        new_container |= ((u64)bitstream[byte_ptr - refill + i]) << (i * 8);
       }
+      byte_ptr -= refill;
+      // Shift old remaining bits up, add new bits at bottom
+      bit_container = (bit_container << (refill * 8)) | new_container;
+      // Careful: avoid underflow
+      i32 reduction = refill * 8;
+      if ((i32)bits_consumed > reduction)
+        bits_consumed -= reduction;
+      else
+        bits_consumed = 0;
     }
     return result;
   };
 
-  u32 state2 = read_bits_backward(accuracy_log) + table_size;
-  u32 state1 = read_bits_backward(accuracy_log) + table_size;
+  u32 state1 = read_bits(accuracy_log);
 
-  printf("[DEBUG] FSE Initial States: S1=%u, S2=%u (table_size=%u, "
-         "bit_pos=%u)\n",
-         state1, state2, table_size, bit_pos);
+  u32 state2 = read_bits(accuracy_log);
 
   u32 out_idx = 0;
   constexpr u32 MAX_WEIGHTS = 255;
   while (out_idx < MAX_WEIGHTS) {
     // State 1 decode
-    if (state1 < table_size || state1 >= 2 * table_size) {
-      printf("[ERROR] FSE state1 out of bounds: %u\n", state1);
+    if (state1 >= table_size) {
       return Status::ERROR_CORRUPT_DATA;
     }
 
-    u32 idx1 = state1 - table_size;
+    u32 idx1 = state1;
     u8 symbol1 = fse_symbol[idx1];
     u32 nb1 = fse_nbits[idx1];
 
     // Check if we have enough bits for state transition
-    if (bit_pos < nb1) {
+    if (bits_consumed + nb1 > 64) {
       // Not enough bits - emit current symbol and stop
       h_weights[out_idx++] = symbol1;
-      if (out_idx < 10) {
-        fprintf(stderr, "[FSE_TRACE] #%u S1: BREAK bit_pos=%u < nb=%u\n",
-                out_idx - 1, bit_pos, nb1);
-      }
       break;
     }
 
     u32 newstate_base1 = fse_newstate[idx1];
-    u32 bits_read1 = read_bits_backward(nb1);
+    u32 bits_read1 = read_bits(nb1);
     u32 new_state1 = newstate_base1 + bits_read1;
-
-    if (out_idx < 10) {
-      fprintf(stderr,
-              "[FSE_TRACE] #%u S1: state=%u idx=%u sym=%u nb=%u newbase=%u "
-              "bits=%u -> new_state=%u (bit_pos=%u)\n",
-              out_idx, state1, idx1, symbol1, nb1, newstate_base1, bits_read1,
-              new_state1, bit_pos);
-    }
 
     h_weights[out_idx++] = symbol1;
     state1 = new_state1;
 
-    if (bit_pos == 0 || out_idx >= MAX_WEIGHTS)
+    if (bits_consumed >= 64 || out_idx >= MAX_WEIGHTS)
       break;
 
     // State 2 decode
-    if (state2 < table_size || state2 >= 2 * table_size) {
-      printf("[ERROR] FSE state2 out of bounds: %u\n", state2);
+    if (state2 >= table_size) {
       return Status::ERROR_CORRUPT_DATA;
     }
 
-    u32 idx2 = state2 - table_size;
+    u32 idx2 = state2;
     u8 symbol2 = fse_symbol[idx2];
     u32 nb2 = fse_nbits[idx2];
 
     // Check if we have enough bits for state transition
-    if (bit_pos < nb2) {
+    if (bits_consumed + nb2 > 64) {
       // Not enough bits - emit current symbol and stop
       h_weights[out_idx++] = symbol2;
-      if (out_idx < 10) {
-        fprintf(stderr, "[FSE_TRACE] #%u S2: BREAK bit_pos=%u < nb=%u\n",
-                out_idx - 1, bit_pos, nb2);
-      }
       break;
     }
 
     u32 newstate_base2 = fse_newstate[idx2];
-    u32 bits_read2 = read_bits_backward(nb2);
+    u32 bits_read2 = read_bits(nb2);
     u32 new_state2 = newstate_base2 + bits_read2;
-
-    if (out_idx < 10) {
-      fprintf(stderr,
-              "[FSE_TRACE] #%u S2: state=%u idx=%u sym=%u nb=%u newbase=%u "
-              "bits=%u -> new_state=%u (bit_pos=%u)\n",
-              out_idx, state2, idx2, symbol2, nb2, newstate_base2, bits_read2,
-              new_state2, bit_pos);
-    }
 
     h_weights[out_idx++] = symbol2;
     state2 = new_state2;
 
-    if (bit_pos == 0)
+    if (bits_consumed >= 64)
       break;
   }
-
-  fprintf(stderr,
-          "[FSE_DBG] Decode loop ended. out_idx=%u, bit_pos=%u, state1=%u, "
-          "state2=%u\n",
-          out_idx, bit_pos, state1, state2);
-
-  // Print ALL decoded weights
-  fprintf(stderr, "[FSE_HUF] All %u weights: ", out_idx);
-  for (u32 i = 0; i < out_idx; i++) {
-    fprintf(stderr, "%u ", (unsigned)h_weights[i]);
-  }
-  fprintf(stderr, "\n");
 
   *num_symbols = out_idx;
   return Status::SUCCESS;
@@ -547,8 +588,10 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
     }
   }
 
-  if (weight_sum == 0)
+  if (weight_sum == 0) {
+    fprintf(stderr, "[ERROR] weight_sum is 0\n");
     return Status::ERROR_CORRUPT_DATA;
+  }
 
   // Find next power of 2
   // MaxBits is the power k such that 2^k >= weight_sum
@@ -558,8 +601,6 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
     next_power <<= 1;
     max_num_bits++;
   }
-  fprintf(stderr, "[DEBUG_HUF] weight_sum=%u, next_power=%u, max_bits=%u\n",
-          weight_sum, next_power, max_num_bits);
 
   // RFC 8878: The last weight's value is reconstructed so the sum is an exact
   // power of 2.
@@ -570,6 +611,11 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
   }
 
   *max_bits = max_num_bits;
+
+  fprintf(stderr,
+          "[HUF_WEIGHTS] weight_sum=%u, next_power=%u, max_bits=%u, "
+          "last_weight=%u\n",
+          weight_sum, next_power, max_num_bits, last_weight);
 
   // Convert weights to code lengths: bits = MaxBits + 1 - Weight
   for (u32 i = 0; i < num_weights; i++) {
@@ -607,9 +653,6 @@ __host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
   }
 
   u8 header_byte = h_input[0];
-  fprintf(stderr, "[DEBUG_HUF] deserialize: header_byte=%u, input_size=%u\n",
-          header_byte, input_size);
-  fflush(stderr);
   u8 h_weights[MAX_HUFFMAN_SYMBOLS] = {0};
   u32 num_symbols = 0;
   Status status;
@@ -617,10 +660,6 @@ __host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
   if (header_byte >= 128) {
     // Direct representation (4-bit weights)
     *header_size = 1 + ((header_byte - 127 + 1) / 2); // header + weight bytes
-    fprintf(stderr,
-            "[DEBUG_HUF] Direct weights: num_symbols=%u, header_size=%u\n",
-            header_byte - 127, *header_size);
-    fflush(stderr);
 
     if (input_size < *header_size) {
       return Status::ERROR_CORRUPT_DATA;
@@ -631,9 +670,6 @@ __host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
   } else {
     // FSE-compressed representation
     *header_size = 1 + header_byte; // header + compressed bytes
-    fprintf(stderr, "[DEBUG_HUF] FSE weights: header_byte=%u, header_size=%u\n",
-            header_byte, *header_size);
-    fflush(stderr);
 
     if (input_size < *header_size) {
       return Status::ERROR_CORRUPT_DATA;
@@ -644,15 +680,12 @@ __host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
   }
 
   if (status != Status::SUCCESS) {
+    fprintf(stderr, "[ERROR] decode_huffman_weights_fse status=%d\n",
+            (int)status);
     return status;
   }
 
-  fprintf(stderr, "[DEBUG_HUF] Decoded %u weights. First 10: ", num_symbols);
-  for (u32 i = 0; i < std::min(num_symbols, 10u); i++) {
-    fprintf(stderr, "%u ", h_weights[i]);
-  }
-  fprintf(stderr, "\n");
-  fflush(stderr);
+  fprintf(stderr, "[HUF_TABLE] FSE decode OK, num_symbols=%u\n", num_symbols);
 
   // Convert weights to code lengths
   u32 max_bits;
@@ -660,13 +693,6 @@ __host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
                                    &max_bits);
 
   if (status == Status::SUCCESS) {
-    fprintf(stderr,
-            "[DEBUG_HUF] Max bits: %u. First 10 code lengths: ", max_bits);
-    for (u32 i = 0; i < 10; i++) {
-      fprintf(stderr, "%u:%u ", i, h_code_lengths[i]);
-    }
-    fprintf(stderr, "\n");
-    fflush(stderr);
   }
   return status;
 }
@@ -928,6 +954,8 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
     d_symbol_index[len] = static_cast<u16>(idx);
     idx += length_count[len];
   }
+  d_symbol_index[max_len + 1] =
+      static_cast<u16>(idx); // Sentinel for count calculation
 
   // Fill symbols array in canonical order
   idx = 0;
@@ -1021,12 +1049,15 @@ __device__ u8 decode_huff_symbol(u64 bit_container, u32 bits_available,
     // Bits are read from the top of the container
     code = (u32)(bit_container >> (bits_available - len)) & ((1U << len) - 1);
     u32 first_code = d_first_code[len];
-    if (code < (d_first_code[len + 1] >> 1)) {
+    u32 count_at_len = d_symbol_index[len + 1] - d_symbol_index[len];
+    if (count_at_len > 0 && code >= first_code &&
+        code < first_code + count_at_len) {
       consumed = len;
       u32 idx = d_symbol_index[len] + (code - first_code);
       return d_symbols[idx];
     }
   }
+
   consumed = 0;
   return 0;
 }
@@ -1082,7 +1113,11 @@ __global__ void huffman_decode_rfc8878_kernel(
       // Extract top 'len' bits of the available pool
       u32 code =
           (u32)(bit_container >> (bits_available - len)) & ((1U << len) - 1);
-      if (code < (d_first_code[len + 1] >> 1)) {
+      // Canonical Huffman: check if code is in range [first_code, first_code +
+      // count)
+      u32 count_at_len = d_symbol_index[len + 1] - d_symbol_index[len];
+      if (count_at_len > 0 && code >= d_first_code[len] &&
+          code < d_first_code[len] + count_at_len) {
         u8 symbol = d_symbols[d_symbol_index[len] + (code - d_first_code[len])];
 
         // INTERLEAVING: symbols are decoded in reverse order
@@ -1428,10 +1463,6 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
   if (status != Status::SUCCESS)
     return status;
 
-  fprintf(stderr, "[DEBUG_HUF] huf_header_size=%u, input_size=%zu\n",
-          huf_header_size, input_size);
-  fflush(stderr);
-
   u8 *d_code_lengths;
   u32 *d_first_code;
   u16 *d_symbol_index;
@@ -1439,7 +1470,7 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
 
   CUDA_CHECK(cudaMalloc(&d_code_lengths, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
   CUDA_CHECK(cudaMalloc(&d_first_code, (MAX_HUFFMAN_BITS + 2) * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_symbol_index, (MAX_HUFFMAN_BITS + 1) * sizeof(u16)));
+  CUDA_CHECK(cudaMalloc(&d_symbol_index, (MAX_HUFFMAN_BITS + 2) * sizeof(u16)));
   CUDA_CHECK(cudaMalloc(&d_symbols, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
 
   CUDA_CHECK(cudaMemcpyAsync(d_code_lengths, h_code_lengths,
@@ -1469,10 +1500,6 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
       return Status::ERROR_CORRUPT_DATA;
     u32 L4 = bitstream_size_base - 6 - L1 - L2 - L3;
 
-    fprintf(stderr, "[DEBUG_HUF] 4-stream: L1=%u, L2=%u, L3=%u, L4=%u\n", L1,
-            L2, L3, L4);
-    fflush(stderr);
-
     u32 N1 = (decompressed_size + 3) / 4;
     u32 N2 = (decompressed_size + 2) / 4;
     u32 N3 = (decompressed_size + 1) / 4;
@@ -1492,8 +1519,6 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
         d_data + L1 + L2 + L3, input_size, d_first_code, d_symbol_index,
         d_symbols, d_output, decompressed_size, 0, L4 * 8, N1 + N2 + N3, 3, N4);
   } else {
-    fprintf(stderr, "[DEBUG_HUF] 1-stream: L=%u\n", bitstream_size_base);
-    fflush(stderr);
     huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
         d_bitstream_base, input_size, d_first_code, d_symbol_index, d_symbols,
         d_output, decompressed_size, 0, bitstream_size_base * 8, 0, 0,
