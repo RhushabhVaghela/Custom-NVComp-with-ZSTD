@@ -306,9 +306,6 @@ compute_output_offsets_kernel(const u32 *d_literal_offsets,
   // Since we don't have match_offset_scan, this is tricky.
 
   // Simpler: output_offset[i] = literal_offset[i] + match_offset_scan[i]
-  // We need to scan d_match_lengths first.
-
-  // output_offset[i] = literal_offset[i] + match_offset_scan[i]
   // d_match_lengths here actually holds the scanned match offsets
   // (d_match_offsets)
   d_output_offsets[idx] = d_literal_offsets[idx] + d_match_lengths[idx];
@@ -344,7 +341,8 @@ __global__ void sequential_block_execute_sequences_kernel(
     for (u32 j = tid; j < literals_length; j += block_dim) {
       if (output_pos + j < output_max_size) {
         if (literal_pos + j < total_literal_count) { // Add input bounds check
-          output[output_pos + j] = d_literals[literal_pos + j];
+          byte_t lit_val = d_literals[literal_pos + j];
+          output[output_pos + j] = lit_val;
         }
       }
     }
@@ -416,6 +414,10 @@ __global__ void sequential_block_execute_sequences_kernel(
   // Copy remaining literals (or ALL literals if num_sequences == 0)
   if (total_literal_count > used_literals) {
     u32 trailing_count = total_literal_count - used_literals;
+    if (tid == 0) {
+      printf("[SEQ_KER] TotalLit=%u, UsedLit=%u, Trailing=%u, UsedOut=%u\n",
+             total_literal_count, used_literals, trailing_count, used_output);
+    }
 
     for (u32 j = tid; j < trailing_count; j += block_dim) {
       if (used_output + j < output_max_size) {

@@ -589,7 +589,6 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
   }
 
   if (weight_sum == 0) {
-    fprintf(stderr, "[ERROR] weight_sum is 0\n");
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -1088,18 +1087,33 @@ __global__ void huffman_decode_rfc8878_kernel(
     bit_pos--;
   }
 
-  // Bit container (64-bit)
+  // Bit container (64-bit) - load bytes from end backward
   u64 bit_container = 0;
   u32 bits_available = 0;
 
+  // Initial load: read up to 8 bytes from end
+  u32 byte_pos = (bit_pos + 7) / 8;
+  u32 bytes_to_load = (byte_pos > 8) ? 8 : byte_pos;
+
+  for (u32 i = 0; i < bytes_to_load; i++) {
+    if (byte_pos > i) {
+      bit_container |= ((u64)input[byte_pos - bytes_to_load + i]) << (i * 8);
+    }
+  }
+  bits_available = bytes_to_load * 8;
+  byte_pos -= bytes_to_load;
+
   while (num_decoded < num_symbols_to_decode) {
-    // Refill bit container from the end of the stream (backward)
-    // Add bits to the container such that the first bit read becomes the MSB
-    while (bits_available <= 56 && bit_pos > stream_start_bits) {
-      bit_pos--;
-      u8 b = (input[bit_pos >> 3] >> (bit_pos & 7)) & 1;
-      bit_container = (bit_container << 1) | b;
-      bits_available++;
+    // Refill when low
+    while (bits_available <= 56 && byte_pos > 0) {
+      u32 refill = (byte_pos > 8) ? 8 : byte_pos;
+      u64 new_bits = 0;
+      for (u32 i = 0; i < refill; i++) {
+        new_bits |= ((u64)input[byte_pos - refill + i]) << (i * 8);
+      }
+      bit_container = (bit_container << (refill * 8)) | new_bits;
+      bits_available += refill * 8;
+      byte_pos -= refill;
     }
 
     if (bits_available == 0)
@@ -1110,9 +1124,8 @@ __global__ void huffman_decode_rfc8878_kernel(
     for (u32 len = 1; len <= max_len; len++) {
       if (len > bits_available)
         break;
-      // Extract top 'len' bits of the available pool
-      u32 code =
-          (u32)(bit_container >> (bits_available - len)) & ((1U << len) - 1);
+      // Extract bottom 'len' bits (LSB)
+      u32 code = (u32)(bit_container & ((1U << len) - 1));
       // Canonical Huffman: check if code is in range [first_code, first_code +
       // count)
       u32 count_at_len = d_symbol_index[len + 1] - d_symbol_index[len];
@@ -1131,26 +1144,13 @@ __global__ void huffman_decode_rfc8878_kernel(
           output[out_idx] = symbol;
         }
 
-        if (num_decoded < 5) {
-          printf("[DEBUG_KER] Stream %u: num_decoded=%u, code=%u, len=%u, "
-                 "symbol=%u, bits_rem=%u\n",
-                 stream_id_debug, num_decoded, code, len, symbol,
-                 bits_available);
-        }
-
         num_decoded++;
-        // Consume bits from the container
+        // Consume bits from LSB by shifting right
+        bit_container >>= len;
         bits_available -= len;
-        bit_container &= ((1ULL << bits_available) - 1);
         consumed = 1;
         break;
       }
-    }
-    if (!consumed) {
-      printf("[DEBUG_KER] STALLED Stream %u: num_decoded=%u, "
-             "bits_available=%u, bit_pos=%u\n",
-             stream_id_debug, num_decoded, bits_available, bit_pos);
-      break;
     }
   }
 }
