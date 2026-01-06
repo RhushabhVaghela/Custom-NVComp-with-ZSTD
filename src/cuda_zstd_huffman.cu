@@ -1152,6 +1152,8 @@ __global__ void huffman_decode_rfc8878_kernel(
         break;
       }
     }
+    if (!consumed)
+      break;
   }
 }
 
