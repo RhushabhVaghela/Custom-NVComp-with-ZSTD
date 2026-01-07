@@ -189,7 +189,7 @@ __device__ __forceinline__ u32 get_actual_offset(
  */
 __global__ void set_value_kernel(u32 *ptr, u32 value) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    printf("[KERNEL] set_value_kernel: Writing %u to %p\n", value, ptr);
+    // printf("[KERNEL] set_value_kernel: Writing %u to %p\n", value, ptr);
     *ptr = value;
   }
 }
@@ -257,9 +257,9 @@ __global__ void compute_sequence_details_kernel(
       if (d_error_flag) {
         *d_error_flag = 5; // Error: Total literals exceed input
       }
-      printf("[KERNEL ERROR] Literals overflow at seq %u: Check=%u + %u > "
-             "Limit=%u\n",
-             i, total_literals, lit_len, total_literal_count);
+      // printf("[KERNEL ERROR] Literals overflow at seq %u: Check=%u + %u > "
+      //        "Limit=%u\n",
+      //        i, total_literals, lit_len, total_literal_count);
       return;
     }
     total_literals += lit_len;
@@ -415,8 +415,9 @@ __global__ void sequential_block_execute_sequences_kernel(
   if (total_literal_count > used_literals) {
     u32 trailing_count = total_literal_count - used_literals;
     if (tid == 0) {
-      printf("[SEQ_KER] TotalLit=%u, UsedLit=%u, Trailing=%u, UsedOut=%u\n",
-             total_literal_count, used_literals, trailing_count, used_output);
+      // printf("[SEQ_KER] TotalLit=%u, UsedLit=%u, Trailing=%u, UsedOut=%u\n",
+      //        total_literal_count, used_literals, trailing_count,
+      //        used_output);
     }
 
     for (u32 j = tid; j < trailing_count; j += block_dim) {

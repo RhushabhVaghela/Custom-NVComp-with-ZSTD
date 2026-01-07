@@ -1,5 +1,6 @@
 // ============================================================================
 // benchmark_streaming.cu - Throughput Benchmark for Streaming API
+// MODIFIED for RTX 5080 (16GB VRAM) - Reduced memory usage
 // ============================================================================
 
 #include "cuda_zstd_manager.h"
@@ -9,6 +10,11 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+
+// Hardware-safe constants for RTX 5080 (16GB VRAM)
+#define MAX_VRAM_PER_BENCHMARK (8ULL * 1024 * 1024 * 1024)  // Max 8GB VRAM per benchmark
+#define MAX_CHUNK_SIZE (4ULL * 1024 * 1024)                 // Max 4MB chunk size
+#define MAX_TOTAL_DATA (256ULL * 1024 * 1024)               // Max 256MB total data
 
 using namespace cuda_zstd;
 
@@ -46,6 +52,16 @@ struct ChunkDesc {
 
 void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
   size_t total_input_size = chunk_size * num_chunks;
+  
+  // Memory safety check
+  if (chunk_size > MAX_CHUNK_SIZE) {
+    std::cout << "Skipping - chunk size " << (chunk_size/1024/1024) << "MB exceeds safety limit\n";
+    return;
+  }
+  if (total_input_size > MAX_TOTAL_DATA) {
+    std::cout << "Skipping - total size " << (total_input_size/1024/1024) << "MB exceeds safety limit\n";
+    return;
+  }
 
   // 1. Prepare Input Data (Repeated pattern to ensure compressibility)
   std::vector<uint8_t> h_input_chunk(chunk_size);
@@ -53,10 +69,6 @@ void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
     h_input_chunk[i] = (i % 256);
   }
 
-  // Allocate huge buffers
-
-  // Actually, reusing the same input buffer for every chunk is fine for
-  // performance testing as long as we treat them as a stream sequence.
   void *d_input_chunk;
 
   // Output buffer must be large enough to hold the ENTIRE stream for
@@ -178,20 +190,24 @@ void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
 }
 
 int main() {
+  std::cout << "Streaming Benchmark - RTX 5080 Safe Mode" << std::endl;
+  std::cout << "Max Chunk Size: " << (MAX_CHUNK_SIZE/1024/1024) << " MB" << std::endl;
+  std::cout << "Max Total Data: " << (MAX_TOTAL_DATA/1024/1024) << " MB" << std::endl << std::endl;
+  
   print_header();
 
-  // Test various chunk sizes
+  // Test various chunk sizes (reduced for safety)
   // Small Chunks (Latency dominated)
   run_streaming_benchmark(4096, 5000); // 4KB chunks, 20MB total
 
   // Medium Chunks
   run_streaming_benchmark(65536, 2000); // 64KB chunks, 130MB total
 
-  // Large Chunks (Throughput dominated)
-  run_streaming_benchmark(1048576, 200); // 1MB chunks, 200MB total
+  // Large Chunks (Throughput dominated) - reduced from 200 to 100 chunks
+  run_streaming_benchmark(1048576, 100); // 1MB chunks, 100MB total
 
-  // Very Large
-  run_streaming_benchmark(4 * 1048576, 50); // 4MB chunks, 200MB total
+  // Very Large - removed 4MB chunks test as it's close to safety limit
+  // run_streaming_benchmark(4 * 1048576, 50); // 4MB chunks, 200MB total
 
   return 0;
 }

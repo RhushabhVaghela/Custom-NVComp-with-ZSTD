@@ -7,6 +7,11 @@
 #include "cuda_zstd_types.h"
 #include <atomic>
 #include <cstring>
+#include <signal.h>
+#include <unistd.h>
+
+// Ignore SIGPIPE to prevent subprocess aborts
+static void setup_signal_handlers() { signal(SIGPIPE, SIG_IGN); }
 #include <cuda_runtime.h>
 #include <iostream>
 #include <thread>
@@ -751,6 +756,7 @@ bool test_concurrent_error_safety() {
 // ============================================================================
 
 int main() {
+  setup_signal_handlers();
   std::cout << "\n";
   print_separator();
   std::cout << "CUDA ZSTD - Error Handling Test Suite" << std::endl;

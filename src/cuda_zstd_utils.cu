@@ -1,7 +1,5 @@
 // ============================================================================
-// cuda_zstd_utils.cu - Shared Utility Function Implementations
-//
-// This file contains the implementation for common, reusable components
+// cuda_zstd_utils.cu - Shared Utility Function Implementations// This file contains the implementation for common, reusable components
 // like parallel scan, using Thrust for robustness.
 // ============================================================================
 

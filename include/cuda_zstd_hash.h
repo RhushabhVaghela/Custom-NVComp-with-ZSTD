@@ -46,12 +46,6 @@ __device__ __forceinline__ u32 hash_bytes(const byte_t *data, u32 len,
  */
 __device__ __forceinline__ u32 hash_table_lookup(const HashTable &table,
                                                  u32 hash) {
-#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
-  if (hash >= table.size) {
-    printf("[DEBUG] hash_table_lookup OOB hash=%u size=%u block=%d thread=%d\n",
-           hash, table.size, blockIdx.x, threadIdx.x);
-  }
-#endif
   return table.table[hash];
 }
 
@@ -60,13 +54,6 @@ __device__ __forceinline__ u32 hash_table_lookup(const HashTable &table,
  */
 __device__ __forceinline__ u32 chain_table_lookup(const ChainTable &table,
                                                   u32 index) {
-#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
-  if (index >= table.size) {
-    printf(
-        "[DEBUG] chain_table_lookup OOB index=%u size=%u block=%d thread=%d\n",
-        index, table.size, blockIdx.x, threadIdx.x);
-  }
-#endif
   return table.prev[index];
 }
 

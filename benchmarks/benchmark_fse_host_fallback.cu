@@ -1,8 +1,6 @@
 // benchmark_fse_host_fallback.cu - Benchmark for FSE Host Fallback encoding
 // Measures the actual latency of encode_sequences_with_predefined_fse
 
-#include "cuda_zstd_manager.h"
-#include "cuda_zstd_sequence.h"
 #include <chrono>
 #include <cstdio>
 #include <cuda_runtime.h>
@@ -11,9 +9,9 @@
 #include <random>
 #include <vector>
 
-using namespace cuda_zstd;
-
-#define CUDA_CHECK(call)                                                       \
+// Local CUDA error check macro (exits on failure, different from library
+// version)
+#define CUDA_CHECK_EXIT(call)                                                  \
   do {                                                                         \
     cudaError_t err = call;                                                    \
     if (err != cudaSuccess) {                                                  \
@@ -23,6 +21,11 @@ using namespace cuda_zstd;
       exit(1);                                                                 \
     }                                                                          \
   } while (0)
+
+#include "cuda_zstd_manager.h"
+#include "cuda_zstd_sequence.h"
+
+using namespace cuda_zstd;
 
 // Timer helper
 class Timer {
@@ -55,15 +58,15 @@ void benchmark_compress_path(size_t input_size, int iterations = 5) {
   // Allocate device memory
   void *d_input, *d_compressed, *d_temp;
   size_t compressed_max = input_size * 2;
-  CUDA_CHECK(cudaMalloc(&d_input, input_size));
-  CUDA_CHECK(cudaMalloc(&d_compressed, compressed_max));
-  CUDA_CHECK(
+  CUDA_CHECK_EXIT(cudaMalloc(&d_input, input_size));
+  CUDA_CHECK_EXIT(cudaMalloc(&d_compressed, compressed_max));
+  CUDA_CHECK_EXIT(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
 
   // Create manager
   auto manager = cuda_zstd::create_manager();
   size_t temp_size = manager->get_compress_temp_size(input_size);
-  CUDA_CHECK(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK_EXIT(cudaMalloc(&d_temp, temp_size));
 
   // Warmup
   size_t compressed_size = compressed_max;
@@ -119,15 +122,15 @@ void benchmark_decompress_path(size_t input_size, int iterations = 5) {
 
   void *d_input, *d_compressed, *d_output, *d_temp;
   size_t compressed_max = input_size * 2;
-  CUDA_CHECK(cudaMalloc(&d_input, input_size));
-  CUDA_CHECK(cudaMalloc(&d_compressed, compressed_max));
-  CUDA_CHECK(cudaMalloc(&d_output, input_size));
-  CUDA_CHECK(
+  CUDA_CHECK_EXIT(cudaMalloc(&d_input, input_size));
+  CUDA_CHECK_EXIT(cudaMalloc(&d_compressed, compressed_max));
+  CUDA_CHECK_EXIT(cudaMalloc(&d_output, input_size));
+  CUDA_CHECK_EXIT(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
 
   auto manager = cuda_zstd::create_manager();
   size_t temp_size = manager->get_compress_temp_size(input_size);
-  CUDA_CHECK(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK_EXIT(cudaMalloc(&d_temp, temp_size));
 
   // Compress
   size_t compressed_size = compressed_max;

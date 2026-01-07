@@ -1,6 +1,6 @@
 // benchmark_pipeline_streaming.cu
 // Benchmarks the Double-Buffered / Async Pipeline performance of FSE Encoding
-// Simulates 50GB file compression by looping over a 1GB buffer.
+// MODIFIED for RTX 5080 (16GB VRAM) - Reduced memory usage
 
 #include "cuda_zstd_manager.h"
 #include <chrono>
@@ -18,6 +18,13 @@
     }                                                                          \
   } while (0)
 
+// Hardware-safe constants for RTX 5080 (16GB VRAM)
+#define MAX_VRAM_PER_BENCHMARK                                                 \
+  (8ULL * 1024 * 1024 * 1024)                // Max 8GB VRAM per benchmark
+#define SAFE_CHUNK_SIZE (4ULL * 1024 * 1024) // 4 MB chunks (reduced from 16MB)
+#define MAX_TOTAL_SIZE                                                         \
+  (2ULL * 1024 * 1024 * 1024) // 2 GB total (reduced from 5GB)
+
 using namespace cuda_zstd;
 
 // --- Test Data Generation ---
@@ -27,20 +34,32 @@ void generate_random_data(void *ptr, size_t size) {
 }
 
 int main(int argc, char **argv) {
-  size_t CHUNK_SIZE = 16 * 1024 * 1024;          // 16 MB chunks
-  size_t TOTAL_SIZE = 5ULL * 1024 * 1024 * 1024; // 5 GB Total (Simulated)
-  // Note: Using 5GB to keep runtime reasonable but large enough for stability.
+  size_t CHUNK_SIZE = SAFE_CHUNK_SIZE; // 4 MB chunks
+  size_t TOTAL_SIZE = MAX_TOTAL_SIZE;  // 2 GB Total
 
   if (argc > 1)
     CHUNK_SIZE = std::stoull(argv[1]);
   if (argc > 2)
     TOTAL_SIZE = std::stoull(argv[2]) * 1024 * 1024;
 
-  std::cout << "Pipeline Benchmark (FSE Encoding)" << std::endl;
+  // Memory safety check
+  if (CHUNK_SIZE > 8 * 1024 * 1024) {
+    std::cerr << "WARNING: Chunk size too large for safety, capping at 8MB\n";
+    CHUNK_SIZE = 8 * 1024 * 1024;
+  }
+  if (TOTAL_SIZE > 4ULL * 1024 * 1024 * 1024) {
+    std::cerr << "WARNING: Total size too large for safety, capping at 4GB\n";
+    TOTAL_SIZE = 4ULL * 1024 * 1024 * 1024;
+  }
+
+  std::cout << "Pipeline Benchmark (FSE Encoding) - RTX 5080 Safe Mode"
+            << std::endl;
   std::cout << "Chunk Size: " << (CHUNK_SIZE / 1024 / 1024) << " MB"
             << std::endl;
   std::cout << "Total Size: " << (TOTAL_SIZE / 1024 / 1024) << " MB"
             << std::endl;
+  size_t est_vram = (CHUNK_SIZE * 3) / (1024 * 1024);
+  std::cout << "Estimated VRAM Usage: ~" << est_vram << " MB" << std::endl;
 
   // 1. Setup Manager
   auto manager = create_streaming_manager(3);
@@ -48,7 +67,7 @@ int main(int argc, char **argv) {
   CHECK_CUDA(cudaStreamCreate(&stream));
 
   manager->init_compression(
-      stream, CHUNK_SIZE); // Preallocates Tables + Workspace for 16MB
+      stream, CHUNK_SIZE); // Preallocates Tables + Workspace for 4MB
 
   // 2. Allocate Host Buffers (Pinned for Async Copy)
   void *h_input, *h_output;
@@ -70,11 +89,6 @@ int main(int argc, char **argv) {
 
   for (size_t i = 0; i < iterations; ++i) {
     size_t compressed_size = CHUNK_SIZE * 2;
-    // Note: Reusing same input/output buffer for simulation.
-    // In real pipeline, h_input would be evolving.
-    // The Manager handles H2D copy internally in `compress_chunk`.
-    // It relies on Async Copy if h_input is Pinned.
-
     Status s =
         manager->compress_chunk(h_input, CHUNK_SIZE, h_output, &compressed_size,
                                 (i == iterations - 1), stream);

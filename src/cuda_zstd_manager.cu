@@ -2828,8 +2828,8 @@ public:
     if (h_compressed_size_remaining < 4) {
       return Status::ERROR_CORRUPT_DATA;
     }
-    printf("[DEBUG] Decompress Workspace: %p (size=%zu)\n", temp_workspace,
-           temp_size);
+    // printf("[DEBUG] Decompress Workspace: %p (size=%zu)\n", temp_workspace,
+    //        temp_size);
 
     // === Partition the temp_workspace ===
     byte_t *workspace_ptr = static_cast<byte_t *>(temp_workspace);
@@ -2838,7 +2838,7 @@ public:
     // Allocate device input buffer
     // FIX: Use input directly. d_input must point to the START of the Frame.
     const byte_t *d_input = h_compressed_data_ptr;
-    printf("[DEBUG] decompress d_input (src): %p\n", d_input);
+    // printf("[DEBUG] decompress d_input (src): %p\n", d_input);
 
     // PROBE REMOVED (Fixed crash on small inputs)
 
@@ -3718,12 +3718,12 @@ private:
 
     // Debug: print block header info
     // Debug: print block header info
-    printf("[DEBUG_BLK] read_block_header: type=%u (%s), last=%d, "
-           "size=%u, input_rem=%u\n",
-           block_type,
-           block_type == 0 ? "RAW" : (block_type == 1 ? "RLE" : "CMP"),
-           *is_last, *size, input_size);
-    fflush(stdout);
+    // printf("[DEBUG_BLK] read_block_header: type=%u (%s), last=%d, "
+    //        "size=%u, input_rem=%u\n",
+    //        block_type,
+    //        block_type == 0 ? "RAW" : (block_type == 1 ? "RLE" : "CMP"),
+    //        *is_last, *size, input_size);
+    // fflush(stdout);
 
     return Status::SUCCESS;
   }
@@ -3739,9 +3739,9 @@ private:
     if (!input || !output || !output_size) {
       return Status::ERROR_INVALID_PARAMETER;
     }
-    printf("[DEBUG_BLK] decompress_block: input_size=%u, output_max=%u\n",
-           input_size, output_max_size);
-    fflush(stdout);
+    // printf("[DEBUG_BLK] decompress_block: input_size=%u, output_max=%u\n",
+    //        input_size, output_max_size);
+    // fflush(stdout);
 
     // Clear any previous error state to avoid false positives in validation
     (void)cudaGetLastError();
@@ -3756,14 +3756,16 @@ private:
       u32 actual_dump = std::min((u32)DUMP_SIZE, input_size);
       CUDA_CHECK(
           cudaMemcpy(h_dump, input, actual_dump, cudaMemcpyDeviceToHost));
-      printf("[DEBUG_BLK] Block Start Dump (%u bytes):\n", input_size);
-      for (int i = 0; i < actual_dump; i++) {
-        printf("%02x ", h_dump[i]);
-        if ((i + 1) % 16 == 0)
-          printf("\n");
-      }
-      printf("\n");
-      fflush(stdout);
+      // printf("[DEBUG_BLK] Block Start Dump (%u bytes):\n", input_size);
+      // for (int i = 0; i < actual_dump; i++) {
+      //   printf("%02x ", h_dump[i]);
+      //   if ((i + 1) % 16 == 0)
+      //     printf("\n");
+      // }
+      // printf("\n");
+      // fflush(stdout);
+      (void)h_dump;
+      (void)actual_dump; // Suppress unused warnings
     }
     u32 literals_header_size = 0;
     u32 literals_compressed_size = 0;
@@ -3785,9 +3787,9 @@ private:
       return Status::ERROR_CUDA_ERROR;
     }
 
-    printf("[DEBUG_BLK] literals: header=%u, comp=%u, decomp=%u\n",
-           literals_header_size, literals_compressed_size,
-           literals_decompressed_size);
+    // printf("[DEBUG_BLK] literals: header=%u, comp=%u, decomp=%u\n",
+    //        literals_header_size, literals_compressed_size,
+    //        literals_decompressed_size);
 
     // DEBUG: Dump first 64 bytes of decoded literals
     {
@@ -3796,14 +3798,16 @@ private:
       u32 actual_dump = std::min((u32)DUMP_SIZE, literals_decompressed_size);
       CUDA_CHECK(cudaMemcpy(h_dump, d_decompressed_literals, actual_dump,
                             cudaMemcpyDeviceToHost));
-      printf("[DEBUG_LITS] Literals Dump (%u bytes):\n", actual_dump);
-      for (int i = 0; i < actual_dump; i++) {
-        printf("%02x ", h_dump[i]);
-        if ((i + 1) % 16 == 0)
-          printf("\n");
-      }
-      printf("\n");
-      fflush(stdout);
+      // printf("[DEBUG_LITS] Literals Dump (%u bytes):\n", actual_dump);
+      // for (int i = 0; i < actual_dump; i++) {
+      //   printf("%02x ", h_dump[i]);
+      //   if ((i + 1) % 16 == 0)
+      //     printf("\n");
+      // }
+      // printf("\n");
+      // fflush(stdout);
+      (void)h_dump;
+      (void)actual_dump; // Suppress unused warnings
     }
 
     // === Decompress Sequences ===
@@ -3816,10 +3820,10 @@ private:
 
     // DEBUG: Trace sequence offset calculation
     // DEBUG: Trace sequence offset calculation
-    printf("[DEBUG_PART] decompress_block: sequences_offset=%u (LitHdr=%u + "
-           "LitComp=%u), LitDecomp=%u, input_size=%u\n",
-           sequences_offset, literals_header_size, literals_compressed_size,
-           literals_decompressed_size, input_size);
+    // printf("[DEBUG_PART] decompress_block: sequences_offset=%u (LitHdr=%u + "
+    //        "LitComp=%u), LitDecomp=%u, input_size=%u\n",
+    //        sequences_offset, literals_header_size, literals_compressed_size,
+    //        literals_decompressed_size, input_size);
     // fprintf(stderr,
     //         "[DEBUG] decompress_block: sequences_offset: %u (LitHeader: %u, "
     //         "LitCompressed: %u)\n",
@@ -3854,8 +3858,8 @@ private:
       return status;
     }
 
-    printf("[DEBUG_BLK] decompress_sequences completed. num_seq=%u\n",
-           ctx.seq_ctx->num_sequences);
+    // printf("[DEBUG_BLK] decompress_sequences completed. num_seq=%u\n",
+    //        ctx.seq_ctx->num_sequences);
 
     // Sync after sequences
     cudaError_t seq_sync_err = cudaStreamSynchronize(stream);
@@ -5351,28 +5355,28 @@ private:
     const u32 threads = 256;
     const u32 blocks = (num_sequences + threads - 1) / threads;
 
-    fprintf(
-        stderr,
-        "[DEBUG] Modes Parsing Done. fse_modes=0x%02X, LL=%u, OF=%u, ML=%u. "
-        "Offset=%u\n",
-        fse_modes, ll_mode, of_mode, ml_mode, offset);
-    fprintf(stderr, "[DEBUG] SeqHeader RAW: ");
-    for (int i = 0; i < 8 && i < input_size; i++)
-      fprintf(stderr, "%02x ", h_header[i]);
-    fprintf(stderr, "\n");
+    // fprintf(
+    //     stderr,
+    //     "[DEBUG] Modes Parsing Done. fse_modes=0x%02X, LL=%u, OF=%u, ML=%u. "
+    //     "Offset=%u\n",
+    //     fse_modes, ll_mode, of_mode, ml_mode, offset);
+    // fprintf(stderr, "[DEBUG] SeqHeader RAW: ");
+    // for (int i = 0; i < 8 && i < input_size; i++)
+    //   fprintf(stderr, "%02x ", h_header[i]);
+    // fprintf(stderr, "\n");
 
-    fprintf(stderr, "[DEBUG] SeqSection Size: %u\n", input_size);
-    if (input_size >= 8) {
-      fprintf(stderr, "[DEBUG] SeqSection END: ");
-      for (int i = input_size - 8; i < input_size; i++) {
-        // Safe access via device read? No, h_header only has 16 bytes.
-        // We need to read from 'input' (device).
-        byte_t b;
-        CUDA_CHECK(cudaMemcpy(&b, input + i, 1, cudaMemcpyDeviceToHost));
-        fprintf(stderr, "%02x ", b);
-      }
-      fprintf(stderr, "\n");
-    }
+    // fprintf(stderr, "[DEBUG] SeqSection Size: %u\n", input_size);
+    // if (input_size >= 8) {
+    //   fprintf(stderr, "[DEBUG] SeqSection END: ");
+    //   for (int i = input_size - 8; i < input_size; i++) {
+    //     // Safe access via device read? No, h_header only has 16 bytes.
+    //     // We need to read from 'input' (device).
+    //     byte_t b;
+    //     CUDA_CHECK(cudaMemcpy(&b, input + i, 1, cudaMemcpyDeviceToHost));
+    //     fprintf(stderr, "%02x ", b);
+    //   }
+    //   fprintf(stderr, "\n");
+    // }
     fse::FSEDecodeTable ll_table_obj = {};
     fse::FSEDecodeTable of_table_obj = {};
     fse::FSEDecodeTable ml_table_obj = {};
@@ -5591,17 +5595,17 @@ private:
     // modes. If Mode is RLE (1), decode_sequences_interleaved skips it.
 
     // [DEBUG DISABLED] Suppress per-call debug output for performance
-    fprintf(stderr,
-            "[DEBUG] Calling decode_sequences_interleaved w/ Offset=%u, "
-            "Remaining=%u\n",
-            offset, input_size - offset);
+    // fprintf(stderr,
+    //         "[DEBUG] Calling decode_sequences_interleaved w/ Offset=%u, "
+    //         "Remaining=%u\n",
+    //         offset, input_size - offset);
     Status status = fse::decode_sequences_interleaved(
         input + offset, input_size - offset, num_sequences,
         seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
         seq_ctx->d_match_lengths, ll_mode, of_mode, ml_mode, p_ll_table,
         p_of_table, p_ml_table, total_literal_count, stream);
-    fprintf(stderr, "[DEBUG] decode_sequences_interleaved returned: %d\n",
-            (int)status);
+    // fprintf(stderr, "[DEBUG] decode_sequences_interleaved returned: %d\n",
+    //         (int)status);
     // Debug: Dump first 3 decoded sequences
     {
       u32 h_ll[3] = {0}, h_of[3] = {0}, h_ml[3] = {0};
@@ -5614,11 +5618,11 @@ private:
       CUDA_CHECK(cudaMemcpy(h_ml, seq_ctx->d_match_lengths,
                             std::min(3u, num_sequences) * sizeof(u32),
                             cudaMemcpyDeviceToHost));
-      fprintf(stderr,
-              "[DEBUG] First 3 Sequences: LL=[%u,%u,%u] OF=[%u,%u,%u] "
-              "ML=[%u,%u,%u]\n",
-              h_ll[0], h_ll[1], h_ll[2], h_of[0], h_of[1], h_of[2], h_ml[0],
-              h_ml[1], h_ml[2]);
+      // fprintf(stderr,
+      //         "[DEBUG] First 3 Sequences: LL=[%u,%u,%u] OF=[%u,%u,%u] "
+      //         "ML=[%u,%u,%u]\n",
+      //         h_ll[0], h_ll[1], h_ll[2], h_of[0], h_of[1], h_of[2], h_ml[0],
+      //         h_ml[1], h_ml[2]);
     }
 
     // Cleanup Host Tables

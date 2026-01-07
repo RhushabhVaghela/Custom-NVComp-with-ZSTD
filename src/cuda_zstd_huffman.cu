@@ -238,7 +238,7 @@ __host__ Status decode_huffman_weights_direct(const byte_t *h_input,
 
   // Read 4-bit weights, 2 per byte
   // RFC 8878: Weight[0] = (Byte[0] >> 4), Weight[1] = (Byte[0] & 0xf), etc.
-  u32 num_bytes = (*num_symbols + 1) / 2;
+  // Note: num_bytes = (*num_symbols + 1) / 2 is computed implicitly below
 
   for (u32 i = 0; i < *num_symbols; i++) {
     u32 byte_idx = i / 2;
@@ -321,16 +321,28 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
     }
 
     norm_counts[symbol++] = count;
-    if (count == -1)
-      remaining -= 1;
-    else if (count > 0)
-      remaining -= count;
+    // For FSE normalization, count=-1 means probability 0 (consumes 2 slots)
+    // count > 0 means probability count (consumes count slots)
+    // Only decrement if we have enough remaining slots for this count
+    if (count == -1) {
+      if (remaining >= 2) {
+        remaining -= 2; // count=-1 consumes 2 slots
+      }
+    } else if (count > 0) {
+      if (remaining >= (i32)count) {
+        remaining -= count;
+      }
+    } else {
+      // count=0 (shouldn't happen with valid input), but handle gracefully
+      remaining = 0;
+    }
   }
 
   u32 num_fse_symbols = symbol;
 
   // DEBUG: Verify normalization parsing
-  fprintf(stderr, "[HUF_FSE] Parsed %u symbols, remaining=%d, bit_pos=%u\n",
+  fprintf(stderr,
+          "[HUF_FSE] Parsed %u symbols, remaining=%d, expected=0, bit_pos=%u\n",
           num_fse_symbols, remaining, bit_pos_header);
   fprintf(stderr, "[HUF_FSE] NormCounts: ");
   for (u32 i = 0; i < num_fse_symbols && i < 12; i++) {
@@ -581,10 +593,11 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
   memset(h_code_lengths, 0, MAX_HUFFMAN_SYMBOLS);
 
   // First pass: find sum of 2^(Weight-1) to determine Max_Number_of_Bits
+  // RFC 8878: The last weight is adjusted so the sum is an exact power of 2.
   u32 weight_sum = 0;
   for (u32 i = 0; i < num_weights; i++) {
     if (h_weights[i] > 0) {
-      weight_sum += 1 << (h_weights[i] - 1);
+      weight_sum += 1U << (h_weights[i] - 1);
     }
   }
 
@@ -592,34 +605,52 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
     return Status::ERROR_CORRUPT_DATA;
   }
 
-  // Find next power of 2
-  // MaxBits is the power k such that 2^k >= weight_sum
-  u32 next_power = 1;
+  // Find the smallest k such that 2^k >= weight_sum
+  // This is the max_bits value
   u32 max_num_bits = 0;
+  u32 next_power = 1;
   while (next_power < weight_sum) {
     next_power <<= 1;
     max_num_bits++;
   }
 
   // RFC 8878: The last weight's value is reconstructed so the sum is an exact
-  // power of 2.
-  u32 last_weight_val = next_power - weight_sum;
+  // power of 2. The last weight represents the remaining bits needed.
+  // If weight_sum is already a power of 2, last_weight_val = 0.
+  // Otherwise, we need to compute what the last weight should be.
+  u32 last_weight_val = next_power - weight_sum; // The additional value needed
   u32 last_weight = 0;
   if (last_weight_val > 0) {
-    last_weight = 31 - __builtin_clz(last_weight_val) + 1;
+    // The last weight is such that 2^(last_weight-1) fills the gap
+    // If gap = X, find w where 2^(w-1) = X => w = log2(X) + 1
+    if (last_weight_val > 0) {
+      // Compute log2(last_weight_val) + 1
+      u32 log_val = 0;
+      u32 temp = last_weight_val;
+      while (temp > 1) {
+        temp >>= 1;
+        log_val++;
+      }
+      // Check if it's exactly a power of 2
+      if ((1U << log_val) == last_weight_val) {
+        last_weight = log_val + 1;
+      } else {
+        // Not a power of 2, need different handling
+        // This shouldn't happen if RFC is followed correctly
+        last_weight = log_val + 2; // Round up
+      }
+    }
   }
 
   *max_bits = max_num_bits;
 
-  fprintf(stderr,
-          "[HUF_WEIGHTS] weight_sum=%u, next_power=%u, max_bits=%u, "
-          "last_weight=%u\n",
-          weight_sum, next_power, max_num_bits, last_weight);
-
   // Convert weights to code lengths: bits = MaxBits + 1 - Weight
+  // RFC 8878: C[w] = (MaxBits + 1 - w) for w in weights
   for (u32 i = 0; i < num_weights; i++) {
     if (h_weights[i] > 0) {
-      h_code_lengths[i] = (u8)(max_num_bits + 1 - h_weights[i]);
+      // Code length = max_bits + 1 - weight
+      u8 code_len = (u8)(max_num_bits + 1 - h_weights[i]);
+      h_code_lengths[i] = code_len > 0 ? code_len : 0;
     } else {
       h_code_lengths[i] = 0;
     }
@@ -627,7 +658,8 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
 
   // Add reconstructed last symbol if not 0
   if (num_weights < MAX_HUFFMAN_SYMBOLS && last_weight > 0) {
-    h_code_lengths[num_weights] = (u8)(max_num_bits + 1 - last_weight);
+    u8 code_len = (u8)(max_num_bits + 1 - last_weight);
+    h_code_lengths[num_weights] = code_len > 0 ? code_len : 0;
   }
 
   return Status::SUCCESS;

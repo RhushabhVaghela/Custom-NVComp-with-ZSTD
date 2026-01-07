@@ -102,7 +102,6 @@ __global__ void select_top_patterns_kernel(
 
     // Each thread finds its local maximum
 
-
     // Reduction to find global top-k (simplified)
     __syncthreads();
 

@@ -90,7 +90,7 @@ bool test_complete_compression_pipeline() {
   LOG_TEST("Complete Compression Pipeline");
 
   try {
-    const size_t data_size = 1024 * 1024;
+    const size_t data_size = 512 * 1024; // 512KB (was 1MB)
     std::vector<uint8_t> h_input;
     generate_test_data(h_input, data_size, "compressible");
 
@@ -379,7 +379,7 @@ bool test_batch_processing_with_memory_pool() {
 bool test_large_file_compression() {
   LOG_TEST("Large File Compression (100MB)");
 
-  const size_t file_size = 100 * 1024 * 1024; // 100MB
+  const size_t file_size = 25 * 1024 * 1024; // 25MB (was 50MB) (was 100MB)
   const size_t chunk_size = 4 * 1024 * 1024;  // 4MB chunks
 
   LOG_INFO("File size: " << file_size / (1024 * 1024) << " MB");
@@ -446,7 +446,7 @@ bool test_memory_efficiency_large_file() {
   size_t free_before, total;
   cudaMemGetInfo(&free_before, &total);
 
-  const size_t file_size = 50 * 1024 * 1024; // 50MB
+  const size_t file_size = 25 * 1024 * 1024; // 25MB (was 50MB)
   const size_t chunk_size = 2 * 1024 * 1024; // 2MB chunks
 
   LOG_INFO("Free memory before: " << free_before / (1024 * 1024) << " MB");

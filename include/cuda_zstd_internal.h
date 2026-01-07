@@ -126,11 +126,9 @@ struct FSEBitStreamReader {
   __device__ __host__ void init_at_bit(const byte_t *input, u32 start_bit_pos) {
     bit_pos = start_bit_pos;
     stream_start = input;
-
-    // In Zstd, we read backwards from the sentinel.
-    // The 'bit_pos' here is the index of the sentinel bit.
-    // We want 'read(nb)' to take the next 'nb' bits below 'bit_pos'.
   }
+
+  __device__ __host__ void set_stream_size(u32 size) { stream_size = size; }
 
   __device__ __host__ void init(const byte_t *stream_end, size_t stream_size) {
     stream_ptr = stream_end - 4;
@@ -164,18 +162,41 @@ struct FSEBitStreamReader {
 
     bit_pos -= num_bits;
 
-    // Direct read using bit_pos
+    // For backward reading: bit_pos counts from START, so byte containing bit
+    // is at stream_start + (stream_size - 1 - bit_pos/8)
     u32 byte_offset = bit_pos / 8;
     u32 bit_offset = bit_pos % 8;
+    u32 byte_from_end = (stream_size - 1) - byte_offset;
 
     u64 data = 0;
-    // Load up to 8 bytes, staying within the buffer [stream_start, stream_end)
-    // We assume stream_ptr + 8 is safe if we have enough padding,
-    // but let's be explicit and use the known stream count.
+    // Load up to 8 bytes from the end, going backward
     for (int i = 0; i < 8; ++i) {
-      // Simple safety: if we go beyond the provided section, stop loading
-      if (byte_offset + i < stream_size) {
-        data |= ((u64)stream_start[byte_offset + i] << (i * 8));
+      if (byte_from_end >= i) {
+        data |= ((u64)stream_start[byte_from_end - i] << (i * 8));
+      }
+    }
+
+    u32 val = (u32)((data >> bit_offset) & ((1ULL << num_bits) - 1));
+    return val;
+  }
+
+  __device__ __host__ u32 peek(u8 num_bits) {
+    if (num_bits == 0)
+      return 0;
+    if (bit_pos < num_bits)
+      return 0;
+
+    // Peek uses the position that read() WOULD move to
+    u32 temp_pos = bit_pos - num_bits;
+    u32 byte_offset = temp_pos / 8;
+    u32 bit_offset = temp_pos % 8;
+    u32 byte_from_end = (stream_size - 1) - byte_offset;
+
+    u64 data = 0;
+    // Load up to 8 bytes from the end, going backward
+    for (int i = 0; i < 8; ++i) {
+      if (byte_from_end >= i) {
+        data |= ((u64)stream_start[byte_from_end - i] << (i * 8));
       }
     }
 
@@ -371,15 +392,23 @@ struct ZstdSequence {
 
   __device__ __host__ static __forceinline__ u32
   get_offset_code_extra_bits(u32 code) {
-    return code;
+    if (code <= 2)
+      return 0;
+    return code - 3;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_offset_extra_bits(u32 offset, u32 code) {
-    if (code <= 1)
+    // Only used for ENCODING (calculating what bits to write)
+    // Inverse of decoding logic
+    if (code <= 2)
       return 0;
-    u32 base = (1u << code);
-    return offset - base;
+    u32 extra_bits = code - 3;
+    u32 base = (1u << extra_bits); // Actually base value is base + 1?
+    // RFC: Offset = 2^(Code-3) + 1 + ExtraBits
+    // ExtraBits = Offset - 1 - 2^(Code-3)
+    // Offset >= 1.
+    return offset - 1 - base;
   }
 
   // --- Base Values ---
@@ -399,16 +428,6 @@ struct ZstdSequence {
     if (code < 32)
       return code + 3;
     // RFC 8878 Table 11: Match length baselines
-    // Codes 32-35: 35, 37, 39, 41 (1 extra bit each)
-    // Codes 36-37: 43, 47 (2 extra bits each)
-    // Codes 38-39: 51, 59 (3 extra bits each)
-    // Codes 40-41: 67, 83 (4 extra bits each)
-    // Codes 42-43: 99, 131 (5 extra bits each)
-    // Codes 44-45: 163, 227 (6 extra bits each)
-    // Codes 46-47: 291, 419 (7 extra bits each)
-    // Codes 48-49: 547, 803 (8 extra bits each)
-    // Codes 50-51: 1059, 1571 (9 extra bits each)
-    // Code 52: 2083 (16 extra bits)
     static const u32 ML_base[53] = {
         3,  4,   5,   6,   7,   8,   9,   10,  11,   12,   13,  14, 15, 16,
         17, 18,  19,  20,  21,  22,  23,  24,  25,   26,   27,  28, 29, 30,
@@ -430,12 +449,20 @@ struct ZstdSequence {
   }
 
   __device__ __host__ static __forceinline__ u32 get_offset(u32 code) {
-    return (1u << code);
+    // RFC 8878 Section 3.1.1.5:
+    // Code 0-2: Rep codes (return 0 or handle separately - caller handles
+    // history) Code >= 3: Offset = (1 << (Code-3)) + 1 + ExtraBits
+    if (code <= 2)
+      return 0;
+    return (1u << (code - 3)) + 1;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_offset_bits(u32 symbol, FSEBitStreamReader &reader) {
-    return reader.read(symbol);
+    if (symbol <= 2)
+      return 0;
+    u32 num_bits = symbol - 3;
+    return reader.read(num_bits);
   }
 };
 

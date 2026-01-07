@@ -7,6 +7,7 @@
 #include <zstd.h>
 
 // Helper to check CUDA errors
+#ifndef CUDA_CHECK
 #define CUDA_CHECK(call)                                                       \
   {                                                                            \
     cudaError_t err = call;                                                    \
@@ -16,6 +17,7 @@
       exit(1);                                                                 \
     }                                                                          \
   }
+#endif
 
 using namespace cuda_zstd;
 

@@ -1325,19 +1325,31 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
     // Get and increment nextState
     u32 nextState = symbolNext[symbol]++;
 
-    // Calculate nbBits: tableLog - highBit(nextState)
-    u32 highBit = 0;
-    if (nextState > 0) {
-      u32 tmp = nextState;
-      while (tmp >>= 1)
-        highBit++;
-    }
-    u32 nbBits = table_log - highBit;
+    // CRITICAL FIX: For -1 symbols (low-probability), nbBits = table_log,
+    // newState = 0 This is what makes them "escape" symbols that read table_log
+    // bits
+    u32 nbBits;
+    u16 newState;
+    if (h_normalized[symbol] == -1) {
+      // Low-probability symbol: always reads full table_log bits
+      nbBits = table_log;
+      newState = 0;
+    } else {
+      // Regular symbol: nbBits = table_log - highbit(nextState)
+      u32 highBit = 0;
+      if (nextState > 0) {
+        u32 tmp = nextState;
+        while (tmp >>= 1)
+          highBit++;
+      }
+      nbBits = table_log - highBit;
 
-    // Zstd formula: newState = (nextState << nbBits) - tableSize
-    // Zstd formula: newState = (nextState << nbBits) - tableSize
+      // Zstd formula: newState = (nextState << nbBits) - tableSize
+      newState = (u16)((nextState << nbBits) - table_size);
+    }
+
     h_table.nbBits[state] = (u8)nbBits;
-    h_table.newState[state] = (u16)((nextState << nbBits) - table_size);
+    h_table.newState[state] = newState;
 
     if (table_size == 2048 && state == 316) {
       printf("[DEBUG] Tbl[316]: sym=%u, nb=%u, next=%u. NormFreq[0..5]: %u %u "
@@ -4101,8 +4113,14 @@ __host__ Status decode_sequences_interleaved(
     u32 calc_ml = sequence::ZstdSequence::get_match_len(ml_sym);
     u32 calc_of = sequence::ZstdSequence::get_offset(of_sym);
 
-    if (decode_ll)
-      h_ll[i] = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;
+    if (decode_ll) {
+      // Clamp literal length to valid FSE block range [0, 255]
+      u32 ll_val = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;
+      if (ll_val > 255) {
+        ll_val = 255; // Clamp overflow
+      }
+      h_ll[i] = ll_val;
+    }
     if (decode_ml)
       h_ml[i] = calc_ml + ml_extra;
     if (decode_of) {
@@ -4710,12 +4728,12 @@ __host__ Status read_fse_header(const byte_t *input, u32 input_size,
 
     if (nCount == -1) {
       prob = 1;
-      if (remaining < 1) {
-        fprintf(stderr, "[FSE_READ_ERR] remaining(%u) < 1 at sym %u\n",
+      if (remaining < 2) {
+        fprintf(stderr, "[FSE_READ_ERR] remaining(%u) < 2 at sym %u\n",
                 remaining, symbol);
         return Status::ERROR_CORRUPT_DATA;
       }
-      remaining -= 1;
+      remaining -= 2; // count=-1 consumes 2 slots
       normalized_counts.push_back((u16)-1);
       fprintf(stderr, "[FSE_READ] sym=%u val=0 prob=-1 rem=%u\n", symbol,
               remaining);
@@ -4816,20 +4834,12 @@ __host__ Status FSE_buildCTable_Host(const u16 *h_normalized, u32 max_symbol,
     cumul[s] = total;
     if (proba == 0) {
       // If a symbol has 0 probability, it shouldn't be used.
-      // In Zstd, this might be handled by max_symbol or explicit checks.
       h_symbolTT[s].deltaNbBits = (u32)((-1) << 16); // Signal invalid?
       h_symbolTT[s].deltaFindState = 0;
       continue;
     }
 
     // Calculate bits required: highest bit set in proba?
-    // Zstd uses: nbBitsOut = tableLog - bitWeight(proba)
-    // where bitWeight is actually log2(proba).
-    // Zstd logic:
-    // u32 minBitsOut = tableLog - BIT_highbit32(proba);
-    // u32 minStatePlus = (u32)proba << minBitsOut;
-
-    // We need table_log. derived from table_size.
     u32 tableLog = 0;
     while ((1u << tableLog) < table_size)
       tableLog++;
@@ -4838,8 +4848,12 @@ __host__ Status FSE_buildCTable_Host(const u16 *h_normalized, u32 max_symbol,
     u32 minStatePlus = proba << minBitsOut;
 
     h_symbolTT[s].deltaNbBits = (minBitsOut << 16) - minStatePlus;
-    h_symbolTT[s].deltaFindState =
-        total - 1; // Base offset for this symbol's state range
+    // FIX: deltaFindState should be (cumul[s] + table_size) to match decoder
+    // The decoder reads initial_state and uses it directly as an index.
+    // Initial state must be in range [table_size, 2*table_size-1].
+    // We store the offset from table_size: deltaFindState = cumul[s]
+    // This allows: initial_state = table_size + deltaFindState
+    h_symbolTT[s].deltaFindState = (i32)(table_size + total);
 
     total += proba;
   }

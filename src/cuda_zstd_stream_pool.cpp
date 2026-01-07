@@ -23,8 +23,7 @@ StreamPool::StreamPool(size_t pool_size) {
   for (size_t i = 0; i < pool_size; ++i) {
     PerStreamResources &r = resources_[i];
 
-    // DEBUG: Trace stream creation
-    // std::cerr << "StreamPool: creating stream " << i << " of " << pool_size
+        // std::cerr << "StreamPool: creating stream " << i << " of " << pool_size
     // << std::endl;
     cudaError_t err = cudaStreamCreate(&r.stream);
     // std::cerr << "StreamPool: created stream index=" << i << ", err=" <<
@@ -42,8 +41,7 @@ StreamPool::StreamPool(size_t pool_size) {
         cudaStreamDestroy(resources_[j].stream);
       }
       resources_.clear();
-      // throw std::runtime_error("Failed to create CUDA stream pool"); //
-      // Temporarily disabled
+      // throw std::runtime_error("Failed to create CUDA stream pool");      // Temporarily disabled
       break;
     } else {
       // Keep synchronization for proper stream initialization

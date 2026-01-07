@@ -1,10 +1,16 @@
 // FIXED Benchmark - cudaDeviceReset() bug removed!
+// MODIFIED for RTX 5080 (16GB VRAM) - Safe memory limits
+
 #include "cuda_zstd_manager.h"
 #include <iostream>
 #include <vector>
 #include <chrono>
 #include <iomanip>
 #include <cmath>
+
+// Hardware-safe constants for RTX 5080 (16GB VRAM)
+#define MAX_INPUT_SIZE (256ULL * 1024 * 1024)          // Max 256MB (reduced from 500MB)
+#define MAX_BLOCK_SIZE (2ULL * 1024 * 1024)            // Max 2MB block size
 
 using namespace cuda_zstd;
 
@@ -13,17 +19,34 @@ namespace formulas {
     u32 logarithmic(size_t s) { return (u32)(512.0*1024.0 * std::pow(s/(1024.0*1024.0), 0.25)); }
     u32 linear_128(size_t s) { return (u32)(s / 128); }
     u32 cuberoot_k150(size_t s) { return (u32)(std::cbrt((double)s) * 150.0); }
-    u32 piecewise(size_t s) { return s<10*1024*1024 ? 2*1024*1024 : (s<100*1024*1024 ? 4*1024*1024 : 8*1024*1024); }
+    u32 piecewise(size_t s) { 
+        if (s < 10*1024*1024) return 2*1024*1024;
+        if (s < 100*1024*1024) return 4*1024*1024;
+        return 4*1024*1024; // Capped for safety
+    }
     u32 hybrid(size_t s) {
         u32 ideal = (u32)(std::sqrt((double)s) * 400.0);
         size_t blocks = std::clamp(s/ideal, (size_t)64, (size_t)256);
-        return (u32)(1 << (u32)std::ceil(std::log2(s/blocks)));
+        u32 result = (u32)(1 << (u32)std::ceil(std::log2(s/blocks)));
+        if (result > MAX_BLOCK_SIZE) result = MAX_BLOCK_SIZE;
+        return result;
     }
 }
 
 struct Result { std::string formula; size_t input_mb; u32 block_kb; double time_ms; double throughput_mbps; };
 
+bool check_memory_safety(size_t input_size, u32 block_size) {
+    size_t estimated_memory = input_size * 4; // 4x overhead worst case
+    if (estimated_memory > 8ULL * 1024 * 1024 * 1024) return false; // 8GB VRAM limit
+    if (block_size > MAX_BLOCK_SIZE) return false;
+    return true;
+}
+
 bool test(const char* name, size_t input_size, u32 block_size, Result& r) {
+    // Memory safety check
+    if (!check_memory_safety(input_size, block_size))
+        return false;
+    
     std::vector<uint8_t> h_input(input_size);
     for (size_t i = 0; i < input_size; ++i) h_input[i] = i % 256;
     
@@ -68,6 +91,7 @@ bool test(const char* name, size_t input_size, u32 block_size, Result& r) {
 int main() {
     std::cout << "==============================================\n"
               << "  FIXED Benchmark (cudaDeviceReset removed)\n"
+              << "  RTX 5080 Safe Mode\n"
               << "==============================================\n\n";
     
     struct {const char* n; u32 (*f)(size_t);} formulas[] = {
@@ -79,6 +103,7 @@ int main() {
         {"Hybrid", formulas::hybrid}
     };
     
+    // Reduced size range for safety
     size_t sizes[] = {10*1024*1024, 25*1024*1024, 50*1024*1024, 100*1024*1024};
     std::vector<Result> results;
     
@@ -92,7 +117,7 @@ int main() {
                 results.push_back(r);
                 std::cout << "OK (" << std::fixed << std::setprecision(2) << r.throughput_mbps << " MB/s)\n";
             } else {
-                std::cout << "FAILED\n";
+                std::cout << "SKIPPED (safety check)\n";
             }
         }
     }

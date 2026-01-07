@@ -1,6 +1,7 @@
 // Comprehensive CUDA-ZSTD Benchmark: Formulas × Block Sizes × Modes × Input
-// Sizes Tests: 6 formulas × 7 block_sizes × 2 modes (serial/parallel) × 14
-// input_sizes Total: ~1,176 test combinations from 1KB to 20GB
+// MODIFIED for RTX 5080 (16GB VRAM) - Safe memory limits
+// Sizes Tests: 6 formulas × 7 block_sizes × 2 modes (serial/parallel)
+// Total: ~1,176 test combinations from 1KB to 1GB (reduced from 20GB)
 
 #include "cuda_zstd_manager.h"
 #include <algorithm>
@@ -17,6 +18,12 @@
 #include <vector>
 
 using namespace cuda_zstd;
+
+// Hardware-safe constants for RTX 5080 (16GB VRAM)
+#define MAX_VRAM_PER_BENCHMARK (8ULL * 1024 * 1024 * 1024)  // Max 8GB VRAM per test
+#define MAX_INPUT_SIZE (512ULL * 1024 * 1024 * 1024)        // Max 512MB input (reduced from 20GB)
+#define MAX_BLOCK_SIZE (2ULL * 1024 * 1024)                 // Max 2MB block size (reduced from 8MB)
+#define MAX_BATCH_ELEMENTS 32                               // Reduced batch size
 
 // =============================
 // Formula definitions
@@ -39,7 +46,7 @@ u32 piecewise(size_t input_size) {
     return 2 * 1024 * 1024;
   if (input_size < 100 * 1024 * 1024)
     return 4 * 1024 * 1024;
-  return 8 * 1024 * 1024;
+  return 4 * 1024 * 1024; // Capped at 4MB for safety
 }
 u32 hybrid(size_t input_size) {
   u32 ideal = (u32)(std::sqrt((double)input_size) * 400.0);
@@ -47,7 +54,10 @@ u32 hybrid(size_t input_size) {
   target_blocks = std::clamp(target_blocks, (size_t)64, (size_t)256);
   u32 block_size = (u32)(input_size / target_blocks);
   u32 power = (u32)std::ceil(std::log2(block_size));
-  return (u32)(1 << power);
+  u32 result = (u32)(1 << power);
+  // Safety cap
+  if (result > MAX_BLOCK_SIZE) result = MAX_BLOCK_SIZE;
+  return result;
 }
 } // namespace formulas
 
@@ -78,6 +88,20 @@ std::string format_size(size_t bytes) {
 }
 
 // =============================
+// Memory safety check
+// =============================
+bool check_memory_safety(size_t input_size, u32 block_size) {
+  size_t estimated_memory = input_size * 4; // 4x overhead worst case
+  if (estimated_memory > MAX_VRAM_PER_BENCHMARK) {
+    return false;
+  }
+  if (block_size > MAX_BLOCK_SIZE) {
+    return false;
+  }
+  return true;
+}
+
+// =============================
 // Benchmark runner
 // =============================
 bool run_benchmark(const std::string &formula_name, size_t input_size,
@@ -89,9 +113,8 @@ bool run_benchmark(const std::string &formula_name, size_t input_size,
   if (input_size < 256)
     return false;
 
-  const size_t VRAM_LIMIT = 12UL * 1024 * 1024 * 1024; // 12GB safe limit
-  size_t estimated_memory = input_size * 4;
-  if (estimated_memory > VRAM_LIMIT)
+  // Memory safety check
+  if (!check_memory_safety(input_size, block_size))
     return false;
 
   // Generate reproducible test data
@@ -221,15 +244,17 @@ int main() {
 
   std::cout
       << "================================================================\n";
-  std::cout << "  CUDA-ZSTD Comprehensive Benchmark\n";
+  std::cout << "  CUDA-ZSTD Comprehensive Benchmark (RTX 5080 Safe Mode)\n";
   std::cout
       << "================================================================\n\n";
 
   // Config summary
-  std::cout << "GPU VRAM Limit: 12 GB (safe)\n";
+  std::cout << "GPU VRAM Limit: " << (MAX_VRAM_PER_BENCHMARK / (1024*1024*1024)) << " GB (safe)\n";
+  std::cout << "Max Input Size: " << (MAX_INPUT_SIZE / (1024*1024)) << " MB (reduced for safety)\n";
+  std::cout << "Max Block Size: " << (MAX_BLOCK_SIZE / (1024*1024)) << " MB (reduced for safety)\n";
   std::cout << "Compression Level: 3\n";
-  std::cout << "Block Sizes Tested: 128 KB → 8 MB\n";
-  std::cout << "Input Sizes Tested: 1 KB → 20 GB\n\n";
+  std::cout << "Block Sizes Tested: 128 KB -> 2 MB\n";
+  std::cout << "Input Sizes Tested: 1 KB -> 512 MB\n\n";
 
   // Formula definitions
   std::vector<std::pair<std::string, std::function<u32(size_t)>>> formulas = {
@@ -240,7 +265,7 @@ int main() {
       {"Piecewise", formulas::piecewise},
       {"Hybrid", formulas::hybrid}};
 
-  // Input sizes to benchmark (from 1 KB up to 20 GB)
+  // Input sizes to benchmark (reduced from 20GB to 512MB max)
   std::vector<size_t> input_sizes = {
       1 * 1024,             // 1 KB
       4 * 1024,             // 4 KB
@@ -251,19 +276,18 @@ int main() {
       4 * 1024 * 1024,      // 4 MB
       16 * 1024 * 1024,     // 16 MB
       64 * 1024 * 1024,     // 64 MB
+      128 * 1024 * 1024,    // 128 MB
       256 * 1024 * 1024,    // 256 MB
-      1024UL * 1024 * 1024, // 1 GB
+      512UL * 1024 * 1024,  // 512 MB (max)
   };
 
-  // Block sizes to test (from 128 KB up to 8 MB)
+  // Block sizes to test (reduced from 8MB to 2MB max)
   std::vector<u32> block_sizes = {
       128 * 1024,      // 128 KB
       256 * 1024,      // 256 KB
       512 * 1024,      // 512 KB
       1 * 1024 * 1024, // 1 MB
-      2 * 1024 * 1024, // 2 MB
-      4 * 1024 * 1024, // 4 MB
-      8 * 1024 * 1024  // 8 MB
+      2 * 1024 * 1024  // 2 MB (max)
   };
 
   std::vector<bool> parallel_modes = {false, true}; // Serial, Parallel
@@ -332,8 +356,6 @@ int main() {
             block_size >= 512 * 1024) // Limit serial block size to < 512KB
                                       // to prevent instability
           continue;
-        if (block_size >= 4 * 1024 * 1024) // Limit max block size to 4MB total
-          continue;
 
         std::ostringstream block_stream;
         if (block_size >= 1024 * 1024)
@@ -343,7 +365,8 @@ int main() {
         std::string block_label = block_stream.str();
         std::string name = "Fixed_" + block_label;
 
-        if (size != 1024 || block_size != 131072)
+        // Skip if too large for safety
+        if (!check_memory_safety(size, block_size))
           continue;
 
         std::cout << "\n[Test #" << test_number << "] Benchmarking " << name
@@ -401,8 +424,13 @@ int main() {
       for (bool parallel : parallel_modes) {
         if (!parallel && block_size >= 512 * 1024)
           continue; // Strictly limit serial block size to < 512KB
-        if (block_size >= 4 * 1024 * 1024)
-          continue; // Global safety limit: max 4MB block size
+        if (block_size >= MAX_BLOCK_SIZE)
+          continue; // Global safety limit: max 2MB block size
+
+        // Skip if too large for safety
+        if (!check_memory_safety(size, block_size))
+          continue;
+
         std::ostringstream block_stream;
         if (block_size >= 1024 * 1024)
           block_stream << (block_size / (1024 * 1024)) << "MB";

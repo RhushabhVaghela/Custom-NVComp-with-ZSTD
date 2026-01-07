@@ -63,9 +63,12 @@ __global__ void __launch_bounds__(256)
   u32 of_val = d_offsets[idx];
   u32 ml_val = d_match_lengths[idx];
 
-  u32 stateLL = table[0].d_symbol_table[ll_val].deltaFindState + 1;
-  u32 stateOF = table[1].d_symbol_table[of_val].deltaFindState + 1;
-  u32 stateML = table[2].d_symbol_table[ml_val].deltaFindState + 1;
+  // Initial state is deltaFindState (which stores table_size + cumul[s])
+  // This matches Zstandard: initial_state = table_size +
+  // cumulative_start[symbol]
+  u32 stateLL = (u32)table[0].d_symbol_table[ll_val].deltaFindState;
+  u32 stateOF = (u32)table[1].d_symbol_table[of_val].deltaFindState;
+  u32 stateML = (u32)table[2].d_symbol_table[ml_val].deltaFindState;
 
   // 2. Loop N-2 down to 0
   if (num_symbols > 1) {
@@ -361,7 +364,11 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
   for (u32 s = tid; s <= max_symbol; s += blockDim.x) {
     if ((i16)normalized_counters[s] == 0)
       continue;
-    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s]; // Was -1
+    // Use cumFreq[s] - 1 as per Zstd RFC 8878, with safety bound
+    i32 delta = (i32)s_cum_freq[s] - 1;
+    if (delta < 0)
+      delta = 0;
+    table->d_symbol_table[s].deltaFindState = delta;
   }
 }
 

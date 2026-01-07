@@ -6,7 +6,6 @@
 #include <memory>
 #include <vector>
 
-
 namespace cuda_zstd {
 
 struct RingBufferSlot {
