@@ -6,6 +6,7 @@
 
 #include "cuda_zstd_hash.h"
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_xxhash.h"
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -16,7 +17,6 @@
 #include <random>
 #include <string>
 #include <vector>
-
 
 #ifdef __cplusplus
 using namespace cuda_zstd;
@@ -81,7 +81,7 @@ void generate_test_data(void *ptr, size_t size, DataPattern pattern) {
   case DataPattern::RANDOM:
     // Use CUDA random for better distribution
     {
-      std::mt19937_64 rng(12345 + pattern);
+      std::mt19937_64 rng(12345);
       std::uniform_int_distribution<int> dist(0, 255);
       for (size_t i = 0; i < size; ++i) {
         data[i] = static_cast<byte_t>(dist(rng));
@@ -97,7 +97,7 @@ void generate_test_data(void *ptr, size_t size, DataPattern pattern) {
   case DataPattern::SEMI_RANDOM:
     // Repeating 64-byte patterns with some randomness
     {
-      std::mt19937_64 rng(67890 + pattern);
+      std::mt19937_64 rng(67890);
       std::uniform_int_distribution<int> dist(0, 255);
       const size_t block_size = 64;
       byte_t block[block_size];
@@ -121,10 +121,10 @@ void generate_test_data(void *ptr, size_t size, DataPattern pattern) {
 
 // Compute XXH64 checksum
 uint64_t compute_checksum(void *data, size_t size, cudaStream_t stream = 0) {
-  return xxhash::compute_xxh64(static_cast<byte_t *>(data),
-                               static_cast<uint32_t>(size),
-                               0, // default seed
-                               stream);
+  u64 h_hash;
+  cuda_zstd::xxhash::compute_xxhash64(data, size, 0, &h_hash, stream);
+  cudaStreamSynchronize(stream ? stream : 0);
+  return h_hash;
 }
 
 // ============================================================================
@@ -276,7 +276,8 @@ BenchmarkResult benchmark_decoding_only(int level, size_t data_size,
 
   size_t workspace_decomp =
       decomp_manager->get_decompress_temp_size(compressed_size);
-  CHECK_CUDA(cudaRealloc(&workspace, workspace_decomp));
+  CHECK_CUDA(cudaFree(workspace));
+  CHECK_CUDA(cudaMalloc(&workspace, workspace_decomp));
 
   // Warmup
   size_t decompressed_size = data_size;

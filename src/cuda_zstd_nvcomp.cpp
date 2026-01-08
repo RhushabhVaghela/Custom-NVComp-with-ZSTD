@@ -300,8 +300,7 @@ Status NvcompV5BatchManager::compress_async(
   if (num_chunks == 0)
     return Status::SUCCESS;
 
-  if (!d_uncompressed_ptrs || !d_uncompressed_sizes || !d_compressed_ptrs ||
-      !d_compressed_sizes) {
+  if (!d_uncompressed_ptrs || !d_compressed_ptrs || !d_compressed_sizes) {
     return Status::ERROR_INVALID_PARAMETER;
   }
 
@@ -310,39 +309,61 @@ Status NvcompV5BatchManager::compress_async(
   std::vector<void *> h_uncompressed_ptrs(num_chunks);
   std::vector<void *> h_compressed_ptrs(num_chunks);
 
-  // Copy input sizes to host (async)
-  // Check if d_uncompressed_sizes is device or host
+  // Copy input sizes to host
+  // Handle both device and host pointers robustly
   cudaPointerAttributes patts;
   cudaError_t attr_err = cudaPointerGetAttributes(&patts, d_uncompressed_sizes);
   bool is_device_ptr = false;
+  
   if (attr_err == cudaSuccess) {
 #if CUDART_VERSION >= 10000
     is_device_ptr = (patts.type == cudaMemoryTypeDevice);
 #else
     is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
 #endif
+  } else {
+    // cudaPointerGetAttributes failed - assume host pointer
+    // This is safe because we'll try memcpy
+    cudaGetLastError(); // Clear sticky error
+    is_device_ptr = false;
   }
 
   if (is_device_ptr) {
+    // Ensure stream is synchronized before D2H copy
+    if (stream != 0) {
+      CUDA_CHECK(cudaStreamSynchronize(stream));
+    } else {
+      CUDA_CHECK(cudaDeviceSynchronize());
+    }
     CUDA_CHECK(cudaMemcpy(h_uncompressed_sizes.data(), d_uncompressed_sizes,
                           num_chunks * sizeof(size_t), cudaMemcpyDeviceToHost));
   } else {
+    // Host pointer - copy directly
     memcpy(h_uncompressed_sizes.data(), d_uncompressed_sizes,
            num_chunks * sizeof(size_t));
   }
 
-  // Pointers array is usually on host for batch API, but let's check
+  // Pointers array - check if device or host
   attr_err = cudaPointerGetAttributes(&patts, d_uncompressed_ptrs);
   is_device_ptr = false;
+  
   if (attr_err == cudaSuccess) {
 #if CUDART_VERSION >= 10000
     is_device_ptr = (patts.type == cudaMemoryTypeDevice);
 #else
     is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
 #endif
+  } else {
+    cudaGetLastError(); // Clear sticky error
+    is_device_ptr = false;
   }
 
   if (is_device_ptr) {
+    if (stream != 0) {
+      CUDA_CHECK(cudaStreamSynchronize(stream));
+    } else {
+      CUDA_CHECK(cudaDeviceSynchronize());
+    }
     CUDA_CHECK(cudaMemcpy(h_uncompressed_ptrs.data(), d_uncompressed_ptrs,
                           num_chunks * sizeof(void *), cudaMemcpyDeviceToHost));
   } else {
@@ -353,15 +374,24 @@ Status NvcompV5BatchManager::compress_async(
   // Output pointers
   attr_err = cudaPointerGetAttributes(&patts, d_compressed_ptrs);
   is_device_ptr = false;
+  
   if (attr_err == cudaSuccess) {
 #if CUDART_VERSION >= 10000
     is_device_ptr = (patts.type == cudaMemoryTypeDevice);
 #else
     is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
 #endif
+  } else {
+    cudaGetLastError();
+    is_device_ptr = false;
   }
 
   if (is_device_ptr) {
+    if (stream != 0) {
+      CUDA_CHECK(cudaStreamSynchronize(stream));
+    } else {
+      CUDA_CHECK(cudaDeviceSynchronize());
+    }
     CUDA_CHECK(cudaMemcpy(h_compressed_ptrs.data(), d_compressed_ptrs,
                           num_chunks * sizeof(void *), cudaMemcpyDeviceToHost));
   } else {
@@ -376,15 +406,24 @@ Status NvcompV5BatchManager::compress_async(
   std::vector<size_t> h_compressed_sizes(num_chunks);
   attr_err = cudaPointerGetAttributes(&patts, d_compressed_sizes);
   is_device_ptr = false;
+  
   if (attr_err == cudaSuccess) {
 #if CUDART_VERSION >= 10000
     is_device_ptr = (patts.type == cudaMemoryTypeDevice);
 #else
     is_device_ptr = (patts.memoryType == cudaMemoryTypeDevice);
 #endif
+  } else {
+    cudaGetLastError();
+    is_device_ptr = false;
   }
 
   if (is_device_ptr) {
+    if (stream != 0) {
+      CUDA_CHECK(cudaStreamSynchronize(stream));
+    } else {
+      CUDA_CHECK(cudaDeviceSynchronize());
+    }
     CUDA_CHECK(cudaMemcpy(h_compressed_sizes.data(), d_compressed_sizes,
                           num_chunks * sizeof(size_t), cudaMemcpyDeviceToHost));
   } else {

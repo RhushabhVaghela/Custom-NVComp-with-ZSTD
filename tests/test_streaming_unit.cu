@@ -8,7 +8,6 @@
 #include <iostream>
 #include <vector>
 
-
 using namespace cuda_zstd;
 
 #define LOG_TEST(name) std::cout << "\n[UNIT TEST] " << name << std::endl
@@ -22,7 +21,9 @@ using namespace cuda_zstd;
   }
 #define ASSERT_EQ(a, b, msg)                                                   \
   if ((a) != (b)) {                                                            \
-    LOG_FAIL(__func__, msg);                                                   \
+    std::cerr << "  [FAIL] " << __func__ << ": " << msg                        \
+              << " (Actual: " << (long long)(a)                                \
+              << ", Expected: " << (long long)(b) << ")" << std::endl;         \
     return false;                                                              \
   }
 #define ASSERT_STATUS(status, msg)                                             \
@@ -111,6 +112,18 @@ bool test_basic_single_chunk() {
   size_t compressed_size;
   Status status = manager.compress_chunk(d_input, size, d_compressed,
                                          &compressed_size, true);
+
+  // DUMP TO FILE
+  std::vector<uint8_t> h_dump(compressed_size);
+  cudaMemcpy(h_dump.data(), d_compressed, compressed_size,
+             cudaMemcpyDeviceToHost);
+  FILE *fp = fopen("dump.zst", "wb");
+  if (fp) {
+    fwrite(h_dump.data(), 1, compressed_size, fp);
+    fclose(fp);
+    printf("[UNIT TEST] Dumped dump.zst (%zu bytes)\n", compressed_size);
+  }
+
   ASSERT_STATUS(status, "Compression failed");
 
   manager.init_decompression();

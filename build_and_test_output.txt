@@ -1,0 +1,1174 @@
+Test project /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build
+      Start  1: test_adaptive_level
+ 1/85 Test  #1: test_adaptive_level ......................   Passed    1.18 sec
+      Start  2: test_alternative_allocation_strategies
+ 2/85 Test  #2: test_alternative_allocation_strategies ...   Passed    0.49 sec
+      Start  3: test_c_api_edge_cases
+ 3/85 Test  #3: test_c_api_edge_cases ....................   Passed    0.48 sec
+      Start  4: test_checksum_validation
+ 4/85 Test  #4: test_checksum_validation .................   Passed    0.48 sec
+      Start  5: test_comprehensive_fallback
+ 5/85 Test  #5: test_comprehensive_fallback ..............   Passed    1.06 sec
+      Start  6: test_compressible_data
+ 6/85 Test  #6: test_compressible_data ...................   Passed    0.02 sec
+      Start  7: test_concurrency_repro
+ 7/85 Test  #7: test_concurrency_repro ...................   Passed    0.46 sec
+      Start  8: test_correctness
+ 8/85 Test  #8: test_correctness .........................***Failed    1.93 sec
+========================================
+CUDA ZSTD Correctness Tests
+========================================
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+
+[TEST] Identity Property: decompress(compress(data)) == data
+  [FAIL] test_identity_property: Size mismatch
+
+[TEST] Various Input Sizes Round-trip
+  [INFO] Testing 39 different sizes
+  [PASS] Size 1
+  [PASS] Size 2
+  [PASS] Size 3
+  [PASS] Size 7
+  [PASS] Size 15
+  [PASS] Size 16
+  [PASS] Size 17
+  [PASS] Size 31
+  [PASS] Size 32
+  [PASS] Size 33
+  [PASS] Size 63
+  [PASS] Size 64
+  [PASS] Size 65
+  [PASS] Size 127
+  [PASS] Size 128
+  [PASS] Size 129
+  [PASS] Size 255
+  [PASS] Size 256
+  [PASS] Size 257
+  [FAIL] Size 511 (Decompress Status: 0, Size: 288)
+  [FAIL] Size 512 (Decompress Status: 0, Size: 288)
+  [FAIL] Size 513 (Decompress Status: 0, Size: 288)
+  [FAIL] Size 1023 (Decompress Status: 0, Size: 290)
+  [FAIL] Size 1024 (Decompress Status: 0, Size: 290)
+  [FAIL] Size 1025 (Decompress Status: 0, Size: 290)
+  [FAIL] Size 4095 (Decompress Status: 0, Size: 294)
+  [FAIL] Size 4096 (Decompress Status: 0, Size: 294)
+  [FAIL] Size 4097 (Decompress Status: 0, Size: 294)
+  [FAIL] Size 8191 (Decompress Status: 0, Size: 296)
+  [FAIL] Size 8192 (Decompress Status: 0, Size: 296)
+  [FAIL] Size 8193 (Decompress Status: 0, Size: 296)
+  [FAIL] Size 16383 (Decompress Status: 0, Size: 298)
+  [FAIL] Size 16384 (Decompress Status: 0, Size: 298)
+  [FAIL] Size 16385 (Decompress Status: 0, Size: 298)
+  [FAIL] Size 32767 (Decompress Status: 0, Size: 302)
+  [FAIL] Size 32768 (Decompress Status: 0, Size: 302)
+  [FAIL] Size 32769 (Decompress Status: 0, Size: 302)
+  [FAIL] Size 65535 (Decompress Status: 0, Size: 306)
+  [FAIL] Size 65536 (Decompress Status: 0, Size: 306)
+  [INFO] Passed: 19/39
+  [FAIL] test_various_sizes_roundtrip: Some size tests failed
+
+[TEST] Random Inputs Round-trip (1000 tests)
+  [INFO] Passed: 100/100
+  [PASS] Random Inputs Round-trip
+
+[TEST] All Compression Levels (1-22)
+
+  Level | Ratio   | Status
+  ------|---------|--------
+    Mismatch at byte 83: expected 83, got 51
+      1 |  442.81 | FAIL
+  [FAIL] test_all_compression_levels: Level 1 failed verification
+
+[TEST] ZSTD Frame Format Validation
+  [INFO] Magic number: 0xfd2fb528
+  [INFO] ✓ Valid ZSTD magic number
+  [INFO] Compressed size: 19 bytes
+  [INFO] ✓ Frame format appears valid
+  [PASS] Frame Format Validation
+
+[TEST] Checksum Validation
+  [INFO] Compressed data size: 276 bytes
+  [INFO] Note: Checksum validation via decompression round-trip
+  [FAIL] test_checksum_validation: Decompressed size mismatch
+
+[TEST] Special Data Patterns
+  [INFO] Testing: All zeros
+  [FAIL] test_special_patterns: All zeros decompression failed
+
+[TEST] Byte Alignment and Padding
+  [INFO] Passed: 10/10 unaligned sizes
+  [PASS] Byte Alignment
+
+[TEST] Deterministic Compression
+  [INFO] First compression: 32778 bytes
+  [INFO] Second compression: 32778 bytes
+  [INFO] ✓ Compression is deterministic (bit-exact)
+  [PASS] Deterministic Compression
+========================================
+TEST RESULTS
+========================================
+Passed: 4/9
+Failed: 5/9
+
+✗ SOME TESTS FAILED
+========================================
+
+      Start  9: test_coverage_gaps
+ 9/85 Test  #9: test_coverage_gaps .......................***Failed    0.62 sec
+=== Testing RLE Roundtrip ===
+Encoding RLE data...
+✅ Output size indicates RLE compression.
+Decoding RLE data...
+[DEC_DBG] Header: table_log=0, output_size=1048576, max_symbol=0
+[DEC_DBG] Input size: 14 bytes
+✅ RLE Roundtrip Passed!
+
+=== Testing Single Chunk 64KB Input ===
+  Encoding done. Output size: 15611. Starting decode...\n[DEC_DBG] Header: table_log=9, output_size=65536, max_symbol=255
+[DEC_DBG] Input size: 15611 bytes
+  Decode done. Copying result...\n❌ 64KB Mismatch!
+Mismatch idx 1: exp 00 got 33
+Mismatch idx 2: exp 2e got 7c
+Mismatch idx 3: exp 00 got 34
+Mismatch idx 5: exp 00 got 52
+Mismatch idx 6: exp 00 got cf
+Mismatch idx 7: exp 00 got 79
+Mismatch idx 8: exp 00 got 6d
+=== Testing Exact 256KB Input ===
+[DEC_DBG] Header: table_log=9, output_size=262144, max_symbol=255
+[DEC_DBG] Input size: 60495 bytes
+❌ Content mismatch for 256KB!
+Decoded size: 262144
+Expected size: 262144
+First 20 bytes expected: 00 00 2e 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+First 20 bytes actual:   00 cf 00 00 b1 85 3d 43 00 92 91 f1 00 00 01 00 00 56 c2 d8 
+First mismatch at index 1: expected 00, got cf
+
+      Start 10: test_cuda_zstd_utils_dedicated
+10/85 Test #10: test_cuda_zstd_utils_dedicated ...........   Passed    0.42 sec
+      Start 11: test_data_integrity_comprehensive
+11/85 Test #11: test_data_integrity_comprehensive ........   Passed    0.83 sec
+      Start 12: test_dictionary
+12/85 Test #12: test_dictionary ..........................   Passed    0.44 sec
+      Start 13: test_dictionary_compression
+13/85 Test #13: test_dictionary_compression ..............Subprocess aborted***Exception:   3.91 sec
+[DEBUG] decompress_literals: Type=2, SizeFmt=2, RawH=[CA 70 7C 0F 23]
+[HUF_FSE] Parsed 4 symbols, remaining=0, expected=0
+[HUF_FSE] NormCounts: 31 27 0 2 
+[HUF_TABLE] FSE decode OK, num_symbols=211
+[FSE_READ] sym=11 val=0 prob=-1 rem=3
+[FSE_READ_ERR] remaining(1) < 2 at sym 14
+[DEBUG] LL FSE Header: Status=6, MaxSym=0, TableLog=8, BytesRead=3159, NumNorms=14
+test_dictionary_compression: /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_dictionary_compression.cu:166: int main(): Assertion `status == Status::SUCCESS' failed.
+
+      Start 14: test_dual_mode_roundtrip
+14/85 Test #14: test_dual_mode_roundtrip .................   Passed    1.09 sec
+      Start 15: test_error_context
+15/85 Test #15: test_error_context .......................   Passed    0.01 sec
+      Start 16: test_error_handling
+16/85 Test #16: test_error_handling ......................Subprocess aborted***Exception:   4.75 sec
+
+========================================
+CUDA ZSTD - Error Handling Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+CUDA Version: 12080
+
+========================================
+SUITE 1: Error Code Coverage
+========================================
+
+[TEST] All Error Code Messages
+  [INFO] Testing 18 error codes
+  [INFO] Status::SUCCESS (0)
+  [INFO] Status::ERROR_INVALID_PARAMETER (2)
+  [INFO] Status::ERROR_BUFFER_TOO_SMALL (7)
+  [INFO] Status::ERROR_OUT_OF_MEMORY (3)
+  [INFO] Status::ERROR_COMPRESSION (12)
+  [INFO] Status::ERROR_DECOMPRESSION (13)
+  [INFO] Status::ERROR_CORRUPT_DATA (6)
+  [INFO] Status::ERROR_UNSUPPORTED_VERSION (8)
+  [INFO] Status::ERROR_DICTIONARY_MISMATCH (9)
+  [INFO] Status::ERROR_CUDA_ERROR (4)
+  [INFO] Status::UNKNOWN_ERROR (19)
+  [INFO] Status::UNKNOWN_ERROR (20)
+  [INFO] Status::UNKNOWN_ERROR (21)
+  [INFO] Status::UNKNOWN_ERROR (22)
+  [INFO] Status::UNKNOWN_ERROR (23)
+  [INFO] Status::UNKNOWN_ERROR (24)
+  [INFO] Status::UNKNOWN_ERROR (25)
+  [INFO] Status::UNKNOWN_ERROR (26)
+  [PASS] All Error Code Messages
+
+[TEST] Error Message Validation
+  [INFO] Error messages are descriptive
+  [PASS] Error Message Validation
+
+========================================
+SUITE 2: Input Validation
+========================================
+
+[TEST] Null Pointer Detection
+  [INFO] ✓ Null input detected
+  [INFO] ✓ Null output detected
+  [INFO] ✓ Null size pointer detected
+  [INFO] ✓ Null workspace detected
+  [PASS] Null Pointer Detection
+
+[TEST] Invalid Size Parameters
+  [INFO] ✓ Zero input size detected
+[WARN] Workspace size 230584301018677248 exceeds limit 34359738368. Clamping.
+  [INFO] ✓ Huge size rejected (Buffer Too Small)
+  [INFO] ✓ Overflow size detected
+  [INFO] ✓ Insufficient workspace detected
+  [INFO] ✓ Huge size rejected (Buffer Too Small)
+  [PASS] Invalid Size Parameters
+
+[TEST] Invalid Compression Levels
+  [INFO] ✓ Level 0 rejected
+  [INFO] ✓ Level 23 rejected
+  [INFO] ✓ Negative level rejected
+  [INFO] ✓ Large level rejected
+  [INFO] ✓ All valid levels (1-22) accepted
+  [PASS] Invalid Compression Levels
+
+[TEST] Invalid Workspace Size
+  [INFO] Required workspace: 18874368 bytes
+  [INFO] ✓ Insufficient workspace detected
+terminate called after throwing an instance of 'std::bad_alloc'
+  what():  std::bad_alloc
+
+      Start 17: test_extended_validation
+17/85 Test #17: test_extended_validation .................***Failed    2.20 sec
+==================================================
+   CUDA-ZSTD Extended Validation Test Suite
+==================================================
+
+=== Test 1: 2MB Sequential Pattern ===
+Input Size: 2 MB
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+Compressed Size: 0.183263 MB
+Compression Ratio: 10.9133
+Compress Time: 119 ms
+Decompress Time: 56 ms
+Compress Throughput: 16.8067 MB/s
+✅ Verification PASSED
+
+=== Test 2: 2MB Sequential Pattern (Safe Limit) ===
+Input Size: 2 MB
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+Compressed Size: 0.181194 MB
+Compression Ratio: 11.0379
+Compress Time: 64 ms
+Decompress Time: 49 ms
+Compress Throughput: 31.25 MB/s
+✅ Verification PASSED
+
+=== Test 3: 1MB Sequential Pattern ===
+Input Size: 1 MB
+[DEBUG] Memory: Total 109051904, Global Used 72877568, Available 36174336
+Compressed Size: 0.0882654 MB
+Compression Ratio: 11.3295
+Compress Time: 31 ms
+Decompress Time: 22 ms
+Compress Throughput: 32.2581 MB/s
+✅ Verification PASSED
+
+=== Test 4: 2MB Random Data ===
+Input Size: 2 MB
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+Compressed Size: 2.00006 MB
+Compression Ratio: 0.999972
+Compress Time: 532 ms
+Decompress Time: 20 ms
+Compress Throughput: 3.7594 MB/s
+✅ Verification PASSED
+
+=== Test 5: 128MB Sequential (Memory Verification) ===
+Input Size: 128 MB
+[WARN] Workspace size 13366198272 exceeds limit 8589934592. Clamping.
+[WARN] Workspace size 13366198272 exceeds limit 8589934592. Clamping.
+[ERROR] Global Alloc Overhead: Used 9261581440 > Total 8589934592
+Compression Failed: 7
+
+==================================================
+Test Results: 4/5 passed
+==================================================
+
+      Start 18: test_fallback_strategies
+18/85 Test #18: test_fallback_strategies .................   Passed   21.94 sec
+      Start 19: test_find_matches_small
+19/85 Test #19: test_find_matches_small ..................   Passed    0.47 sec
+      Start 20: test_fse_canonical
+20/85 Test #20: test_fse_canonical .......................   Passed    0.01 sec
+      Start 21: test_fse_comprehensive
+21/85 Test #21: test_fse_comprehensive ...................***Failed    0.45 sec
+
+========================================
+FSE Comprehensive Test Suite
+(Consolidated from 16 FSE test files)
+========================================
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: Basic FSE Operations
+========================================
+
+[TEST] MultiTableFSE Initialization
+  [PASS] test_multitable_fse_init
+
+[TEST] FSE Frequency Normalization
+  [PASS] test_fse_normalization
+
+========================================
+SUITE 2: FSE Roundtrip Tests
+========================================
+
+[TEST] FSE Roundtrip (Small Data)
+  Encoded 11 bytes -> 30 bytes
+[DEC_DBG] Header: table_log=5, output_size=11, max_symbol=6
+[DEC_DBG] Input size: 30 bytes
+  [FAIL] test_fse_roundtrip_small: Data mismatch
+
+[TEST] FSE Roundtrip (Large Data)
+  Encoded 262144 bytes -> 248107 bytes (1.06x compression)
+[DEC_DBG] Header: table_log=9, output_size=262144, max_symbol=255
+[DEC_DBG] Input size: 248107 bytes
+  [FAIL] test_fse_roundtrip_large: Data verification failed
+  Mismatch at 0: got 0x31, expected 0x1F
+  Mismatch at 1: got 0x34, expected 0x0B
+  Mismatch at 2: got 0x32, expected 0x33
+  Mismatch at 3: got 0x0E, expected 0x2E
+  Mismatch at 4: got 0x1F, expected 0x3B
+  Total mismatches: 260369
+
+========================================
+SUITE 3: Entropy Distribution Tests
+========================================
+
+[TEST] FSE Single Symbol (RLE-like)
+  Single symbol: 1024 -> 146 bytes
+  [PASS] test_fse_single_symbol
+
+[TEST] FSE Two Symbols (50/50)
+  Two symbols: 1024 -> 212 bytes
+  [PASS] test_fse_two_symbols
+
+[TEST] FSE Full Alphabet (256 symbols)
+  Full alphabet: 262144 -> 248214 bytes (1.06x)
+  [PASS] test_fse_full_alphabet
+
+========================================
+SUITE 4: Manager Integration
+========================================
+
+[TEST] FSE Manager Integration
+[DEBUG] Memory: Total 109051904, Global Used 72877568, Available 36174336
+  Manager compress: 1048576 -> 81099 bytes (12.93x)
+  [PASS] test_fse_manager_integration
+
+========================================
+RESULTS: 6/8 tests passed
+========================================
+
+      Start 22: test_fse_encoding_host
+22/85 Test #22: test_fse_encoding_host ...................   Passed    0.29 sec
+      Start 23: test_fse_header
+23/85 Test #23: test_fse_header ..........................   Passed    0.01 sec
+      Start 24: test_fse_integration
+24/85 Test #24: test_fse_integration .....................***Failed    0.30 sec
+Testing FSE Integation (Builder + Kernel)...
+Output Size: 0 bytes
+FAILED: Output size is 0
+
+      Start 25: test_fse_interleaved
+25/85 Test #25: test_fse_interleaved .....................   Passed    0.33 sec
+      Start 26: test_fse_manager_integration_stub
+26/85 Test #26: test_fse_manager_integration_stub ........   Passed    0.41 sec
+      Start 27: test_gpu_bitstream
+27/85 Test #27: test_gpu_bitstream .......................   Passed    0.74 sec
+      Start 28: test_gpu_simple
+28/85 Test #28: test_gpu_simple ..........................   Passed    0.31 sec
+      Start 29: test_hash_chain_only
+29/85 Test #29: test_hash_chain_only .....................   Passed    0.31 sec
+      Start 30: test_hash_comprehensive
+30/85 Test #30: test_hash_comprehensive ..................   Passed    0.29 sec
+      Start 31: test_huffman
+31/85 Test #31: test_huffman .............................***Failed    0.31 sec
+Testing Huffman Roundtrip with size: 1024 bytes... Compressed size: 1065 bytes (0.961502x)
+[HUF_FSE] Parsed 7 symbols, remaining=0, expected=0
+[HUF_FSE] NormCounts: 4 36 -1 4 -1 10 -1 
+[HUF_TABLE] FSE decode OK, num_symbols=99
+FAILED: Content mismatch!
+Mismatch at index 0: expected 20, got 0
+Context (Expected vs Got):
+[0] 20 vs 0 <--
+[1] 51 vs 0
+[2] 28 vs 0
+[3] 44 vs 0
+[4] 59 vs 0
+[5] 4 vs 0
+[6] 6 vs 0
+[7] 50 vs 0
+[8] 5 vs 0
+[9] 3 vs 0
+
+      Start 32: test_huffman_roundtrip
+32/85 Test #32: test_huffman_roundtrip ...................***Failed    0.31 sec
+[HUF_FSE] Parsed 12 symbols, remaining=40, expected=0
+[HUF_FSE] NormCounts: -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
+[ERROR] FSE normalization sum mismatch: remaining=40 (should be 0)
+[ERROR] decode_huffman_weights_fse status=6
+Decode failed: 6
+Testing Roundtrip with input size: 88
+Encoded Size: 307
+
+      Start 33: test_huffman_weights_unit
+33/85 Test #33: test_huffman_weights_unit ................***Failed    0.02 sec
+[HUF_FSE] Parsed 6 symbols, remaining=-1, expected=0
+[HUF_FSE] NormCounts: 39 -1 8 7 3 1 
+[ERROR] FSE normalization sum mismatch: remaining=-1 (should be 0)
+Decoding Failed with Status 6
+Running test_simple_weights...
+Compressed size: 3443
+Header hex: 28 B5 2F FD 60 10 26 4D 6B 00 EA 5E EC 0D 28 60 F6 D2 18 FD 1A 5D D5 35 ED 50 03 CD 3B 20 
+Estimated Frame Header End: 7
+Block Type: 2 (2=Compressed), Last: 1
+Literals Header: EA
+Lit Block Type: 2 (0=Raw, 1=RLE, 2=Compressed, 3=Treeless)
+Huffman Header Byte: 0D
+FSE Stream Size: 13 bytes
+Copied 13 bytes to test buffer.
+FSE Data: 28 60 F6 D2 18 FD 1A 5D D5 35 ED 50 03 
+
+      Start 34: test_inference_api
+34/85 Test #34: test_inference_api .......................***Failed    0.41 sec
+
+========================================
+CUDA ZSTD - Inference-Ready API Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: decompress_to_preallocated Tests
+========================================
+
+[TEST] decompress_to_preallocated Basic
+  [INFO] Compressed: 262144 -> 66 bytes
+  [FAIL] test_decompress_to_preallocated_basic: decompress_to_preallocated failed
+
+[TEST] decompress_to_preallocated Buffer Reuse (Zipper Pattern)
+  [INFO] Allocated single Zipper Buffer: 131072 bytes
+[WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+  [INFO] Pre-compressed 5 layers
+  [FAIL] test_decompress_to_preallocated_buffer_reuse: Layer 0 size mismatch
+
+========================================
+SUITE 2: decompress_batch_preallocated Tests
+========================================
+
+[TEST] decompress_batch_preallocated Basic
+  [INFO] Prepared 4 batch items with pre-allocated outputs
+  [FAIL] test_decompress_batch_preallocated_basic: Item 0 size mismatch
+
+========================================
+SUITE 3: decompress_async_no_sync Tests
+========================================
+
+[TEST] decompress_async_no_sync Basic
+  [FAIL] test_decompress_async_no_sync_basic: decompress_async_no_sync launch failed
+
+========================================
+SUITE 4: Inference Integration Tests
+========================================
+
+[TEST] Inference Workspace Allocation
+[WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+  [INFO] Workspace size for 1MB compressed / 4MB output: 6291456 bytes
+  [INFO] ✓ Allocated 6291456 bytes of workspace
+  [INFO] ✓ Workspace freed
+  [PASS] Inference Workspace Allocation
+
+[TEST] Full Inference Simulation (Multi-Layer)
+  [INFO] Allocated inference workspace: 5242880 bytes
+  [INFO] Allocated double buffer (2 x 524288 bytes)
+  [INFO] Pre-compressed 10 layers
+  [FAIL] test_full_inference_simulation: Decompress layer 0 failed
+
+========================================
+SUITE 5: Error Handling Tests
+========================================
+
+[TEST] Null Parameter Handling
+[WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+  [INFO] ✓ Null compressed_data handled
+  [INFO] ✓ Null output handled
+  [INFO] ✓ Null actual_size handled
+  [PASS] Null Parameter Handling
+
+[TEST] Buffer Too Small Handling
+  [INFO] ✓ Zero capacity handled
+  [PASS] Buffer Too Small Handling
+
+========================================
+RESULTS: 3/8 tests passed
+========================================
+
+      Start 35: test_integration
+35/85 Test #35: test_integration .........................***Failed    4.59 sec
+
+========================================
+CUDA ZSTD - Integration & Stress Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: End-to-End Pipeline Tests
+========================================
+
+[TEST] Complete Compression Pipeline
+  [INFO] Testing complete pipeline: input -> compress -> decompress -> verify
+  [INFO] Allocating memory...
+  [INFO] Copying input to device...
+  [INFO] Creating manager...
+  [INFO] Getting temp size...
+  [INFO] Temp size: 57671680
+  [INFO] Compressing...
+  [INFO] ✓ Compression: 524288 -> 90 bytes
+  [FAIL] test_complete_compression_pipeline: Decompression failed
+
+[TEST] Dictionary Integration
+  [INFO] ✓ Dictionary trained (16384 bytes)
+[WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+  [INFO] ✓ Compressed with dictionary: 131072 -> 67
+  [INFO] ✓ Decompressed with dictionary
+    Mismatch at byte 44
+  [FAIL] test_dictionary_integration: Dictionary data verification failed
+
+[TEST] Batch Processing with Memory Pool
+  [INFO] Processing 10 items of 64 KB each
+  [INFO] ✓ Batch compressed
+  [INFO] Item 0: 65536 -> 52 bytes
+  [INFO] Item 1: 65536 -> 65 bytes
+  [INFO] Item 2: 65536 -> 52 bytes
+  [INFO] Item 3: 65536 -> 65 bytes
+  [INFO] Item 4: 65536 -> 52 bytes
+  [INFO] Item 5: 65536 -> 65 bytes
+  [INFO] Item 6: 65536 -> 52 bytes
+  [INFO] Item 7: 65536 -> 65 bytes
+  [INFO] Item 8: 65536 -> 52 bytes
+  [INFO] Item 9: 65536 -> 65 bytes
+  [INFO] Pool stats - Allocations: 21, Hit rate: 76.1905%
+  [PASS] Batch Processing with Memory Pool
+
+========================================
+SUITE 2: Large File Tests
+========================================
+
+[TEST] Large File Compression (100MB)
+  [INFO] File size: 25 MB
+  [INFO] Processing in 4 MB chunks
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+[DEBUG] Memory: Total 436207616, Global Used 72877568, Available 363330048
+  [INFO] Progress: 7/7 chunks, 1 MB compressed
+  [INFO] Total compressed: 1 MB
+  [INFO] Compression ratio: 12.55:1
+  [INFO] Time: 0.69 seconds
+  [INFO] Throughput: 36.3 MB/s
+  [PASS] Large File Compression
+
+[TEST] Memory Efficiency for Large Files
+  [INFO] Free memory before: 14903 MB
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+[DEBUG] Memory: Total 218103808, Global Used 72877568, Available 145226240
+  [INFO] Free memory after: 14899 MB
+  [INFO] Memory delta: 4 MB
+  [INFO] ✓ No significant memory leaks
+  [PASS] Memory Efficiency for Large Files
+
+========================================
+SUITE 3: Multi-threaded Tests
+========================================
+
+[SKIP] test_concurrent_compression - Timeout (concurrent GPU needs work)
+
+[TEST] Race Condition Detection
+  [INFO] Testing 8 threads with shared resources
+  [INFO] Level changes: 800
+  [INFO] ✓ No crashes or deadlocks detected
+  [PASS] Race Condition Detection
+
+========================================
+SUITE 4: Edge Cases
+========================================
+
+[TEST] Corrupted Data Handling
+  [INFO] Testing: all_zeros
+[DEBUG] decompress: Temp buffer too small! temp=1024, required=5242880
+  [INFO]   ✓ Detected as corrupted
+  [INFO] Testing: bad_magic
+  [INFO]   ✓ Detected as corrupted
+  [INFO] Testing: truncated
+[DEBUG] decompress: Temp buffer too small! temp=1024, required=5242880
+  [INFO]   ✓ Detected as corrupted
+  [PASS] Corrupted Data Handling
+
+[TEST] Buffer Boundary Conditions
+  [INFO] ✓ Size 16 bytes: OK
+  [FAIL] test_buffer_boundary_conditions: Size mismatch for 4095
+
+========================================
+TEST RESULTS
+========================================
+Passed: 6/9
+Failed: 3/9
+
+✗ SOME TESTS FAILED
+========================================
+
+
+      Start 36: test_libzstd_interop
+36/85 Test #36: test_libzstd_interop .....................***Failed    0.02 sec
+========================================
+libzstd Interop Test
+========================================
+[ERROR] Cannot open test_interop.zst
+
+      Start 37: test_lz77_comprehensive
+37/85 Test #37: test_lz77_comprehensive ..................***Failed    0.29 sec
+========================================
+Comprehensive LZ77 Testing
+========================================
+Test: Random 1MB (1048576 bytes)... Status error at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_lz77_comprehensive.cu:135 code=1
+
+      Start 38: test_memory_pool
+38/85 Test #38: test_memory_pool .........................   Passed    4.49 sec
+      Start 39: test_metadata_roundtrip
+39/85 Test #39: test_metadata_roundtrip ..................   Passed    0.32 sec
+      Start 40: test_nvcomp_batch
+40/85 Test #40: test_nvcomp_batch ........................***Failed    0.25 sec
+
+========================================
+  Test: NvcompV5BatchManager C++ API
+========================================
+
+Created NvcompV5BatchManager with level 5
+Allocated 139264 KB temp workspace.
+Compressing batch of 8 items...
+  ✗ FAILED: Batch compress returned ERROR_GENERIC
+
+      Start 41: test_nvcomp_interface
+41/85 Test #41: test_nvcomp_interface ....................***Failed    0.30 sec
+========================================
+NVCOMP v5.0 Interface Validation Tests
+========================================
+
+Objective: Validate NV COMP compatibility layer works correctly
+
+
+=== Test 1: Manager Creation ===
+✅ Manager created successfully
+✅ C API manager creation/destruction successful
+
+=== Test 2: Single Block Round-trip ===
+✅ Compressed 65536 bytes to 57 bytes (1149.75:1 ratio)
+❌ Size mismatch: 84 != 65536
+
+=== Test 3: Batch Operations ===
+❌ Batch compression failed: 1
+
+=== Test 4: C API Compatibility ===
+✅ C API compression successful: 56 bytes
+✅ C API decompression successful
+❌ Mismatch at byte 34: 97 != 115
+
+=== Test 5: Error Handling ===
+✅ NULL pointer check passed
+✅ Buffer size validation (skipped - requires actual compression)
+✅ Error handling tests passed
+
+========================================
+Results: 2/5 tests passed
+========================================
+
+❌ Some tests failed
+
+
+      Start 42: test_parallel_backtracking
+42/85 Test #42: test_parallel_backtracking ...............   Passed    1.02 sec
+      Start 43: test_parallel_compression
+43/85 Test #43: test_parallel_compression ................   Passed    0.60 sec
+      Start 44: test_parallel_setup
+44/85 Test #44: test_parallel_setup ......................   Passed    0.29 sec
+      Start 45: test_performance
+45/85 Test #45: test_performance .........................***Failed    1.26 sec
+
+========================================
+CUDA ZSTD - Performance & Profiling Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: Component Timing
+========================================
+
+[TEST] Compression Timing Breakdown
+[DEBUG] Memory: Total 109051904, Global Used 72877568, Available 36174336
+  [INFO] === Timing Breakdown ===
+  [INFO] Total time: 57.10 ms
+  [INFO] LZ77 time: 0.00 ms
+  [INFO] FSE encode time: 0.00 ms
+  [INFO] Huffman encode time: 0.00 ms
+  [INFO] Sequence generation: 0.00 ms
+  [INFO] Component sum: 0.00 ms
+  [INFO] Overhead: 57.10 ms
+  [PASS] Compression Timing Breakdown
+
+[SKIP] test_decompression_timing - depends on stub PerformanceProfiler
+
+========================================
+SUITE 2: Throughput Metrics
+========================================
+
+[TEST] Compression Throughput Across Levels
+
+  Level | Time (ms) | Throughput (MB/s) | Ratio | Size (KB)
+  ------|-----------|-------------------|-------|----------
+[DEBUG] Memory: Total 404750336, Global Used 264767616, Available 139982720
+      1 |     40.12 |              99.7 | 12.18 |      336
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+      3 |     46.85 |              85.4 | 12.20 |      335
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+[ERROR] Block 31: write_block failed with status 7
+      5 | ERROR | - | - | -
+[DEBUG] Memory: Total 478150656, Global Used 323487872, Available 154662784
+      9 |     40.22 |              99.5 | 12.27 |      333
+[DEBUG] Memory: Total 478150656, Global Used 323487872, Available 154662784
+[ERROR] Block 31: write_block failed with status 7
+     15 | ERROR | - | - | -
+[DEBUG] Memory: Total 478150656, Global Used 323487872, Available 154662784
+     19 |     79.27 |              50.5 | 12.35 |      331
+  [PASS] Compression Throughput
+
+[TEST] Decompression Throughput
+[DEBUG] Memory: Total 436207616, Global Used 289933440, Available 146274176
+  [INFO] Average decompression time: 42.05 ms
+  [INFO] Decompression throughput: 95.1 MB/s
+  [PASS] Decompression Throughput
+
+[TEST] Memory Bandwidth Measurement
+[WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[ERROR] Global Alloc Overhead: Used 1158157440 > Total 1073741824
+  [FAIL] test_memory_bandwidth: Compression failed
+
+========================================
+SUITE 3: Profiling API Tests
+========================================
+
+[SKIP] Profiler tests - PerformanceProfiler is a stub implementation
+
+========================================
+SUITE 4: Optimization Validation
+========================================
+
+[SKIP] test_memory_pool_performance_impact - Block 15 write_block status 7
+
+========================================
+TEST RESULTS
+========================================
+Passed: 10/11
+Failed: 1/11
+
+✗ SOME TESTS FAILED
+========================================
+
+
+      Start 46: test_pipeline_integration
+46/85 Test #46: test_pipeline_integration ................***Failed    3.21 sec
+Running Pipeline Integration Tests...
+[TEST] Small Data (Data: 4 MB, Batch: 16 MB)... [WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[DEBUG] Memory: Total 1073741824, Global Used 289933440, Available 783808384
+PASS
+[TEST] Exact Batch (Data: 16 MB, Batch: 16 MB)... [WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[ERROR] Global Alloc Overhead: Used 1158157440 > Total 1073741824
+Pipeline COMPUTE failed on slot 0
+FAIL (Pipeline Error: 7)
+[TEST] Multi-Batch Aligned (Data: 32 MB, Batch: 16 MB)... [WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+[WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[ERROR] Global Alloc Overhead: Used 1158157440 > Total 1073741824
+Pipeline COMPUTE failed on slot 0
+FAIL (Pipeline Error: 7)
+[TEST] Multi-Batch Odd (Data: 50 MB, Batch: 16 MB)... [WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+[WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[WARN] Workspace size 1744830464 exceeds limit 1073741824. Clamping.
+[ERROR] Global Alloc Overhead: Used 1158157440 > Total 1073741824
+Pipeline COMPUTE failed on slot 0
+FAIL (Pipeline Error: 7)
+
+Some Tests FAILED.
+
+      Start 47: test_rfc8878_compliance
+47/85 Test #47: test_rfc8878_compliance ..................   Passed    0.32 sec
+      Start 48: test_rfc8878_integration
+48/85 Test #48: test_rfc8878_integration .................***Failed    0.42 sec
+FAILED: uncompressed_size == input_size at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_rfc8878_integration.cu:153
+FAILED: uncompressed_size == input_size at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/tests/test_rfc8878_integration.cu:153
+========================================
+RFC 8878 Integration Verification
+========================================
+
+[INT] Testing GPU Compress -> CPU Decompress (Size: 1024, Level: 1)
+  [PASS] GPU Compress -> CPU Decompress successful
+[INT] Testing CPU Compress -> GPU Decompress (Size: 1024, Level: 1)
+  [INFO] CPU Generated Data Verified Valid (Size: 276)
+[INT] Testing GPU Compress -> CPU Decompress (Size: 131072, Level: 3)
+  [PASS] GPU Compress -> CPU Decompress successful
+[INT] Testing CPU Compress -> GPU Decompress (Size: 131072, Level: 3)
+  [INFO] CPU Generated Data Verified Valid (Size: 279)
+[INT] Testing GPU Compress -> CPU Decompress (Size: 1048576, Level: 5)
+[DEBUG] Memory: Total 109051904, Global Used 72877568, Available 36174336
+  [FAIL] CPU Decompression failed: Data corruption detected
+[INT] Testing CPU Compress -> GPU Decompress (Size: 1048576, Level: 5)
+  [INFO] CPU Generated Data Verified Valid (Size: 363)
+  [FAIL] GPU Decompression failed with status 6
+[INT] Testing GPU Compress -> CPU Decompress (Size: 2097152, Level: 3)
+[WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+[DEBUG] Memory: Total 218103808, Global Used 145229568, Available 72874240
+  [FAIL] CPU Decompression failed: Data corruption detected
+[INT] Testing CPU Compress -> GPU Decompress (Size: 2097152, Level: 3)
+  [INFO] CPU Generated Data Verified Valid (Size: 459)
+  [FAIL] GPU Decompression failed with status 6
+
+❌ SOME Integration Tests FAILED
+
+      Start 49: test_roundtrip
+49/85 Test #49: test_roundtrip ...........................   Passed    0.35 sec
+      Start 50: test_scale_repro
+50/85 Test #50: test_scale_repro .........................   Passed    0.35 sec
+      Start 51: test_sequence_encoder
+51/85 Test #51: test_sequence_encoder ....................   Passed    0.33 sec
+      Start 52: test_stream_pool
+52/85 Test #52: test_stream_pool .........................   Passed    0.43 sec
+      Start 53: test_streaming
+53/85 Test #53: test_streaming ...........................***Failed    0.43 sec
+
+========================================
+CUDA ZSTD - Streaming Compression Test Suite
+========================================
+
+Using CUDA device: NVIDIA GeForce RTX 5080 Laptop GPU
+Compute capability: 12.0
+Total memory: 16302 MB
+========================================
+SUITE 1: Basic Streaming Tests
+========================================
+
+[TEST] Single Chunk Streaming
+  [INFO] Input size: 65536 bytes
+  [INFO] Compressed size: 1070 bytes
+  [INFO] Compression ratio: 61.25:1
+[DEBUG] decompress_literals: Type=2, SizeFmt=2, RawH=[1A 00 31 10 82]
+[HUF_TABLE] FSE decode OK, num_symbols=3
+[FSE_READ_ERR] remaining(1) < 2 at sym 1
+[DEBUG] LL FSE Header: Status=6, MaxSym=0, TableLog=9, BytesRead=17, NumNorms=1
+[ERROR] decompress_sequences failed: status=6
+  [FAIL] test_single_chunk_streaming: decompress_chunk failed Status: ERROR_CORRUPT_DATA
+
+[TEST] Multi-Chunk Streaming (5 chunks)
+  [INFO] Chunk size: 16384 bytes
+  [INFO] Number of chunks: 5
+  [INFO] Total size: 81920 bytes
+[WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+  [INFO] Chunk 0: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 1: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 2: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 3: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 4: 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Total compressed: 320 bytes
+  [INFO] Overall ratio: 256.00:1
+  [FAIL] test_multi_chunk_streaming: Chunk 0 size mismatch
+
+[TEST] Variable Chunk Sizes
+  [INFO] Testing with 5 chunks of varying sizes
+  [INFO] Total size: 88064 bytes
+  [INFO] Chunk 0: 1024 -> 276 bytes
+  [INFO] Chunk 1: 4096 -> 276 bytes
+  [INFO] Chunk 2: 16384 -> 276 bytes
+  [INFO] Chunk 3: 65536 -> 277 bytes
+  [INFO] Chunk 4: 1024 -> 276 bytes
+  [INFO] Total: 88064 -> 1381 bytes
+  [FAIL] test_variable_chunk_sizes: Size mismatch for chunk 0
+
+========================================
+SUITE 2: Window Management Tests
+========================================
+
+[TEST] Cross-Chunk LZ77 Matching
+  [INFO] Testing cross-chunk pattern matching
+  [INFO] Pattern: "This pattern repeats across chunks! "
+  [INFO] Chunk size: 8192 bytes
+  [INFO] Chunk 0: 55 bytes (ratio: 148.95:1)
+  [INFO] Chunk 1: 55 bytes (ratio: 148.95:1)
+  [INFO] Chunk 2: 55 bytes (ratio: 148.95:1)
+  Mismatch at byte 34: expected 33, got 115
+  [FAIL] test_cross_chunk_matching: Cross-chunk data verification failed
+
+========================================
+SUITE 3: Edge Cases
+========================================
+
+[TEST] Very Small Chunks (<100 bytes)
+  [INFO] Testing chunk size: 1 bytes
+  [INFO]   Compressed to 10 bytes
+  [INFO] Testing chunk size: 10 bytes
+  [INFO]   Compressed to 19 bytes
+  [INFO] Testing chunk size: 50 bytes
+  [INFO]   Compressed to 59 bytes
+  [INFO] Testing chunk size: 99 bytes
+  [INFO]   Compressed to 108 bytes
+  [PASS] Very Small Chunks
+
+[TEST] Large File Streaming (10MB in 100 chunks)
+  [INFO] Total size: 9 MB
+  [INFO] Chunk size: 100 KB
+  [INFO] Number of chunks: 100
+  [INFO] Progress: 0/100 chunks, 0 MB compressed
+  [INFO] Progress: 20/100 chunks, 0 MB compressed
+  [INFO] Progress: 40/100 chunks, 0 MB compressed
+  [INFO] Progress: 60/100 chunks, 0 MB compressed
+  [INFO] Progress: 80/100 chunks, 0 MB compressed
+  [INFO] Total compressed: 0 MB
+  [INFO] Compression ratio: 92.16:1
+  [PASS] Large File Streaming
+
+[TEST] Incompressible Data Streaming
+  [INFO] Testing random (incompressible) data
+  [INFO] Chunk 0: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Chunk 1: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Chunk 2: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Chunk 3: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Chunk 4: ratio 118.725:1 (expected ~1.0 for random data)
+  [INFO] Overall ratio: 118.725:1
+  [PASS] Incompressible Data Streaming
+
+[TEST] Mixed Compressibility Across Chunks
+  [INFO] Testing alternating data patterns
+  [INFO] Chunk 0 (repetitive): 16384 -> 295 bytes (ratio: 55.54:1)
+  [INFO] Chunk 1 (random): 16384 -> 276 bytes (ratio: 59.36:1)
+  [INFO] Chunk 2 (text): 16384 -> 64 bytes (ratio: 256.00:1)
+  [INFO] Chunk 3 (sequential): 16384 -> 276 bytes (ratio: 59.36:1)
+  [INFO] Chunk 4 (repetitive): 16384 -> 295 bytes (ratio: 55.54:1)
+  [PASS] Mixed Compressibility
+
+========================================
+TEST RESULTS
+========================================
+Passed: 4/8
+Failed: 4/8
+
+✗ SOME TESTS FAILED
+========================================
+
+
+      Start 54: test_streaming_integration
+54/85 Test #54: test_streaming_integration ...............***Failed    0.36 sec
+
+[INTEGRATION TEST] Multi-Chunk Streaming (5 chunks)
+  [INFO] Total compressed: 320 bytes, Ratio: 256:1
+  [FAIL] test_multi_chunk_streaming: Chunk size mismatch
+
+[INTEGRATION TEST] Large File Streaming (10MB)
+[WARNING] initialize_context: Pre-existing CUDA error: invalid argument
+  [INFO] Total compressed: 167840 bytes
+  [PASS] Large File Streaming
+
+Integration Tests: 1/2 passed.
+
+      Start 55: test_streaming_unit
+55/85 Test #55: test_streaming_unit ......................***Failed    0.34 sec
+
+[UNIT TEST] API Parameter Validation
+  [PASS] API Parameter Validation
+
+[UNIT TEST] Initialization State Verification
+  [PASS] Initialization State Verification
+
+[UNIT TEST] Basic Single Chunk Roundtrip
+[UNIT TEST] Dumped dump.zst (276 bytes)
+  [FAIL] test_basic_single_chunk: Decompressed size mismatch (Actual: 290, Expected: 1024)
+
+Unit Tests: 2/3 passed.
+
+      Start 56: test_two_phase_unit
+56/85 Test #56: test_two_phase_unit ......................   Passed    0.27 sec
+      Start 57: test_utils
+57/85 Test #57: test_utils ...............................   Passed    0.32 sec
+      Start 58: test_workspace_patterns
+58/85 Test #58: test_workspace_patterns ..................   Passed    0.28 sec
+      Start 59: test_workspace_usage
+59/85 Test #59: test_workspace_usage .....................   Passed    0.32 sec
+      Start 60: test_c_api
+60/85 Test #60: test_c_api ...............................   Passed    0.29 sec
+      Start 61: fixed_benchmark
+61/85 Test #61: fixed_benchmark ..........................   Passed    6.20 sec
+      Start 62: limited_benchmark
+62/85 Test #62: limited_benchmark ........................   Passed    5.47 sec
+      Start 63: comprehensive_benchmark
+63/85 Test #63: comprehensive_benchmark ..................   Passed  226.56 sec
+      Start 64: benchmark_lz77
+64/85 Test #64: benchmark_lz77 ...........................   Passed    4.74 sec
+      Start 65: benchmark_parallel_throughput
+65/85 Test #65: benchmark_parallel_throughput ............   Passed    0.45 sec
+      Start 66: benchmark_memory_alloc
+66/85 Test #66: benchmark_memory_alloc ...................   Passed    0.43 sec
+      Start 67: benchmark_pipeline
+67/85 Test #67: benchmark_pipeline .......................   Passed    1.85 sec
+      Start 68: benchmark_fse_decode
+68/85 Test #68: benchmark_fse_decode .....................   Passed    0.81 sec
+      Start 69: benchmark_fse_parallel
+69/85 Test #69: benchmark_fse_parallel ...................   Passed   30.09 sec
+      Start 70: benchmark_batch_fse
+70/85 Test #70: benchmark_batch_fse ......................   Passed  113.73 sec
+      Start 71: benchmark_phase3
+71/85 Test #71: benchmark_phase3 .........................   Passed    0.91 sec
+      Start 72: benchmark_fse_gpu
+72/85 Test #72: benchmark_fse_gpu ........................   Passed   45.56 sec
+      Start 73: benchmark_fse_host_fallback
+73/85 Test #73: benchmark_fse_host_fallback ..............   Passed    4.51 sec
+      Start 74: benchmark_dictionary_compression
+74/85 Test #74: benchmark_dictionary_compression .........   Passed    6.81 sec
+      Start 75: benchmark_xxhash
+75/85 Test #75: benchmark_xxhash .........................   Passed    8.32 sec
+      Start 76: benchmark_adaptive
+76/85 Test #76: benchmark_adaptive .......................   Passed   11.33 sec
+      Start 77: benchmark_stream_pool
+77/85 Test #77: benchmark_stream_pool ....................   Passed    0.36 sec
+      Start 78: run_performance_suite
+78/85 Test #78: run_performance_suite ....................   Passed   73.58 sec
+      Start 79: benchmark_nvcomp_interface
+79/85 Test #79: benchmark_nvcomp_interface ...............   Passed    2.66 sec
+      Start 80: benchmark_c_api
+80/85 Test #80: benchmark_c_api ..........................   Passed    2.83 sec
+      Start 81: benchmark_streaming
+81/85 Test #81: benchmark_streaming ......................   Passed   26.37 sec
+      Start 82: benchmark_pipeline_streaming
+82/85 Test #82: benchmark_pipeline_streaming .............   Passed   37.56 sec
+      Start 83: benchmark_batch_throughput
+83/85 Test #83: benchmark_batch_throughput ...............   Passed    0.77 sec
+      Start 84: benchmark_comprehensive_levels
+84/85 Test #84: benchmark_comprehensive_levels ...........***Failed    0.33 sec
+[CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[CRITICAL] StreamPool: Fallback stream creation also failed
+========================================
+  CUDA ZSTD Comprehensive Benchmark
+  Levels 1-22, Sizes 1MB-1GB
+========================================
+
+Test Pattern: Random
+Running tests for 22 compression levels (1-22)
+Data sizes: 1MB 10MB 100MB 1024MB 
+
+========================================
+  ENCODING-ONLY BENCHMARKS
+========================================
+
++---------+-----------+------------------+------------------+------------------+------------------+------------------+------------+
+| Level   | Size      | Encode Time(ms)  | Decode Time(ms)  | Pipeline Time(ms)| Encode MB/s      | Decode MB/s      | Comp Ratio |
++---------+-----------+------------------+------------------+------------------+------------------+------------------+------------+
+
+--- Data Size: 1 MB ---
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:3218 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:3286 in initialize_context() (CUDA: an illegal memory access was encountered)
+CUDA Error: an illegal memory access was encountered at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/benchmarks/benchmark_comprehensive_levels.cu:167
+
+      Start 85: benchmark_zstd_comparison
+85/85 Test #85: benchmark_zstd_comparison ................***Failed    0.38 sec
+========================================
+  ZSTD vs CUDA ZSTD Comparison Benchmark
+========================================
+
+Configuration:
+  Data sizes: 1MB 5MB 10MB 50MB 100MB 
+  Compression levels: 1 3 5 9 12 19 22 
+  Patterns: RANDOM(A), REPETITIVE(B), SEMI_RANDOM(C)
+
+
+--- Testing Data Size: 1 MB ---
+
+Pattern: RANDOM
+  Level 1... [CRITICAL] StreamPool: cudaStreamCreate failed at index 0: an illegal memory access was encountered
+[CRITICAL] StreamPool: Fallback stream creation also failed
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:3218 in initialize_context() (CUDA: an illegal memory access was encountered)
+[WARNING] initialize_context: Pre-existing CUDA error: an illegal memory access was encountered
+[ERROR] ERROR_CUDA_ERROR at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu:3286 in initialize_context() (CUDA: an illegal memory access was encountered)
+CUDA Error: an illegal memory access was encountered at /mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/benchmarks/benchmark_zstd_comparison.cu:277
+
+
+72% tests passed, 24 tests failed out of 85
+
+Label Time Summary:
+benchmark    = 612.59 sec*proc (25 tests)
+unittest     =  68.71 sec*proc (60 tests)
+
+Total Test time (real) = 682.49 sec
+
+The following tests FAILED:
+	  8 - test_correctness (Failed)
+	  9 - test_coverage_gaps (Failed)
+	 13 - test_dictionary_compression (Subprocess aborted)
+	 16 - test_error_handling (Subprocess aborted)
+	 17 - test_extended_validation (Failed)
+	 21 - test_fse_comprehensive (Failed)
+	 24 - test_fse_integration (Failed)
+	 31 - test_huffman (Failed)
+	 32 - test_huffman_roundtrip (Failed)
+	 33 - test_huffman_weights_unit (Failed)
+	 34 - test_inference_api (Failed)
+	 35 - test_integration (Failed)
+	 36 - test_libzstd_interop (Failed)
+	 37 - test_lz77_comprehensive (Failed)
+	 40 - test_nvcomp_batch (Failed)
+	 41 - test_nvcomp_interface (Failed)
+	 45 - test_performance (Failed)
+	 46 - test_pipeline_integration (Failed)
+	 48 - test_rfc8878_integration (Failed)
+	 53 - test_streaming (Failed)
+	 54 - test_streaming_integration (Failed)
+	 55 - test_streaming_unit (Failed)
+	 84 - benchmark_comprehensive_levels (Failed)
+	 85 - benchmark_zstd_comparison (Failed)
+Errors while running CTest

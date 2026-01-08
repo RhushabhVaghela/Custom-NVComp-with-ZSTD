@@ -12,6 +12,8 @@ Verify that test coverage reaches 100% for the entire codebase and confirm that 
 
 Design and implement comprehensive tests and benchmarks that evaluate compression performance across the full range of compression levels from 1 to 22 and data sizes from 1 MB to 10 GB. Create three distinct test instances: one for pure encoding performance measurement, one for pure decoding performance measurement, and one for complete pipeline evaluation. For each instance, measure and record throughput, duration, and compression ratio while maintaining 100% data validity and integrity with zero data loss across all test scenarios.
 
+Keep commiting as you progress.
+
 Remove all instances of the [DEBUG] marker and associated debug code from the entire codebase to ensure a clean, production-ready state.
 
 Develop a separate benchmark that utilizes the standard zstd library to encode a reference file and compares the results against the custom GPU-based compression implementation. Ensure both benchmarks operate on identical input data and report comparable metrics including encoding time, throughput, compression ratio, and resource utilization. Output comprehensive comparison results to facilitate performance evaluation and optimization decisions.
@@ -19,6 +21,8 @@ Develop a separate benchmark that utilizes the standard zstd library to encode a
 Execute the complete build and test cycle using the command wsl bash -lc "rm -rf build/ && mkdir build && cd build && cmake .. && make -j8 && ctest --verbose 2>&1 | tee ../build_and_test_output.txt" and direct all output to @/build_and_test_output.txt. Verify successful compilation and test execution while capturing all relevant information for documentation and troubleshooting purposes.
 
 Always execute commands within the Windows Subsystem for Linux environment using the prefix wsl bash -lc for all build, test, and benchmark operations to ensure consistent environment and behavior.
+
+you do not need to run all the tests after every updates, just run the specific test that is failing and you are trying to fix, this saves lot of time
 
 no need to execute the complete ctests again and agan for simple code change, you can directly execute that sepecific test adter modifications-
 

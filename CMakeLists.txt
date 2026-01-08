@@ -445,6 +445,26 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     add_test(NAME benchmark_batch_throughput COMMAND benchmark_batch_throughput)
     set_property(TEST benchmark_batch_throughput PROPERTY LABELS "benchmark")
 
+    # Comprehensive Levels Benchmark (Levels 1-22, multiple data sizes)
+    add_executable(benchmark_comprehensive_levels benchmarks/benchmark_comprehensive_levels.cu)
+    set_target_properties(benchmark_comprehensive_levels PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_comprehensive_levels cuda_zstd_static)
+    add_test(NAME benchmark_comprehensive_levels COMMAND benchmark_comprehensive_levels)
+    set_property(TEST benchmark_comprehensive_levels PROPERTY LABELS "benchmark")
+
+    # GPU vs Standard ZSTD Comparison Benchmark
+    add_executable(benchmark_zstd_comparison benchmarks/benchmark_zstd_comparison.cu)
+    set_target_properties(benchmark_zstd_comparison PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_zstd_comparison cuda_zstd_static)
+    add_test(NAME benchmark_zstd_comparison COMMAND benchmark_zstd_comparison)
+    set_property(TEST benchmark_zstd_comparison PROPERTY LABELS "benchmark")
+
 endif()
 
 

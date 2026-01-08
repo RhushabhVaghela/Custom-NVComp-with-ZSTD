@@ -16,7 +16,7 @@
 #include "cuda_zstd_hash.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_utils.h"
-
+#include "cuda_zstd_xxhash.h"
 
 #include <chrono>
 #include <cstring>
@@ -169,10 +169,10 @@ GpuMemorySnapshot get_gpu_memory_snapshot() {
 
 // Compute XXH64 checksum
 uint64_t compute_checksum(void *data, size_t size, cudaStream_t stream = 0) {
-  return xxhash::compute_xxh64(static_cast<byte_t *>(data),
-                               static_cast<uint32_t>(size),
-                               0, // default seed
-                               stream);
+  u64 h_hash;
+  cuda_zstd::xxhash::compute_xxhash64(data, size, 0, &h_hash, stream);
+  cudaStreamSynchronize(stream ? stream : 0);
+  return h_hash;
 }
 
 // ============================================================================

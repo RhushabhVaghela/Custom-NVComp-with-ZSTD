@@ -93,6 +93,7 @@ inline Status generate_canonical_codes(const u8 *code_lengths, u32 num_symbols,
       prev_length = cc.length;
     }
     // Reverse bits for Zstd/Deflate compatibility (MSB is first bit of stream)
+    // Decoder reads LSB-first, so we reverse after reading to get canonical code
     u32 reversed_code = reverse_bits(code, cc.length);
     out_codes[cc.symbol] = HuffmanCode{reversed_code, cc.length};
     code++;

@@ -209,7 +209,7 @@ Status build_fse_decoder_table(const i16 *h_normalized_counts, u32 num_counts,
  * @brief Builds the FSE Encoding Table (CTable) on the host.
  */
 Status FSE_buildCTable_Host(const u16 *h_normalized, u32 max_symbol,
-                            u32 table_log, FSEEncodeTable *h_table);
+                            u32 table_log, FSEEncodeTable &h_table);
 
 /**
  * @brief Builds the FSE Decoding Table (DTable) on the host.
@@ -279,8 +279,8 @@ __host__ const u16 *get_predefined_norm(TableType table_type, u32 *max_symbol,
 // ==============================================================================
 // ENHANCED CORE API
 // ==============================================================================
-__host__ Status FSE_buildCTable_Host(const u16 *h_norm, u32 max_symbol,
-                                     u32 table_log, FSEEncodeTable *table);
+__host__ Status FSE_buildCTable_Host(const u16 *h_normalized, u32 max_symbol,
+                                     u32 table_size, FSEEncodeTable &h_table);
 
 __host__ Status FSE_buildDTable_Simple_Host(const u16 *h_normalized,
                                             u32 max_symbol, u32 table_log,

@@ -1,0 +1,60 @@
+FAILED: Fixed_128KB on 16 MB (Parallel)
+STICKY ERROR after Test #116: invalid argument
+FAILED: Fixed_256KB on 16 MB (Parallel)
+STICKY ERROR after Test #117: invalid argument
+FAILED: Fixed_512KB on 16 MB (Parallel)
+STICKY ERROR after Test #118: invalid argument
+FAILED: Fixed_1MB on 16 MB (Parallel)
+STICKY ERROR after Test #119: invalid argument
+FAILED: Fixed_2MB on 16 MB (Parallel)
+STICKY ERROR after Test #120: invalid argument
+FAILED: Sqrt_K400 on 16 MB (Parallel)
+FAILED: Logarithmic on 16 MB (Parallel)
+FAILED: Linear_128 on 16 MB (Parallel)
+FAILED: CubeRoot_K150 on 16 MB (Parallel)
+FAILED: Hybrid on 16 MB (Parallel)
+FAILED: Fixed_128KB on 64 MB (Parallel)
+STICKY ERROR after Test #129: invalid argument
+FAILED: Fixed_256KB on 64 MB (Parallel)
+STICKY ERROR after Test #130: invalid argument
+FAILED: Fixed_512KB on 64 MB (Parallel)
+STICKY ERROR after Test #131: invalid argument
+FAILED: Fixed_1MB on 64 MB (Parallel)
+STICKY ERROR after Test #132: invalid argument
+FAILED: Fixed_2MB on 64 MB (Parallel)
+STICKY ERROR after Test #133: invalid argument
+FAILED: Logarithmic on 64 MB (Parallel)
+FAILED: Linear_128 on 64 MB (Parallel)
+FAILED: CubeRoot_K150 on 64 MB (Parallel)
+FAILED: Hybrid on 64 MB (Parallel)
+FAILED: Fixed_128KB on 128 MB (Parallel)
+STICKY ERROR after Test #139: invalid argument
+FAILED: Fixed_256KB on 128 MB (Parallel)
+STICKY ERROR after Test #140: invalid argument
+FAILED: Fixed_512KB on 128 MB (Parallel)
+STICKY ERROR after Test #141: invalid argument
+FAILED: Fixed_1MB on 128 MB (Parallel)
+STICKY ERROR after Test #142: invalid argument
+FAILED: Fixed_2MB on 128 MB (Parallel)
+STICKY ERROR after Test #143: invalid argument
+FAILED: Logarithmic on 128 MB (Parallel)
+FAILED: Linear_128 on 128 MB (Parallel)
+FAILED: CubeRoot_K150 on 128 MB (Parallel)
+FAILED: Fixed_128KB on 256 MB (Parallel)
+STICKY ERROR after Test #148: invalid argument
+FAILED: Fixed_256KB on 256 MB (Parallel)
+STICKY ERROR after Test #149: invalid argument
+FAILED: Fixed_512KB on 256 MB (Parallel)
+STICKY ERROR after Test #150: invalid argument
+FAILED: Fixed_1MB on 256 MB (Parallel)
+STICKY ERROR after Test #151: invalid argument
+FAILED: Fixed_2MB on 256 MB (Parallel)
+STICKY ERROR after Test #152: invalid argument
+FAILED: CubeRoot_K150 on 256 MB (Parallel)
+FAILED: Fixed_128KB on 512 MB (Parallel)
+FAILED: Fixed_256KB on 512 MB (Parallel)
+FAILED: Fixed_512KB on 512 MB (Parallel)
+FAILED: Fixed_1MB on 512 MB (Parallel)
+FAILED: Fixed_2MB on 512 MB (Parallel)
+FAILED: CubeRoot_K150 on 512 MB (Serial)
+FAILED: CubeRoot_K150 on 512 MB (Parallel)

@@ -23,11 +23,24 @@ StreamPool::StreamPool(size_t pool_size) {
   for (size_t i = 0; i < pool_size; ++i) {
     PerStreamResources &r = resources_[i];
 
-        // std::cerr << "StreamPool: creating stream " << i << " of " << pool_size
-    // << std::endl;
+    // Initialize stream to 0 before creation attempt
+    r.stream = 0;
+    
+    // Ensure CUDA context is ready before creating stream
+    // This helps avoid illegal memory access on some GPUs
+    cudaError_t sync_err = cudaDeviceSynchronize();
+    if (sync_err != cudaSuccess) {
+      // Context may not be ready, try to get device properties
+      int device = 0;
+      cudaError_t dev_err = cudaGetDevice(&device);
+      if (dev_err != cudaSuccess) {
+        // Cannot get device, skip stream creation for this index
+        fprintf(stderr, "[WARN] StreamPool: Cannot get CUDA device, skipping stream %zu\n", i);
+        break;
+      }
+    }
+    
     cudaError_t err = cudaStreamCreate(&r.stream);
-    // std::cerr << "StreamPool: created stream index=" << i << ", err=" <<
-    // (int)err << std::endl;
 
     if (err != cudaSuccess) {
       fprintf(
@@ -35,24 +48,23 @@ StreamPool::StreamPool(size_t pool_size) {
           "[CRITICAL] StreamPool: cudaStreamCreate failed at index %zu: %s\n",
           i, cudaGetErrorString(err));
       // Cleanup any resources created so far
-      // std::cerr << "StreamPool: cudaStreamCreate failed at " << i << " -> "
-      // << err << std::endl;
       for (size_t j = 0; j < i; ++j) {
         cudaStreamDestroy(resources_[j].stream);
       }
       resources_.clear();
-      // throw std::runtime_error("Failed to create CUDA stream pool");      // Temporarily disabled
+      // Create at least one working stream with default flags
+      cudaError_t fallback_err = cudaStreamCreateWithFlags(&r.stream, cudaStreamNonBlocking);
+      if (fallback_err == cudaSuccess) {
+        resources_.push_back(r);
+        free_idx_.push((int)0);
+        fprintf(stderr, "[INFO] StreamPool: Created fallback stream successfully\n");
+      } else {
+        fprintf(stderr, "[CRITICAL] StreamPool: Fallback stream creation also failed\n");
+      }
       break;
-    } else {
-      // Keep synchronization for proper stream initialization
-      // but suppress the false-positive "context corrupted" warning
-      cudaDeviceSynchronize();
-      cudaGetLastError(); // Clear any sticky errors without logging
     }
 
     free_idx_.push((int)i);
-    // if (debug) std::cerr << "StreamPool: pushed free index " << i <<
-    // std::endl;
   }
 }
 

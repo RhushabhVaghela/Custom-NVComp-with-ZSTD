@@ -684,6 +684,15 @@ __host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
   }
 
   u8 header_byte = h_input[0];
+
+  // Check for custom format: [MaxBits(1)][CodeLengths(256)]
+  // serialize_huffman_table writes MAX_HUFFMAN_BITS (=24) as first byte
+  if (header_byte == MAX_HUFFMAN_BITS && input_size >= 1 + MAX_HUFFMAN_SYMBOLS) {
+    memcpy(h_code_lengths, h_input + 1, MAX_HUFFMAN_SYMBOLS);
+    *header_size = 1 + MAX_HUFFMAN_SYMBOLS;
+    return Status::SUCCESS;
+  }
+
   u8 h_weights[MAX_HUFFMAN_SYMBOLS] = {0};
   u32 num_symbols = 0;
   Status status;
@@ -769,6 +778,12 @@ huffman_encode_phase1_kernel(const byte_t *input, u32 input_size,
   d_codes_out[idx] = c.code;
   d_lengths_out[idx] = c.length;
   d_positions_out[idx] = d_bit_offsets[idx];
+
+  // Debug output for first few symbols
+  if (threadIdx.x == 0 && blockIdx.x == 0 && idx < 10) {
+    printf("[ENCODE-PHASE1] idx=%u symbol=%u('%c') code=0x%X len=%u pos=%u\n",
+           idx, symbol, symbol >= 32 ? symbol : '?', c.code, c.length, d_bit_offsets[idx]);
+  }
 }
 
 /**
@@ -820,6 +835,11 @@ __global__ void huffman_encode_phase2_kernel(const u32 *d_codes,
     u32 length = d_lengths[idx];
     u32 bit_pos = d_positions[idx];
 
+    if (idx < 5) {
+      printf("[ENCODE-PHASE2] idx=%u block=%u code=%u len=%u pos=%u\n",
+             idx, blockIdx.x, code, length, bit_pos);
+    }
+
     if (length > 0) {
       // Position relative to block start, PLUS global offset
       u32 local_bit_pos = (bit_pos - block_first_bit) + global_bit_offset;
@@ -844,6 +864,10 @@ __global__ void huffman_encode_phase2_kernel(const u32 *d_codes,
           // shared_words is 4-byte aligned by construction
           atomicOr(&shared_words[aligned_word_idx],
                    (u32)byte_val << byte_shift);
+          if (idx < 5) {
+            printf("[ENCODE-WRITE] idx=%u byte_offset=%u word=%u shift=%u val=0x%02X\n",
+                   idx, byte_offset, aligned_word_idx, byte_shift, byte_val);
+          }
         }
       }
     }
@@ -856,14 +880,12 @@ __global__ void huffman_encode_phase2_kernel(const u32 *d_codes,
   u32 bytes_to_write = (total_bits + 7) / 8;
 
   // Write from the word-aligned shared array back to bytes for global output
+  // Use atomic OR for ALL bytes to ensure bits from multiple blocks don't race
   const byte_t *shared_bytes = reinterpret_cast<const byte_t *>(shared_words);
   for (u32 i = threadIdx.x; i < bytes_to_write && i < BUFFER_SIZE;
        i += blockDim.x) {
-    if (i == 0 || i == bytes_to_write - 1) {
-      atomicOrByte(output + global_byte_start + i, shared_bytes[i]);
-    } else {
-      output[global_byte_start + i] = shared_bytes[i];
-    }
+    // Always use atomic OR to handle potential overlaps with other blocks
+    atomicOrByte(output + global_byte_start + i, shared_bytes[i]);
   }
 }
 
@@ -970,23 +992,32 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
     }
   }
 
-  // Build first_code table
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    printf("[BUILD-DECODE-TABLE] num_symbols=%u, max_len=%u\n", num_symbols, max_len);
+    printf("[BUILD-DECODE-TABLE] length_count[1]=%u, [2]=%u, [3]=%u, [4]=%u, [5]=%u, [6]=%u, [7]=%u\n",
+           length_count[1], length_count[2], length_count[3], length_count[4], length_count[5], length_count[6], length_count[7]);
+  }
+
+  // Build first_code table (canonical Huffman codes)
+  // Formula: first_code[len] = (first_code[len-1] << 1) + length_count[len]
   u32 code = 0;
   d_first_code[0] = 0;
   for (u32 len = 1; len <= max_len; ++len) {
-    code = (code + length_count[len - 1]) << 1;
+    code = (code << 1) + length_count[len];
     d_first_code[len] = code;
   }
   d_first_code[max_len + 1] = 0xFFFFFFFF; // Sentinel
 
   // Build symbol index table
+  // d_symbol_index[len] = sum of length_count[1..len-1]
+  // i.e., starting index in d_symbols for symbols of length len
   u32 idx = 0;
   for (u32 len = 1; len <= max_len; ++len) {
     d_symbol_index[len] = static_cast<u16>(idx);
     idx += length_count[len];
   }
-  d_symbol_index[max_len + 1] =
-      static_cast<u16>(idx); // Sentinel for count calculation
+  // Store total count at max_len + 1 for count_at_len calculation
+  d_symbol_index[max_len + 1] = static_cast<u16>(idx);
 
   // Fill symbols array in canonical order
   idx = 0;
@@ -994,6 +1025,9 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
     for (u32 sym = 0; sym < num_symbols; ++sym) {
       if (code_lengths[sym] == len) {
         d_symbols[idx] = static_cast<u8>(sym);
+        if (threadIdx.x == 0 && blockIdx.x == 0 && idx < 10) {
+          printf("[BUILD-DECODE-TABLE] len=%u, sym=%u -> idx=%u, symbol=%u\n", len, sym, idx, sym);
+        }
         idx++;
       }
     }
@@ -1473,6 +1507,105 @@ Status decode_huffman(const byte_t *d_input,
  * @param stream CUDA stream
  * @return Status::SUCCESS on success
  */
+
+
+/**
+ * @brief Forward-reading Huffman decoder kernel for single-stream mode.
+ * Reads the bitstream forward (as written by the encoder).
+ * Canonical codes are written LSB-first, so we read LSB-first without reversal.
+ */
+__global__ void huffman_decode_forward_kernel(
+    const byte_t *input, u32 input_size, const u32 *d_first_code,
+    const u16 *d_symbol_index, const u8 *d_symbols, byte_t *output,
+    u32 total_regen_size, u32 bitstream_start_bits) {
+
+  u32 max_len = d_symbol_index[0];
+  u32 bit_pos = bitstream_start_bits;
+  const u32 end_bit_pos = input_size * 8;
+  u32 num_decoded = 0;
+
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    printf("[DECODE-FWD] max_len=%u, input_size=%u, total=%u, start_bits=%u\n",
+           max_len, input_size, total_regen_size, bitstream_start_bits);
+    printf("[DECODE-FWD] first_code[1]=%u, first_code[2]=%u, first_code[3]=%u\n",
+           d_first_code[1], d_first_code[2], d_first_code[3]);
+    printf("[DECODE-FWD] symbol_index[1]=%u, symbol_index[2]=%u, symbol_index[3]=%u\n",
+           d_symbol_index[1], d_symbol_index[2], d_symbol_index[3]);
+  }
+
+  // Bit container for forward reading
+  u64 bit_container = 0;
+  u32 bits_available = 0;
+
+  while (num_decoded < total_regen_size) {
+    // Refill bit container when low
+    while (bits_available <= 56 && bit_pos < end_bit_pos) {
+      u32 byte_idx = bit_pos >> 3;
+      if (byte_idx >= input_size)
+        break;
+      u32 bits_in_byte = min(8u, end_bit_pos - bit_pos);
+      u8 next_byte = input[byte_idx] & ((1u << bits_in_byte) - 1);
+      bit_container |= ((u64)next_byte) << bits_available;
+      bits_available += bits_in_byte;
+      bit_pos += bits_in_byte;
+    }
+
+    if (bits_available == 0)
+      break;
+
+    // Decode symbol - read LSB-first (codes are stored LSB-first in bitstream)
+    // Read from bottom of container, consuming bits as we go
+    u32 raw_code = 0;
+    u32 code = 0;  // Declare outside loop
+    u32 len = 0;
+    for (u32 l = 1; l <= max_len; l++) {
+      if (l > bits_available)
+        break;
+      // Extract bottom 'l' bits (LSB-first reading)
+      // Use raw bits directly - encoder already reversed when writing
+      code = (u32)(bit_container & ((1U << l) - 1));
+
+      u32 count_at_len = d_symbol_index[l + 1] - d_symbol_index[l];
+      if (threadIdx.x == 0 && blockIdx.x == 0 && num_decoded < 5) {
+        printf("[DECODE-FWD] l=%u code=0x%X first=%u count=%u match=%d\n",
+               l, code, d_first_code[l], count_at_len,
+               (count_at_len > 0 && code >= d_first_code[l] &&
+                code < d_first_code[l] + count_at_len) ? 1 : 0);
+      }
+
+      if (count_at_len > 0 && code >= d_first_code[l] &&
+          code < d_first_code[l] + count_at_len) {
+        len = l;
+        break;
+      }
+    }
+
+    if (len == 0) {
+      if (threadIdx.x == 0 && blockIdx.x == 0) {
+        printf("[DECODE-FWD] Failed to decode at symbol %u, bits_avail=%u\n",
+               num_decoded, bits_available);
+      }
+      break;
+    }
+
+    u8 symbol = d_symbols[d_symbol_index[len] + (code - d_first_code[len])];
+    output[num_decoded] = symbol;
+
+    if (threadIdx.x == 0 && blockIdx.x == 0 && num_decoded < 10) {
+      printf("[DECODE-FWD] sym[%u]=%u('%c') code=0x%X len=%u bits_avail=%u\n",
+             num_decoded, symbol, symbol >= 32 ? symbol : '?', code, len, bits_available);
+    }
+
+    num_decoded++;
+    bit_container >>= len;
+    bits_available -= len;
+  }
+
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    printf("[DECODE-FWD] Done: decoded %u symbols\n", num_decoded);
+  }
+}
+
 Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
                               byte_t *d_output, size_t *d_output_size,
                               u32 decompressed_size, bool four_streams,
@@ -1553,10 +1686,23 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
         d_data + L1 + L2 + L3, input_size, d_first_code, d_symbol_index,
         d_symbols, d_output, decompressed_size, 0, L4 * 8, N1 + N2 + N3, 3, N4);
   } else {
-    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
-        d_bitstream_base, input_size, d_first_code, d_symbol_index, d_symbols,
-        d_output, decompressed_size, 0, bitstream_size_base * 8, 0, 0,
-        decompressed_size);
+    // Use forward-reading decoder for single-stream mode
+    // Calculate chunk offsets size and skip past them
+    u32 chunk_size_symbols = 4096;
+    u32 num_chunks = (decompressed_size + chunk_size_symbols - 1) / chunk_size_symbols;
+    u32 offsets_size = num_chunks * sizeof(u32);
+    
+    // Calculate actual bitstream size: total compressed size minus header and offsets
+    u32 bitstream_actual_size = (u32)input_size - huf_header_size - offsets_size;
+    
+    // The decoder reads from bitstream_base, which is d_input + huf_header_size
+    // But we need to skip the chunk offsets within that region
+    const byte_t *d_bitstream_with_offsets = d_input + huf_header_size + offsets_size;
+    
+    // Start from bit 0 of the adjusted bitstream (we've already skipped header+offsets)
+    huffman_decode_forward_kernel<<<1, 1, 0, stream>>>(
+        d_bitstream_with_offsets, bitstream_actual_size, d_first_code, d_symbol_index, d_symbols,
+        d_output, decompressed_size, 0);
   }
 
   cudaFree(d_code_lengths);

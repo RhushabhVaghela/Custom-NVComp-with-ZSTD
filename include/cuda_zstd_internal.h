@@ -162,17 +162,15 @@ struct FSEBitStreamReader {
 
     bit_pos -= num_bits;
 
-    // For backward reading: bit_pos counts from START, so byte containing bit
-    // is at stream_start + (stream_size - 1 - bit_pos/8)
+    // Bit pos counts from START (LSB of byte 0)
     u32 byte_offset = bit_pos / 8;
     u32 bit_offset = bit_pos % 8;
-    u32 byte_from_end = (stream_size - 1) - byte_offset;
 
     u64 data = 0;
-    // Load up to 8 bytes from the end, going backward
+    // Load up to 8 bytes starting at byte_offset
     for (int i = 0; i < 8; ++i) {
-      if (byte_from_end >= i) {
-        data |= ((u64)stream_start[byte_from_end - i] << (i * 8));
+      if (byte_offset + i < stream_size) {
+        data |= ((u64)stream_start[byte_offset + i] << (i * 8));
       }
     }
 
@@ -190,13 +188,11 @@ struct FSEBitStreamReader {
     u32 temp_pos = bit_pos - num_bits;
     u32 byte_offset = temp_pos / 8;
     u32 bit_offset = temp_pos % 8;
-    u32 byte_from_end = (stream_size - 1) - byte_offset;
 
     u64 data = 0;
-    // Load up to 8 bytes from the end, going backward
     for (int i = 0; i < 8; ++i) {
-      if (byte_from_end >= i) {
-        data |= ((u64)stream_start[byte_from_end - i] << (i * 8));
+      if (byte_offset + i < stream_size) {
+        data |= ((u64)stream_start[byte_offset + i] << (i * 8));
       }
     }
 
