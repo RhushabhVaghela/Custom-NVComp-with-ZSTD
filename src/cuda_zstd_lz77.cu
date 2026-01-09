@@ -96,6 +96,12 @@ __global__ void build_hash_chains_kernel(const byte_t *input, u32 input_size,
   const u32 TILE_SIZE = 2048;
   const u32 MAX_UPDATES = 512;
 
+  // Initialize shared memory
+  if (tid < 256) {
+    s_radix_counts[tid] = 0;
+  }
+  __syncthreads();
+
   // Phase 1: Process dictionary content (if present)
   if (dict && dict->d_buffer) {
     u32 dict_tiles = (dict->size + TILE_SIZE - 1) / TILE_SIZE;
