@@ -3512,10 +3512,10 @@ private:
     }
 
     // Copy frame header to host for parsing
+    // Standard Zstd Header is max 18 bytes:
+    // Magic(4) + FHD(1) + WD(1) + DictID(4) + FCS(8)
     byte_t h_header[18];
-    // copy %u bytes            return std::min((size_t)(1<<17),
-    // input_size););
-    CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
+    CUDA_CHECK(cudaMemcpy(h_header, input, std::min(18u, input_size),
                           cudaMemcpyDeviceToHost));
     printf("[DEBUG_LIT] Hdr Bytes: %02X %02X %02X %02X %02X\n", h_header[0],
            h_header[1], h_header[2], h_header[3], h_header[4]);
