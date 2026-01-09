@@ -2471,13 +2471,14 @@ extern const i16 default_of_norm[29] = {1, 1, 1, 1, 1,  1,  2,  2,  2, 1,
                                         1, 1, 1, 1, 1,  1,  1,  1,  1, 1,
                                         1, 1, 1, 1, -1, -1, -1, -1, -1};
 
-// ML Distribution (Total 53) - RFC 8878 / libzstd zstd_internal.h
+// ML Distribution (Total 53) - RFC 8878
 // Table 3: Default FSE distribution for Match Lengths (ML)
-// FROM libzstd: ML_defaultNorm[MaxML+1]
 extern const i16 default_ml_norm[53] = {
-    1, 4, 3, 2, 2, 2, 2, 2, 2, 1, 1,  1,  1,  1,  1,  1,  1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  1,  1,  1,  1,  1,  1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1};
+    1, 4, 3, 2, 2, 2, 2, 2, 2,                                     // 0-8
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 9-29
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,                // 30-45
+    0, 0, 0, 0, 0, 0, 0 // 46-52 (Not Present)
+};
 
 } // namespace predefined
 
@@ -4039,33 +4040,13 @@ __host__ Status decode_sequences_interleaved(
   while (hb >= 0 && !((last_byte >> hb) & 1))
     hb--;
   u32 sentinel_pos = (input_size - 1) * 8 + hb;
-  printf("[DEBUG] Sentinel: input_size=%u, last_byte=0x%02X, hb=%d, "
-         "sentinel_pos=%u\n",
-         input_size, last_byte, hb, sentinel_pos);
-  // Hex dump first 10 bytes for debugging
-  printf("[DEBUG] Seq section bytes: ");
-  for (size_t i = 0; i < 10 && i < input_size; i++) {
-    printf("%02X ", h_input[i]);
-  }
-  printf("...\n");
+
   sequence::FSEBitStreamReader reader(h_input.data(), sentinel_pos, input_size);
 
   // RFC 8878 3.1.1.3.2.1.2: Initial states order is LL, OF, ML
   u32 stateLL = (decode_ll && ll_mode != 1) ? reader.read(ll_log) : 0;
   u32 stateOF = (decode_of && of_mode != 1) ? reader.read(of_log) : 0;
   u32 stateML = (decode_ml && ml_mode != 1) ? reader.read(ml_log) : 0;
-  printf("[DEBUG] States: LL=%u, OF=%u, ML=%u\n", stateLL, stateOF, stateML);
-
-  // --- DEBUG INSTRUMENTATION: DUMP LL TABLE ---
-  if (decode_ll && ll_mode == 0) {
-    printf("[DEBUG] --- DUMP LL PREDEFINED TABLE (Log=%u) ---\n", ll_log);
-    u32 tsize = 1u << ll_log;
-    for (u32 s = 0; s < tsize; s++) {
-      printf("State %02u: Sym=%2u, Bits=%u, NextBase=%u\n", s,
-             ll_table.symbol[s], ll_table.nbBits[s], ll_table.newState[s]);
-    }
-    printf("[DEBUG] --- END DUMP ---\n");
-  }
 
   // 5. Decode Loop
 
@@ -4074,32 +4055,17 @@ __host__ Status decode_sequences_interleaved(
     u32 of_sym = decode_of ? of_table.symbol[stateOF % (1u << of_log)] : 0;
     u32 ml_sym = decode_ml ? ml_table.symbol[stateML % (1u << ml_log)] : 0;
 
-    if (i < 5) {
-      printf("[DEBUG] Seq %d: StateLL=%u -> SymLL=%u\n", i, stateLL, ll_sym);
-      printf("[DEBUG] Seq %d: Syms(LL=%u, OF=%u, ML=%u)\n", i, ll_sym, of_sym,
-             ml_sym);
-    }
-
     // Order of extra bits: OF -> ML -> LL
-    if (i < 3)
-      printf("[DEBUG] Seq %d: bit_pos BEFORE extras=%u\n", i, reader.bit_pos);
     u32 of_extra =
         decode_of ? sequence::ZstdSequence::get_offset_bits(of_sym, reader) : 0;
-    if (i < 3)
-      printf("[DEBUG] Seq %d: bit_pos AFTER OF extra (sym=%u)=%u\n", i, of_sym,
-             reader.bit_pos);
+
     u32 ml_extra =
         decode_ml ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
                   : 0;
-    if (i < 3)
-      printf("[DEBUG] Seq %d: bit_pos AFTER ML extra (sym=%u)=%u\n", i, ml_sym,
-             reader.bit_pos);
+
     u32 ll_extra =
         decode_ll ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
                   : 0;
-    if (i < 3)
-      printf("[DEBUG] Seq %d: bit_pos AFTER LL extra (sym=%u)=%u\n", i, ll_sym,
-             reader.bit_pos);
 
     u32 calc_ll = sequence::ZstdSequence::get_lit_len(ll_sym);
     u32 calc_ml = sequence::ZstdSequence::get_match_len(ml_sym);
@@ -4107,15 +4073,9 @@ __host__ Status decode_sequences_interleaved(
 
     if (decode_ll) {
       h_ll[i] = calc_ll + ll_extra;
-      if (i < 5)
-        printf("[DEBUG] Seq %d: FinalLL=%u (Base=%u + Extra=%u)\n", i, h_ll[i],
-               calc_ll, ll_extra);
     }
     if (decode_ml) {
       h_ml[i] = calc_ml + ml_extra;
-      if (i < 5)
-        printf("[DEBUG] Seq %d: FinalML=%u (Base=%u + Extra=%u)\n", i, h_ml[i],
-               calc_ml, ml_extra);
     }
     if (decode_of) {
       if (of_sym <= 2) {
@@ -4125,43 +4085,31 @@ __host__ Status decode_sequences_interleaved(
         // distinguish from rep codes
         h_of[i] = calc_of + of_extra + 3;
       }
-      if (i < 5)
-        printf("[DEBUG] Seq %d: FinalOF=%u (of_sym=%u, calc_of=%u, Extra=%u, "
-               "Bias=3)\n",
-               i, h_of[i], of_sym, calc_of, of_extra);
     }
 
     // Update states - SKIP for last sequence (i==0) per RFC 8878 §3.1.1.3.2.1.1
     // The final sequence doesn't need state updates; reading bits would cause
     // underflow
     if (i > 0) {
-      if (i < 3)
-        printf("[DEBUG] Seq %d: bit_pos BEFORE state updates=%u\n", i,
-               reader.bit_pos);
+
       if (decode_ll) {
         u8 nbBits = ll_table.nbBits[stateLL % (1u << ll_log)];
-        if (i < 3)
-          printf("[DEBUG] Seq %d: LL state update: nbBits=%u\n", i, nbBits);
+
         stateLL =
             ll_table.newState[stateLL % (1u << ll_log)] + reader.read(nbBits);
       }
       if (decode_ml) {
         u8 nbBits = ml_table.nbBits[stateML % (1u << ml_log)];
-        if (i < 3)
-          printf("[DEBUG] Seq %d: ML state update: nbBits=%u\n", i, nbBits);
+
         stateML =
             ml_table.newState[stateML % (1u << ml_log)] + reader.read(nbBits);
       }
       if (decode_of) {
         u8 nbBits = of_table.nbBits[stateOF % (1u << of_log)];
-        if (i < 3)
-          printf("[DEBUG] Seq %d: OF state update: nbBits=%u\n", i, nbBits);
+
         stateOF =
             of_table.newState[stateOF % (1u << of_log)] + reader.read(nbBits);
       }
-      if (i < 3)
-        printf("[DEBUG] Seq %d: bit_pos AFTER state updates=%u\n", i,
-               reader.bit_pos);
     }
 
   } // End of decode for loop

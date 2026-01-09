@@ -5285,12 +5285,14 @@ private:
         // Format 00 or 10: 1 byte header. Size uses 5 bits (bits 3-7).
         *h_header_size = 1;
         *h_decompressed_size = (h_header[0] >> 3) & 0x1F;
+
       } else if (size_format == 1) {
         // Format 01: 2 bytes. Size uses 12 bits.
         // Bit 0-1 Type, 2-3 Format, 4-15 Size.
         *h_header_size = 2;
         *h_decompressed_size =
             ((u32)h_header[0] >> 4) | ((u32)h_header[1] << 4);
+
       } else { // size_format == 3
         // Format 11: 3 bytes. Size uses 20 bits.
         *h_header_size = 3;
@@ -5328,12 +5330,6 @@ private:
     // Bits 0-1: Block_Type (2 or 3)
     // Bits 2-3: Size_Format
     // size_format already computed at top
-
-    fprintf(stderr,
-            "[DEBUG] decompress_literals: Type=2, SizeFmt=%u, RawH=[%02X %02X "
-            "%02X %02X %02X]\n",
-            size_format, h_header[0], h_header[1], h_header[2], h_header[3],
-            h_header[4]);
 
     if (size_format == 0) {
       // Format 00: Single Stream. Header uses 3 bytes?
@@ -5453,7 +5449,6 @@ private:
 
     byte_t fse_modes = h_header[offset];
     offset += 1;
-    printf("[DEBUG] decompress_sequences: FSE_Modes=0x%02X\n", fse_modes);
 
     // Check for custom raw u32 mode (fse_modes=0xFF)
     if (fse_modes == 0xFF) {
