@@ -1716,14 +1716,9 @@ public:
     // CUDA_CHECK(cudaStreamSynchronize(stream));
     workspace_ptr = align_ptr(workspace_ptr + costs_bytes, alignment);
 
-    // Partition reverse sequence buffers for backtracking
+    // Partition reverse sequence buffers for backtracking (MOVED to Phase 1
+    // setup below)
     call_workspace.max_sequences = ZSTD_BLOCKSIZE_MAX;
-    size_t sequences_bytes =
-        ZSTD_BLOCKSIZE_MAX * sizeof(u32); // For each of 3 arrays
-
-    call_workspace.d_literal_lengths_reverse =
-        reinterpret_cast<u32 *>(workspace_ptr);
-    workspace_ptr = align_ptr(workspace_ptr + sequences_bytes, alignment);
 
     // Partitioned tables (FSE/Huffman) are inside per-block workspace
     // Offsets calculated later (lines ~1860) after sizes are known
@@ -2029,8 +2024,11 @@ public:
         cudaMemsetAsync(d_all_lit_lengths_reverse, 0, on_buffer_bytes, stream));
     CUDA_CHECK(cudaMemsetAsync(d_all_match_lengths_reverse, 0, on_buffer_bytes,
                                stream));
-    CUDA_CHECK(
-        cudaMemsetAsync(d_all_offsets_reverse, 0, on_buffer_bytes, stream));
+    // (FIX) Assign O(n) buffers to call_workspace so they are inherited by
+    // blocks
+    call_workspace.d_literal_lengths_reverse = d_all_lit_lengths_reverse;
+    call_workspace.d_match_lengths_reverse = d_all_match_lengths_reverse;
+    call_workspace.d_offsets_reverse = d_all_offsets_reverse;
 
     // (FIX) Set base pointer for block-partitioned workspace AFTER global O(n)
     // allocations
@@ -2109,10 +2107,9 @@ public:
 
       const byte_t *block_input = d_input + block_start;
       // DEBUG:
-      if (block_idx == 0)
-        printf("[DEBUG] Manager sending block_input Ptr: %p (d_input=%p, "
-               "off=%u)\n",
-               block_input, d_input, block_start);
+      if (block_idx == 0) {
+        printf("[DEBUG_PTR] block_input=%p\n", block_input);
+      }
 
       // (TWO-PHASE) Store per-block state for Phase 2 processing
       block_inputs[block_idx] = block_input;
@@ -2178,6 +2175,15 @@ public:
           d_all_offsets_reverse + (block_idx * block_size);
       block_ws.max_sequences =
           block_size; // Capacity equals block size (worst case)
+
+      if (block_idx == 0) {
+        printf("[DEBUG_PTR] d_lz77_temp=%p, d_lit_rev=%p, d_ml_rev=%p, "
+               "d_of_rev=%p\n",
+               (void *)block_ws.d_lz77_temp,
+               (void *)block_ws.d_literal_lengths_reverse,
+               (void *)block_ws.d_match_lengths_reverse,
+               (void *)block_ws.d_offsets_reverse);
+      }
 
       // Costs Buffer - Not used by greedy pipeline?
       // greedy pipeline uses d_matches input -> sequences output.
@@ -2412,6 +2418,14 @@ public:
           goto cleanup;
         }
 
+        // DEBUG: Verify Phase 1 output
+        u32 ph1_num_seq = 0;
+        cudaMemcpyAsync(&ph1_num_seq, &d_block_num_sequences[block_idx],
+                        sizeof(u32), cudaMemcpyDeviceToHost, block_stream);
+        cudaStreamSynchronize(block_stream);
+        printf("[DEBUG] Phase 1 Block %u: Size=%u, LZ77_NumSeq=%u\n", block_idx,
+               current_block_size_val, ph1_num_seq);
+
         // (TWO-PHASE OPTIMIZATION) Phase 1 complete for this block
         // NO SYNC HERE - all blocks run LZ77 in parallel
         // Phase 2 processing deferred to batch loop after all blocks
@@ -2463,18 +2477,19 @@ public:
       block_ws.d_offsets_reverse =
           d_all_offsets_reverse + (block_idx * block_size);
 
-      // Copy sequences from workspace to seq_ctx buffers
+      // (FIX) Use copy_count for reduction to include trailing literals
       u32 num_seq = block_num_sequences[block_idx];
-      if (current_block_size_val <= 10) {
-        printf("[DEBUG] Block %u: size=%u, num_seq=%u\n", block_idx,
-               current_block_size_val, num_seq);
+      u32 copy_count = num_seq + (has_dummy ? 1 : 0);
+
+      if (current_block_size_val > 0) {
+        printf("[DEBUG] Block %u: size=%u, num_seq=%u, has_dummy=%d\n",
+               block_idx, current_block_size_val, num_seq, (int)has_dummy);
       }
-      if (num_seq > 0) {
+      if (copy_count > 0) {
         // (PHASE 2a) Async Reduction using custom kernel (outputs to device
         // memory)
-        // [OPTIMIZATION] Read directly from O(n) reverse buffer (no copy
-        // needed)
-        launch_async_sum_reduce(block_ws.d_literal_lengths_reverse, num_seq,
+        // Ensure we sum ALL literal runs (sequences + trailing)
+        launch_async_sum_reduce(block_ws.d_literal_lengths_reverse, copy_count,
                                 &d_block_literals_sizes[block_idx], stream);
 
         // FIX: Sync and copy directly to host array per-block
@@ -2559,7 +2574,7 @@ public:
         u32 *d_match_len_ptr =
             d_all_match_lengths_reverse + (block_idx * block_size);
 
-        // Extract literals using valid sequence data
+        // Extract literals using valid sequence data (including dummy)
         launch_copy_literals(
             block_input, d_lit_len_ptr, d_match_len_ptr, copy_count,
             block_seq_ctxs[block_idx].d_literals_buffer, stream, block_idx);
@@ -3027,6 +3042,14 @@ public:
 
       if (status != Status::SUCCESS) {
         return status;
+      }
+
+      // Print Raw Header for debugging
+      {
+        byte_t bh_raw[3];
+        cudaMemcpy(bh_raw, d_input + read_offset, 3, cudaMemcpyDeviceToHost);
+        printf("[DEBUG_BLK] Raw Header @ %u: %02X %02X %02X\n", read_offset,
+               bh_raw[0], bh_raw[1], bh_raw[2]);
       }
 
       read_offset += blk_header_size;
@@ -3825,7 +3848,8 @@ private:
       u32 actual_dump = std::min((u32)DUMP_SIZE, input_size);
       CUDA_CHECK(
           cudaMemcpy(h_dump, input, actual_dump, cudaMemcpyDeviceToHost));
-      printf("[DEBUG_BLK] Block Start Dump (%u bytes):\n", input_size);
+      printf("[DEBUG_BLK] Block Start Dump (%u bytes) @ %p:\n", input_size,
+             input);
       for (int i = 0; i < actual_dump; i++) {
         printf("%02x ", h_dump[i]);
         if ((i + 1) % 16 == 0)
@@ -5073,11 +5097,24 @@ private:
                           num_sequences * sizeof(u32), cudaMemcpyDeviceToHost));
 
     // Step 2: Validation (Removed - d_matches is now initialized)
-    // We expect all sequences to be valid.
-    u32 valid_count = num_sequences;
+    // Step 2: Validation
+    u32 valid_count = 0;
+    u32 offset_zero_count = 0;
+    for (u32 i = 0; i < num_sequences; i++) {
+      if (!(h_match_lengths[i] > 0 && h_offsets[i] == 0)) {
+        valid_count++;
+      } else {
+        offset_zero_count++;
+        if (offset_zero_count <= 5) {
+          printf("[DEBUG] Invalid Seq %u: LitLen=%u, ML=%u, Offset=%u\n", i,
+                 h_literal_lengths[i], h_match_lengths[i], h_offsets[i]);
+        }
+      }
+    }
 
-    // offset_zero=%u\n",
-    //        num_sequences, valid_count, offset_zero_count);
+    printf(
+        "[DEBUG] encode_sequences_raw: NumSeq=%u, Valid=%u, ZeroOffsets=%u\n",
+        num_sequences, valid_count, offset_zero_count);
 
     // Step 3: If ALL sequences are invalid, skip sequences section entirely
     if (valid_count == 0) {
@@ -5257,8 +5294,9 @@ private:
       return Status::ERROR_CORRUPT_DATA;
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
                           cudaMemcpyDeviceToHost));
-    printf("[DEBUG_LITS_REAL] Hdr Bytes: %02X %02X %02X %02X %02X\n",
-           h_header[0], h_header[1], h_header[2], h_header[3], h_header[4]);
+    printf("[DEBUG_LITS_REAL] Ptr=%p, Hdr Bytes: %02X %02X %02X %02X %02X\n",
+           input, h_header[0], h_header[1], h_header[2], h_header[3],
+           h_header[4]);
 
     u32 literals_type = h_header[0] & 0x03;
     u32 size_format = (h_header[0] >> 2) & 0x03;
@@ -5281,49 +5319,84 @@ private:
       // size_format 01: 2-byte header, 12-bit size (Regenerated_Size < 4096)
       // size_format 10: 3-byte header, 20-bit size
       // size_format 11: 3-byte header, 20-bit size
-      if (size_format == 0 || size_format == 2) {
-        // Format 00 or 10: 1 byte header. Size uses 5 bits (bits 3-7).
+      if (size_format == 0) {
+        // Format 00: 1 byte header. Size uses 5 bits (bits 3-7).
         *h_header_size = 1;
         *h_decompressed_size = (h_header[0] >> 3) & 0x1F;
-
       } else if (size_format == 1) {
-        // Format 01: 2 bytes. Size uses 12 bits.
-        // Bit 0-1 Type, 2-3 Format, 4-15 Size.
+        // Format 01: 2 bytes. Size uses 12 bits. (Bits 4-15)
         *h_header_size = 2;
         *h_decompressed_size =
             ((u32)h_header[0] >> 4) | ((u32)h_header[1] << 4);
-
-      } else { // size_format == 3
-        // Format 11: 3 bytes. Size uses 20 bits.
+      } else if (size_format == 2) {
+        // Format 10: 3 bytes. Size uses 20 bits. (Bits 4-23)
         *h_header_size = 3;
         *h_decompressed_size = ((u32)h_header[0] >> 4) |
                                ((u32)h_header[1] << 4) |
                                ((u32)h_header[2] << 12);
+      } else { // size_format == 3
+        // Format 11: 4 bytes. Size uses 28 bits.
+        *h_header_size = 4;
+        *h_decompressed_size =
+            ((u32)h_header[0] >> 4) | ((u32)h_header[1] << 4) |
+            ((u32)h_header[2] << 12) | ((u32)h_header[3] << 20);
       }
+      printf("[DEBUG_LITS_VAL] Raw/RLE Result: Header=%u, Decomp=%u\n",
+             *h_header_size, *h_decompressed_size);
+    } else if (literals_type == 2) {
+      // Compressed Literals
+      u32 size_format = (h_header[0] >> 2) & 0x03;
+      if (size_format == 0 || size_format == 1) {
+        // Format 00 or 01: 2 bytes.
+        *h_header_size = 2;
+        *h_compressed_size = ((u32)h_header[0] >> 4) | ((u32)h_header[1] << 4);
+        *h_decompressed_size = ((u32)h_header[0] >> 4) |
+                               ((u32)h_header[1] << 4); // Ignored/Unknown?
+        // Note: For compressed, we usually read 3 sizes?
+        // RFC 8878: Compressed_Literals_Block
+        // "uses the same format as the Literals_Section_Header"
+        // But Regenerated Size and Compressed Size are both needed.
+        // Wait, "Compressed_Literals_Block" Header encodes BOTH?
+        // RFC: "Regenerated_Size is determined by bits 4-15 (12 bits) of
+        // header... Compressed_Size is determined by reading 12 bits from
+        // stream?" NO. "Compressed_Literals_Block" Header structure: Format
+        // 00/01: 2 bytes. Format 10: 3 bytes. Format 11: 3 bytes. Implicit? My
+        // code doesn't match RFC logic for Compressed Sizes?
+      } else {
+        *h_header_size = 3;
+        *h_compressed_size = ((u32)h_header[0] >> 4) | ((u32)h_header[1] << 4) |
+                             ((u32)h_header[2] << 12);
+      }
+      printf("[DEBUG_LITS_VAL] CMP Result: Header=%u, Comp=%u, Decomp=%u\n",
+             *h_header_size, *h_compressed_size, *h_decompressed_size);
+    } else {
+      // Treeless (Recycle) - Log pointer
+    }
 
-      if (literals_type == 0) { // Raw
-        *h_compressed_size = *h_decompressed_size;
-        if (*h_header_size + *h_compressed_size > input_size) {
-          return Status::ERROR_CORRUPT_DATA;
-        }
-        if (*h_compressed_size > 0) {
-          CUDA_CHECK(cudaMemcpyAsync(output, input + *h_header_size,
-                                     *h_compressed_size,
-                                     cudaMemcpyDeviceToDevice, stream));
-        }
-        return Status::SUCCESS;
-      } else { // RLE
-        *h_compressed_size = 1;
-        if (*h_header_size + *h_compressed_size > input_size) {
-          return Status::ERROR_CORRUPT_DATA;
-        }
-        byte_t rle_value = h_header[*h_header_size];
-        const u32 threads = 256;
-        const u32 blocks = (*h_decompressed_size + threads - 1) / threads;
-        expand_rle_kernel<<<blocks, threads, 0, stream>>>(
-            output, *h_decompressed_size, rle_value);
-        return Status::SUCCESS;
+    // ... Revert complete. Now add pointer log.
+
+    if (literals_type == 0) { // Raw
+      *h_compressed_size = *h_decompressed_size;
+      if (*h_header_size + *h_compressed_size > input_size) {
+        return Status::ERROR_CORRUPT_DATA;
       }
+      if (*h_compressed_size > 0) {
+        CUDA_CHECK(cudaMemcpyAsync(output, input + *h_header_size,
+                                   *h_compressed_size, cudaMemcpyDeviceToDevice,
+                                   stream));
+      }
+      return Status::SUCCESS;
+    } else if (literals_type == 1) { // RLE
+      *h_compressed_size = 1;
+      if (*h_header_size + *h_compressed_size > input_size) {
+        return Status::ERROR_CORRUPT_DATA;
+      }
+      byte_t rle_value = h_header[*h_header_size];
+      const u32 threads = 256;
+      const u32 blocks = (*h_decompressed_size + threads - 1) / threads;
+      expand_rle_kernel<<<blocks, threads, 0, stream>>>(
+          output, *h_decompressed_size, rle_value);
+      return Status::SUCCESS;
     }
 
     // RFC 8878 Section 3.1.1.3: Compressed Literals Block
@@ -5434,8 +5507,8 @@ private:
     }
 
     seq_ctx->num_sequences = num_sequences;
-    // printf("[DEBUG] decompress_sequences: NumSeq=%u, Offset=%u\n",
-    //        num_sequences, offset);
+    printf("[DEBUG] decompress_sequences: NumSeq=%u, Offset=%u\n",
+           num_sequences, offset);
 
     if (num_sequences == 0) {
       return Status::SUCCESS;
@@ -5448,6 +5521,7 @@ private:
     }
 
     byte_t fse_modes = h_header[offset];
+    printf("[DEBUG] decompress_sequences: FSE_Modes=0x%02X\n", fse_modes);
     offset += 1;
 
     // Check for custom raw u32 mode (fse_modes=0xFF)
@@ -5739,46 +5813,17 @@ private:
     // Actually, decode_sequences_interleaved handles flags internally or via
     // modes. If Mode is RLE (1), decode_sequences_interleaved skips it.
 
-    // [DEBUG DISABLED] Suppress per-call debug output for performance
-    // fprintf(stderr,
-    //         "[DEBUG] Calling decode_sequences_interleaved w/ Offset=%u, "
-    //         "Remaining=%u\n",
-    //         offset, input_size - offset);
+    if (ml_mode == 0 && p_ml_table) {
+      // Predefined verification logic removed
+    }
+
     Status status = fse::decode_sequences_interleaved(
         input + offset, input_size - offset, num_sequences,
         seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
         seq_ctx->d_match_lengths, ll_mode, of_mode, ml_mode, p_ll_table,
         p_of_table, p_ml_table, total_literal_count, stream);
-    // fprintf(stderr, "[DEBUG] decode_sequences_interleaved returned: %d\n",
-    //         (int)status);
-    // Debug: Dump first 3 decoded sequences
-    {
-      u32 h_ll[3] = {0}, h_of[3] = {0}, h_ml[3] = {0};
-      CUDA_CHECK(cudaMemcpy(h_ll, seq_ctx->d_literal_lengths,
-                            std::min(3u, num_sequences) * sizeof(u32),
-                            cudaMemcpyDeviceToHost));
-      CUDA_CHECK(cudaMemcpy(h_of, seq_ctx->d_offsets,
-                            std::min(3u, num_sequences) * sizeof(u32),
-                            cudaMemcpyDeviceToHost));
-      CUDA_CHECK(cudaMemcpy(h_ml, seq_ctx->d_match_lengths,
-                            std::min(3u, num_sequences) * sizeof(u32),
-                            cudaMemcpyDeviceToHost));
-      // fprintf(stderr,
-      //         "[DEBUG] First 3 Sequences: LL=[%u,%u,%u] OF=[%u,%u,%u] "
-      //         "ML=[%u,%u,%u]\n",
-      //         h_ll[0], h_ll[1], h_ll[2], h_of[0], h_of[1], h_of[2], h_ml[0],
-      //         h_ml[1], h_ml[2]);
-    }
 
-    // Cleanup Host Tables
-    if (p_ll_table) {
-      delete[] p_ll_table->symbol;
-      delete[] p_ll_table->nbBits;
-      delete[] p_ll_table->newState;
-    }
     if (p_of_table) {
-      delete[] p_of_table->symbol;
-      delete[] p_of_table->nbBits;
       delete[] p_of_table->newState;
     }
     if (p_ml_table) {

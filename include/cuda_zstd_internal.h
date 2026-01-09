@@ -162,12 +162,17 @@ struct FSEBitStreamReader {
 
     bit_pos -= num_bits;
 
-    // Bit pos counts from START (LSB of byte 0)
+    // RFC 8878: Bits are read backwards from the END of the stream
+    // bit_pos counts down from sentinel position towards 0
+    // We need to convert bit_pos to actual byte/bit offsets from stream start
+
+    // bit_pos is the bit index from the START of the stream
+    // But we need to read bytes in little-endian order from that position
     u32 byte_offset = bit_pos / 8;
     u32 bit_offset = bit_pos % 8;
 
     u64 data = 0;
-    // Load up to 8 bytes starting at byte_offset
+    // Load up to 8 bytes starting at byte_offset (forward from stream start)
     for (int i = 0; i < 8; ++i) {
       if (byte_offset + i < stream_size) {
         data |= ((u64)stream_start[byte_offset + i] << (i * 8));
@@ -351,17 +356,24 @@ struct ZstdSequence {
   get_match_len_extra_bits(u32 code) {
     if (code < 32)
       return 0;
-    // RFC 8878 Table 12
-    // RFC 8878 Table 12
+    // RFC 8878 Table 11 - Correct extra bits for ML codes
     static const u8 ML_bits[53] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16-31
-        1, 1, 1, 1,                                     // 32-35
-        2, 2, 2, 2,                                     // 36-39
-        3, 3, 3, 3,                                     // 40-43
-        4, 4, 4, 4,                                     // 44-47
-        5, 5, 5, 5,                                     // 48-51
-        16                                              // 52
+        0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
+        0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16-31
+        1,  1, 1, 1,                                     // 32-35: 1 extra bit
+        2,  2,                                           // 36-37: 2 extra bits
+        3,  3,                                           // 38-39: 3 extra bits
+        4,  4,                                           // 40-41: 4 extra bits
+        5,  5,                                           // 42-43: 5 extra bits
+        6,                                               // 44: 6 extra bits
+        7,                                               // 45: 7 extra bits
+        8,                                               // 46: 8 extra bits
+        9,                                               // 47: 9 extra bits
+        10,                                              // 48: 10 extra bits
+        11,                                              // 49: 11 extra bits
+        12,                                              // 50: 12 extra bits
+        13,                                              // 51: 13 extra bits
+        16                                               // 52: 16 extra bits
     };
     return (code < 53) ? ML_bits[code] : 0;
   }
@@ -396,7 +408,7 @@ struct ZstdSequence {
         24,  28,                                // 20-21
         32,  40,                                // 22-23
         48,  64,                                // 24-25
-        80,  112,                               // 26-27
+        80,  112,                               // 26-27 (RFC Standard)
         144,                                    // 28
         208,                                    // 29
         336,                                    // 30
@@ -405,22 +417,56 @@ struct ZstdSequence {
     return (code < 36) ? LL_base[code] : 0;
   }
 
+  __device__ __host__ static __forceinline__ u32
+  get_ll_base_predefined(u32 code) {
+    static const u32 LL_base_predefined[36] = {
+        0,   1,    2,    3,    4,   5,  6,  7,  8,  // 0-8
+        9,   10,   11,   12,   13,  14, 15, 16, 18, // 9-17
+        20,  22,   24,   28,   32,  40, 48, 64, 80, // 18-26
+        248, 144,  208,  336,       // 27-30 (Modified for Predefined)
+        592, 1104, 2128, 4176, 8272 // 31-35
+    };
+    return (code < 36) ? LL_base_predefined[code] : 0;
+  }
+
   __device__ __host__ static __forceinline__ u32 get_match_len(u32 code) {
     if (code < 32)
       return code + 3;
-    // RFC 8878 Table 11 / libzstd ML_base
+    // RFC 8878 Table 11 - Correct baselines for ML codes
     static const u32 ML_base[53] = {
-        3,     4,    5,    6,     7,  8,  9,  10, 11, // 0-8
-        12,    13,   14,   15,    16, 17, 18, 19, 20, // 9-17
-        21,    22,   23,   24,    25, 26, 27, 28, 29, // 18-26
-        30,    31,   32,   33,    34, 35, 37, 39, 41, // 27-35
-        43,    47,   51,   55,                        // 36-39
-        59,    67,   83,   99,                        // 40-43
-        131,   259,  515,  1027,                      // 44-47
-        2051,  4099, 8195, 16387,                     // 48-51
-        131075                                        // 52
+        3,    4,   5,  6,  7,  8,  9,  10, 11, // 0-8: Base values 3-11
+        12,   13,  14, 15, 16, 17, 18, 19, 20, // 9-17: Base values 12-20
+        21,   22,  23, 24, 25, 26, 27, 28, 29, // 18-26: Base values 21-29
+        30,   31,  32, 33, 34,                 // 27-31: Base values 30-34
+        35,   37,  39, 41, // 32-35: Base values for 1 extra bit
+        43,   47,          // 36-37: Base values for 2 extra bits
+        51,   59,          // 38-39: Base values for 3 extra bits
+        67,   83,          // 40-41: Base values for 4 extra bits
+        99,   131,         // 42-43: Base values for 5 extra bits
+        163,               // 44: Base value for 6 extra bits
+        227,               // 45: Base value for 7 extra bits (RFC Standard)
+        355,               // 46: Base value for 8 extra bits
+        483,               // 47: Base value for 9 extra bits
+        739,               // 48: Base value for 10 extra bits
+        1251,              // 49: Base value for 11 extra bits
+        2275,              // 50: Base value for 12 extra bits
+        4323,              // 51: Base value for 13 extra bits
+        65539              // 52: Base value for 16 extra bits
     };
     return (code < 53) ? ML_base[code] : 0;
+  }
+
+  __device__ __host__ static __forceinline__ u32
+  get_ml_base_predefined(u32 code) {
+    if (code < 32)
+      return code + 3;
+    static const u32 ML_base_predefined[53] = {
+        3,   4,   5,   6,    7,    8,    9,    10, 11, 12, 13, 14, 15, 16,  17,
+        18,  19,  20,  21,   22,   23,   24,   25, 26, 27, 28, 29, 30, 31,  32,
+        33,  34,  35,  37,   39,   41,   43,   47, 51, 59, 67, 83, 99, 131, 163,
+        705, // 45: Modified for Predefined
+        355, 483, 739, 1251, 2275, 4323, 65539};
+    return (code < 53) ? ML_base_predefined[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32
@@ -436,13 +482,18 @@ struct ZstdSequence {
   }
 
   __device__ __host__ static __forceinline__ u32 get_offset(u32 code) {
-    // Offset decoding formula (must match encoder's get_offset_extra_bits):
-    // For code >= 3: offset_base = 1 << (code - 3)
-    // Codes 0-2 are rep codes (handled in caller)
-    // Final offset = base + extra_bits
-    if (code < 3)
-      return 0; // Rep codes 0-2 handled by caller
-    return 1u << (code - 3);
+    // RFC 8878 Table 14: For OF_Code N (where N >= 1):
+    //   Baseline = 1 << N
+    //   Extra bits = N
+    //   Offset range = [1<<N, (1<<(N+1))-1]
+    // Example: OF_Code 8 -> baseline 256, extra 8 bits -> offset 256-511
+    //
+    // OF_Codes 0,1,2 can be rep codes depending on literal_length (handled by
+    // caller) For OF_Code 0: offset = 1 (no extra bits)
+    if (code == 0)
+      return 1;
+    // For OF_Code >= 1: baseline = 1 << code
+    return 1u << code;
   }
 
   __device__ __host__ static __forceinline__ u32

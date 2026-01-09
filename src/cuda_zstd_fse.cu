@@ -2474,10 +2474,10 @@ extern const i16 default_of_norm[29] = {1, 1, 1, 1, 1,  1,  2,  2,  2, 1,
 // ML Distribution (Total 53) - RFC 8878
 // Table 3: Default FSE distribution for Match Lengths (ML)
 extern const i16 default_ml_norm[53] = {
-    1, 4, 3, 2, 2, 2, 2, 2, 2,                                     // 0-8
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 9-29
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,                // 30-45
-    0, 0, 0, 0, 0, 0, 0 // 46-52 (Not Present)
+    1,  4,  3,  2,  2,  2,  2, 2, 2,                                     // 0-8
+    1,  1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 9-29
+    1,  1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 30-45
+    -1, -1, -1, -1, -1, -1, -1                            // 46-52 (Low-prob)
 };
 
 } // namespace predefined
@@ -3953,6 +3953,11 @@ __host__ Status decode_sequences_interleaved(
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
+    printf("[DEBUG_TBL] LL Table (Log=%u): State[0-5]->Symbol: "
+           "%u,%u,%u,%u,%u,%u; State[19]->%u\n",
+           ll_log, ll_table.symbol[0], ll_table.symbol[1], ll_table.symbol[2],
+           ll_table.symbol[3], ll_table.symbol[4], ll_table.symbol[5],
+           ll_table.symbol[19]);
   } else if (ll_mode == 2) {
     if (!p_ll_table)
       return Status::ERROR_INVALID_PARAMETER;
@@ -4044,6 +4049,7 @@ __host__ Status decode_sequences_interleaved(
   sequence::FSEBitStreamReader reader(h_input.data(), sentinel_pos, input_size);
 
   // RFC 8878 3.1.1.3.2.1.2: Initial states order is LL, OF, ML
+  u32 start_pos = reader.bit_pos;
   u32 stateLL = (decode_ll && ll_mode != 1) ? reader.read(ll_log) : 0;
   u32 stateOF = (decode_of && of_mode != 1) ? reader.read(of_log) : 0;
   u32 stateML = (decode_ml && ml_mode != 1) ? reader.read(ml_log) : 0;
@@ -4067,8 +4073,12 @@ __host__ Status decode_sequences_interleaved(
         decode_ll ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
                   : 0;
 
-    u32 calc_ll = sequence::ZstdSequence::get_lit_len(ll_sym);
-    u32 calc_ml = sequence::ZstdSequence::get_match_len(ml_sym);
+    u32 calc_ll = (ll_mode == 0)
+                      ? sequence::ZstdSequence::get_ll_base_predefined(ll_sym)
+                      : sequence::ZstdSequence::get_lit_len(ll_sym);
+    u32 calc_ml = (ml_mode == 0)
+                      ? sequence::ZstdSequence::get_ml_base_predefined(ml_sym)
+                      : sequence::ZstdSequence::get_match_len(ml_sym);
     u32 calc_of = sequence::ZstdSequence::get_offset(of_sym);
 
     if (decode_ll) {
@@ -4079,13 +4089,16 @@ __host__ Status decode_sequences_interleaved(
     }
     if (decode_of) {
       if (of_sym <= 2) {
-        h_of[i] = of_sym + 1; // Rep codes
+        h_of[i] = of_sym + 1; // Rep codes 0,1,2 -> offset 1,2,3
       } else {
-        // Store as (actual_offset + 3) so match-copy can subtract 3 to
-        // distinguish from rep codes
-        h_of[i] = calc_of + of_extra + 3;
+        h_of[i] = calc_of + of_extra;
       }
     }
+
+    // printf("[DEBUG_FSE] Seq %i: LL_sym=%u, ML_sym=%u, OF_sym=%u. Extras: "
+    //        "LL=%u, ML=%u, OF=%u. Result: LL=%u, ML=%u, OF=%u. Pos: %u\n",
+    //        i, ll_sym, ml_sym, of_sym, ll_extra, ml_extra, of_extra, h_ll[i],
+    //        h_ml[i], h_of[i], reader.bit_pos);
 
     // Update states - SKIP for last sequence (i==0) per RFC 8878 §3.1.1.3.2.1.1
     // The final sequence doesn't need state updates; reading bits would cause
