@@ -19,6 +19,7 @@
 #include "cuda_zstd_hash.h"
 #include "cuda_zstd_sequence.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_utils.h"
 #include <cstddef>
 
 namespace cuda_zstd {
@@ -200,46 +201,10 @@ __device__ inline u32 match_length(const byte_t *input,
 __device__ __host__ inline u32 calculate_match_cost(u32 length, u32 offset) {
   if (length == 0)
     return 1000000;
-#ifdef __CUDA_ARCH__
-  u32 offset_bits = (offset == 0) ? 0 : (31 - __clz(static_cast<int>(offset)));
-#elif defined(__GNUC__) || defined(__clang__)
-  u32 offset_bits = (offset == 0) ? 0 : (31 - __builtin_clz(offset));
-#elif defined(_MSC_VER)
-  u32 offset_bits = 0;
-  if (offset != 0) {
-    unsigned long index;
-    _BitScanReverse(&index, offset);
-    offset_bits = 31 - index;
-  }
-#else
-  // Software fallback
-  u32 offset_bits = 0;
-  if (offset != 0) {
-    u32 x = offset;
-    u32 n = 0;
-    if (x <= 0x0000FFFF) {
-      n += 16;
-      x <<= 16;
-    }
-    if (x <= 0x00FFFFFF) {
-      n += 8;
-      x <<= 8;
-    }
-    if (x <= 0x0FFFFFFF) {
-      n += 4;
-      x <<= 4;
-    }
-    if (x <= 0x3FFFFFFF) {
-      n += 2;
-      x <<= 2;
-    }
-    if (x <= 0x7FFFFFFF) {
-      n += 1;
-    }
-    offset_bits = n;
-  }
-#endif
-  u32 length_bits = (length >= 19) ? 9 : 5;
+  // RFC 8878: offset bits = offset code
+  u32 offset_bits =
+      (offset == 0) ? 0 : (31 - cuda_zstd::utils::clz_impl(offset + 3));
+  u32 length_bits = (length >= 19) ? 9 : 5; // Simplified ML cost
   return 1 + length_bits + offset_bits;
 }
 

@@ -43,15 +43,14 @@ __global__ void __launch_bounds__(256)
 
   if (num_symbols == 0)
     return;
-  // printf("DEBUG: k_encode Start:
 
   // Bounds Check
   if (bitstream_capacity == 0)
     return;
 
-  // Write Reverse: Ptr starts at End - 1
-  byte_t *ptr = output_bitstream + bitstream_capacity - 1;
-  byte_t *start_limit = output_bitstream;
+  // Write Forward: Ptr starts at Beginning
+  byte_t *ptr = output_bitstream;
+  byte_t *end_limit = output_bitstream + bitstream_capacity;
 
   // Accumulator
   u64 bitContainer = 0;
@@ -63,9 +62,7 @@ __global__ void __launch_bounds__(256)
   u32 of_val = d_offsets[idx];
   u32 ml_val = d_match_lengths[idx];
 
-  // Initial state is deltaFindState (which stores table_size + cumul[s])
-  // This matches Zstandard: initial_state = table_size +
-  // cumulative_start[symbol]
+  // Initial state is deltaFindState
   u32 stateLL = (u32)table[0].d_symbol_table[ll_val].deltaFindState;
   u32 stateOF = (u32)table[1].d_symbol_table[of_val].deltaFindState;
   u32 stateML = (u32)table[2].d_symbol_table[ml_val].deltaFindState;
@@ -86,9 +83,9 @@ __global__ void __launch_bounds__(256)
         bitCount += nbBitsOut;
 
         while (bitCount >= 8) {
-          if (ptr < start_limit)
+          if (ptr >= end_limit)
             return;
-          *ptr-- = (byte_t)(bitContainer & 0xFF);
+          *ptr++ = (byte_t)(bitContainer & 0xFF);
           bitContainer >>= 8;
           bitCount -= 8;
         }
@@ -102,9 +99,9 @@ __global__ void __launch_bounds__(256)
         bitContainer |= (val << bitCount);
         bitCount += nbBitsOut;
         while (bitCount >= 8) {
-          if (ptr < start_limit)
+          if (ptr >= end_limit)
             return;
-          *ptr-- = (byte_t)(bitContainer & 0xFF);
+          *ptr++ = (byte_t)(bitContainer & 0xFF);
           bitContainer >>= 8;
           bitCount -= 8;
         }
@@ -118,9 +115,9 @@ __global__ void __launch_bounds__(256)
         bitContainer |= (val << bitCount);
         bitCount += nbBitsOut;
         while (bitCount >= 8) {
-          if (ptr < start_limit)
+          if (ptr >= end_limit)
             return;
-          *ptr-- = (byte_t)(bitContainer & 0xFF);
+          *ptr++ = (byte_t)(bitContainer & 0xFF);
           bitContainer >>= 8;
           bitCount -= 8;
         }
@@ -136,9 +133,9 @@ __global__ void __launch_bounds__(256)
     bitContainer |= (val << bitCount);
     bitCount += nbBits;
     while (bitCount >= 8) {
-      if (ptr < start_limit)
+      if (ptr >= end_limit)
         return;
-      *ptr-- = (byte_t)(bitContainer & 0xFF);
+      *ptr++ = (byte_t)(bitContainer & 0xFF);
       bitContainer >>= 8;
       bitCount -= 8;
     }
@@ -149,9 +146,9 @@ __global__ void __launch_bounds__(256)
     bitContainer |= (val << bitCount);
     bitCount += nbBits;
     while (bitCount >= 8) {
-      if (ptr < start_limit)
+      if (ptr >= end_limit)
         return;
-      *ptr-- = (byte_t)(bitContainer & 0xFF);
+      *ptr++ = (byte_t)(bitContainer & 0xFF);
       bitContainer >>= 8;
       bitCount -= 8;
     }
@@ -162,9 +159,9 @@ __global__ void __launch_bounds__(256)
     bitContainer |= (val << bitCount);
     bitCount += nbBits;
     while (bitCount >= 8) {
-      if (ptr < start_limit)
+      if (ptr >= end_limit)
         return;
-      *ptr-- = (byte_t)(bitContainer & 0xFF);
+      *ptr++ = (byte_t)(bitContainer & 0xFF);
       bitContainer >>= 8;
       bitCount -= 8;
     }
@@ -174,9 +171,9 @@ __global__ void __launch_bounds__(256)
   bitContainer |= ((u64)1 << bitCount);
   bitCount++;
   while (bitCount > 0) {
-    if (ptr < start_limit)
+    if (ptr >= end_limit)
       return;
-    *ptr-- = (byte_t)(bitContainer & 0xFF);
+    *ptr++ = (byte_t)(bitContainer & 0xFF);
     bitContainer >>= 8;
     if (bitCount <= 8)
       bitCount = 0;
@@ -184,15 +181,8 @@ __global__ void __launch_bounds__(256)
       bitCount -= 8;
   }
 
-  // Result: Start of valid bits = ptr + 1
-  byte_t *final_start = ptr + 1;
-  size_t size = (output_bitstream + bitstream_capacity) - final_start;
-
-  // Move to front (Sequential Copy)
-  byte_t *dst = output_bitstream;
-  for (size_t k = 0; k < size; k++) {
-    dst[k] = final_start[k];
-  }
+  // Result: Ptr points to end of valid data
+  size_t size = ptr - output_bitstream;
 
   *output_pos = size;
 }

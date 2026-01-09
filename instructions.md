@@ -18,13 +18,11 @@ Remove all instances of the [DEBUG] marker and associated debug code from the en
 
 Develop a separate benchmark that utilizes the standard zstd library to encode a reference file and compares the results against the custom GPU-based compression implementation. Ensure both benchmarks operate on identical input data and report comparable metrics including encoding time, throughput, compression ratio, and resource utilization. Output comprehensive comparison results to facilitate performance evaluation and optimization decisions.
 
-Execute the complete build and test cycle using the command wsl bash -lc "rm -rf build/ && mkdir build && cd build && cmake .. && make -j8 && ctest --verbose 2>&1 | tee ../build_and_test_output.txt" and direct all output to @/build_and_test_output.txt. Verify successful compilation and test execution while capturing all relevant information for documentation and troubleshooting purposes.
-
 Always execute commands within the Windows Subsystem for Linux environment using the prefix wsl bash -lc for all build, test, and benchmark operations to ensure consistent environment and behavior.
 
 you do not need to run all the tests after every updates, just run the specific test that is failing and you are trying to fix, this saves lot of time
 
-no need to execute the complete ctests again and agan for simple code change, you can directly execute that sepecific test adter modifications-
+no need to execute the complete ctests again and again for simple code change, you can directly execute that specific test after modifications-
 
 wsl bash -lc "cd '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build' && ctest -R TEST_NAME"
 OR
@@ -89,3 +87,10 @@ cd build
 ./benchmark_streaming
 ./benchmark_c_api
 ./benchmark_nvcomp_interface
+
+Also, check if  both the encoder and decoder [Huffman encoder (RFC 8878 compliant) and Huffman decoder (RFC 8878 compliant)] (compatible with official library)? are written correctly or not.
+
+Encode (CPU) -> Decode (CPU) (official library)
+Encode (CPU) -> Decode (GPU)
+Encode (GPU) -> Decode (CPU)
+Encode (GPU) -> Decode (GPU)

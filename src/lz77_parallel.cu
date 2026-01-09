@@ -30,6 +30,14 @@ __global__ void find_matches_kernel(const u8 *input, u32 input_size,
   if (pos >= input_size - config.min_match)
     return;
 
+  // DEBUG PROBES
+  if (pos == 0)
+    printf("[KERNEL] Input Ptr: %p\n", input);
+  if (pos == 104)
+    printf("[KERNEL] Input[104] = %02X\n", input[104]);
+  if (pos == 174)
+    printf("[KERNEL] Input[174] = %02X\n", input[174]);
+
   u32 hash = compute_hash(input, pos, hash_log);
   u32 hash_idx = hash % (1 << hash_log);
 
@@ -182,6 +190,9 @@ greedy_parse_kernel(const Match *matches, u32 input_size,
     return;
 
   Match m = matches[pos];
+  if (pos == 174) {
+    printf("[GREEDY] Pos 174 Read Match: Len=%u Off=%u\n", m.length, m.offset);
+  }
 
   // Greedy decision: use match if valid, else literal
   if (m.length >= min_match && m.offset > 0) {

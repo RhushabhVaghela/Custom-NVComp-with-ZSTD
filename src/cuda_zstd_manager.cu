@@ -533,6 +533,12 @@ __global__ void copy_block_literals_kernel(
     // Copy literals
     for (u32 k = 0; k < ll; ++k) {
       literals_buffer[out_pos + k] = input[in_pos + k];
+      // PROBE
+      if (out_pos + k == 174) {
+        printf("[COPY] Block %u: Copying Byte 174. Input=%02X (Ptr=%p) -> "
+               "Buffer\n",
+               block_idx, input[in_pos + k], input);
+      }
     }
 
     in_pos += ll + ml;
@@ -1349,6 +1355,8 @@ public:
                           size_t temp_size, const void *dict_buffer,
                           size_t dict_size, cudaStream_t stream) override {
     std::lock_guard<std::mutex> lock(api_mutex);
+    printf("[DEBUG] Manager::compress ENTRY Size=%zu\n", uncompressed_size);
+    fflush(stdout);
     void *device_workspace = nullptr; // Scope for cleanup
 
     // cudaEvent_t memset_done_event = 0; // REMOVED (Unused and causing
@@ -1449,6 +1457,10 @@ public:
                                    uncompressed_size, cudaMemcpyDefault,
                                    stream));
       }
+
+      // CRITICAL: Must wait for Async Copy to complete before CPU accesses
+      // h_input
+      CUDA_CHECK(cudaStreamSynchronize(stream));
 
       // 3. Compress on CPU
       size_t cSize =
@@ -1561,16 +1573,32 @@ public:
     bool input_is_device = (input_attr_err == cudaSuccess &&
                             input_attrs.type == cudaMemoryTypeDevice);
 
+    // DEBUG: print input type
+    // printf("[DEBUG] compress: Input Ptr %p, IsDevice=%d, Type=%d\n",
+    // uncompressed_data, input_is_device, input_attrs.type);
+
     byte_t *d_input = nullptr;
     if (input_is_device) {
       // Input is already on device, use it directly
       d_input =
           const_cast<byte_t *>(static_cast<const byte_t *>(uncompressed_data));
-    } else {
-      // Input is on host, allocate space in workspace
 
+      // DEBUG: Verify Content
+      if (uncompressed_size >= 129) {
+        byte_t check[130];
+        cudaMemcpy(check, d_input, 129, cudaMemcpyDeviceToHost);
+        printf("[DEBUG] Manager d_input verify: [93]=%02X, [128]=%02X\n",
+               check[93], check[128]);
+      }
+
+    } else {
+      // Input is on host (or managed/unrecognized), allocate space in workspace
       d_input = workspace_ptr;
       workspace_ptr = align_ptr(workspace_ptr + uncompressed_size, alignment);
+
+      // FIX: Copy input data to the workspace buffer
+      CUDA_CHECK(cudaMemcpyAsync(d_input, uncompressed_data, uncompressed_size,
+                                 cudaMemcpyDefault, stream));
     }
 
     byte_t *d_output;
@@ -2080,6 +2108,11 @@ public:
           std::min(block_size, (u32)uncompressed_size - block_start);
 
       const byte_t *block_input = d_input + block_start;
+      // DEBUG:
+      if (block_idx == 0)
+        printf("[DEBUG] Manager sending block_input Ptr: %p (d_input=%p, "
+               "off=%u)\n",
+               block_input, d_input, block_start);
 
       // (TWO-PHASE) Store per-block state for Phase 2 processing
       block_inputs[block_idx] = block_input;
@@ -2545,10 +2578,8 @@ public:
         printf("[FATAL] Block %u: Invalid literals size %u > 128KB!\n",
                block_idx, block_literals_sizes[block_idx]);
       }
-      // printf("[DEBUG] Block %d: Literals Size = %u, Num Seqs = %u\n",
-      // block_idx,
-      //        local_seq_ctx.num_literals,
-      //        local_seq_ctx.num_sequences);[block_idx]);
+      printf("[DEBUG] Block %u: Lit Size=%u. Calling compress_literals...\n",
+             block_idx, block_literals_sizes[block_idx]);
 
       // Status initialized to SUCCESS
 
@@ -2878,6 +2909,15 @@ public:
     workspace_ptr =
         align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX * sizeof(u32), alignment);
 
+    // NEW: Persistent rep-offsets for multi-block support
+    u32 *d_rep_codes = reinterpret_cast<u32 *>(workspace_ptr);
+    workspace_ptr = align_ptr(workspace_ptr + 3 * sizeof(u32), alignment);
+
+    // Initialize rep-offsets to Zstd defaults
+    u32 h_rep_codes[3] = {1, 4, 8};
+    CUDA_CHECK(cudaMemcpyAsync(d_rep_codes, h_rep_codes, 3 * sizeof(u32),
+                               cudaMemcpyHostToDevice, stream));
+
     // Allocate literals buffer (FIX: Was missing!)
     ctx.seq_ctx->d_literals_buffer = workspace_ptr;
     workspace_ptr = align_ptr(workspace_ptr + ZSTD_BLOCKSIZE_MAX, alignment);
@@ -2937,6 +2977,15 @@ public:
     u32 read_offset = header_size; // Start after frame header
     u32 write_offset = 0;          // Where we write decompressed data
 
+    {
+      byte_t h_head[16];
+      CUDA_CHECK(cudaMemcpy(h_head, d_input, 16, cudaMemcpyDeviceToHost));
+      printf("[DEBUG_BLK] Stream Start: ");
+      for (int k = 0; k < 16; k++)
+        printf("%02X ", h_head[k]);
+      printf("\n");
+    }
+
     // Unified Block Loop (Handles both Single Segment and Multi-Block frames)
     while (read_offset < h_compressed_size_remaining) {
       // Check if only checksum remains (8 bytes)
@@ -2951,6 +3000,18 @@ public:
                                                 // 8 bytes
         if (read_offset + 8 == h_compressed_size_remaining)
           break;
+      }
+
+      if (read_offset >= 250 && read_offset <= 300) {
+        byte_t h_area[128];
+        u32 actual_area = std::min(
+            (u32)128, (u32)(h_compressed_size_remaining - read_offset));
+        CUDA_CHECK(cudaMemcpy(h_area, d_input + read_offset, actual_area,
+                              cudaMemcpyDeviceToHost));
+        printf("[DEBUG_BLK] Boundary Dump @ %u: ", read_offset);
+        for (u32 k = 0; k < actual_area; k++)
+          printf("%02X ", h_area[k]);
+        printf("\n");
       }
 
       bool blk_is_last = false;
@@ -2969,13 +3030,17 @@ public:
       }
 
       read_offset += blk_header_size;
+      printf("[DEBUG_BLK] Block: Type=%s, Size=%u, Last=%d, Offset=%u/%zu\n",
+             blk_is_compressed ? "Compressed" : (blk_is_rle ? "RLE" : "Raw"),
+             blk_size, blk_is_last, read_offset, h_compressed_size_remaining);
 
       // === Process Block ===
       if (blk_is_compressed) {
         u32 decompressed_size = 0;
-        status = decompress_block(d_input + read_offset, blk_size,
-                                  d_output + write_offset, &decompressed_size,
-                                  d_output, d_output_max_size, stream);
+        status =
+            decompress_block(d_input + read_offset, blk_size,
+                             d_output + write_offset, &decompressed_size,
+                             d_output, d_output_max_size, stream, d_rep_codes);
         if (status != Status::SUCCESS)
           return status;
 
@@ -3450,8 +3515,12 @@ private:
     byte_t h_header[18];
     // copy %u bytes            return std::min((size_t)(1<<17),
     // input_size););
-    CUDA_CHECK(cudaMemcpy(h_header, input, std::min((u32)18, input_size),
+    CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
                           cudaMemcpyDeviceToHost));
+    printf("[DEBUG_LIT] Hdr Bytes: %02X %02X %02X %02X %02X\n", h_header[0],
+           h_header[1], h_header[2], h_header[3], h_header[4]);
+
+    // RFC 8878 Literals Section Header:
     // copied, first bytes: %02X %02X %02X %02X %02X\n",
     // //                 h_header[0], h_header[1], h_header[2], h_header[3],
     // h_header[4]);
@@ -3735,7 +3804,7 @@ private:
   Status decompress_block(const byte_t *input, u32 input_size, byte_t *output,
                           u32 *output_size, // Host pointer for output
                           const byte_t *output_base, u32 output_max_size,
-                          cudaStream_t stream) {
+                          cudaStream_t stream, u32 *d_rep_codes) {
     if (!input || !output || !output_size) {
       return Status::ERROR_INVALID_PARAMETER;
     }
@@ -3756,13 +3825,13 @@ private:
       u32 actual_dump = std::min((u32)DUMP_SIZE, input_size);
       CUDA_CHECK(
           cudaMemcpy(h_dump, input, actual_dump, cudaMemcpyDeviceToHost));
-      // printf("[DEBUG_BLK] Block Start Dump (%u bytes):\n", input_size);
-      // for (int i = 0; i < actual_dump; i++) {
-      //   printf("%02x ", h_dump[i]);
-      //   if ((i + 1) % 16 == 0)
-      //     printf("\n");
-      // }
-      // printf("\n");
+      printf("[DEBUG_BLK] Block Start Dump (%u bytes):\n", input_size);
+      for (int i = 0; i < actual_dump; i++) {
+        printf("%02x ", h_dump[i]);
+        if ((i + 1) % 16 == 0)
+          printf("\n");
+      }
+      printf("\n");
       // fflush(stdout);
       (void)h_dump;
       (void)actual_dump; // Suppress unused warnings
@@ -3820,10 +3889,10 @@ private:
 
     // DEBUG: Trace sequence offset calculation
     // DEBUG: Trace sequence offset calculation
-    // printf("[DEBUG_PART] decompress_block: sequences_offset=%u (LitHdr=%u + "
-    //        "LitComp=%u), LitDecomp=%u, input_size=%u\n",
-    //        sequences_offset, literals_header_size, literals_compressed_size,
-    //        literals_decompressed_size, input_size);
+    printf("[DEBUG] decompress_block: input_size=%u, sequences_offset=%u "
+           "(LitHdr=%u + LitComp=%u), LitDecomp=%u\n",
+           input_size, sequences_offset, literals_header_size,
+           literals_compressed_size, literals_decompressed_size);
     // fprintf(stderr,
     //         "[DEBUG] decompress_block: sequences_offset: %u (LitHeader: %u, "
     //         "LitCompressed: %u)\n",
@@ -3924,9 +3993,8 @@ private:
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
-        d_output_size,
-        ctx.seq_ctx->is_raw_offsets, // Pass tier flag
-        stream, output_base, output_max_size);
+        d_output_size, false, // is_raw_offsets
+        stream, output_base, output_max_size, d_rep_codes);
 
     // Sync after execute
     cudaError_t exec_sync_err = cudaStreamSynchronize(stream);
@@ -4276,28 +4344,18 @@ private:
     u64 bitContainer = 0;
     u32 bitPos = 0;
 
+    // Buffer for bit operations to support Reverse Writing (RFC 8878)
+    struct BitOp {
+      u64 val;
+      u32 nbBits;
+    };
+    std::vector<BitOp> bitStack;
+    bitStack.reserve(num_sequences * 4); // Approx size
+
     auto addBits = [&](u64 val, u32 nbBits) {
       if (nbBits == 0)
         return;
-      bitContainer |= (val & ((1ULL << nbBits) - 1)) << bitPos;
-      bitPos += nbBits;
-      while (bitPos >= 8) {
-        bitStream.push_back((u8)(bitContainer));
-        bitContainer >>= 8;
-        bitPos -= 8;
-      }
-    };
-
-    auto flushBits = [&]() {
-      addBits(1, 1); // Sentinel bit
-      while (bitPos > 0) {
-        bitStream.push_back((u8)(bitContainer));
-        bitContainer >>= 8;
-        if (bitPos >= 8)
-          bitPos -= 8;
-        else
-          bitPos = 0;
-      }
+      bitStack.push_back({val, nbBits});
     };
 
     // States
@@ -4315,6 +4373,7 @@ private:
       u32 nbBits = (state + symTT[sym].deltaNbBits) >> 16;
 
       // Write bits
+      // Note: Value is (state & mask).
       addBits(state & ((1 << nbBits) - 1), nbBits);
 
       // Update State
@@ -4331,49 +4390,134 @@ private:
     };
 
     if (num_sequences > 0) {
-      // Init states from Seq 0
+      // Init states from Seq 0 (Start of Chain)
       stateLL = host_fse_init_state(ctLL, h_literal_lengths[0]);
       stateML = host_fse_init_state(ctML, h_match_lengths[0]);
       stateOF = host_fse_init_state(ctOF, h_offsets[0]);
 
-      // Write Initial States to Bitstream (Header)
-      // Order: LL, OF, ML (Matches Decoder Read Order: ML, OF, LL ? No. Check
-      // spec/impl) fse.cu Decoder: LL state, OF state, ML state (Line 4056
-      // logic) Wait, fse.cu read order:
-      //  if (bit_pos < ...)
-      //  stateLL = read_bits(..., ll_log); bit_pos -= ...
-      //  stateOF = read_bits;
-      //  stateML = read_bits;
-      // This implies LL is at High Addresses (read first/last depending on
-      // direction). bit_pos decrements. So Highest Address = First Read. If
-      // Decoder reads LL, OF, ML. Then Highest bits = LL State. Next = OF. Next
-      // = ML. Encoder Writes Forward. So Last Written = Highest Address. So
-      // Encoder writes: ML, OF, LL.
+      // Note: We DO NOT write headers here. Headers are the FINAL state.
+      // We encode sequences 1 to N-1, updating the state.
+      // The final state corresponds to the start of reading (End of stream).
 
-      // Wait, simple check:
-      // bitStream starts empty.
-      // addBits appends low to high.
-      // decode_sequences reads from bit_pos (END) downwards.
-      // So First thing Decoder reads is Last thing Helper added.
-      // Decoder reads LL, OF, ML.
-      // So Encoder adds ML, OF, LL.
-
-      addBits(stateML, ctML.tableLog);
-      addBits(stateOF, ctOF.tableLog);
-      addBits(stateLL, ctLL.tableLog);
-
-      // Loop 1 to N-1
       for (u32 i = 1; i < num_sequences; i++) {
-        // Encode Seq[i]
-        // Order: Pushed to stack.
-        // Decoder reads Interleaved: OF, ML, LL.
-        // So Encoder Pushes: LL, ML, OF.
-
+        // Encode Seq[i] (Forward encoding builds up state chain)
         host_fse_encode_symbol(ctLL, h_literal_lengths[i], stateLL);
         host_fse_encode_symbol(ctML, h_match_lengths[i], stateML);
         host_fse_encode_symbol(ctOF, h_offsets[i], stateOF);
       }
+
+      // Write Final States to Bitstream (Header)
+      // Decoder reads these FIRST (from End of Stream).
+      // Order: LL, OF, ML (Matches Decoder Read Order: ML, OF, LL ? per RFC)
+      // RFC: "Initial states order is LL, OF, ML" (read first).
+      // Since we flush LIFO (Reverse), the LAST pushed is FIRST written to physical End.
+      // Wait. Reader reads Backward.
+      // Physical: [Seq Bits] ... [Header Bits] [Sentinel]
+      // Reader @ End: Reads Header Bits.
+      // Header Order checks:
+      // Code 4047: read(ll), read(of), read(ml).
+      // So LL is at Highest Address (First Read).
+      // So LL should be written LAST physically.
+      // Reverse Flush writes Stack Top -> Bottom.
+      // Stack Top is Written LAST.
+      // So Stack Top should be LL.
+      // So Push ML, OF, LL.
+      // Headers are written in flushBits to ensure they are at the End.
     }
+
+    // Flush Bits Implementation (Reverse)
+    auto flushBits = [&]() {
+      // DEBUG: Confirm Execution
+      fprintf(stderr, "[DEBUG] EXECUTING REVERSE PACKING LOGIC (NumSeqs=%u)\n", num_sequences);
+
+      // Local bit buffer for packing
+      u64 localContainer = bitContainer; // preserve existing? (usually 0)
+      u32 localPos = bitPos;
+
+      // Helper to pack into local buffer
+      auto pack = [&](u64 val, u32 nbBits) {
+        if (nbBits == 0) return;
+        localContainer |= (val & ((1ULL << nbBits) - 1)) << localPos;
+        localPos += nbBits;
+        while (localPos >= 8) {
+            bitStream.push_back((u8)(localContainer));
+            localContainer >>= 8;
+            localPos -= 8;
+        }
+      };
+
+      // 1. Iterate Stack in REVERSE (LIFO) for Body Bits
+      // This puts the LAST pushed item (Seq N-1) at the Low Address of the New Segment
+      // Wait. Stack Top = Seq N-1.
+      // rbegin = Seq N-1.
+      // Pack Seq N-1 (Low).
+      // Pack Seq N-2 (Higher).
+      // ...
+      // Stream: [Seq N-1] [Seq N-2] ...
+      // Reader @ End: Reads Init.
+      // Moves back. Reads Seq N-1?
+      // Decoder: Init. Loop N-1 down to 0.
+      // Step N-1: Read Bits.
+      // Reader @ (End - Init). Reads... ???
+      // Reader reads backwards.
+      // If we Pack [Seq N-1] [Seq N-2] ... [Init] (Low -> High).
+      // Reader @ High. Reads Init.
+      // Reader @ High-K. Reads Seq N-2? 
+      // NO. Reader decrement bit_pos.
+      // So Next Read comes from LOWER address.
+      // So Reader reads [Init], then [item BELOW Init].
+      // Item Below Init is [Seq N-2].
+      // Decoder Loop Step N-1 needs [Seq N-1] bits!
+      // So Below Init must be [Seq N-1].
+      // So Stream: ... [Seq N-1] [Init].
+      // So [Seq N-1] is packed JUST BEFORE [Init].
+      // So [Seq N-1] must be packed LAST of the body.
+      // Stack Top is [Seq N-1].
+      // So we must pack Stack Top LAST.
+      // So we must iterate Stack Forward (begin to end)!
+      // Stack: [Seq 0 ... Seq N-1].
+      // Pack Seq 0 (Low).
+      // ...
+      // Pack Seq N-1 (High - Just before Init).
+      // Pack Init (Highest).
+      // Stream: [Seq 0 ... Seq N-1 Init].
+      // Reader: Reads Init.
+      // Reads Seq N-1.
+      // ...
+      // Reads Seq 0.
+      // Matches Decoder Loop!
+      
+      // So: Iterate Forward!
+      printf("DEBUG: EXECUTING REVERSE PACKING LOGIC\n");
+      for (const auto& op : bitStack) {
+          pack(op.val, op.nbBits);
+      }
+
+      // 2. Pack Headers (Init States)
+      // Must be at End.
+      // Decoder reads LL, OF, ML.
+      // Read LL (First) -> Must be Highest.
+      // Pack ML (Low).
+      // Pack OF.
+      // Pack LL (High).
+      pack(stateML, ctML.tableLog);
+      pack(stateOF, ctOF.tableLog);
+      pack(stateLL, ctLL.tableLog);
+
+      // 3. Sentinel Bit
+      pack(1, 1);
+
+      // 4. Flush remaining
+      while (localPos > 0) {
+        bitStream.push_back((u8)(localContainer));
+        localContainer >>= 8;
+        if (localPos >= 8) localPos -= 8; else localPos = 0;
+      }
+      
+      // Update member vars
+      bitContainer = localContainer;
+      bitPos = localPos;
+    };
 
     flushBits();
 
@@ -5113,9 +5257,15 @@ private:
       return Status::ERROR_CORRUPT_DATA;
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
                           cudaMemcpyDeviceToHost));
+    printf("[DEBUG_LITS_REAL] Hdr Bytes: %02X %02X %02X %02X %02X\n",
+           h_header[0], h_header[1], h_header[2], h_header[3], h_header[4]);
 
     u32 literals_type = h_header[0] & 0x03;
     u32 size_format = (h_header[0] >> 2) & 0x03;
+    printf("[DEBUG] decompress_literals: Type=%u, SizeFmt=%u, Byte0=0x%02X, "
+           "H=[%02X %02X %02X %02X %02X]\n",
+           literals_type, size_format, h_header[0], h_header[0], h_header[1],
+           h_header[2], h_header[3], h_header[4]);
 
     // RFC 8878 Literals Section Header:
     // Bits 0-1: Block Type
@@ -5131,25 +5281,22 @@ private:
       // size_format 01: 2-byte header, 12-bit size (Regenerated_Size < 4096)
       // size_format 10: 3-byte header, 20-bit size
       // size_format 11: 3-byte header, 20-bit size
-      if (size_format == 0) {
-        // Format 00: 1 byte header. Size uses 5 bits (bits 3-7).
+      if (size_format == 0 || size_format == 2) {
+        // Format 00 or 10: 1 byte header. Size uses 5 bits (bits 3-7).
         *h_header_size = 1;
         *h_decompressed_size = (h_header[0] >> 3) & 0x1F;
       } else if (size_format == 1) {
         // Format 01: 2 bytes. Size uses 12 bits.
-        // Bits 4-7 of H[0] are low 4 bits. H[1] is high 8 bits.
+        // Bit 0-1 Type, 2-3 Format, 4-15 Size.
         *h_header_size = 2;
-        *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) | (h_header[1] << 4);
-      } else if (size_format == 2) {
-        // Format 10: 3 bytes. Size uses 20 bits.
-        *h_header_size = 3;
-        *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) |
-                               (h_header[1] << 4) | (h_header[2] << 12);
+        *h_decompressed_size =
+            ((u32)h_header[0] >> 4) | ((u32)h_header[1] << 4);
       } else { // size_format == 3
         // Format 11: 3 bytes. Size uses 20 bits.
         *h_header_size = 3;
-        *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) |
-                               (h_header[1] << 4) | (h_header[2] << 12);
+        *h_decompressed_size = ((u32)h_header[0] >> 4) |
+                               ((u32)h_header[1] << 4) |
+                               ((u32)h_header[2] << 12);
       }
 
       if (literals_type == 0) { // Raw
@@ -5291,6 +5438,8 @@ private:
     }
 
     seq_ctx->num_sequences = num_sequences;
+    // printf("[DEBUG] decompress_sequences: NumSeq=%u, Offset=%u\n",
+    //        num_sequences, offset);
 
     if (num_sequences == 0) {
       return Status::SUCCESS;
@@ -5304,6 +5453,7 @@ private:
 
     byte_t fse_modes = h_header[offset];
     offset += 1;
+    printf("[DEBUG] decompress_sequences: FSE_Modes=0x%02X\n", fse_modes);
 
     // Check for custom raw u32 mode (fse_modes=0xFF)
     if (fse_modes == 0xFF) {

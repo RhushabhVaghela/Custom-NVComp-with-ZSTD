@@ -124,7 +124,9 @@ execute_sequences(const byte_t *d_literals, u32 literal_count,
                   byte_t *d_output,
                   u32 *d_output_size, // Device pointer to total output size
                   bool is_raw_offsets = false, cudaStream_t stream = 0,
-                  const byte_t *output_base = nullptr, u32 output_max_size = 0);
+                  const byte_t *output_base = nullptr, u32 output_max_size = 0,
+                  u32 *d_rep_codes = nullptr // (OPIONAL) Persistent offsets
+);
 
 /**
  * @brief Compute statistics

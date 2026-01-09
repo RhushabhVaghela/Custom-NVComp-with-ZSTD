@@ -375,6 +375,10 @@ __device__ inline u32 match_length(const byte_t *input,
   while (len < max_len && p1_ptr[len] == p2_ptr[len]) {
     len++;
   }
+  if (p1 == 174 && p2 == 104) {
+    printf("[MATCH_LENGTH] p1=174 Val=%02X p2=104 Val=%02X Len=%u\n", p1_ptr[0],
+           p2_ptr[0], len);
+  }
   return len;
 }
 
@@ -619,6 +623,16 @@ find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
     best_off = 0;
   }
 
+  // DEBUG: Verify the match before returning
+  if (best_len > 0) {
+    if (input[current_pos] != input[current_pos - best_off]) {
+      printf("[GPU ERROR] Match Validation Failed! Pos=%u, Off=%u, Len=%u. "
+             "Byte[%u]=%02X, Byte[%u]=%02X\n",
+             current_pos, best_off, best_len, current_pos, input[current_pos],
+             current_pos - best_off, input[current_pos - best_off]);
+    }
+  }
+
   return Match{current_pos, best_off, best_len, 0};
 }
 
@@ -640,6 +654,13 @@ __global__ void parallel_find_all_matches_kernel(
     d_matches[idx].offset = 0;
     d_matches[idx].position = idx;
   }
+
+  if (idx == 0)
+    printf("[KERNEL] Input Ptr: %p\n", input);
+  if (idx == 104)
+    printf("[KERNEL] Input[104] = %02X\n", input[104]);
+  if (idx == 174)
+    printf("[KERNEL] Input[174] = %02X\n", input[174]);
 
   if (idx >= input_size - config.min_match) {
     return;

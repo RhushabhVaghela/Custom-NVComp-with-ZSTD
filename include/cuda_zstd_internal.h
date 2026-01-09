@@ -209,45 +209,7 @@ struct ZstdSequence {
   // --- (NEW) Code helpers (definitions missing in dictionary.cu) ---
   // Helper function for count leading zeros - use appropriate intrinsic
   __device__ __host__ static __forceinline__ u32 clz_impl(u32 x) {
-#ifdef __CUDA_ARCH__
-    // Device code: use CUDA intrinsic
-    return __clz(static_cast<int>(x));
-#elif defined(__GNUC__) || defined(__clang__)
-    // Host code with GCC/Clang: use builtin
-    return __builtin_clz(x);
-#elif defined(_MSC_VER)
-    // MSVC: use _BitScanReverse
-    if (x == 0)
-      return 32;
-    unsigned long index;
-    _BitScanReverse(&index, x);
-    return 31 - index;
-#else
-    // Fallback: software implementation
-    if (x == 0)
-      return 32;
-    u32 n = 0;
-    if (x <= 0x0000FFFF) {
-      n += 16;
-      x <<= 16;
-    }
-    if (x <= 0x00FFFFFF) {
-      n += 8;
-      x <<= 8;
-    }
-    if (x <= 0x0FFFFFFF) {
-      n += 4;
-      x <<= 4;
-    }
-    if (x <= 0x3FFFFFFF) {
-      n += 2;
-      x <<= 2;
-    }
-    if (x <= 0x7FFFFFFF) {
-      n += 1;
-    }
-    return n;
-#endif
+    return cuda_zstd::utils::clz_impl(x);
   }
 
   // Note: These functions work in both device and host code
@@ -299,136 +261,159 @@ struct ZstdSequence {
 
   __device__ __host__ static __forceinline__ u32
   get_match_len_code(u32 length) {
-    // CRITICAL FIX: Literal-only sequences (ML=0) should never call this
-    // But if they do, return 0 instead of wrapping around
     if (length < 3)
-      return 0; // Minimum valid match length is 3
-    if (length < 32)
+      return 0;
+    if (length <= 34)
       return (length - 3);
-    if (length < 35)
+    if (length <= 36)
       return 32;
-    if (length < 37)
+    if (length <= 38)
       return 33;
-    if (length < 39)
+    if (length <= 40)
       return 34;
-    if (length < 41)
+    if (length <= 42)
       return 35;
-    if (length < 43)
+    if (length <= 44)
       return 36;
-    if (length < 47)
+    if (length <= 48)
       return 37;
-    if (length < 51)
+    if (length <= 52)
       return 38;
-    if (length < 59)
+    if (length <= 60)
       return 39;
-    if (length < 67)
+    if (length <= 68)
       return 40;
-    if (length < 83)
+    if (length <= 84)
       return 41;
-    if (length < 99)
+    if (length <= 100)
       return 42;
-    if (length < 131)
+    if (length <= 132)
       return 43;
-    if (length < 163)
+    if (length <= 164)
       return 44;
-    if (length < 227)
+    if (length <= 228)
       return 45;
-    if (length < 291)
+    if (length <= 292)
       return 46;
-    if (length < 419)
+    if (length <= 420)
       return 47;
-    if (length < 547)
+    if (length <= 548)
       return 48;
-    if (length < 803)
+    if (length <= 804)
       return 49;
-    if (length < 1059)
+    if (length <= 1060)
       return 50;
-    if (length < 1571)
+    if (length <= 1572)
       return 51;
     return 52;
   }
 
   __device__ __host__ static __forceinline__ u32 get_offset_code(u32 offset) {
-    // ZSTD RFC: offsetCode = position of highest bit set
-    // For offset=1024 (0x400 = bit 10), code should be 10
+    // RFC 8878: Code = floor(log2(offset)) + 3 for Raw Offsets (Code >= 3)
     if (offset == 0)
       return 0;
-    if (offset <= 1)
-      return offset;                // Special case: offset=1 → code=1
-    u32 fl = 31 - clz_impl(offset); // Position of highest bit
-    return fl;                      // Return bit position directly, NOT fl+1
+
+    // Repcodes should be handled by caller context (checking history).
+    // If strict raw offset is needed for small values:
+    // Dist 1 (Code 3)
+    // Dist 2 (Code 4)
+    // Dist 3 (Code 4)
+
+    // Note: If offset is 1, clz(1)=31 -> 31-31=0 -> 0+3=3. Correct.
+    return (31 - clz_impl(offset)) + 3;
   }
 
   // --- Extra Bits ---
+
+  // --- Extra Bits (RFC 8878 Tables 10, 12, 14) ---
 
   __device__ __host__ static __forceinline__ u32
   get_lit_len_extra_bits(u32 code) {
     if (code < 16)
       return 0;
+    // RFC 8878 Table 9
     static const u8 LL_bits[36] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, // 0-15
-        1, 1, 1, 1, 2, 2, 3, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
-    return LL_bits[code];
+        0, 0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
+        1, 1,  1,  1,                                      // 16-19
+        2, 2,                                              // 20-21
+        3, 3,                                              // 22-23
+        4, 4,                                              // 24-25
+        5, 5,                                              // 26-27
+        6,                                                 // 28
+        7,                                                 // 29
+        8,                                                 // 30
+        9, 10, 11, 12, 13 // 31-35 (Max Code 35)
+    };
+    return (code < 36) ? LL_bits[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_match_len_extra_bits(u32 code) {
     if (code < 32)
       return 0;
-    // RFC 8878 Table 12: Extra bits for match length codes
-    // Codes 32-35: 1 bit, 36-37: 2 bits, 38-39: 3 bits, 40-41: 4 bits
-    // 42-43: 5 bits, 44-45: 6 bits, 46-47: 7 bits, 48-49: 8 bits
-    // 50-51: 9 bits, 52: 16 bits
-    static const u8 ML_bits[53] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                   0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 4, 4,
-                                   5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 16};
-    return (code < 53) ? ML_bits[code] : 0;
+    // RFC 8878 Table 12
+    static const u8 ML_bits[53] = {
+        0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
+        0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16-31
+        1,  1,  1,  1,                                      // 32-35
+        2,  2,  3,  3,                                      // 36-39
+        4,  4,  5,  7,                                      // 40-43
+        8,  9,  10, 11,                                     // 44-47
+        12, 13, 14, 15, 16                                  // 48-52
+    };
+    return ML_bits[code];
   }
 
   __device__ __host__ static __forceinline__ u32
   get_offset_code_extra_bits(u32 code) {
-    if (code <= 2)
+    // Table 14: Code 3->0, 4->1, 5->2... => Code - 3
+    if (code < 3)
       return 0;
     return code - 3;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_offset_extra_bits(u32 offset, u32 code) {
-    // Only used for ENCODING (calculating what bits to write)
-    // Inverse of decoding logic
-    if (code <= 2)
+    // encoding: extra = offset - base
+    // base = 1 << (code - 3)
+    if (code < 3)
       return 0;
-    u32 extra_bits = code - 3;
-    u32 base = (1u << extra_bits); // Actually base value is base + 1?
-    // RFC: Offset = 2^(Code-3) + 1 + ExtraBits
-    // ExtraBits = Offset - 1 - 2^(Code-3)
-    // Offset >= 1.
-    return offset - 1 - base;
+    return offset - (1u << (code - 3));
   }
 
-  // --- Base Values ---
+  // --- Base Values (RFC 8878 Tables 9, 11, 13) ---
 
   __device__ __host__ static __forceinline__ u32 get_lit_len(u32 code) {
     if (code < 16)
       return code;
     // RFC 8878 Table 9
     static const u32 LL_base[36] = {
-        0,  1,  2,  3,   4,   5,   6,   7,   8,   9,   10,   11,
-        12, 13, 14, 15,  16,  18,  20,  22,  24,  28,  32,   40,
-        48, 64, 80, 112, 144, 208, 272, 400, 528, 784, 1040, 65536};
+        0,   1,    2,    3,    4,   5,  6,  7,
+        8,   9,    10,   11,   12,  13, 14, 15, // 0-15
+        16,  18,   20,   22,                    // 16-19
+        24,  28,                                // 20-21
+        32,  40,                                // 22-23
+        48,  64,                                // 24-25
+        80,  112,                               // 26-27
+        144,                                    // 28
+        208,                                    // 29
+        336,                                    // 30
+        592, 1104, 2128, 4176, 8272             // 31-35
+    };
     return (code < 36) ? LL_base[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32 get_match_len(u32 code) {
     if (code < 32)
       return code + 3;
-    // RFC 8878 Table 11: Match length baselines
+    // RFC 8878 Table 11 / libzstd ML_base from zstd_decompress_internal.h
     static const u32 ML_base[53] = {
-        3,  4,   5,   6,   7,   8,   9,   10,  11,   12,   13,  14, 15, 16,
-        17, 18,  19,  20,  21,  22,  23,  24,  25,   26,   27,  28, 29, 30,
-        31, 32,  33,  34,  35,  37,  39,  41,  43,   47,   51,  59, 67, 83,
-        99, 131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
+        3,     4,     5,     6,      7,      8,      9,      10,     11,
+        12,    13,    14,    15,     16,     17,     18,     19,     20,
+        21,    22,    23,    24,     25,     26,     27,     28,     29,
+        30,    31,    32,    33,     34,     35,     37,     39,     41,
+        43,    47,    51,    59,     67,     83,     99,     0x83,   0x103,
+        0x203, 0x403, 0x803, 0x1003, 0x2003, 0x4003, 0x8003, 0x10003};
     return (code < 53) ? ML_base[code] : 0;
   }
 
@@ -445,20 +430,25 @@ struct ZstdSequence {
   }
 
   __device__ __host__ static __forceinline__ u32 get_offset(u32 code) {
-    // RFC 8878 Section 3.1.1.5:
-    // Code 0-2: Rep codes (return 0 or handle separately - caller handles
-    // history) Code >= 3: Offset = (1 << (Code-3)) + 1 + ExtraBits
-    if (code <= 2)
-      return 0;
-    return (1u << (code - 3)) + 1;
+    // Offset decoding formula (must match encoder's get_offset_extra_bits):
+    // For code >= 3: offset_base = 1 << (code - 3)
+    // Codes 0-2 are rep codes (handled in caller)
+    // Final offset = base + extra_bits
+    if (code < 3)
+      return 0; // Rep codes 0-2 handled by caller
+    return 1u << (code - 3);
   }
 
   __device__ __host__ static __forceinline__ u32
   get_offset_bits(u32 symbol, FSEBitStreamReader &reader) {
-    if (symbol <= 2)
-      return 0;
-    u32 num_bits = symbol - 3;
-    return reader.read(num_bits);
+    // libzstd OF_bits table: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, ...}
+    // OF Code N has exactly N extra bits (for N >= 0)
+    // Code 0-2 are rep codes with 0, 1, 2 bits respectively
+    // But for actual offsets (code >= 3), we still read `code` bits
+    if (symbol == 0)
+      return 0; // Rep code 1: 0 extra bits
+    // For symbol N, read N extra bits
+    return reader.read(symbol);
   }
 };
 

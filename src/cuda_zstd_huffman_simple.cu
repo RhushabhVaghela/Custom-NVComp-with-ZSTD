@@ -368,9 +368,8 @@ __global__ void huffman_decode_kernel(const byte_t *input, u32 input_size,
       if (len > bits_available)
         break;
 
-      // Read 'len' bits from MSB of container
-      u32 code =
-          (u32)(bit_container >> (bits_available - len)) & ((1U << len) - 1);
+      // Read 'len' bits from LSB of container (encoder writes LSB-first)
+      u32 code = (u32)(bit_container & ((1U << len) - 1));
 
       // Check if code is in canonical range for this length
       u32 count_at_len = d_symbol_index[len + 1] - d_symbol_index[len];

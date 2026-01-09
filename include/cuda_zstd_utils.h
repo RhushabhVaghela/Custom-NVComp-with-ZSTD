@@ -24,6 +24,47 @@ struct Dmer;
 
 namespace utils {
 
+// Utility for count leading zeros
+__device__ __host__ static __forceinline__ u32 clz_impl(u32 x) {
+#ifdef __CUDA_ARCH__
+  return __clz(static_cast<int>(x));
+#elif defined(__GNUC__) || defined(__clang__)
+  if (x == 0)
+    return 32;
+  return __builtin_clz(x);
+#elif defined(_MSC_VER)
+  if (x == 0)
+    return 32;
+  unsigned long index;
+  _BitScanReverse(&index, x);
+  return 31 - index;
+#else
+  if (x == 0)
+    return 32;
+  u32 n = 0;
+  if (x <= 0x0000FFFF) {
+    n += 16;
+    x <<= 16;
+  }
+  if (x <= 0x00FFFFFF) {
+    n += 8;
+    x <<= 8;
+  }
+  if (x <= 0x0FFFFFFF) {
+    n += 4;
+    x <<= 4;
+  }
+  if (x <= 0x3FFFFFFF) {
+    n += 2;
+    x <<= 2;
+  }
+  if (x <= 0x7FFFFFFF) {
+    n += 1;
+  }
+  return n;
+#endif
+}
+
 /**
  * @brief Performs a parallel inclusive prefix sum (scan) on a device array.
  *

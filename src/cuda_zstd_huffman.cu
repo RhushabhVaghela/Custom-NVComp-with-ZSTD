@@ -999,12 +999,13 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
   }
 
   // Build first_code table (canonical Huffman codes)
-  // Formula: first_code[len] = (first_code[len-1] << 1) + length_count[len]
+  // For canonical Huffman: first_code[1] = 0
+  // first_code[len] = first_code[len-1] + length_count[len-1]
   u32 code = 0;
   d_first_code[0] = 0;
   for (u32 len = 1; len <= max_len; ++len) {
-    code = (code << 1) + length_count[len];
     d_first_code[len] = code;
+    code += length_count[len];
   }
   d_first_code[max_len + 1] = 0xFFFFFFFF; // Sentinel
 
@@ -1111,8 +1112,8 @@ __device__ u8 decode_huff_symbol(u64 bit_container, u32 bits_available,
   for (u32 len = 1; len <= max_len; ++len) {
     if (len > bits_available)
       break;
-    // Bits are read from the top of the container
-    code = (u32)(bit_container >> (bits_available - len)) & ((1U << len) - 1);
+    // Bits are read from the LSB of container (encoder writes LSB-first)
+    code = (u32)(bit_container & ((1U << len) - 1));
     u32 first_code = d_first_code[len];
     u32 count_at_len = d_symbol_index[len + 1] - d_symbol_index[len];
     if (count_at_len > 0 && code >= first_code &&

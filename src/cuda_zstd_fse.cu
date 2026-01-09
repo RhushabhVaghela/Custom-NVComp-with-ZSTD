@@ -72,13 +72,12 @@ __host__ Status FSE_spread_symbols_shared(const i16 *h_normalized,
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  const u32 SPREAD_STEP = (table_size >> 1) + (table_size >> 3) + 3;
+  // FSE_TABLESTEP macro from libzstd: (tableSize>>1) + (tableSize>>3) + 3
+  const u32 step = (table_size >> 1) + (table_size >> 3) + 3;
   const u32 table_mask = table_size - 1;
 
-  // Initialize output
-  std::fill(spread_symbol, spread_symbol + table_size, 0);
-
   // Phase 1: Place low-probability (-1) symbols at highThreshold positions
+  // This matches libzstd: tableDecode[highThreshold--].symbol = s
   u32 high_thresh = table_size - 1;
   for (u32 s = 0; s <= max_symbol; s++) {
     if (h_normalized[s] == -1) {
@@ -87,12 +86,13 @@ __host__ Status FSE_spread_symbols_shared(const i16 *h_normalized,
   }
   *highThreshold = high_thresh;
 
-  // Check if we have low-probability symbols
+  // Phase 2: Spread regular symbols
   if (high_thresh == table_size - 1) {
-    // No low-prob symbols - use optimized two-phase spread (libzstd fast path)
+    // No low-prob symbols - use libzstd's optimized two-phase spread
 
-    // Phase 1a: Build sequential spread[] array
-    std::vector<u8> spread(table_size);
+    // Phase 2a: Build sequential spread[] array
+    // libzstd: for each symbol s with count n, write n copies of s sequentially
+    std::vector<u8> spread(table_size + 8); // +8 for libzstd's overwrite safety
     size_t pos = 0;
     for (u32 s = 0; s <= max_symbol; ++s) {
       i16 count = h_normalized[s];
@@ -103,21 +103,22 @@ __host__ Status FSE_spread_symbols_shared(const i16 *h_normalized,
       }
     }
 
-    // Phase 1b: Scatter spread[] symbols across table using step
+    // Phase 2b: Scatter spread[] symbols across table using step
+    // libzstd: tableDecode[position].symbol = spread[s]
+    //          position = (position + step) & tableMask
     u32 position = 0;
     for (size_t s = 0; s < table_size; ++s) {
       spread_symbol[position] = spread[s];
-      position = (position + SPREAD_STEP) & table_mask;
+      position = (position + step) & table_mask;
     }
 
     // Verify position wrapped back to 0
     if (position != 0) {
-      fprintf(stderr, "[ERROR] FSE shared spread: position=%u != 0\n",
-              position);
+      fprintf(stderr, "[ERROR] FSE spread: position=%u != 0\n", position);
       return Status::ERROR_CORRUPT_DATA;
     }
   } else {
-    // Has low-prob symbols - use step-and-skip algorithm
+    // Has low-prob symbols - use step-and-skip algorithm (libzstd fallback)
     u32 position = 0;
     for (u32 s = 0; s <= max_symbol; s++) {
       i16 count = h_normalized[s];
@@ -126,16 +127,15 @@ __host__ Status FSE_spread_symbols_shared(const i16 *h_normalized,
 
       for (int i = 0; i < (int)count; i++) {
         spread_symbol[position] = (u8)s;
-        position = (position + SPREAD_STEP) & table_mask;
+        position = (position + step) & table_mask;
         while (position > high_thresh) {
-          position = (position + SPREAD_STEP) & table_mask;
+          position = (position + step) & table_mask;
         }
       }
     }
 
     if (position != 0) {
-      fprintf(stderr,
-              "[ERROR] FSE shared spread (low-prob): pos=%u, highThresh=%u\n",
+      fprintf(stderr, "[ERROR] FSE spread (low-prob): pos=%u, highThresh=%u\n",
               position, high_thresh);
       return Status::ERROR_CORRUPT_DATA;
     }
@@ -2457,24 +2457,27 @@ namespace predefined {
 // RFC 8878: Predefined LL normalization with -1 for low-probability symbols
 // Authoritative Default Distributions (Extracted from Zstd 1.5.5 Source)
 
-// ML Distribution (Total 53) - RFC 8878 Section 4.2.1.3.
-// Table 3: Default FSE distribution for Match Lengths (ML)
-extern const i16 default_ml_norm[53] = {
-    1,  4,  3,  2,  2,  2,  2,  2,  2,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-    1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-
-// LL Distribution (Total 36) - RFC 8878 Section 4.2.1.1.
+// LL Distribution (Total 36) - RFC 8878 / libzstd zstd_internal.h
 // Table 1: Default FSE distribution for Literal Lengths (LL)
+// FROM libzstd: LL_defaultNorm[MaxLL+1]
 extern const i16 default_ll_norm[36] = {4, 3, 2, 2, 2, 2, 2, 2, 2,  2,  2,  2,
                                         2, 1, 1, 1, 2, 2, 2, 2, 2,  2,  2,  2,
                                         2, 3, 2, 1, 1, 1, 1, 1, -1, -1, -1, -1};
 
-// OF Distribution (Total 29) - RFC 8878 Section 4.2.1.2.
+// OF Distribution (Total 29) - RFC 8878 / libzstd zstd_internal.h
 // Table 2: Default FSE distribution for Offsets (OF)
+// FROM libzstd: OF_defaultNorm[DefaultMaxOff+1]
 extern const i16 default_of_norm[29] = {1, 1, 1, 1, 1,  1,  2,  2,  2, 1,
                                         1, 1, 1, 1, 1,  1,  1,  1,  1, 1,
                                         1, 1, 1, 1, -1, -1, -1, -1, -1};
+
+// ML Distribution (Total 53) - RFC 8878 / libzstd zstd_internal.h
+// Table 3: Default FSE distribution for Match Lengths (ML)
+// FROM libzstd: ML_defaultNorm[MaxML+1]
+extern const i16 default_ml_norm[53] = {
+    1, 4, 3, 2, 2, 2, 2, 2, 2, 1, 1,  1,  1,  1,  1,  1,  1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  1,  1,  1,  1,  1,  1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1};
 
 } // namespace predefined
 
@@ -3889,6 +3892,11 @@ __host__ Status decode_sequences_interleaved(
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   // 2. Prepare Tables
+  printf("[DEBUG] Bitstream (Size=%u): ", input_size);
+  for (u32 i = 0; i < input_size; i++)
+    printf("%02X ", h_input[i]);
+  printf("\n");
+
   FSEDecodeTable ll_table, of_table, ml_table;
   memset(&ll_table, 0, sizeof(FSEDecodeTable));
   memset(&of_table, 0, sizeof(FSEDecodeTable));
@@ -3972,6 +3980,10 @@ __host__ Status decode_sequences_interleaved(
       cleanup();
       return Status::ERROR_CORRUPT_DATA;
     }
+    // Debug: Dump OF table state 11 mapping
+    printf("[DEBUG] OF Table Built: State 11 -> Symbol %u, nbBits %u, newState "
+           "%u\n",
+           of_table.symbol[11], of_table.nbBits[11], of_table.newState[11]);
     // if (input_size > 3)
     //   fprintf(stderr, "[DEBUG] Check 3 (OF Build): h_input[3]=0x%02x\n",
     //           h_input[3]);
@@ -4011,9 +4023,9 @@ __host__ Status decode_sequences_interleaved(
   }
 
   // 3. Allocate Host Outputs
-  // 3. Allocate Host Outputs
-  std::vector<u32> h_ll(num_sequences), h_of(num_sequences),
-      h_ml(num_sequences);
+  std::vector<u32> h_ll(num_sequences, 0);
+  std::vector<u32> h_of(num_sequences, 0);
+  std::vector<u32> h_ml(num_sequences, 0);
 
   // 4. Initialize States using the backward reader
   if (input_size == 0)
@@ -4027,120 +4039,150 @@ __host__ Status decode_sequences_interleaved(
   while (hb >= 0 && !((last_byte >> hb) & 1))
     hb--;
   u32 sentinel_pos = (input_size - 1) * 8 + hb;
+  printf("[DEBUG] Sentinel: input_size=%u, last_byte=0x%02X, hb=%d, "
+         "sentinel_pos=%u\n",
+         input_size, last_byte, hb, sentinel_pos);
+  // Hex dump first 10 bytes for debugging
+  printf("[DEBUG] Seq section bytes: ");
+  for (size_t i = 0; i < 10 && i < input_size; i++) {
+    printf("%02X ", h_input[i]);
+  }
+  printf("...\n");
   sequence::FSEBitStreamReader reader(h_input.data(), sentinel_pos, input_size);
 
   // RFC 8878 3.1.1.3.2.1.2: Initial states order is LL, OF, ML
-  // "It starts with Literals_Length_State, followed by Offset_State,
-  // and finally Match_Length_State."
   u32 stateLL = (decode_ll && ll_mode != 1) ? reader.read(ll_log) : 0;
   u32 stateOF = (decode_of && of_mode != 1) ? reader.read(of_log) : 0;
   u32 stateML = (decode_ml && ml_mode != 1) ? reader.read(ml_log) : 0;
+  printf("[DEBUG] States: LL=%u, OF=%u, ML=%u\n", stateLL, stateOF, stateML);
+
+  // --- DEBUG INSTRUMENTATION: DUMP LL TABLE ---
+  if (decode_ll && ll_mode == 0) {
+    printf("[DEBUG] --- DUMP LL PREDEFINED TABLE (Log=%u) ---\n", ll_log);
+    u32 tsize = 1u << ll_log;
+    for (u32 s = 0; s < tsize; s++) {
+      printf("State %02u: Sym=%2u, Bits=%u, NextBase=%u\n", s,
+             ll_table.symbol[s], ll_table.nbBits[s], ll_table.newState[s]);
+    }
+    printf("[DEBUG] --- END DUMP ---\n");
+  }
 
   // 5. Decode Loop
-  for (int i = (int)num_sequences - 1; i >= 0; i--) {
 
+  for (int i = (int)num_sequences - 1; i >= 0; i--) {
     u32 ll_sym = decode_ll ? ll_table.symbol[stateLL % (1u << ll_log)] : 0;
     u32 of_sym = decode_of ? of_table.symbol[stateOF % (1u << of_log)] : 0;
     u32 ml_sym = decode_ml ? ml_table.symbol[stateML % (1u << ml_log)] : 0;
 
-    // if (i < 2) {
-    //   u32 ml_idx = stateML % (1u << ml_log);
-    //   fprintf(stderr,
-    //           "[TBL_DBG] i=%d: stateML=%u, ml_log=%u, idx=%u, symbol[idx]=%u,
-    //           " "ml_sym=%u\n", i, stateML, ml_log, ml_idx,
-    //           (u32)ml_table.symbol[ml_idx], ml_sym);
-    // }
+    if (i < 5) {
+      printf("[DEBUG] Seq %d: StateLL=%u -> SymLL=%u\n", i, stateLL, ll_sym);
+      printf("[DEBUG] Seq %d: Syms(LL=%u, OF=%u, ML=%u)\n", i, ll_sym, of_sym,
+             ml_sym);
+    }
 
-    // --- So the correct order is: OF → ML → LL
-    // --- Extra Bits: OF -> ML -> LL (Original Code - Matches Zstd Ref)
-    // --- Extra Bits: RFC 8878 Order is LL -> ML -> OF
-    u32 ll_extra = 0, of_extra = 0, ml_extra = 0;
-
-    ll_extra = decode_ll
-                   ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
-                   : 0;
-
-    ml_extra = decode_ml
-                   ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
-                   : 0;
-
-    of_extra =
+    // Order of extra bits: OF -> ML -> LL
+    if (i < 3)
+      printf("[DEBUG] Seq %d: bit_pos BEFORE extras=%u\n", i, reader.bit_pos);
+    u32 of_extra =
         decode_of ? sequence::ZstdSequence::get_offset_bits(of_sym, reader) : 0;
+    if (i < 3)
+      printf("[DEBUG] Seq %d: bit_pos AFTER OF extra (sym=%u)=%u\n", i, of_sym,
+             reader.bit_pos);
+    u32 ml_extra =
+        decode_ml ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
+                  : 0;
+    if (i < 3)
+      printf("[DEBUG] Seq %d: bit_pos AFTER ML extra (sym=%u)=%u\n", i, ml_sym,
+             reader.bit_pos);
+    u32 ll_extra =
+        decode_ll ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
+                  : 0;
+    if (i < 3)
+      printf("[DEBUG] Seq %d: bit_pos AFTER LL extra (sym=%u)=%u\n", i, ll_sym,
+             reader.bit_pos);
 
-    // Convert symbols and extras to final values
+    u32 calc_ll = sequence::ZstdSequence::get_lit_len(ll_sym);
     u32 calc_ml = sequence::ZstdSequence::get_match_len(ml_sym);
     u32 calc_of = sequence::ZstdSequence::get_offset(of_sym);
 
     if (decode_ll) {
-      // Clamp literal length to valid FSE block range [0, 255]
-      u32 ll_val = sequence::ZstdSequence::get_lit_len(ll_sym) + ll_extra;
-      if (ll_val > 255) {
-        ll_val = 255; // Clamp overflow
-      }
-      h_ll[i] = ll_val;
+      h_ll[i] = calc_ll + ll_extra;
+      if (i < 5)
+        printf("[DEBUG] Seq %d: FinalLL=%u (Base=%u + Extra=%u)\n", i, h_ll[i],
+               calc_ll, ll_extra);
     }
-    if (decode_ml)
+    if (decode_ml) {
       h_ml[i] = calc_ml + ml_extra;
+      if (i < 5)
+        printf("[DEBUG] Seq %d: FinalML=%u (Base=%u + Extra=%u)\n", i, h_ml[i],
+               calc_ml, ml_extra);
+    }
     if (decode_of) {
       if (of_sym <= 2) {
-        h_of[i] = of_sym + 1; // Rep1, Rep2, Rep3
+        h_of[i] = of_sym + 1; // Rep codes
       } else {
-        h_of[i] = calc_of + of_extra + 3; // Regular offset with +3 bias
+        // Store as (actual_offset + 3) so match-copy can subtract 3 to
+        // distinguish from rep codes
+        h_of[i] = calc_of + of_extra + 3;
       }
+      if (i < 5)
+        printf("[DEBUG] Seq %d: FinalOF=%u (of_sym=%u, calc_of=%u, Extra=%u, "
+               "Bias=3)\n",
+               i, h_of[i], of_sym, calc_of, of_extra);
     }
 
-    /*
-    if (i == (int)num_sequences - 1 || i == 0 || i < 5) {
-      fprintf(stderr,
-              "[SEQ_DBG] seq[%d]: States(ML=%u,OF=%u,LL=%u) -> "
-              "Syms(ML=%u,OF=%u,LL=%u) -> Extras(ML=%u,OF=%u,LL=%u) -> "
-              "Base(ML=%u,OF=%u) -> Final(ML=%u, OF=%u, LL=%u) @ %p\n",
-              i, stateML, stateOF, stateLL, ml_sym, of_sym, ll_sym, ml_extra,
-              of_extra, ll_extra, calc_ml, calc_of, h_ml[i], h_of[i], h_ll[i],
-              &h_ml[i]);
-      if (ml_sym == 42) {
-        u32 check = sequence::ZstdSequence::get_match_len(42);
-        fprintf(stderr, "[SANITY] get_match_len(42) = %u. ml_sym=%u.\n", check,
-                ml_sym);
-      }
-      fflush(stderr);
-    }
-    */
-
-    // Update States (Skip for the very last sequence i=0)
+    // Update states - SKIP for last sequence (i==0) per RFC 8878 §3.1.1.3.2.1.1
+    // The final sequence doesn't need state updates; reading bits would cause
+    // underflow
     if (i > 0) {
-      if (decode_of && of_mode != 1) {
-        u8 nbBits = of_table.nbBits[stateOF];
-        stateOF = of_table.newState[stateOF] + reader.read(nbBits);
+      if (i < 3)
+        printf("[DEBUG] Seq %d: bit_pos BEFORE state updates=%u\n", i,
+               reader.bit_pos);
+      if (decode_ll) {
+        u8 nbBits = ll_table.nbBits[stateLL % (1u << ll_log)];
+        if (i < 3)
+          printf("[DEBUG] Seq %d: LL state update: nbBits=%u\n", i, nbBits);
+        stateLL =
+            ll_table.newState[stateLL % (1u << ll_log)] + reader.read(nbBits);
       }
-      if (decode_ml && ml_mode != 1) {
-        u8 nbBits = ml_table.nbBits[stateML];
-        stateML = ml_table.newState[stateML] + reader.read(nbBits);
+      if (decode_ml) {
+        u8 nbBits = ml_table.nbBits[stateML % (1u << ml_log)];
+        if (i < 3)
+          printf("[DEBUG] Seq %d: ML state update: nbBits=%u\n", i, nbBits);
+        stateML =
+            ml_table.newState[stateML % (1u << ml_log)] + reader.read(nbBits);
       }
-      if (decode_ll && ll_mode != 1) {
-        u8 nbBits = ll_table.nbBits[stateLL];
-        stateLL = ll_table.newState[stateLL] + reader.read(nbBits);
+      if (decode_of) {
+        u8 nbBits = of_table.nbBits[stateOF % (1u << of_log)];
+        if (i < 3)
+          printf("[DEBUG] Seq %d: OF state update: nbBits=%u\n", i, nbBits);
+        stateOF =
+            of_table.newState[stateOF % (1u << of_log)] + reader.read(nbBits);
       }
+      if (i < 3)
+        printf("[DEBUG] Seq %d: bit_pos AFTER state updates=%u\n", i,
+               reader.bit_pos);
     }
-  }
+
+  } // End of decode for loop
 
   // 5.b. Verify and Clamp Literal Lengths
   if (literals_limit > 0) {
     u64 total_decompressed_literals = 0;
-    for (size_t i = 0; i < num_sequences; i++) {
-      if (total_decompressed_literals + h_ll[i] > literals_limit) {
+    for (size_t j = 0; j < num_sequences; j++) {
+      if (total_decompressed_literals + h_ll[j] > literals_limit) {
         u32 available =
             (literals_limit > total_decompressed_literals)
                 ? (u32)(literals_limit - total_decompressed_literals)
                 : 0;
-        if (h_ll[i] > available) {
+        if (h_ll[j] > available) {
           printf("[WARN] Clamping LL[%zu]: %u -> %u (Limit %u, Total %llu)\n",
-                 i, h_ll[i], available, literals_limit,
+                 j, h_ll[j], available, literals_limit,
                  total_decompressed_literals);
-          h_ll[i] = available;
+          h_ll[j] = available;
         }
       }
-      total_decompressed_literals += h_ll[i];
+      total_decompressed_literals += h_ll[j];
     }
   }
 
@@ -4158,9 +4200,9 @@ __host__ Status decode_sequences_interleaved(
                                cudaMemcpyHostToDevice, stream));
   }
 
-  // CRITICAL: Synchronize stream BEFORE return to ensure h_ll/h_of/h_ml vectors
-  // (which are host-local) are not destroyed before the GPU finishes reading
-  // them.
+  // CRITICAL: Synchronize stream BEFORE return to ensure h_ll/h_of/h_ml
+  // vectors (which are host-local) are not destroyed before the GPU finishes
+  // reading them.
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   cleanup();
@@ -4378,8 +4420,8 @@ build_fse_decoder_table_host(std::vector<FSEDecoderEntry> &h_table,
     // Initialize table with empty slots (implied by vector but good to be
     // explicit/safe if reusing) Actually vector<u8> inits to 0. 0 is a valid
     // symbol. We should fill with a sentinel if we want to be safe, but Zstd
-    // logic relies on overwritten values? RFC: "All states MUST be covered". We
-    // rely on the loops below to cover all states.
+    // logic relies on overwritten values? RFC: "All states MUST be covered".
+    // We rely on the loops below to cover all states.
 
     // 2a. High Threshold: Place -1 symbols at the end of the table
     u32 high_threshold = table_size - 1;
@@ -4690,7 +4732,8 @@ __host__ Status read_fse_header(const byte_t *input, u32 input_size,
       // Only error if remaining < 1 (underflow)
       if (remaining < 1) {
         fprintf(stderr,
-                "[FSE_READ_ERR] remaining(%u) < 1 at sym %u (nCount=-1, underflow)\n",
+                "[FSE_READ_ERR] remaining(%u) < 1 at sym %u (nCount=-1, "
+                "underflow)\n",
                 remaining, symbol);
         return Status::ERROR_CORRUPT_DATA;
       }

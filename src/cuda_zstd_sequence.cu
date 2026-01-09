@@ -285,6 +285,15 @@ __global__ void compute_sequence_details_kernel(
   }
 
   *d_total_output_size = total_output;
+
+  // NEW: Write back persistent rep-codes for the next block
+  if (d_rep_codes_in) {
+    // Avoid double-write if multiple kernels/threads, but this is <<<1,1>>>
+    u32 *d_rep_out = const_cast<u32 *>(d_rep_codes_in);
+    d_rep_out[0] = state.rep_1;
+    d_rep_out[1] = state.rep_2;
+    d_rep_out[2] = state.rep_3;
+  }
 }
 
 /**
@@ -343,6 +352,10 @@ __global__ void sequential_block_execute_sequences_kernel(
         if (literal_pos + j < total_literal_count) { // Add input bounds check
           byte_t lit_val = d_literals[literal_pos + j];
           output[output_pos + j] = lit_val;
+          if (i == 0 && output_pos + j < 5) {
+            printf("[KERNEL] Seq 0: Wrote Lit[%u]=0x%02X at Output[%u]\n",
+                   literal_pos + j, lit_val, output_pos + j);
+          }
         }
       }
     }
@@ -352,11 +365,17 @@ __global__ void sequential_block_execute_sequences_kernel(
 
     // --- 2. Match Copy ---
     if (match_length > 0) {
-      // Use pointer arithmetic to handle matches from previous blocks (history)
-      // output is the start of the CURRENT block.
-      // If actual_offset > output_pos, we are reading from history (before
-      // output).
       byte_t *match_src = output + output_pos - actual_offset;
+
+      if (tid == 0) {
+        printf("[KERNEL] Seq %u: Match Copy Start. Pos=%u, Offset=%u, Src=%p, "
+               "Output=%p\n",
+               i, output_pos, actual_offset, (void *)match_src, (void *)output);
+        if (output_pos < 1024) {
+          printf("[KERNEL] Seq %u: Src[1]=0x%02X, Output[1]=0x%02X\n", i,
+                 match_src[1], output[1]);
+        }
+      }
 
       // Bounds Check: Ensure match_src is within valid range [output_base,
       // output + output_max_size) Also ensure match_src + match_length <=
@@ -442,36 +461,21 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
                          byte_t *d_output,
                          u32 *d_output_size, // Device pointer
                          bool is_raw_offsets, cudaStream_t stream,
-                         const byte_t *output_base, u32 output_max_size) {
+                         const byte_t *output_base, u32 output_max_size,
+                         u32 *d_rep_codes_inout) {
 
   if (!d_output || !d_output_size) {
     return Status::ERROR_INVALID_PARAMETER;
   }
 
+  // Optimize for 0 sequences (Literal Only Block)
   if (num_sequences == 0) {
-    // Disabled debug prints
-    // if (literal_count == 1 || literal_count == 0 || literal_count == 4) {
-    //   printf("[DEBUG] execute_sequences: num_sequences=0, literal_count=%u, "
-    //          "d_literals=%p\n",
-    //          literal_count, d_literals);
-
-    //   // Inspect Literal Content
-    //   if (literal_count > 0 && literal_count < 16) {
-    //     byte_t first_byte = 0;
-    //     cudaMemcpy(&first_byte, d_literals, 1, cudaMemcpyDeviceToHost);
-    //     printf("[DEBUG] execute_sequences: literal[0]=0x%02X\n", first_byte);
-    //   }
-    // }
-    // No sequences, just copy literals
     if (literal_count > 0) {
       CUDA_CHECK(cudaMemcpyAsync(d_output, d_literals, literal_count,
                                  cudaMemcpyDeviceToDevice, stream));
     }
-
-    // Use kernel to set size on device to ensure improved stream ordering
-    // safety without forcing host synchronization
+    // Set output size (using kernel to avoid host-device sync for simple write)
     set_value_kernel<<<1, 1, 0, stream>>>(d_output_size, literal_count);
-
     return Status::SUCCESS;
   }
 
@@ -485,8 +489,8 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   u32 *d_literal_offsets;
   u32 *d_match_offsets; // Scanned match lengths
   u32 *d_output_offsets;
-  u32 *d_rep_codes;
-  u32 *d_error_flag; // NEW: Error flag for validation
+  u32 *d_rep_codes_local = nullptr;
+  u32 *d_error_flag;
 
   CUDA_CHECK(cudaMalloc(&d_actual_offsets, num_sequences * sizeof(u32)));
   CUDA_CHECK(cudaMalloc(&d_literals_lengths, num_sequences * sizeof(u32)));
@@ -494,21 +498,24 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   CUDA_CHECK(cudaMalloc(&d_literal_offsets, num_sequences * sizeof(u32)));
   CUDA_CHECK(cudaMalloc(&d_match_offsets, num_sequences * sizeof(u32)));
   CUDA_CHECK(cudaMalloc(&d_output_offsets, num_sequences * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_rep_codes, 3 * sizeof(u32)));
   CUDA_CHECK(cudaMalloc(&d_error_flag, sizeof(u32)));
   CUDA_CHECK(cudaMemsetAsync(d_error_flag, 0, sizeof(u32), stream));
 
-  // Init rep-codes
-  u32 h_rep_codes[3] = {1, 4, 8};
-  CUDA_CHECK(cudaMemcpyAsync(d_rep_codes, h_rep_codes, 3 * sizeof(u32),
-                             cudaMemcpyHostToDevice, stream));
+  u32 *d_rep_to_use = d_rep_codes_inout;
+  if (!d_rep_to_use) {
+    CUDA_CHECK(cudaMalloc(&d_rep_codes_local, 3 * sizeof(u32)));
+    u32 h_rep_codes[3] = {1, 4, 8};
+    CUDA_CHECK(cudaMemcpyAsync(d_rep_codes_local, h_rep_codes, 3 * sizeof(u32),
+                               cudaMemcpyHostToDevice, stream));
+    d_rep_to_use = d_rep_codes_local;
+  }
 
   // --- Pass 1: Compute sizes and rep-codes (Sequential) ---
   compute_sequence_details_kernel<<<1, 1, 0, stream>>>(
       d_sequences, num_sequences, literal_count, d_actual_offsets,
       d_literals_lengths, d_match_lengths,
       d_output_size, // Kernel writes total size here
-      d_rep_codes,
+      d_rep_to_use,
       is_raw_offsets, // NEW: Pass the tier flag
       d_error_flag    // NEW: Pass error flag
   );
@@ -533,7 +540,8 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
     cudaFree(d_literal_offsets);
     cudaFree(d_match_offsets);
     cudaFree(d_output_offsets);
-    cudaFree(d_rep_codes);
+    if (d_rep_codes_local)
+      cudaFree(d_rep_codes_local);
     cudaFree(d_error_flag);
     return Status::ERROR_CORRUPT_DATA;
   }
@@ -553,6 +561,20 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   compute_output_offsets_kernel<<<blocks, threads, 0, stream>>>(
       d_literal_offsets, d_match_offsets, d_output_offsets, num_sequences);
 
+  // DEBUG: Verify first sequence offsets on host
+  {
+    u32 h_lit_off = 0, h_match_off = 0, h_out_off = 0;
+    CUDA_CHECK(cudaMemcpyAsync(&h_lit_off, d_literal_offsets, sizeof(u32),
+                               cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpyAsync(&h_match_off, d_match_offsets, sizeof(u32),
+                               cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpyAsync(&h_out_off, d_output_offsets, sizeof(u32),
+                               cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+    printf("[DEBUG] Seq 0: LitOff=%u, MatchOff=%u, OutOff=%u\n", h_lit_off,
+           h_match_off, h_out_off);
+  }
+
   // --- Pass 3: Execute Sequences (Sequential per block for dependencies) ---
   // We use a single block to process all sequences in order, ensuring that
   // match references to previously written data are valid.
@@ -568,7 +590,8 @@ Status execute_sequences(const byte_t *d_literals, u32 literal_count,
   cudaFree(d_literal_offsets);
   cudaFree(d_match_offsets);
   cudaFree(d_output_offsets);
-  cudaFree(d_rep_codes);
+  if (d_rep_codes_local)
+    cudaFree(d_rep_codes_local);
   cudaFree(d_error_flag);
 
   CUDA_CHECK(cudaGetLastError());

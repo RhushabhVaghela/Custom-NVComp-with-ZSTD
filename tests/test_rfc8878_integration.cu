@@ -81,6 +81,15 @@ bool test_gpu_compress_cpu_decompress(size_t input_size, int level) {
   INTEGRATION_CHECK(memcmp(h_input.data(), h_decompressed.data(), input_size) ==
                     0);
 
+  // Write compressed data to file for debugging
+  {
+    FILE *f = fopen("debug_1mb.zst", "wb");
+    if (f) {
+      fwrite(h_compressed.data(), 1, compressed_size, f);
+      fclose(f);
+    }
+  }
+
   printf("  [PASS] GPU Compress -> CPU Decompress successful\n");
 
   cudaFree(d_input);
@@ -127,6 +136,14 @@ bool test_cpu_compress_gpu_decompress(size_t input_size, int level) {
   uint8_t *d_input, *d_output;
   CUDA_CHECK_INT(cudaMalloc(&d_input, compressed_size));
   CUDA_CHECK_INT(cudaMalloc(&d_output, input_size));
+  // Write compressed data to file for debugging
+  if (input_size == 1048576) {
+    FILE *f = fopen("debug_1mb_cpu.zst", "wb");
+    if (f) {
+      fwrite(h_compressed.data(), 1, compressed_size, f);
+      fclose(f);
+    }
+  }
   CUDA_CHECK_INT(cudaMemcpy(d_input, h_compressed.data(), compressed_size,
                             cudaMemcpyHostToDevice));
 
@@ -150,13 +167,33 @@ bool test_cpu_compress_gpu_decompress(size_t input_size, int level) {
     printf("  [FAIL] GPU Decompression failed with status %d\n", (int)status);
     return false;
   }
+  if (uncompressed_size != input_size) {
+    printf("  [FAIL] Size mismatch: expected %zu, got %zu\n", input_size,
+           uncompressed_size);
+  }
   INTEGRATION_CHECK(uncompressed_size == input_size);
 
   std::vector<uint8_t> h_decompressed(input_size);
   CUDA_CHECK_INT(cudaMemcpy(h_decompressed.data(), d_output, input_size,
                             cudaMemcpyDeviceToHost));
-  INTEGRATION_CHECK(memcmp(h_input.data(), h_decompressed.data(), input_size) ==
-                    0);
+  if (memcmp(h_input.data(), h_decompressed.data(), input_size) != 0) {
+    printf("  [FAIL] Data corruption detected. First 50 mismatches:\n");
+    int count = 0;
+    for (size_t i = 0; i < input_size && count < 50; i++) {
+      if (h_input[i] != h_decompressed[i]) {
+        printf("    Byte %zu: Expected 0x%02X, Got 0x%02X\n", i, h_input[i],
+               h_decompressed[i]);
+        count++;
+      }
+    }
+    for (size_t i = 256; i < input_size && i < 300; i++) {
+      if (h_input[i] != h_decompressed[i]) {
+        printf("    Byte %zu: Expected 0x%02X, Got 0x%02X\n", i, h_input[i],
+               h_decompressed[i]);
+      }
+    }
+    return false; // Fail gracefully
+  }
 
   printf("  [PASS] CPU Compress -> GPU Decompress successful\n");
 

@@ -30,6 +30,10 @@ __device__ inline u32 match_length(const u8 *input, u32 p1, u32 p2, u32 max_len,
       break;
     len++;
   }
+  if (p1 == 174 && p2 == 104) {
+    printf("[MATCH_LENGTH] p1=174 Val=%02X p2=104 Val=%02X Len=%u\n", input[p1],
+           input[p2], len);
+  }
   return len;
 }
 
