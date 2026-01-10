@@ -65,7 +65,7 @@ struct DictionaryHeader {
 };
 
 struct DictionaryContent {
-  byte_t *d_buffer;
+  unsigned char *d_buffer;
   u32 size;
   u32 dict_id;
 };
@@ -73,7 +73,7 @@ struct DictionaryContent {
 // Complete Dictionary struct for backward compatibility
 struct Dictionary {
   DictionaryHeader header;
-  byte_t *raw_content;
+  unsigned char *raw_content;
   u32 raw_size;
 
   Dictionary() : raw_content(nullptr), raw_size(0) {
@@ -101,7 +101,7 @@ struct Dictionary {
     header = other.header;
     raw_size = other.raw_size;
     if (other.raw_content && raw_size > 0) {
-      raw_content = (byte_t *)malloc(raw_size);
+      raw_content = (unsigned char *)malloc(raw_size);
       if (raw_content) {
         memcpy(raw_content, other.raw_content, raw_size);
       }
@@ -123,7 +123,7 @@ struct Dictionary {
 
       // Deep copy content
       if (other.raw_content && raw_size > 0) {
-        raw_content = (byte_t *)malloc(raw_size);
+        raw_content = (unsigned char *)malloc(raw_size);
         if (raw_content) {
           memcpy(raw_content, other.raw_content, raw_size);
         }
@@ -201,7 +201,7 @@ public:
                                  const CoverParams *params = nullptr,
                                  cudaStream_t stream = 0) {
     // Allocate dictionary buffer
-    dict_out.raw_content = (byte_t *)malloc(dict_size);
+    dict_out.raw_content = (unsigned char *)malloc(dict_size);
     if (!dict_out.raw_content) {
       return Status::ERROR_OUT_OF_MEMORY;
     }
@@ -244,7 +244,7 @@ public:
                                         cudaStream_t stream = 0) {
     (void)stream; // Suppress unused parameter warning
 
-    dict.raw_content = (byte_t *)malloc(size);
+    dict.raw_content = (unsigned char *)malloc(size);
     if (!dict.raw_content) {
       return Status::ERROR_OUT_OF_MEMORY;
     }
@@ -266,7 +266,7 @@ public:
 
   static Status load_dictionary(const void *dict_buffer, size_t dict_size,
                                 Dictionary &dict_out) {
-    dict_out.raw_content = (byte_t *)malloc(dict_size);
+    dict_out.raw_content = (unsigned char *)malloc(dict_size);
     if (!dict_out.raw_content) {
       return Status::ERROR_OUT_OF_MEMORY;
     }

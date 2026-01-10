@@ -74,10 +74,10 @@ private:
     DataCharacteristics last_characteristics_;
     
     // Analysis kernels
-    Status analyze_entropy(const byte_t* d_data, size_t size, float& entropy, cudaStream_t stream);
-    Status analyze_repetition(const byte_t* d_data, size_t size, float& ratio, cudaStream_t stream);
-    Status analyze_compressibility(const byte_t* d_data, size_t size, float& comp, cudaStream_t stream);
-    Status analyze_patterns(const byte_t* d_data, size_t size, DataCharacteristics& chars, cudaStream_t stream);
+    Status analyze_entropy(const unsigned char* d_data, size_t size, float& entropy, cudaStream_t stream);
+    Status analyze_repetition(const unsigned char* d_data, size_t size, float& ratio, cudaStream_t stream);
+    Status analyze_compressibility(const unsigned char* d_data, size_t size, float& comp, cudaStream_t stream);
+    Status analyze_patterns(const unsigned char* d_data, size_t size, DataCharacteristics& chars, cudaStream_t stream);
     
     // Decision logic
     int select_level_from_characteristics(const DataCharacteristics& chars, AdaptivePreference pref);

@@ -28,7 +28,7 @@ constexpr u32 DEFAULT_SAMPLE_SIZE = 8 * 1024;  // 8 KB per sample
  * @brief Count byte frequencies across all samples
  */
 __global__ void count_byte_frequencies_kernel(
-    const byte_t* d_data,
+    const unsigned char* d_data,
     u32 data_size,
     u32* d_frequencies  // 256 counters
 ) {
@@ -36,7 +36,7 @@ __global__ void count_byte_frequencies_kernel(
     u32 stride = blockDim.x * gridDim.x;
 
     for (u32 i = idx; i < data_size; i += stride) {
-        byte_t byte_val = d_data[i];
+        unsigned char byte_val = d_data[i];
         atomicAdd(&d_frequencies[byte_val], 1);
     }
 }
@@ -45,7 +45,7 @@ __global__ void count_byte_frequencies_kernel(
  * @brief Extract frequent patterns (n-grams) from samples
  */
 __global__ void extract_ngrams_kernel(
-    const byte_t* d_data,
+    const unsigned char* d_data,
     u32 data_size,
     u32 ngram_length,
     u64* d_ngram_hashes,  // Output: hash of each ngram
@@ -136,9 +136,9 @@ __global__ void select_top_patterns_kernel(
  * This is a fallback when GPU training is not optimal for small datasets
  */
 Status build_frequency_dict_cpu(
-    const std::vector<const byte_t*>& samples,
+    const std::vector<const unsigned char*>& samples,
     const std::vector<size_t>& sample_sizes,
-    byte_t* dict_buffer,
+    unsigned char* dict_buffer,
     size_t dict_size
 ) {
 //     std::cout << "[DictTraining] Using CPU frequency-based training" << std::endl;
@@ -153,10 +153,10 @@ Status build_frequency_dict_cpu(
     }
 
     // Build dictionary with most frequent bytes
-    std::vector<std::pair<u32, byte_t>> freq_pairs;
+    std::vector<std::pair<u32, unsigned char>> freq_pairs;
     for (u32 i = 0; i < 256; i++) {
         if (frequencies[i] > 0) {
-            freq_pairs.push_back({frequencies[i], (byte_t)i});
+            freq_pairs.push_back({frequencies[i], (unsigned char)i});
         }
     }
 
@@ -190,9 +190,9 @@ Status build_frequency_dict_cpu(
  * @brief GPU-accelerated dictionary training
  */
 Status train_dictionary_gpu(
-    const std::vector<const byte_t*>& h_samples,
+    const std::vector<const unsigned char*>& h_samples,
     const std::vector<size_t>& sample_sizes,
-    byte_t* h_dict_buffer,
+    unsigned char* h_dict_buffer,
     size_t dict_size,
     cudaStream_t stream
 ) {
@@ -204,7 +204,7 @@ Status train_dictionary_gpu(
         total_size += size;
     }
 
-    byte_t* d_all_samples = nullptr;
+    unsigned char* d_all_samples = nullptr;
     CUDA_CHECK(cudaMalloc(&d_all_samples, total_size));
 
     size_t offset = 0;
@@ -234,10 +234,10 @@ Status train_dictionary_gpu(
     CUDA_CHECK(cudaStreamSynchronize(stream));
 
     // Build dictionary from frequencies (on CPU for simplicity)
-    std::vector<std::pair<u32, byte_t>> freq_pairs;
+    std::vector<std::pair<u32, unsigned char>> freq_pairs;
     for (u32 i = 0; i < 256; i++) {
         if (h_frequencies[i] > 0) {
-            freq_pairs.push_back({h_frequencies[i], (byte_t)i});
+            freq_pairs.push_back({h_frequencies[i], (unsigned char)i});
         }
     }
 
@@ -373,12 +373,12 @@ Status train_dictionary(
 //               << " samples, target size: " << dict_size << " bytes" << std::endl;
 
     // Convert to byte pointers
-    std::vector<const byte_t*> byte_samples;
+    std::vector<const unsigned char*> byte_samples;
     for (const auto* sample : samples) {
-        byte_samples.push_back(static_cast<const byte_t*>(sample));
+        byte_samples.push_back(static_cast<const unsigned char*>(sample));
     }
 
-    byte_t* h_dict = static_cast<byte_t*>(dict_buffer);
+    unsigned char* h_dict = static_cast<unsigned char*>(dict_buffer);
 
     // Choose training method based on dataset size
     size_t total_size = 0;
@@ -414,7 +414,7 @@ Status create_dictionary_from_samples(
     std::vector<const void*> samples;
     std::vector<size_t> sample_sizes;
 
-    const byte_t* base = static_cast<const byte_t*>(samples_buffer);
+    const unsigned char* base = static_cast<const unsigned char*>(samples_buffer);
 
     for (size_t i = 0; i < num_samples; i++) {
         size_t start = sample_offsets[i];

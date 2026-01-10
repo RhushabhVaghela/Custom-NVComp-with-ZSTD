@@ -327,11 +327,11 @@ compute_output_offsets_kernel(const u32 *d_literal_offsets,
  * Launch with <<<1, 256>>> or similar (1 block per ZSTD block).
  */
 __global__ void sequential_block_execute_sequences_kernel(
-    const Sequence *d_sequences, u32 num_sequences, const byte_t *d_literals,
+    const Sequence *d_sequences, u32 num_sequences, const unsigned char *d_literals,
     const u32 *d_literal_offsets, // From Pass 2
     const u32 *d_output_offsets,  // From Pass 2
     const u32 *d_actual_offsets,  // From Pass 1
-    byte_t *output, u32 total_literal_count, const byte_t *output_base,
+    unsigned char *output, u32 total_literal_count, const unsigned char *output_base,
     u32 output_max_size) {
   u32 tid = threadIdx.x;
   u32 block_dim = blockDim.x;
@@ -350,7 +350,7 @@ __global__ void sequential_block_execute_sequences_kernel(
     for (u32 j = tid; j < literals_length; j += block_dim) {
       if (output_pos + j < output_max_size) {
         if (literal_pos + j < total_literal_count) { // Add input bounds check
-          byte_t lit_val = d_literals[literal_pos + j];
+          unsigned char lit_val = d_literals[literal_pos + j];
           output[output_pos + j] = lit_val;
         }
       }
@@ -362,7 +362,7 @@ __global__ void sequential_block_execute_sequences_kernel(
 
     // --- 2. Match Copy ---
     if (match_length > 0) {
-      volatile byte_t *match_src = output + output_pos - actual_offset;
+      volatile unsigned char *match_src = output + output_pos - actual_offset;
 
       // Bounds Check: Ensure match_src is within valid range [output_base,
       // output + output_max_size) Also ensure match_src + match_length <=
@@ -443,12 +443,12 @@ __global__ void sequential_block_execute_sequences_kernel(
  * This is the host function called by the manager.
  * (FIXED: Now uses parallel kernels)
  */
-Status execute_sequences(const byte_t *d_literals, u32 literal_count,
+Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
                          const Sequence *d_sequences, u32 num_sequences,
-                         byte_t *d_output,
+                         unsigned char *d_output,
                          u32 *d_output_size, // Device pointer
                          bool is_raw_offsets, cudaStream_t stream,
-                         const byte_t *output_base, u32 output_max_size,
+                         const unsigned char *output_base, u32 output_max_size,
                          u32 *d_rep_codes_inout) {
 
   if (!d_output || !d_output_size) {

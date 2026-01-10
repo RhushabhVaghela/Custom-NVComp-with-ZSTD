@@ -119,8 +119,8 @@ inline Status generate_canonical_codes(const u8 *code_lengths, u32 num_symbols,
  * code_lengths, bit_offsets)
  * @param stream       CUDA stream.
  */
-Status encode_huffman(const byte_t *d_input, u32 input_size,
-                      const HuffmanTable &table, byte_t *d_output,
+Status encode_huffman(const unsigned char *d_input, u32 input_size,
+                      const HuffmanTable &table, unsigned char *d_output,
                       size_t *output_size,
                       CompressionWorkspace *workspace = nullptr,
                       cudaStream_t stream = 0);
@@ -139,9 +139,9 @@ Status encode_huffman(const byte_t *d_input, u32 input_size,
  * @param decompressed_size The *expected* decompressed size (required).
  * @param stream            CUDA stream.
  */
-Status decode_huffman(const byte_t *d_input, size_t input_size,
+Status decode_huffman(const unsigned char *d_input, size_t input_size,
                       [[maybe_unused]] const HuffmanTable &table,
-                      byte_t *d_output, size_t *d_output_size,
+                      unsigned char *d_output, size_t *d_output_size,
                       u32 decompressed_size, cudaStream_t stream = 0);
 
 /**
@@ -159,8 +159,8 @@ Status decode_huffman(const byte_t *d_input, size_t input_size,
  * @param stream CUDA stream
  * @return Status::SUCCESS on success
  */
-Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
-                              byte_t *d_output, size_t *d_output_size,
+Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
+                              unsigned char *d_output, size_t *d_output_size,
                               u32 decompressed_size, bool four_streams = false,
                               cudaStream_t stream = 0);
 
@@ -168,7 +168,7 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
  * @brief Internal function exposed for unit testing.
  * Decodes FSE-compressed Huffman weights.
  */
-Status decode_huffman_weights_fse(const byte_t *h_input, u32 compressed_size,
+Status decode_huffman_weights_fse(const unsigned char *h_input, u32 compressed_size,
                                   u8 *h_weights, u32 *num_symbols);
 
 // ============================================================================

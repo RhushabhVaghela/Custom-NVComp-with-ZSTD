@@ -56,7 +56,7 @@ struct __align__(16) Sequence {
 struct SequenceContext {
   // Device output buffers populated by decompression
   Sequence *d_sequences = nullptr;
-  byte_t *d_literals_buffer = nullptr;
+  unsigned char *d_literals_buffer = nullptr;
   u32 *d_literal_lengths = nullptr;
   u32 *d_match_lengths = nullptr;
   u32 *d_offsets = nullptr;
@@ -119,12 +119,12 @@ Status build_sequences(const SequenceContext &ctx, u32 num_sequences_to_build,
  *                        If false, offsets are FSE-encoded with +3 bias.
  */
 Status
-execute_sequences(const byte_t *d_literals, u32 literal_count,
+execute_sequences(const unsigned char *d_literals, u32 literal_count,
                   const Sequence *d_sequences, u32 num_sequences,
-                  byte_t *d_output,
+                  unsigned char *d_output,
                   u32 *d_output_size, // Device pointer to total output size
                   bool is_raw_offsets = false, cudaStream_t stream = 0,
-                  const byte_t *output_base = nullptr, u32 output_max_size = 0,
+                  const unsigned char *output_base = nullptr, u32 output_max_size = 0,
                   u32 *d_rep_codes = nullptr // (OPIONAL) Persistent offsets
 );
 

@@ -57,7 +57,7 @@ namespace fse {
  * @param bytes_read Pointer to output the number of bytes consumed.
  * @return Status SUCCESS on valid header, or error code.
  */
-__host__ Status read_fse_header(const byte_t *input, u32 input_size,
+__host__ Status read_fse_header(const unsigned char *input, u32 input_size,
                                 std::vector<u16> &normalized_counts,
                                 u32 *max_symbol, u32 *table_log,
                                 u32 *bytes_read);
@@ -82,8 +82,8 @@ namespace sequence {
 
 // (We need the bitstream reader from FSE)
 struct FSEBitStreamReader {
-  const byte_t *stream_start;
-  const byte_t *stream_ptr;
+  const unsigned char *stream_start;
+  const unsigned char *stream_ptr;
   u64 bit_container;
   i32 bits_remaining;
   u32 bit_pos;     // For tracking total bits read
@@ -106,7 +106,7 @@ struct FSEBitStreamReader {
       : stream_start(nullptr), stream_ptr(nullptr), bit_container(0),
         bits_remaining(0), bit_pos(0), stream_size(0) {}
 
-  __device__ __host__ FSEBitStreamReader(const byte_t *input, u32 start_bit_pos,
+  __device__ __host__ FSEBitStreamReader(const unsigned char *input, u32 start_bit_pos,
                                          u32 size) {
     bit_pos = start_bit_pos;
     stream_start = input;
@@ -123,14 +123,14 @@ struct FSEBitStreamReader {
     init_at_bit(input, start_bit_pos);
   }
 
-  __device__ __host__ void init_at_bit(const byte_t *input, u32 start_bit_pos) {
+  __device__ __host__ void init_at_bit(const unsigned char *input, u32 start_bit_pos) {
     bit_pos = start_bit_pos;
     stream_start = input;
   }
 
   __device__ __host__ void set_stream_size(u32 size) { stream_size = size; }
 
-  __device__ __host__ void init(const byte_t *stream_end, size_t stream_size) {
+  __device__ __host__ void init(const unsigned char *stream_end, size_t stream_size) {
     stream_ptr = stream_end - 4;
     stream_start = stream_end - stream_size;
     bit_container = bswap32(*reinterpret_cast<const u32 *>(stream_ptr));

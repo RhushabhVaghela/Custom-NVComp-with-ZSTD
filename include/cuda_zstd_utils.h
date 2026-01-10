@@ -119,7 +119,7 @@ inline u32 get_literal_length_code(u32 ll) {
 }
 
 // Hash function for dmers
-__device__ __forceinline__ u64 hash_dmer(const byte_t *data, u32 d) {
+__device__ __forceinline__ u64 hash_dmer(const unsigned char *data, u32 d) {
   constexpr u64 prime = 0x9E3779B185EBCA8DULL;
   u64 hash = 0;
   for (u32 i = 0; i < d; ++i) {

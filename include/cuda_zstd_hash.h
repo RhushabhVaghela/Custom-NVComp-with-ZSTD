@@ -23,7 +23,7 @@ constexpr u32 HASH_PRIME_32 = 2654435761U;
  * @brief Computes a 32-bit hash for a sequence of bytes.
  * This is a fast hash used for finding potential LZ77 matches.
  */
-__device__ __forceinline__ u32 hash_bytes(const byte_t *data, u32 len,
+__device__ __forceinline__ u32 hash_bytes(const unsigned char *data, u32 len,
                                           u32 hash_log) {
   u32 hash = 0;
   if (len >= 4) {

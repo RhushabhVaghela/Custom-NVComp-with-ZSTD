@@ -24,7 +24,7 @@ namespace fse {
  */
 Status
 launch_fse_encoding_kernel(const u32 *d_ll, const u32 *d_of, const u32 *d_ml,
-                           u32 num_sequences, byte_t *d_bitstream,
+                           u32 num_sequences, unsigned char *d_bitstream,
                            size_t *d_output_pos, size_t bitstream_capacity,
                            const FSEEncodeTable *d_tables, // Expects array of 3
                            cudaStream_t stream);

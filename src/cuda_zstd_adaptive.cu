@@ -15,7 +15,7 @@ namespace adaptive {
 // ============================================================================
 
 __global__ void analyze_entropy_kernel(
-    const byte_t* data,
+    const unsigned char* data,
     uint32_t size,
     uint32_t* d_frequencies
 ) {
@@ -46,7 +46,7 @@ __global__ void analyze_entropy_kernel(
 }
 
 __global__ void analyze_repetition_kernel(
-    const byte_t* data,
+    const unsigned char* data,
     uint32_t size,
     uint32_t* d_repeated_count,
     uint32_t* d_max_run
@@ -71,7 +71,7 @@ __global__ void analyze_repetition_kernel(
 }
 
 __global__ void analyze_patterns_kernel(
-    const byte_t* data,
+    const unsigned char* data,
     uint32_t size,
     uint32_t* d_pattern_score
 ) {
@@ -117,7 +117,7 @@ AdaptiveLevelSelector::~AdaptiveLevelSelector() {
 }
 
 Status AdaptiveLevelSelector::analyze_entropy(
-    const byte_t* d_data,
+    const unsigned char* d_data,
     size_t size,
     float& entropy,
     cudaStream_t stream
@@ -157,7 +157,7 @@ Status AdaptiveLevelSelector::analyze_entropy(
 }
 
 Status AdaptiveLevelSelector::analyze_repetition(
-    const byte_t* d_data,
+    const unsigned char* d_data,
     size_t size,
     float& ratio,
     cudaStream_t stream
@@ -192,7 +192,7 @@ Status AdaptiveLevelSelector::analyze_repetition(
 }
 
 Status AdaptiveLevelSelector::analyze_compressibility(
-    const byte_t* d_data,
+    const unsigned char* d_data,
     size_t size,
     float& comp,
     cudaStream_t stream
@@ -212,7 +212,7 @@ Status AdaptiveLevelSelector::analyze_compressibility(
 }
 
 Status AdaptiveLevelSelector::analyze_patterns(
-    const byte_t* d_data,
+    const unsigned char* d_data,
     size_t size,
     DataCharacteristics& chars,
     cudaStream_t stream
@@ -312,7 +312,7 @@ Status AdaptiveLevelSelector::select_level(
     
     // Determine sample size
     size_t actual_sample = std::min(sample_size_, data_size);
-    const byte_t* d_sample = static_cast<const byte_t*>(d_data);
+    const unsigned char* d_sample = static_cast<const unsigned char*>(d_data);
     
     // Reset characteristics
     last_characteristics_ = DataCharacteristics();

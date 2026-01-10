@@ -39,7 +39,7 @@ namespace huffman {
 struct HuffmanContext;
 }
 namespace xxhash {
-u64 compute_xxh64(const byte_t *, u32, u64, cudaStream_t);
+u64 compute_xxh64(const unsigned char *, u32, u64, cudaStream_t);
 }
 
 // ==============================================================================

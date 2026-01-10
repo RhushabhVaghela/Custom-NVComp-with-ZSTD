@@ -29,9 +29,9 @@ namespace cg = cooperative_groups;
 // KERNEL: k_encode_fse_interleaved (Block Encoder)
 // -----------------------------------------------------------------------------
 __global__ void __launch_bounds__(256)
-    k_encode_fse_interleaved(const byte_t *__restrict__ input_symbols,
+    k_encode_fse_interleaved(const unsigned char *__restrict__ input_symbols,
                              u32 num_symbols,
-                             byte_t *__restrict__ output_bitstream,
+                             unsigned char *__restrict__ output_bitstream,
                              size_t *output_pos, size_t bitstream_capacity,
                              const FSEEncodeTable *table,
                              const u32 *__restrict__ d_literal_lengths,
@@ -49,8 +49,8 @@ __global__ void __launch_bounds__(256)
     return;
 
   // Write Forward: Ptr starts at Beginning
-  byte_t *ptr = output_bitstream;
-  byte_t *end_limit = output_bitstream + bitstream_capacity;
+  unsigned char *ptr = output_bitstream;
+  unsigned char *end_limit = output_bitstream + bitstream_capacity;
 
   // Accumulator
   u64 bitContainer = 0;
@@ -85,7 +85,7 @@ __global__ void __launch_bounds__(256)
         while (bitCount >= 8) {
           if (ptr >= end_limit)
             return;
-          *ptr++ = (byte_t)(bitContainer & 0xFF);
+          *ptr++ = (unsigned char)(bitContainer & 0xFF);
           bitContainer >>= 8;
           bitCount -= 8;
         }
@@ -101,7 +101,7 @@ __global__ void __launch_bounds__(256)
         while (bitCount >= 8) {
           if (ptr >= end_limit)
             return;
-          *ptr++ = (byte_t)(bitContainer & 0xFF);
+          *ptr++ = (unsigned char)(bitContainer & 0xFF);
           bitContainer >>= 8;
           bitCount -= 8;
         }
@@ -117,7 +117,7 @@ __global__ void __launch_bounds__(256)
         while (bitCount >= 8) {
           if (ptr >= end_limit)
             return;
-          *ptr++ = (byte_t)(bitContainer & 0xFF);
+          *ptr++ = (unsigned char)(bitContainer & 0xFF);
           bitContainer >>= 8;
           bitCount -= 8;
         }
@@ -135,7 +135,7 @@ __global__ void __launch_bounds__(256)
     while (bitCount >= 8) {
       if (ptr >= end_limit)
         return;
-      *ptr++ = (byte_t)(bitContainer & 0xFF);
+      *ptr++ = (unsigned char)(bitContainer & 0xFF);
       bitContainer >>= 8;
       bitCount -= 8;
     }
@@ -148,7 +148,7 @@ __global__ void __launch_bounds__(256)
     while (bitCount >= 8) {
       if (ptr >= end_limit)
         return;
-      *ptr++ = (byte_t)(bitContainer & 0xFF);
+      *ptr++ = (unsigned char)(bitContainer & 0xFF);
       bitContainer >>= 8;
       bitCount -= 8;
     }
@@ -161,7 +161,7 @@ __global__ void __launch_bounds__(256)
     while (bitCount >= 8) {
       if (ptr >= end_limit)
         return;
-      *ptr++ = (byte_t)(bitContainer & 0xFF);
+      *ptr++ = (unsigned char)(bitContainer & 0xFF);
       bitContainer >>= 8;
       bitCount -= 8;
     }
@@ -173,7 +173,7 @@ __global__ void __launch_bounds__(256)
   while (bitCount > 0) {
     if (ptr >= end_limit)
       return;
-    *ptr++ = (byte_t)(bitContainer & 0xFF);
+    *ptr++ = (unsigned char)(bitContainer & 0xFF);
     bitContainer >>= 8;
     if (bitCount <= 8)
       bitCount = 0;
@@ -368,7 +368,7 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
 
 Status
 launch_fse_encoding_kernel(const u32 *d_ll, const u32 *d_of, const u32 *d_ml,
-                           u32 num_sequences, byte_t *d_bitstream,
+                           u32 num_sequences, unsigned char *d_bitstream,
                            size_t *d_output_pos, size_t bitstream_capacity,
                            const FSEEncodeTable *d_tables, // Expects array of 3
                            cudaStream_t stream) {

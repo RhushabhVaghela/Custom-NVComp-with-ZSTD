@@ -204,7 +204,7 @@ public:
 /**
  * @brief Kernel to count symbol frequencies
  */
-__global__ void analyze_frequencies_kernel(const byte_t *input, u32 input_size,
+__global__ void analyze_frequencies_kernel(const unsigned char *input, u32 input_size,
                                            u32 *global_frequencies) {
   __shared__ u32 local_freq[MAX_HUFFMAN_SYMBOLS];
 
@@ -233,7 +233,7 @@ __global__ void analyze_frequencies_kernel(const byte_t *input, u32 input_size,
 /**
  * @brief Kernel to get code length for each symbol position
  */
-__global__ void get_code_lengths_kernel(const byte_t *input, u32 input_size,
+__global__ void get_code_lengths_kernel(const unsigned char *input, u32 input_size,
                                         const HuffmanCode *codes,
                                         u32 *code_lengths_out) {
   u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -250,9 +250,9 @@ __global__ void get_code_lengths_kernel(const byte_t *input, u32 input_size,
  * Each thread writes its symbol's code to the output bitstream.
  * Uses atomic operations to handle concurrent writes to the same byte.
  */
-__global__ void huffman_encode_kernel(const byte_t *input, u32 input_size,
+__global__ void huffman_encode_kernel(const unsigned char *input, u32 input_size,
                                       const HuffmanCode *codes,
-                                      const u32 *bit_offsets, byte_t *output,
+                                      const u32 *bit_offsets, unsigned char *output,
                                       u32 header_size_bits) {
   u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= input_size)
@@ -274,7 +274,7 @@ __global__ void huffman_encode_kernel(const byte_t *input, u32 input_size,
     if (c.code & (1U << b)) {
       u32 target_byte = byte_pos + (bit_offset + b) / 8;
       u32 target_bit = (bit_offset + b) % 8;
-      atomicOr(&output[target_byte], (byte_t)(1 << target_bit));
+      atomicOr(&output[target_byte], (unsigned char)(1 << target_bit));
     }
   }
 }
@@ -334,10 +334,10 @@ __global__ void build_decode_table_kernel(const u8 *code_lengths,
  * For each code length, checks if the raw code falls within the canonical
  * range.
  */
-__global__ void huffman_decode_kernel(const byte_t *input, u32 input_size,
+__global__ void huffman_decode_kernel(const unsigned char *input, u32 input_size,
                                       const u32 *d_first_code,
                                       const u16 *d_symbol_index,
-                                      const u8 *d_symbols, byte_t *output,
+                                      const u8 *d_symbols, unsigned char *output,
                                       u32 total_output_size) {
   u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= total_output_size)
@@ -393,8 +393,8 @@ __global__ void huffman_decode_kernel(const byte_t *input, u32 input_size,
 // Host API Functions
 // ============================================================================
 
-Status encode_huffman(const byte_t *d_input, u32 input_size,
-                      const HuffmanTable &table, byte_t *d_output,
+Status encode_huffman(const unsigned char *d_input, u32 input_size,
+                      const HuffmanTable &table, unsigned char *d_output,
                       size_t *output_size, CompressionWorkspace *workspace,
                       cudaStream_t stream) {
   if (!d_input || !d_output || !output_size || input_size == 0) {
@@ -516,8 +516,8 @@ Status encode_huffman(const byte_t *d_input, u32 input_size,
   return Status::SUCCESS;
 }
 
-Status decode_huffman(const byte_t *d_input, size_t input_size,
-                      const HuffmanTable &table, byte_t *d_output,
+Status decode_huffman(const unsigned char *d_input, size_t input_size,
+                      const HuffmanTable &table, unsigned char *d_output,
                       size_t *d_output_size, u32 decompressed_size,
                       cudaStream_t stream) {
   if (!d_input || !d_output || !d_output_size || input_size == 0) {
@@ -560,7 +560,7 @@ Status decode_huffman(const byte_t *d_input, size_t input_size,
       d_symbols);
 
   // Step 4: Decode
-  const byte_t *bitstream = d_input + header_size;
+  const unsigned char *bitstream = d_input + header_size;
   u32 bitstream_size = (u32)(input_size - header_size);
 
   // Use single-threaded decode for simplicity (can be parallelized)

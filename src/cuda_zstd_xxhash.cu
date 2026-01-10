@@ -17,14 +17,14 @@ namespace xxhash {
 // Single Block Kernels
 // ============================================================================
 
-__global__ void xxhash32_kernel(const byte_t *input, u32 input_size, u32 seed,
+__global__ void xxhash32_kernel(const unsigned char *input, u32 input_size, u32 seed,
                                 u32 *hash_out) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx != 0)
     return;
 
-  const byte_t *p = input;
-  const byte_t *const b_end = p + input_size;
+  const unsigned char *p = input;
+  const unsigned char *const b_end = p + input_size;
   u32 h32;
 
   if (input_size >= XXH32_STRIPE_LEN) {
@@ -33,7 +33,7 @@ __global__ void xxhash32_kernel(const byte_t *input, u32 input_size, u32 seed,
     u32 v3 = seed + 0;
     u32 v4 = seed - PRIME32_1;
 
-    const byte_t *const limit = b_end - XXH32_STRIPE_LEN;
+    const unsigned char *const limit = b_end - XXH32_STRIPE_LEN;
     do {
       v1 = xxh32_round(v1, xxh_read32(p));
       p += 4;
@@ -68,14 +68,14 @@ __global__ void xxhash32_kernel(const byte_t *input, u32 input_size, u32 seed,
   *hash_out = h32;
 }
 
-__global__ void xxhash64_kernel(const byte_t *input, u32 input_size, u64 seed,
+__global__ void xxhash64_kernel(const unsigned char *input, u32 input_size, u64 seed,
                                 u64 *hash_out) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx != 0)
     return; // Only one thread computes hash
 
-  const byte_t *p = input;
-  const byte_t *const b_end = p + input_size;
+  const unsigned char *p = input;
+  const unsigned char *const b_end = p + input_size;
   u64 h64;
 
   if (input_size >= XXH64_STRIPE_LEN) {
@@ -86,7 +86,7 @@ __global__ void xxhash64_kernel(const byte_t *input, u32 input_size, u64 seed,
     u64 v4 = seed - PRIME64_1;
 
     // Process 32-byte stripes
-    const byte_t *const limit = b_end - XXH64_STRIPE_LEN;
+    const unsigned char *const limit = b_end - XXH64_STRIPE_LEN;
     do {
       v1 = xxh64_round(v1, xxh_read64(p));
       p += 8;
@@ -140,7 +140,7 @@ __global__ void xxhash64_kernel(const byte_t *input, u32 input_size, u64 seed,
 // Parallel Block Hashing Kernel
 // ============================================================================
 
-__global__ void xxhash64_blocks_kernel(const byte_t *input,
+__global__ void xxhash64_blocks_kernel(const unsigned char *input,
                                        const u32 *block_offsets, u32 num_blocks,
                                        u64 seed, u64 *hashes_out) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -151,8 +151,8 @@ __global__ void xxhash64_blocks_kernel(const byte_t *input,
   u32 block_end = block_offsets[idx + 1];
   u32 block_size = block_end - block_start;
 
-  const byte_t *p = input + block_start;
-  const byte_t *const b_end = p + block_size;
+  const unsigned char *p = input + block_start;
+  const unsigned char *const b_end = p + block_size;
   u64 h64;
 
   if (block_size >= XXH64_STRIPE_LEN) {
@@ -161,7 +161,7 @@ __global__ void xxhash64_blocks_kernel(const byte_t *input,
     u64 v3 = seed + 0;
     u64 v4 = seed - PRIME64_1;
 
-    const byte_t *const limit = b_end - XXH64_STRIPE_LEN;
+    const unsigned char *const limit = b_end - XXH64_STRIPE_LEN;
     do {
       v1 = xxh64_round(v1, xxh_read64(p));
       p += 8;
@@ -217,7 +217,7 @@ __global__ void xxhash64_init_kernel(XXH64_State *state, u64 seed) {
   }
 }
 
-__global__ void xxhash64_update_kernel(XXH64_State *state, const byte_t *input,
+__global__ void xxhash64_update_kernel(XXH64_State *state, const unsigned char *input,
                                        size_t size) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     xxh64_update(*state, input, (u32)size);
@@ -240,7 +240,7 @@ Status compute_xxhash64(const void *d_input, size_t input_size, u64 seed,
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  xxhash64_kernel<<<1, 1, 0, stream>>>(static_cast<const byte_t *>(d_input),
+  xxhash64_kernel<<<1, 1, 0, stream>>>(static_cast<const unsigned char *>(d_input),
                                        input_size, seed, d_output);
 
   CUDA_CHECK(cudaGetLastError());
@@ -253,14 +253,14 @@ Status compute_xxhash32(const void *d_input, size_t input_size, u32 seed,
     return Status::ERROR_INVALID_PARAMETER;
   }
 
-  xxhash32_kernel<<<1, 1, 0, stream>>>(static_cast<const byte_t *>(d_input),
+  xxhash32_kernel<<<1, 1, 0, stream>>>(static_cast<const unsigned char *>(d_input),
                                        input_size, seed, d_output);
 
   CUDA_CHECK(cudaGetLastError());
   return Status::SUCCESS;
 }
 
-Status xxhash64(const byte_t *d_input, u32 input_size, u64 seed,
+Status xxhash64(const unsigned char *d_input, u32 input_size, u64 seed,
                 u64 *h_hash_out, cudaStream_t stream) {
   if (!d_input || !h_hash_out || input_size == 0) {
     return Status::ERROR_INVALID_PARAMETER;
@@ -282,7 +282,7 @@ Status xxhash64(const byte_t *d_input, u32 input_size, u64 seed,
   return Status::SUCCESS;
 }
 
-Status xxhash64_blocks(const byte_t *d_input, const u32 *d_block_offsets,
+Status xxhash64_blocks(const unsigned char *d_input, const u32 *d_block_offsets,
                        u32 num_blocks, u64 seed, u64 *d_hashes_out,
                        cudaStream_t stream) {
   if (!d_input || !d_block_offsets || !d_hashes_out || num_blocks == 0) {
@@ -301,9 +301,9 @@ Status xxhash64_blocks(const byte_t *d_input, const u32 *d_block_offsets,
 
 // CPU reference implementations
 
-__host__ u32 xxhash_32_cpu(const byte_t *input, size_t input_size, u32 seed) {
-  const byte_t *p = input;
-  const byte_t *const b_end = p + input_size;
+__host__ u32 xxhash_32_cpu(const unsigned char *input, size_t input_size, u32 seed) {
+  const unsigned char *p = input;
+  const unsigned char *const b_end = p + input_size;
   u32 h32;
 
   if (input_size >= XXH32_STRIPE_LEN) {
@@ -312,7 +312,7 @@ __host__ u32 xxhash_32_cpu(const byte_t *input, size_t input_size, u32 seed) {
     u32 v3 = seed + 0;
     u32 v4 = seed - PRIME32_1;
 
-    const byte_t *const limit = b_end - XXH32_STRIPE_LEN;
+    const unsigned char *const limit = b_end - XXH32_STRIPE_LEN;
     do {
       v1 = xxh32_round(v1, xxh_read32(p));
       p += 4;
@@ -346,9 +346,9 @@ __host__ u32 xxhash_32_cpu(const byte_t *input, size_t input_size, u32 seed) {
   return xxh32_avalanche(h32);
 }
 
-__host__ u64 xxhash_64_cpu(const byte_t *input, size_t input_size, u64 seed) {
-  const byte_t *p = input;
-  const byte_t *const b_end = p + input_size;
+__host__ u64 xxhash_64_cpu(const unsigned char *input, size_t input_size, u64 seed) {
+  const unsigned char *p = input;
+  const unsigned char *const b_end = p + input_size;
   u64 h64;
 
   if (input_size >= XXH64_STRIPE_LEN) {
@@ -357,7 +357,7 @@ __host__ u64 xxhash_64_cpu(const byte_t *input, size_t input_size, u64 seed) {
     u64 v3 = seed + 0;
     u64 v4 = seed - PRIME64_1;
 
-    const byte_t *const limit = b_end - XXH64_STRIPE_LEN;
+    const unsigned char *const limit = b_end - XXH64_STRIPE_LEN;
     do {
       v1 = xxh64_round(v1, xxh_read64(p));
       p += 8;
@@ -408,7 +408,7 @@ __host__ u64 xxhash_64_cpu(const byte_t *input, size_t input_size, u64 seed) {
 
 [[maybe_unused]] static void print_xxhash64(u64 hash) {}
 
-bool verify_xxhash64(const byte_t *data, u32 size, u64 expected_hash,
+bool verify_xxhash64(const unsigned char *data, u32 size, u64 expected_hash,
                      u64 seed) {
   u64 computed_hash = xxhash_64_cpu(data, size, seed);
   return computed_hash == expected_hash;

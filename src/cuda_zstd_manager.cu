@@ -550,9 +550,6 @@ public:
       _offset += amount;
     }
   }
-  while (_offset % 4 != 0)
-    _offset++;
-}
 };
 
 // ============================================================================
@@ -5354,7 +5351,7 @@ Status encode_sequences_raw(const sequence::SequenceContext *seq_ctx,
 Status compress_sequences(const sequence::SequenceContext *seq_ctx,
                           u32 num_sequences, BlockBufferWriter &writer,
                           cudaStream_t stream,
-                          CompressionWorkspace *workspace = nullptr) {
+                          CompressionWorkspace *workspace) {
   if (num_sequences == 0) {
     return Status::SUCCESS;
   }
@@ -6037,8 +6034,7 @@ Status decompress_sequence_stream(const unsigned char *input, u32 input_size,
     return Status::ERROR_CORRUPT_DATA;
   }
 }
-}
-;
+};
 
 // ==============================================================================
 // BATCH MANAGER IMPLEMENTATION

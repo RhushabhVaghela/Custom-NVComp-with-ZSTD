@@ -42,7 +42,7 @@ struct HashUpdate {
  * Uses __vcrc32() for fast, high-quality hashing with better distribution
  * than multiplication-based hashing. Reduces collisions by 10-15%.
  */
-__device__ __forceinline__ u32 crc32_hash(const byte_t *data, u32 min_match,
+__device__ __forceinline__ u32 crc32_hash(const unsigned char *data, u32 min_match,
                                           u32 hash_log) {
   // Read 4 bytes for CRC32 (min_match is typically 3-4)
   u32 value = 0;
@@ -79,13 +79,13 @@ __device__ __forceinline__ u32 crc32_hash(const byte_t *data, u32 min_match,
  * - Hash distribution: 10-15% fewer collisions
  * - Memory bandwidth: ~50-100 GB/s -> ~400-600 GB/s
  */
-__global__ void build_hash_chains_kernel(const byte_t *input, u32 input_size,
+__global__ void build_hash_chains_kernel(const unsigned char *input, u32 input_size,
                                          const DictionaryContent *dict,
                                          hash::HashTable hash_table,
                                          hash::ChainTable chain_table,
                                          u32 min_match, u32 hash_log) {
   // Shared memory for tiled processing
-  __shared__ byte_t s_input_tile[2048 + 64]; // 2KB tile + margin for lookahead
+  __shared__ unsigned char s_input_tile[2048 + 64]; // 2KB tile + margin for lookahead
   __shared__ HashUpdate s_updates[512];      // Hash updates for this block
   __shared__ u32 s_update_count;
   __shared__ u32 s_radix_counts[256]; // For 8-bit radix sort
@@ -367,13 +367,13 @@ __global__ void build_hash_chains_kernel(const byte_t *input, u32 input_size,
  * @brief (HELPER) Finds the best match at a single position.
  * This is called by the parallel match-finding kernel.
  */
-__device__ inline u32 match_length(const byte_t *input,
+__device__ inline u32 match_length(const unsigned char *input,
                                    u32 p1, // Current position in input
                                    u32 p2, // Candidate position in input
                                    u32 max_len, const DictionaryContent *dict) {
   u32 len = 0;
-  const byte_t *p1_ptr = input + p1;
-  const byte_t *p2_ptr = input + p2;
+  const unsigned char *p1_ptr = input + p1;
+  const unsigned char *p2_ptr = input + p2;
 
   // This simplified version assumes p1 and p2 are valid pointers within the
   // combined buffer A full implementation would check boundaries against
@@ -389,7 +389,7 @@ __device__ inline u32 match_length(const byte_t *input,
 }
 
 __device__ inline Match
-find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
+find_best_match_parallel(const unsigned char *input, u32 current_pos, u32 input_size,
                          const DictionaryContent *dict,
                          const hash::HashTable &hash_table,
                          const hash::ChainTable &chain_table,
@@ -436,7 +436,7 @@ find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
         match_candidate_pos >= current_global_pos) {
       return Match{current_pos, 0, 0, 0};
     }
-    const byte_t *match_ptr;
+    const unsigned char *match_ptr;
     if (match_candidate_pos < dict_size) {
       match_ptr = dict->d_buffer + match_candidate_pos;
     } else {
@@ -533,8 +533,8 @@ find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
   while (search_depth-- > 0 && match_candidate_pos >= window_min &&
          match_candidate_pos < current_global_pos &&
          chain_iterations++ < MAX_CHAIN_TRAVERSAL) {
-    const byte_t *match_ptr;
-    const byte_t *current_ptr = input + current_pos;
+    const unsigned char *match_ptr;
+    const unsigned char *current_ptr = input + current_pos;
 
     if (match_candidate_pos < dict_size) {
       // Match is in the dictionary
@@ -648,7 +648,7 @@ find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
  * Each thread finds the best match for its position and stores it in d_matches.
  */
 __global__ void parallel_find_all_matches_kernel(
-    const byte_t *input, u32 input_size, const DictionaryContent *dict,
+    const unsigned char *input, u32 input_size, const DictionaryContent *dict,
     hash::HashTable hash_table, hash::ChainTable chain_table, LZ77Config config,
     Match *d_matches // Output array [input_size]
 ) {
@@ -806,7 +806,7 @@ __global__ void count_sequences_kernel(
 
 /* LEGACY_GPU_BACKTRACK - Commented out (uses old ParseCost format)
 // LEGACY_GPU_BACKTRACK: __global__ void backtrack_build_sequences_kernel(
-// LEGACY_GPU_BACKTRACK:     const byte_t* input,
+// LEGACY_GPU_BACKTRACK:     const unsigned char* input,
 // LEGACY_GPU_BACKTRACK:     u32 input_size,
 // LEGACY_GPU_BACKTRACK:     const ParseCost* d_costs,
 // LEGACY_GPU_BACKTRACK:
@@ -884,10 +884,10 @@ not stack
  * SAFETY: All memory pre-allocated, no shared buffers, thread-safe writes
  */
 __global__ void reverse_and_build_sequences_kernel(
-    const byte_t *input, u32 input_size, const u32 *d_literal_lengths_reverse,
+    const unsigned char *input, u32 input_size, const u32 *d_literal_lengths_reverse,
     const u32 *d_match_lengths_reverse, const u32 *d_offsets_reverse,
     u32 num_sequences, u32 *d_literal_lengths, u32 *d_match_lengths,
-    u32 *d_offsets, byte_t *d_literals_buffer, u32 *d_total_literals_count,
+    u32 *d_offsets, unsigned char *d_literals_buffer, u32 *d_total_literals_count,
     bool output_raw_values) {
   u32 tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -995,9 +995,9 @@ Status free_lz77_context(LZ77Context &ctx) {
   return Status::SUCCESS;
 }
 
-Status find_matches(LZ77Context &ctx, const byte_t *d_input, size_t input_size,
+Status find_matches(LZ77Context &ctx, const unsigned char *d_input, size_t input_size,
                     const DictionaryContent *dict,
-                    CompressionWorkspace *workspace, const byte_t *d_window,
+                    CompressionWorkspace *workspace, const unsigned char *d_window,
                     size_t window_size, cudaStream_t stream) {
   if (!d_input || input_size == 0 || !workspace) {
     return Status::ERROR_INVALID_PARAMETER;
@@ -1123,11 +1123,11 @@ Status get_matches(const LZ77Context &ctx,
 
 // LEGACY_CPU_PARSE: Status find_optimal_parse(
 // LEGACY_CPU_PARSE:     LZ77Context& lz77_ctx,
-// LEGACY_CPU_PARSE:     const byte_t* d_input,
+// LEGACY_CPU_PARSE:     const unsigned char* d_input,
 // LEGACY_CPU_PARSE:     size_t input_size,
 // LEGACY_CPU_PARSE:     const DictionaryContent* dict,
 // LEGACY_CPU_PARSE:     CompressionWorkspace* workspace,
-// LEGACY_CPU_PARSE:     const byte_t* d_window,
+// LEGACY_CPU_PARSE:     const unsigned char* d_window,
 // LEGACY_CPU_PARSE:     size_t window_size,
 // LEGACY_CPU_PARSE:     cudaStream_t stream,
 // LEGACY_CPU_PARSE:     sequence::SequenceContext* seq_ctx,

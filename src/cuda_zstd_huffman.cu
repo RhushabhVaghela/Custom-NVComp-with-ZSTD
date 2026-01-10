@@ -63,7 +63,7 @@ __device__ inline u32 reverse_bits_device(u32 val, u32 bits) {
   return __brev(val) >> (32 - bits);
 }
 
-__device__ void atomicOrByte(byte_t *address, byte_t val) {
+__device__ void atomicOrByte(unsigned char *address, unsigned char val) {
   unsigned int *base_addr = (unsigned int *)((size_t)address & ~3);
   unsigned int offset = (size_t)address & 3;
   unsigned int shift = offset * 8;
@@ -83,7 +83,7 @@ __device__ void atomicOrByte(byte_t *address, byte_t val) {
 // Frequency Analysis Kernel
 // ============================================================================
 
-__global__ void analyze_frequencies_kernel(const byte_t *input, u32 input_size,
+__global__ void analyze_frequencies_kernel(const unsigned char *input, u32 input_size,
                                            u32 *global_frequencies) {
   __shared__ u32 local_freq[MAX_HUFFMAN_SYMBOLS];
 
@@ -184,7 +184,7 @@ public:
 };
 
 __host__ Status serialize_huffman_table(const u8 *h_code_lengths,
-                                        byte_t *h_output, u32 *header_size) {
+                                        unsigned char *h_output, u32 *header_size) {
   h_output[0] = MAX_HUFFMAN_BITS;
   u32 offset = 1;
   memcpy(h_output + offset, h_code_lengths, MAX_HUFFMAN_SYMBOLS);
@@ -194,7 +194,7 @@ __host__ Status serialize_huffman_table(const u8 *h_code_lengths,
   return Status::SUCCESS;
 }
 
-__host__ Status deserialize_huffman_table(const byte_t *h_input, u32 input_size,
+__host__ Status deserialize_huffman_table(const unsigned char *h_input, u32 input_size,
                                           u8 *h_code_lengths,
                                           u32 *header_size) {
   if (input_size < 1 + MAX_HUFFMAN_SYMBOLS) {
@@ -226,7 +226,7 @@ __host__ Status deserialize_huffman_table(const byte_t *h_input, u32 input_size,
  * @param num_symbols Output: number of decoded symbols
  * @return Status::SUCCESS on success
  */
-__host__ Status decode_huffman_weights_direct(const byte_t *h_input,
+__host__ Status decode_huffman_weights_direct(const unsigned char *h_input,
                                               u32 header_byte, u8 *h_weights,
                                               u32 *num_symbols) {
   if (header_byte < 128) {
@@ -263,7 +263,7 @@ __host__ Status decode_huffman_weights_direct(const byte_t *h_input,
  * @param num_symbols Output: number of decoded symbols
  * @return Status::SUCCESS on success
  */
-__host__ Status decode_huffman_weights_fse(const byte_t *h_input,
+__host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
                                            u32 compressed_size, u8 *h_weights,
                                            u32 *num_symbols) {
   // RFC 8878 Section 4.2.1.2: FSE Compression of Huffman Weights
@@ -440,7 +440,7 @@ __host__ Status decode_huffman_weights_fse(const byte_t *h_input,
   if (bitstream_start >= compressed_size)
     return Status::ERROR_CORRUPT_DATA;
 
-  const byte_t *bitstream = h_input + bitstream_start;
+  const unsigned char *bitstream = h_input + bitstream_start;
   u32 bitstream_size = compressed_size - bitstream_start;
   u32 bit_pos = bitstream_size * 8;
 
@@ -675,7 +675,7 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
  * @param header_size Output: bytes consumed from input
  * @return Status::SUCCESS on success
  */
-__host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
+__host__ Status deserialize_huffman_table_rfc8878(const unsigned char *h_input,
                                                   u32 input_size,
                                                   u8 *h_code_lengths,
                                                   u32 *header_size) {
@@ -744,7 +744,7 @@ __host__ Status deserialize_huffman_table_rfc8878(const byte_t *h_input,
 /**
  * @brief (NEW) Kernel to get the code length for each symbol in parallel.
  */
-__global__ void get_symbol_lengths_kernel(const byte_t *input, u32 input_size,
+__global__ void get_symbol_lengths_kernel(const unsigned char *input, u32 input_size,
                                           const HuffmanCode *codes,
                                           u32 *d_code_lengths // Output
 ) {
@@ -761,7 +761,7 @@ __global__ void get_symbol_lengths_kernel(const byte_t *input, u32 input_size,
  * Each thread stores its code and position info for later merging.
  */
 __global__ void
-huffman_encode_phase1_kernel(const byte_t *input, u32 input_size,
+huffman_encode_phase1_kernel(const unsigned char *input, u32 input_size,
                              const HuffmanCode *codes, const u32 *d_bit_offsets,
                              u32 *d_codes_out,    // Output: code values
                              u32 *d_lengths_out,  // Output: code lengths
@@ -796,7 +796,7 @@ huffman_encode_phase1_kernel(const byte_t *input, u32 input_size,
 __global__ void huffman_encode_phase2_kernel(const u32 *d_codes,
                                              const u32 *d_lengths,
                                              const u32 *d_positions,
-                                             u32 input_size, byte_t *output,
+                                             u32 input_size, unsigned char *output,
                                              u32 header_size_bits) {
   const u32 BUFFER_SIZE = 512; // Bytes per block buffer
   static_assert((BUFFER_SIZE % 4) == 0,
@@ -881,7 +881,7 @@ __global__ void huffman_encode_phase2_kernel(const u32 *d_codes,
 
   // Write from the word-aligned shared array back to bytes for global output
   // Use atomic OR for ALL bytes to ensure bits from multiple blocks don't race
-  const byte_t *shared_bytes = reinterpret_cast<const byte_t *>(shared_words);
+  const unsigned char *shared_bytes = reinterpret_cast<const unsigned char *>(shared_words);
   for (u32 i = threadIdx.x; i < bytes_to_write && i < BUFFER_SIZE;
        i += blockDim.x) {
     // Always use atomic OR to handle potential overlaps with other blocks
@@ -897,9 +897,9 @@ __global__ void huffman_encode_phase2_kernel(const u32 *d_codes,
  * reducing global memory contention.
  */
 __global__ void parallel_huffman_encode_kernel(
-    const byte_t *input, u32 input_size, const HuffmanCode *codes,
+    const unsigned char *input, u32 input_size, const HuffmanCode *codes,
     const u32 *d_bit_offsets, // Input from prefix sum
-    byte_t *output, u32 header_size_bits) {
+    unsigned char *output, u32 header_size_bits) {
   u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx >= input_size)
     return;
@@ -949,7 +949,7 @@ __global__ void parallel_huffman_encode_kernel(
     // If the 64-bit target is misaligned we split into two 32-bit atomics
     // to avoid invalid 64-bit atomic on platforms that require 8-byte
     // alignment.
-    byte_t *out_ptr = output + (word_idx << 3);
+    unsigned char *out_ptr = output + (word_idx << 3);
     uintptr_t out_addr = reinterpret_cast<uintptr_t>(out_ptr);
     if ((out_addr & 7) == 0) {
       atomicOr(reinterpret_cast<unsigned long long *>(out_ptr),
@@ -1044,7 +1044,7 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
  * to find the starting bit_pos for each chunk.
  */
 __global__ void find_chunk_start_bits_kernel(
-    const byte_t *input, u32 header_size_bytes, u32 input_size_bytes,
+    const unsigned char *input, u32 header_size_bytes, u32 input_size_bytes,
     const u32 *d_first_code, const u16 *d_symbol_index, const u8 *d_symbols,
     u32 decompressed_size, u32 num_chunks, u32 symbols_per_chunk,
     u32 *d_chunk_start_bits // Output
@@ -1134,8 +1134,8 @@ __device__ u8 decode_huff_symbol(u64 bit_container, u32 bits_available,
  * For now, each block handles one stream.
  */
 __global__ void huffman_decode_rfc8878_kernel(
-    const byte_t *input, u32 input_size, const u32 *d_first_code,
-    const u16 *d_symbol_index, const u8 *d_symbols, byte_t *output,
+    const unsigned char *input, u32 input_size, const u32 *d_first_code,
+    const u16 *d_symbol_index, const u8 *d_symbols, unsigned char *output,
     u32 total_regen_size, u32 stream_start_bits, u32 stream_end_bits,
     u32 output_start_offset, u32 stream_id_debug, u32 num_symbols_to_decode) {
 
@@ -1228,8 +1228,8 @@ __global__ void huffman_decode_rfc8878_kernel(
 // Host API Functions
 // ============================================================================
 
-Status encode_huffman(const byte_t *d_input, u32 input_size,
-                      const HuffmanTable &table, byte_t *d_output,
+Status encode_huffman(const unsigned char *d_input, u32 input_size,
+                      const HuffmanTable &table, unsigned char *d_output,
                       size_t *output_size, // Host pointer
                       CompressionWorkspace *workspace, cudaStream_t stream) {
   // --- START REPLACEMENT ---
@@ -1332,7 +1332,7 @@ Status encode_huffman(const byte_t *d_input, u32 input_size,
   u32 chunk_size_symbols = 4096; // HUFFMAN_DECODE_SYMBOLS_PER_CHUNK
   u32 num_chunks = (input_size + chunk_size_symbols - 1) / chunk_size_symbols;
 
-  byte_t *h_header = new byte_t[1 + MAX_HUFFMAN_SYMBOLS];
+  unsigned char *h_header = new unsigned char[1 + MAX_HUFFMAN_SYMBOLS];
   u32 header_size = 0;
   serialize_huffman_table(h_code_lengths, h_header, &header_size);
 
@@ -1480,10 +1480,10 @@ Status encode_huffman(const byte_t *d_input, u32 input_size,
   // --- END REPLACEMENT ---
 }
 
-Status decode_huffman(const byte_t *d_input,
+Status decode_huffman(const unsigned char *d_input,
                       size_t input_size,         // Full size of compressed data
                       const HuffmanTable &table, // Not used
-                      byte_t *d_output,
+                      unsigned char *d_output,
                       size_t *d_output_size, // This is a host pointer
                       u32 decompressed_size, // We know this
                       cudaStream_t stream) {
@@ -1516,8 +1516,8 @@ Status decode_huffman(const byte_t *d_input,
  * Canonical codes are written LSB-first, so we read LSB-first without reversal.
  */
 __global__ void huffman_decode_forward_kernel(
-    const byte_t *input, u32 input_size, const u32 *d_first_code,
-    const u16 *d_symbol_index, const u8 *d_symbols, byte_t *output,
+    const unsigned char *input, u32 input_size, const u32 *d_first_code,
+    const u16 *d_symbol_index, const u8 *d_symbols, unsigned char *output,
     u32 total_regen_size, u32 bitstream_start_bits) {
 
   u32 max_len = d_symbol_index[0];
@@ -1607,8 +1607,8 @@ __global__ void huffman_decode_forward_kernel(
   }
 }
 
-Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
-                              byte_t *d_output, size_t *d_output_size,
+Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
+                              unsigned char *d_output, size_t *d_output_size,
                               u32 decompressed_size, bool four_streams,
                               cudaStream_t stream) {
   if (!d_input || !d_output || !d_output_size || input_size == 0) {
@@ -1620,7 +1620,7 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
   u32 huf_header_size = 0;
 
   // Weights are at the beginning of d_input
-  byte_t *h_weights_data = new byte_t[input_size];
+  unsigned char *h_weights_data = new unsigned char[input_size];
   CUDA_CHECK(cudaMemcpyAsync(h_weights_data, d_input, input_size,
                              cudaMemcpyDeviceToHost, stream));
   CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -1649,7 +1649,7 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
       d_code_lengths, MAX_HUFFMAN_SYMBOLS, d_first_code, d_symbol_index,
       d_symbols);
 
-  const byte_t *d_bitstream_base = d_input + huf_header_size;
+  const unsigned char *d_bitstream_base = d_input + huf_header_size;
   u32 bitstream_size_base = (u32)(input_size - huf_header_size);
 
   if (four_streams) {
@@ -1673,7 +1673,7 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
     u32 N3 = (decompressed_size + 1) / 4;
     u32 N4 = decompressed_size / 4;
 
-    const byte_t *d_data = d_bitstream_base + 6;
+    const unsigned char *d_data = d_bitstream_base + 6;
     huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
         d_data, input_size, d_first_code, d_symbol_index, d_symbols, d_output,
         decompressed_size, 0, L1 * 8, 0, 0, N1);
@@ -1698,7 +1698,7 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
     
     // The decoder reads from bitstream_base, which is d_input + huf_header_size
     // But we need to skip the chunk offsets within that region
-    const byte_t *d_bitstream_with_offsets = d_input + huf_header_size + offsets_size;
+    const unsigned char *d_bitstream_with_offsets = d_input + huf_header_size + offsets_size;
     
     // Start from bit 0 of the adjusted bitstream (we've already skipped header+offsets)
     huffman_decode_forward_kernel<<<1, 1, 0, stream>>>(
@@ -1721,8 +1721,8 @@ Status decode_huffman_rfc8878(const byte_t *d_input, size_t input_size,
  * Reads the stream FORWARD. Not optimized for parallel reads.
  */
 struct HuffmanBitStreamReader {
-  const byte_t *stream_ptr;
-  const byte_t *stream_end;
+  const unsigned char *stream_ptr;
+  const unsigned char *stream_end;
   u64 bit_container;
   i32 bits_remaining;
 
@@ -1732,7 +1732,7 @@ struct HuffmanBitStreamReader {
    * @param stream_start Points to the beginning of the bitstream.
    * @param stream_size The total size in bytes.
    */
-  __device__ void init(const byte_t *stream_start, size_t stream_size) {
+  __device__ void init(const unsigned char *stream_start, size_t stream_size) {
     stream_ptr = stream_start;
     stream_end = stream_start + stream_size;
     bit_container = 0;
