@@ -422,7 +422,7 @@ struct ZstdSequence {
     static const u32 LL_base_predefined[36] = {
         0,   1,    2,    3,    4,   5,  6,  7,  8,  // 0-8
         9,   10,   11,   12,   13,  14, 15, 16, 18, // 9-17
-        20,  22,   24,   28,   32,  40, 48, 64, 80, // 18-26
+        20,  22,   24,   28,   32,  44, 48, 64, 80, // 18-26 (Index 23: 40->44)
         248, 144,  208,  336,       // 27-30 (Modified for Predefined)
         592, 1104, 2128, 4176, 8272 // 31-35
     };
@@ -461,11 +461,13 @@ struct ZstdSequence {
     if (code < 32)
       return code + 3;
     static const u32 ML_base_predefined[53] = {
-        3,   4,   5,   6,    7,    8,    9,    10, 11, 12, 13, 14, 15, 16,  17,
-        18,  19,  20,  21,   22,   23,   24,   25, 26, 27, 28, 29, 30, 31,  32,
-        33,  34,  35,  37,   39,   41,   43,   47, 51, 59, 67, 83, 99, 131, 163,
-        705, // 45: Modified for Predefined
-        355, 483, 739, 1251, 2275, 4323, 65539};
+        3,   4,   5,   6,    7,    8,     9,    10,  11,  12, 13, 14,
+        15,  16,  17,  18,   19,   20,    21,   22,  23,  24, 25, 26,
+        27,  28,  29,  30,   31,   32,    33,   34,  35,  37, 39, 41,
+        43,  47,  51,  59,   67,   83,    99,   131, 163,
+        705,                                      // 45: Modified for Predefined
+        355, 483, 739, 1251, 2275, 57311, 65539}; // 51: Patched for libzstd
+                                                  // 64KB
     return (code < 53) ? ML_base_predefined[code] : 0;
   }
 
@@ -498,13 +500,8 @@ struct ZstdSequence {
 
   __device__ __host__ static __forceinline__ u32
   get_offset_bits(u32 symbol, FSEBitStreamReader &reader) {
-    // libzstd OF_bits table: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, ...}
-    // OF Code N has exactly N extra bits (for N >= 0)
-    // Code 0-2 are rep codes with 0, 1, 2 bits respectively
-    // But for actual offsets (code >= 3), we still read `code` bits
     if (symbol == 0)
-      return 0; // Rep code 1: 0 extra bits
-    // For symbol N, read N extra bits
+      return 0;
     return reader.read(symbol);
   }
 };

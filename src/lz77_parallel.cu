@@ -236,14 +236,14 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
   }
 
   // Handle trailing literals
-  // Handle trailing literals
   if (literal_run > 0 || num_seqs == 0) {
+    // If no sequences were found, or there are leftover literals after the last
+    // match, they are stored as a 'dummy' sequence for the literal copy kernel.
     ll_out[num_seqs] = literal_run;
     ml_out[num_seqs] = 0;
     of_out[num_seqs] = 0;
-    num_seqs++; // FIX: Do NOT increment count for trailing literals!
-    // The "dummy" is purely for launch_copy_literals.
-    // It is NOT a ZSTD sequence.
+    // (FIX) Do NOT increment num_seqs for trailing literals.
+    // They are not ZSTD sequences. They are handled by has_dummy.
     if (has_dummy)
       *has_dummy = true;
   } else {

@@ -342,11 +342,6 @@ __global__ void sequential_block_execute_sequences_kernel(
     u32 match_length = seq.match_length;
     u32 actual_offset = d_actual_offsets[i];
 
-    // if (tid == 0 && i == 0) {
-    //   printf("[KERNEL] Seq 0: LitLen=%u, MatchLen=%u, Offset=%u\n",
-    //          literals_length, match_length, actual_offset);
-    // }
-
     // Use Exclusive Scan logic (Start = End of previous)
     u32 literal_pos = d_literal_offsets[i];
     u32 output_pos = d_output_offsets[i];
@@ -357,32 +352,17 @@ __global__ void sequential_block_execute_sequences_kernel(
         if (literal_pos + j < total_literal_count) { // Add input bounds check
           byte_t lit_val = d_literals[literal_pos + j];
           output[output_pos + j] = lit_val;
-          // if (i == 0 && output_pos + j < 5) {
-          //   printf("[KERNEL] Seq 0: Wrote Lit[%u]=0x%02X at Output[%u]\n",
-          //          literal_pos + j, lit_val, output_pos + j);
-          // }
         }
       }
     }
 
     output_pos += literals_length;
-    __syncthreads(); // Ensure literals are written
+    __threadfence_block(); // Ensure global writes are visible
+    __syncthreads();       // Ensure literals are written
 
     // --- 2. Match Copy ---
     if (match_length > 0) {
-      byte_t *match_src = output + output_pos - actual_offset;
-
-      // if (tid == 0) {
-      //   printf("[KERNEL] Seq %u: Match Copy Start. Pos=%u, Offset=%u, Src=%p,
-      //   "
-      //          "Output=%p\n",
-      //          i, output_pos, actual_offset, (void *)match_src, (void
-      //          *)output);
-      //   if (output_pos < 1024) {
-      //     printf("[KERNEL] Seq %u: Src[1]=0x%02X, Output[1]=0x%02X\n", i,
-      //            match_src[1], output[1]);
-      //   }
-      // }
+      volatile byte_t *match_src = output + output_pos - actual_offset;
 
       // Bounds Check: Ensure match_src is within valid range [output_base,
       // output + output_max_size) Also ensure match_src + match_length <=

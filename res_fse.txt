@@ -1,0 +1,1 @@
+bash: line 1: ./test_libzstd_interop: No such file or directory

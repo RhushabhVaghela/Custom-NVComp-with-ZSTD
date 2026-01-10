@@ -268,7 +268,7 @@ struct BatchItem {
 // ============================================================================
 
 struct DictionaryContent {
-  const byte_t *d_buffer = nullptr;
+  const unsigned char *d_buffer = nullptr;
   size_t size = 0;
   u32 dict_id = 0;
 };

@@ -119,7 +119,7 @@ struct LZ77Context {
   u32 max_matches_dict_trainer = 0;
 
   // NEW: Window buffer with validation
-  byte_t *d_window = nullptr; // Optional, may be nullptr
+  unsigned char *d_window = nullptr; // Optional, may be nullptr
   size_t window_size = 0;
   bool window_enabled = false; // Explicit flag
 
@@ -152,10 +152,10 @@ Status free_lz77_context(LZ77Context &ctx);
  * buffers.
  */
 Status find_matches(
-    LZ77Context &ctx, const byte_t *d_input, size_t input_size,
+    LZ77Context &ctx, const unsigned char *d_input, size_t input_size,
     const DictionaryContent *dict,
     CompressionWorkspace *workspace,  // (NEW) Workspace for temp allocations
-    const byte_t *d_window = nullptr, // History buffer
+    const unsigned char *d_window = nullptr, // History buffer
     size_t window_size = 0,           // Size of history
     cudaStream_t stream = 0);
 
@@ -167,9 +167,9 @@ Status get_matches(const LZ77Context &ctx, Match *matches, u32 *num_matches);
  * Accepts workspace and optional window buffer.
  */
 Status find_optimal_parse(
-    LZ77Context &ctx, const byte_t *d_input, size_t input_size,
+    LZ77Context &ctx, const unsigned char *d_input, size_t input_size,
     const DictionaryContent *dict, CompressionWorkspace *workspace,
-    const byte_t *d_window = nullptr, size_t window_size = 0,
+    const unsigned char *d_window = nullptr, size_t window_size = 0,
     cudaStream_t stream = 0,
     cuda_zstd::sequence::SequenceContext *seq_ctx = nullptr,
     u32 *num_sequences_out = nullptr, size_t *literals_size_out = nullptr,
@@ -185,14 +185,14 @@ void test_linkage();
 
 // Find best match at current position (for parallel kernel)
 __device__ inline Match
-find_best_match_parallel(const byte_t *input, u32 current_pos, u32 input_size,
+find_best_match_parallel(const unsigned char *input, u32 current_pos, u32 input_size,
                          const DictionaryContent *dict,
                          const hash::HashTable &hash_table,
                          const hash::ChainTable &chain_table,
                          const LZ77Config &config, u32 window_min);
 
 // Compare bytes at two positions (handles window and dictionary lookups)
-__device__ inline u32 match_length(const byte_t *input,
+__device__ inline u32 match_length(const unsigned char *input,
                                    u32 p1, // Position in input
                                    u32 p2, // Position in input
                                    u32 max_len, const DictionaryContent *dict);

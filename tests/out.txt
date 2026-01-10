@@ -1,0 +1,20 @@
+
+--- Test 1: Full 6 bytes [00 FD 06 AA 35 05] (Size=6) ---
+Sentinel at bit 42 (Byte 5, Bit 2)
+Init States: LL=19 -> Sym27, OF=11 -> Sym8, ML=21 -> Sym45
+Result: LL=120, ML=290, OF=259
+
+--- Test 2: Skip first [FD 06 AA 35 05] (Size=5) ---
+Sentinel at bit 34 (Byte 4, Bit 2)
+Init States: LL=19 -> Sym27, OF=11 -> Sym8, ML=21 -> Sym45
+Result: LL=112, ML=290, OF=259
+
+--- Test 3: Skip last [00 FD 06 AA 35] (Size=5) ---
+Sentinel at bit 37 (Byte 4, Bit 5)
+Init States: LL=43 -> Sym0, OF=10 -> Sym5, ML=32 -> Sym21
+Result: LL=0, ML=24, OF=45
+
+--- Test 4: Skip first/last [FD 06 AA 35] (Size=4) ---
+Sentinel at bit 29 (Byte 3, Bit 5)
+Init States: LL=43 -> Sym0, OF=10 -> Sym5, ML=32 -> Sym21
+Result: LL=0, ML=24, OF=45
