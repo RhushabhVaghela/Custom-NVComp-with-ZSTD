@@ -200,8 +200,9 @@ constexpr u32 FSE_GPU_EXECUTION_THRESHOLD =
  * - Handles all byte-alignment cases
  * - Verified against masking errors
  */
-__host__ void write_bits_to_buffer_verified(unsigned char *buffer, u32 &bit_position,
-                                            u64 value, u32 num_bits) {
+__host__ void write_bits_to_buffer_verified(unsigned char *buffer,
+                                            u32 &bit_position, u64 value,
+                                            u32 num_bits) {
   if (num_bits == 0)
     return;
   if (num_bits > 64) {
@@ -500,8 +501,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
 // HELPER KERNELS
 // ==============================================================================
 
-__global__ void count_frequencies_kernel(const unsigned char *input, u32 input_size,
-                                         u32 *frequencies) {
+__global__ void count_frequencies_kernel(const unsigned char *input,
+                                         u32 input_size, u32 *frequencies) {
   u32 tid = blockIdx.x * blockDim.x + threadIdx.x;
   u32 stride = blockDim.x * gridDim.x;
   for (u32 i = tid; i < input_size; i += stride) {
@@ -569,8 +570,8 @@ write_bits_to_buffer(unsigned char *buffer,
 /**
  * @brief Read bits from buffer with proper masking
  */
-__host__ u64 read_bits_from_buffer(const unsigned char *buffer, u32 &bit_position,
-                                   u32 num_bits) {
+__host__ u64 read_bits_from_buffer(const unsigned char *buffer,
+                                   u32 &bit_position, u32 num_bits) {
   if (num_bits == 0)
     return 0;
 
@@ -879,8 +880,8 @@ __host__ Status reorder_symbols_for_gpu(FSEEncodeTable &table,
 // ==============================================================================
 
 __host__ Status create_multi_table_fse(MultiTableFSE &multi_table,
-                                       const unsigned char *input, u32 input_size,
-                                       cudaStream_t stream) {
+                                       const unsigned char *input,
+                                       u32 input_size, cudaStream_t stream) {
   multi_table.active_tables = 0;
 
   u32 *d_frequencies;
@@ -919,9 +920,9 @@ __host__ Status create_multi_table_fse(MultiTableFSE &multi_table,
   return Status::SUCCESS;
 }
 
-__host__ Status encode_with_table_type(const unsigned char *d_input, u32 input_size,
-                                       unsigned char *d_output, u32 *d_output_size,
-                                       TableType type,
+__host__ Status encode_with_table_type(const unsigned char *d_input,
+                                       u32 input_size, unsigned char *d_output,
+                                       u32 *d_output_size, TableType type,
                                        const MultiTableFSE &multi_table,
                                        cudaStream_t stream) {
   u32 table_idx = (u32)type;
@@ -1865,10 +1866,11 @@ __global__ void fse_write_output_size_kernel(u32 *d_output_size,
   }
 }
 
-__host__ Status encode_fse_advanced(const unsigned char *d_input, u32 input_size,
-                                    unsigned char *d_output, u32 *d_output_size,
-                                    bool gpu_optimize, cudaStream_t stream,
-                                    FSEContext *ctx, u64 **d_offsets_out) {
+__host__ Status encode_fse_advanced(const unsigned char *d_input,
+                                    u32 input_size, unsigned char *d_output,
+                                    u32 *d_output_size, bool gpu_optimize,
+                                    cudaStream_t stream, FSEContext *ctx,
+                                    u64 **d_offsets_out) {
   // If user requests offsets but provides no context, we extract them
   // before context destruction
   Status st = encode_fse_impl(d_input, input_size, d_output, d_output_size,
@@ -1877,9 +1879,9 @@ __host__ Status encode_fse_advanced(const unsigned char *d_input, u32 input_size
 }
 
 __host__ Status encode_fse_batch(const unsigned char **d_inputs,
-                                 const u32 *input_sizes, unsigned char **d_outputs,
-                                 u32 *d_output_sizes, u32 num_blocks,
-                                 cudaStream_t stream) {
+                                 const u32 *input_sizes,
+                                 unsigned char **d_outputs, u32 *d_output_sizes,
+                                 u32 num_blocks, cudaStream_t stream) {
   if (num_blocks == 0)
     return Status::SUCCESS;
 
@@ -2296,8 +2298,9 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
 // STATISTICS & ANALYSIS
 // ==============================================================================
 
-__host__ Status analyze_block_statistics(const unsigned char *d_input, u32 input_size,
-                                         FSEStats *stats, cudaStream_t stream) {
+__host__ Status analyze_block_statistics(const unsigned char *d_input,
+                                         u32 input_size, FSEStats *stats,
+                                         cudaStream_t stream) {
   // Debug: Check for pre-existing
   // errors
   cudaError_t pre_err = cudaGetLastError();
@@ -2636,9 +2639,9 @@ end_loop:
  * Runs on single thread but avoids D2H copy of bitstream
  */
 __global__ void fse_find_chunk_boundaries_gpu(
-    const unsigned char *d_bitstream, u32 bitstream_size_bytes, const u16 *d_newState,
-    const u8 *d_nbBits, u32 table_log, u32 total_symbols, u32 chunk_size,
-    FSEChunkInfo *d_chunk_infos, u32 *d_num_chunks) {
+    const unsigned char *d_bitstream, u32 bitstream_size_bytes,
+    const u16 *d_newState, const u8 *d_nbBits, u32 table_log, u32 total_symbols,
+    u32 chunk_size, FSEChunkInfo *d_chunk_infos, u32 *d_num_chunks) {
 
   // Single thread execution
   if (threadIdx.x != 0 || blockIdx.x != 0)
@@ -2898,9 +2901,9 @@ __global__ void fse_parallel_decode_setup_kernel(
  * Since FSE reads backward, we decode from (i+1)*Size down to i*Size.
  */
 __global__ void fse_speculative_count_kernel(
-    const unsigned char *d_bitstream, u32 bitstream_size_bytes, const u16 *d_newState,
-    const u8 *d_nbBits, u32 table_log, u32 chunk_size_bits,
-    u32 num_chunks_total, u32 *d_chunk_symbol_counts) {
+    const unsigned char *d_bitstream, u32 bitstream_size_bytes,
+    const u16 *d_newState, const u8 *d_nbBits, u32 table_log,
+    u32 chunk_size_bits, u32 num_chunks_total, u32 *d_chunk_symbol_counts) {
 
   u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (chunk_idx >= num_chunks_total)
@@ -3045,11 +3048,11 @@ __global__ void fse_speculative_count_kernel(
  * Writes symbols in REVERSE local order to restore global order.
  */
 __global__ void fse_parallel_decode_fixed_bits_kernel(
-    const unsigned char *d_bitstream, u32 bitstream_size_bytes, const u16 *d_newState,
-    const u8 *d_symbol, const u8 *d_nbBits, u32 table_log, u32 chunk_size_bits,
-    u32 num_chunks_total, const u32 *d_chunk_symbol_counts,
-    const u32 *d_chunk_output_offsets, const u64 *d_explicit_bit_offsets,
-    unsigned char *d_output) {
+    const unsigned char *d_bitstream, u32 bitstream_size_bytes,
+    const u16 *d_newState, const u8 *d_symbol, const u8 *d_nbBits,
+    u32 table_log, u32 chunk_size_bits, u32 num_chunks_total,
+    const u32 *d_chunk_symbol_counts, const u32 *d_chunk_output_offsets,
+    const u64 *d_explicit_bit_offsets, unsigned char *d_output) {
 
   u32 chunk_idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (chunk_idx >= num_chunks_total)
@@ -3874,10 +3877,11 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
  * bitstream.
  */
 __host__ Status decode_sequences_interleaved(
-    const unsigned char *d_input, u32 input_size, u32 num_sequences, u32 *d_ll_out,
-    u32 *d_of_out, u32 *d_ml_out, u32 ll_mode, u32 of_mode, u32 ml_mode,
-    const FSEDecodeTable *p_ll_table, const FSEDecodeTable *p_of_table,
-    const FSEDecodeTable *p_ml_table, u32 literals_limit, cudaStream_t stream) {
+    const unsigned char *d_input, u32 input_size, u32 num_sequences,
+    u32 *d_ll_out, u32 *d_of_out, u32 *d_ml_out, u32 ll_mode, u32 of_mode,
+    u32 ml_mode, const FSEDecodeTable *p_ll_table,
+    const FSEDecodeTable *p_of_table, const FSEDecodeTable *p_ml_table,
+    u32 literals_limit, cudaStream_t stream) {
   // [DEBUG] Entry (disabled)
   // fprintf(stderr,
   //         "[DEBUG] decode_sequences_interleaved: L%u, O%u, M%u.
@@ -4061,17 +4065,16 @@ __host__ Status decode_sequences_interleaved(
     u32 of_sym = decode_of ? of_table.symbol[stateOF % (1u << of_log)] : 0;
     u32 ml_sym = decode_ml ? ml_table.symbol[stateML % (1u << ml_log)] : 0;
 
-    // Order of extra bits: OF -> ML -> LL (Correct for libzstd)
-    u32 of_extra =
-        decode_of ? sequence::ZstdSequence::get_offset_bits(of_sym, reader) : 0;
-
-    u32 ml_extra =
-        decode_ml ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
-                  : 0;
-
+    // Order of extra bits (Backwards): LL -> ML -> OF
+    // (Inverse of forwards: OF -> ML -> LL)
     u32 ll_extra =
         decode_ll ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
                   : 0;
+    u32 ml_extra =
+        decode_ml ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
+                  : 0;
+    u32 of_extra =
+        decode_of ? sequence::ZstdSequence::get_offset_bits(of_sym, reader) : 0;
 
     u32 calc_ll = (ll_mode == 0)
                       ? sequence::ZstdSequence::get_ll_base_predefined(ll_sym)
@@ -4110,23 +4113,20 @@ __host__ Status decode_sequences_interleaved(
     // underflow
     if (i > 0) {
 
-      if (decode_ll) {
-        u8 nbBits = ll_table.nbBits[stateLL % (1u << ll_log)];
-
-        stateLL =
-            ll_table.newState[stateLL % (1u << ll_log)] + reader.read(nbBits);
+      if (decode_of) {
+        u8 nbBits = of_table.nbBits[stateOF % (1u << of_log)];
+        stateOF =
+            of_table.newState[stateOF % (1u << of_log)] + reader.read(nbBits);
       }
       if (decode_ml) {
         u8 nbBits = ml_table.nbBits[stateML % (1u << ml_log)];
-
         stateML =
             ml_table.newState[stateML % (1u << ml_log)] + reader.read(nbBits);
       }
-      if (decode_of) {
-        u8 nbBits = of_table.nbBits[stateOF % (1u << of_log)];
-
-        stateOF =
-            of_table.newState[stateOF % (1u << of_log)] + reader.read(nbBits);
+      if (decode_ll) {
+        u8 nbBits = ll_table.nbBits[stateLL % (1u << ll_log)];
+        stateLL =
+            ll_table.newState[stateLL % (1u << ll_log)] + reader.read(nbBits);
       }
     }
 
@@ -4206,9 +4206,9 @@ __host__ const u16 *get_predefined_norm(TableType table_type, u32 *max_symbol,
  * Decodes a stream using a predefined
  * Zstd table.
  */
-__host__ Status decode_fse_predefined(const unsigned char *d_input, u32 input_size,
-                                      unsigned char *d_output, u32 num_sequences,
-                                      u32 *h_decoded_count,
+__host__ Status decode_fse_predefined(const unsigned char *d_input,
+                                      u32 input_size, unsigned char *d_output,
+                                      u32 num_sequences, u32 *h_decoded_count,
                                       TableType table_type,
                                       cudaStream_t stream) {
   // === Step 1: Build decode table ===
@@ -4293,8 +4293,10 @@ __host__ Status decode_fse_predefined(const unsigned char *d_input, u32 input_si
 // Checksum
 // ==============================================================================
 
-__host__ Status encode_fse_with_checksum(const unsigned char *d_input, u32 input_size,
-                                         unsigned char *d_output, u32 *d_output_size,
+__host__ Status encode_fse_with_checksum(const unsigned char *d_input,
+                                         u32 input_size,
+                                         unsigned char *d_output,
+                                         u32 *d_output_size,
                                          u64 *d_checksum, // FIXED: was u32*
                                          cudaStream_t stream) {
   // Compute XXH64 checksum

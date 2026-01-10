@@ -28,163 +28,114 @@ namespace cg = cooperative_groups;
 // -----------------------------------------------------------------------------
 // KERNEL: k_encode_fse_interleaved (Block Encoder)
 // -----------------------------------------------------------------------------
-__global__ void __launch_bounds__(256)
-    k_encode_fse_interleaved(const unsigned char *__restrict__ input_symbols,
-                             u32 num_symbols,
-                             unsigned char *__restrict__ output_bitstream,
-                             size_t *output_pos, size_t bitstream_capacity,
-                             const FSEEncodeTable *table,
-                             const u32 *__restrict__ d_literal_lengths,
-                             const u32 *__restrict__ d_offsets,
-                             const u32 *__restrict__ d_match_lengths) {
-  // Phase 2a: Single Thread (Thread 0) Implementation
-  if (threadIdx.x != 0)
+__global__ void __launch_bounds__(256) k_encode_fse_interleaved(
+    const u8 *__restrict__ d_ll_codes, const u32 *__restrict__ d_ll_extras,
+    const u8 *__restrict__ d_ll_bits, const u8 *__restrict__ d_of_codes,
+    const u32 *__restrict__ d_of_extras, const u8 *__restrict__ d_of_bits,
+    const u8 *__restrict__ d_ml_codes, const u32 *__restrict__ d_ml_extras,
+    const u8 *__restrict__ d_ml_bits, u32 num_symbols,
+    unsigned char *__restrict__ output_bitstream, size_t *output_pos,
+    size_t bitstream_capacity, const FSEEncodeTable *table) {
+  if (threadIdx.x != 0 || num_symbols == 0 || bitstream_capacity == 0)
     return;
 
-  if (num_symbols == 0)
-    return;
-
-  // Bounds Check
-  if (bitstream_capacity == 0)
-    return;
-
-  // Write Forward: Ptr starts at Beginning
   unsigned char *ptr = output_bitstream;
   unsigned char *end_limit = output_bitstream + bitstream_capacity;
-
-  // Accumulator
   u64 bitContainer = 0;
   u32 bitCount = 0;
 
-  // 1. Initialize States (Last Symbol)
-  u32 idx = num_symbols - 1;
-  u32 ll_val = d_literal_lengths[idx];
-  u32 of_val = d_offsets[idx];
-  u32 ml_val = d_match_lengths[idx];
+  auto write_bits = [&](u64 val, u32 nbBits) {
+    if (nbBits == 0)
+      return;
+    bitContainer |= (val << bitCount);
+    bitCount += nbBits;
+    while (bitCount >= 8) {
+      if (ptr < end_limit) {
+        *ptr++ = (unsigned char)(bitContainer & 0xFF);
+      }
+      bitContainer >>= 8;
+      bitCount -= 8;
+    }
+  };
 
-  // Initial state is deltaFindState
-  u32 stateLL = (u32)table[0].d_symbol_table[ll_val].deltaFindState;
-  u32 stateOF = (u32)table[1].d_symbol_table[of_val].deltaFindState;
-  u32 stateML = (u32)table[2].d_symbol_table[ml_val].deltaFindState;
+  // 1. Initialize States (Last Symbol)
+  u32 last_idx = num_symbols - 1;
+  // Use d_symbol_first_state to get a VALID starting state
+  u32 stateLL = table[0].d_symbol_first_state[d_ll_codes[last_idx]];
+  u32 stateOF = table[1].d_symbol_first_state[d_of_codes[last_idx]];
+  u32 stateML = table[2].d_symbol_first_state[d_ml_codes[last_idx]];
 
   // 2. Loop N-2 down to 0
   if (num_symbols > 1) {
     for (i32 i = (i32)num_symbols - 2; i >= 0; i--) {
-      u32 ll = d_literal_lengths[i];
-      u32 of = d_offsets[i];
-      u32 ml = d_match_lengths[i];
+      // RFC 8878 Forwards Encoding Order (Per sequence):
+      // Symbol States: OF, ML, LL
+      // Extra Bits: OF, ML, LL
 
-      // Encode ML
+      // Offset (Table 1)
       {
-        FSEEncodeTable::FSEEncodeSymbol sym = table[2].d_symbol_table[ml];
-        u32 nbBitsOut = (stateML + sym.deltaNbBits) >> 16;
-        u64 val = stateML & ((1 << nbBitsOut) - 1);
-        bitContainer |= (val << bitCount);
-        bitCount += nbBitsOut;
+        u8 code_cur = d_of_codes[i + 1];
+        u8 code_next = d_of_codes[i];
+        auto sym_cur = table[1].d_symbol_table[code_cur];
+        auto sym_next = table[1].d_symbol_table[code_next];
 
-        while (bitCount >= 8) {
-          if (ptr >= end_limit)
-            return;
-          *ptr++ = (unsigned char)(bitContainer & 0xFF);
-          bitContainer >>= 8;
-          bitCount -= 8;
-        }
-        stateML = (stateML >> nbBitsOut) + sym.deltaFindState;
+        u32 nbBitsOut = (stateOF + sym_cur.deltaNbBits) >> 16;
+        write_bits(stateOF & ((1 << nbBitsOut) - 1), nbBitsOut);
+        stateOF = (stateOF >> nbBitsOut) + sym_next.deltaFindState;
       }
-      // Encode OF
+
+      // Match Length (Table 2)
       {
-        FSEEncodeTable::FSEEncodeSymbol sym = table[1].d_symbol_table[of];
-        u32 nbBitsOut = (stateOF + sym.deltaNbBits) >> 16;
-        u64 val = stateOF & ((1 << nbBitsOut) - 1);
-        bitContainer |= (val << bitCount);
-        bitCount += nbBitsOut;
-        while (bitCount >= 8) {
-          if (ptr >= end_limit)
-            return;
-          *ptr++ = (unsigned char)(bitContainer & 0xFF);
-          bitContainer >>= 8;
-          bitCount -= 8;
-        }
-        stateOF = (stateOF >> nbBitsOut) + sym.deltaFindState;
+        u8 code_cur = d_ml_codes[i + 1];
+        u8 code_next = d_ml_codes[i];
+        auto sym_cur = table[2].d_symbol_table[code_cur];
+        auto sym_next = table[2].d_symbol_table[code_next];
+
+        u32 nbBitsOut = (stateML + sym_cur.deltaNbBits) >> 16;
+        write_bits(stateML & ((1 << nbBitsOut) - 1), nbBitsOut);
+        stateML = (stateML >> nbBitsOut) + sym_next.deltaFindState;
       }
-      // Encode LL
+
+      // Literal Length (Table 0)
       {
-        FSEEncodeTable::FSEEncodeSymbol sym = table[0].d_symbol_table[ll];
-        u32 nbBitsOut = (stateLL + sym.deltaNbBits) >> 16;
-        u64 val = stateLL & ((1 << nbBitsOut) - 1);
-        bitContainer |= (val << bitCount);
-        bitCount += nbBitsOut;
-        while (bitCount >= 8) {
-          if (ptr >= end_limit)
-            return;
-          *ptr++ = (unsigned char)(bitContainer & 0xFF);
-          bitContainer >>= 8;
-          bitCount -= 8;
-        }
-        stateLL = (stateLL >> nbBitsOut) + sym.deltaFindState;
+        u8 code_cur = d_ll_codes[i + 1];
+        u8 code_next = d_ll_codes[i];
+        auto sym_cur = table[0].d_symbol_table[code_cur];
+        auto sym_next = table[0].d_symbol_table[code_next];
+
+        u32 nbBitsOut = (stateLL + sym_cur.deltaNbBits) >> 16;
+        write_bits(stateLL & ((1 << nbBitsOut) - 1), nbBitsOut);
+        stateLL = (stateLL >> nbBitsOut) + sym_next.deltaFindState;
       }
+
+      // Extra Bits (for sequence i+1)
+      write_bits(d_of_extras[i + 1], d_of_bits[i + 1]);
+      write_bits(d_ml_extras[i + 1], d_ml_bits[i + 1]);
+      write_bits(d_ll_extras[i + 1], d_ll_bits[i + 1]);
     }
   }
 
-  // 3. Write Final States (ML, OF, LL)
-  {
-    u32 nbBits = table[2].table_log;
-    u64 val = stateML & ((1 << nbBits) - 1);
-    bitContainer |= (val << bitCount);
-    bitCount += nbBits;
-    while (bitCount >= 8) {
-      if (ptr >= end_limit)
-        return;
-      *ptr++ = (unsigned char)(bitContainer & 0xFF);
-      bitContainer >>= 8;
-      bitCount -= 8;
-    }
-  }
-  {
-    u32 nbBits = table[1].table_log;
-    u64 val = stateOF & ((1 << nbBits) - 1);
-    bitContainer |= (val << bitCount);
-    bitCount += nbBits;
-    while (bitCount >= 8) {
-      if (ptr >= end_limit)
-        return;
-      *ptr++ = (unsigned char)(bitContainer & 0xFF);
-      bitContainer >>= 8;
-      bitCount -= 8;
-    }
-  }
-  {
-    u32 nbBits = table[0].table_log;
-    u64 val = stateLL & ((1 << nbBits) - 1);
-    bitContainer |= (val << bitCount);
-    bitCount += nbBits;
-    while (bitCount >= 8) {
-      if (ptr >= end_limit)
-        return;
-      *ptr++ = (unsigned char)(bitContainer & 0xFF);
-      bitContainer >>= 8;
-      bitCount -= 8;
-    }
-  }
+  // 3. Write Final Fields for Sequence 0
+  // Extra bits for Seq 0
+  write_bits(d_of_extras[0], d_of_bits[0]);
+  write_bits(d_ml_extras[0], d_ml_bits[0]);
+  write_bits(d_ll_extras[0], d_ll_bits[0]);
+
+  // Final States
+  write_bits(stateML, table[2].table_log);
+  write_bits(stateOF, table[1].table_log);
+  write_bits(stateLL, table[0].table_log);
 
   // 4. Flush Sentinel '1'
-  bitContainer |= ((u64)1 << bitCount);
-  bitCount++;
+  write_bits(1, 1);
   while (bitCount > 0) {
-    if (ptr >= end_limit)
-      return;
-    *ptr++ = (unsigned char)(bitContainer & 0xFF);
+    if (ptr < end_limit)
+      *ptr++ = (unsigned char)(bitContainer & 0xFF);
     bitContainer >>= 8;
-    if (bitCount <= 8)
-      bitCount = 0;
-    else
-      bitCount -= 8;
+    bitCount = (bitCount > 8) ? bitCount - 8 : 0;
   }
 
-  // Result: Ptr points to end of valid data
-  size_t size = ptr - output_bitstream;
-
-  *output_pos = size;
+  *output_pos = ptr - output_bitstream;
 }
 
 // -----------------------------------------------------------------------------
@@ -212,7 +163,12 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
       continue;
     }
 
-    u32 maxBitsOut = table_log - get_highest_bit(freq);
+    u32 maxBitsOut;
+    if (freq == 1) {
+      maxBitsOut = table_log;
+    } else {
+      maxBitsOut = table_log - get_highest_bit(freq - 1);
+    }
     u32 minStatePlus = (u32)freq << maxBitsOut;
 
     table->d_symbol_table[s].deltaNbBits = (maxBitsOut << 16) - minStatePlus;
@@ -354,11 +310,79 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
   for (u32 s = tid; s <= max_symbol; s += blockDim.x) {
     if ((i16)normalized_counters[s] == 0)
       continue;
-    // Use cumFreq[s] - 1 as per Zstd RFC 8878, with safety bound
-    i32 delta = (i32)s_cum_freq[s] - 1;
-    if (delta < 0)
-      delta = 0;
+    // Recalculate minStatePlus for deltaFindState
+    u32 freq = normalized_counters[s];
+    u32 maxBitsOut;
+    if (freq == 1) {
+      maxBitsOut = table_log;
+    } else {
+      maxBitsOut = table_log - get_highest_bit(freq - 1);
+    }
+    u32 minStatePlus = freq << maxBitsOut;
+
+    // Zstd Formula:
+    // deltaFindState = tableSize + cumFreq - 1 - minStatePlus
+    u32 tableSize = 1 << table_log;
+    i32 delta = (i32)(tableSize + s_cum_freq[s] - 1) - (i32)minStatePlus;
+
     table->d_symbol_table[s].deltaFindState = delta;
+  }
+
+  __syncthreads();
+
+  // Phase 4: Sym->State Mapping (Spreading) - Required for Initialization
+  // Single Thread (tid=0)
+  if (tid == 0) {
+    u32 tableSize = 1 << table_log;
+    u32 step = (tableSize >> 1) + (tableSize >> 3) + 3;
+    u32 pos = 0;
+
+    // Reset d_symbol_first_state
+    // (Assuming initialization to 0 or -1 elsewhere? We set it here)
+    // We only need it for existing symbols.
+
+    // Iterate symbols and frequencies to spread
+    for (u32 s = 0; s <= max_symbol; s++) {
+      int freq = (int)normalized_counters[s];
+      if (freq <= 0)
+        continue;
+
+      // First placement is the Initialization State
+      // But Zstd fills table by iterating frequencies.
+      // For each occurrence: table[pos] = s. pos = (pos + step) & mask.
+
+      // We only need the FIRST state we assign to 's'.
+      // Wait. Zstd Decompressor uses the states in the table.
+      // Does it pick specific ones?
+      // "The state is a value from 0 to TableSize-1."
+      // The Encoder needs *A* state S such that Table[S].symbol == s.
+      // Any S works?
+      // Yes. But let's pick the one corresponding to the first placement logic?
+      // Actually any is valid. But finding ONE is easier if we simulate
+      // spreading.
+
+      // Simulate spreading for this symbol
+      // Only for the FIRST frequency count?
+      // No. The `pos` accumulates across ALL symbols.
+      // We must run the full loop to maintain `pos`.
+
+      // Wait. Standard Spreading iterates Symbols by Probability?
+      // No. By Symbol Value (0..255).
+      // ZSTD_buildDTable uses:
+      // for s in 0..max_symbol:
+      //   for i in 0..freq[s]-1:
+      //     table[pos] = s;
+      //     pos = (pos + step) & mask;
+      //
+      // So we track `pos` across symbols.
+
+      // First time we see 's', `pos` is a valid state for `s`.
+      table->d_symbol_first_state[s] = (u16)pos;
+
+      for (int i = 0; i < freq; i++) {
+        pos = (pos + step) & (tableSize - 1);
+      }
+    }
   }
 }
 
@@ -366,19 +390,19 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
 // HOST LAUNCHERS
 // =================================================================================================
 
-Status
-launch_fse_encoding_kernel(const u32 *d_ll, const u32 *d_of, const u32 *d_ml,
-                           u32 num_sequences, unsigned char *d_bitstream,
-                           size_t *d_output_pos, size_t bitstream_capacity,
-                           const FSEEncodeTable *d_tables, // Expects array of 3
-                           cudaStream_t stream) {
-  // Launch Params for Phase 2a:
-  // Single Block, Single Warp (32 threads).
-  // Thread 0 execution for now.
+Status launch_fse_encoding_kernel(
+    const u8 *d_ll_codes, const u32 *d_ll_extras, const u8 *d_ll_bits,
+    const u8 *d_of_codes, const u32 *d_of_extras, const u8 *d_of_bits,
+    const u8 *d_ml_codes, const u32 *d_ml_extras, const u8 *d_ml_bits,
+    u32 num_symbols, unsigned char *d_bitstream, size_t *d_output_pos,
+    size_t bitstream_capacity,
+    const FSEEncodeTable *d_tables, // Expects array of 3
+    cudaStream_t stream) {
+  // Launch Warp-Level Encoder (Phase 2a: Single Warp/Thread 0)
   k_encode_fse_interleaved<<<1, 32, 0, stream>>>(
-      nullptr, // input_symbols unused
-      num_sequences, d_bitstream, d_output_pos, bitstream_capacity, d_tables,
-      d_ll, d_of, d_ml);
+      d_ll_codes, d_ll_extras, d_ll_bits, d_of_codes, d_of_extras, d_of_bits,
+      d_ml_codes, d_ml_extras, d_ml_bits, num_symbols, d_bitstream,
+      d_output_pos, bitstream_capacity, d_tables);
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {

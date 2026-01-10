@@ -345,6 +345,7 @@ struct CompressionWorkspace {
   void *d_sequences;     // Cast to sequence::Sequence*
   void *d_fse_tables;    // Cast to fse::FSEEncodeTable*
   void *d_huffman_table; // Cast to huffman::HuffmanTable*
+  void *d_bitstream;     // Pointer to output bitstream buffer
 };
 
 // ============================================================================

@@ -22,12 +22,14 @@ namespace fse {
  * @param tables FSE Encoding Tables (CTables on Device).
  * @param stream CUDA stream.
  */
-Status
-launch_fse_encoding_kernel(const u32 *d_ll, const u32 *d_of, const u32 *d_ml,
-                           u32 num_sequences, unsigned char *d_bitstream,
-                           size_t *d_output_pos, size_t bitstream_capacity,
-                           const FSEEncodeTable *d_tables, // Expects array of 3
-                           cudaStream_t stream);
+Status launch_fse_encoding_kernel(
+    const u8 *d_ll_codes, const u32 *d_ll_extras, const u8 *d_ll_bits,
+    const u8 *d_of_codes, const u32 *d_of_extras, const u8 *d_of_bits,
+    const u8 *d_ml_codes, const u32 *d_ml_extras, const u8 *d_ml_bits,
+    u32 num_sequences, unsigned char *d_bitstream, size_t *d_output_pos,
+    size_t bitstream_capacity,
+    const FSEEncodeTable *d_tables, // Expects array of 3
+    cudaStream_t stream);
 
 /**
  * @brief Builds FSE CTable on the Device directly (Phase 2a).

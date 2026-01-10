@@ -49,12 +49,34 @@ constexpr u32 GPU_MEMORY_ALIGNMENT = 256; // Most GPU requirements
 
 // Predefined Mode Conversion Kernel
 // Converts raw Match Lengths to FSE Codes and detects "Gap" matches.
-__global__ void
-convert_sequences_to_fse_codes_kernel(const u32 *d_ll_in, const u32 *d_ml_in,
-                                      const u32 *d_of_in, u32 num_sequences,
-                                      u32 *d_ll_out, u32 *d_ml_out,
-                                      u32 *d_of_out, u32 *d_incompatible_flag) {
+__global__ void convert_sequences_to_fse_codes_kernel(
+    const u32 *d_ll_in, const u32 *d_ml_in, const u32 *d_of_in,
+    u32 num_sequences, unsigned char *d_ll_out, u32 *d_ll_extra_out,
+    unsigned char *d_ll_bits_out, unsigned char *d_ml_out, u32 *d_ml_extra_out,
+    unsigned char *d_ml_bits_out, unsigned char *d_of_out, u32 *d_of_extra_out,
+    unsigned char *d_of_bits_out, u32 *d_incompatible_flag) {
   u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+  // DEBUG: Print pointer validity for thread 0
+  if (idx == 0) {
+    printf("[FSE_CODES] num_sequences=%u\\n", num_sequences);
+    printf("[FSE_CODES] Input Ptrs: ll=%p, ml=%p, of=%p\\n", d_ll_in, d_ml_in,
+           d_of_in);
+    printf("[FSE_CODES] Output Ptrs: ll_out=%p, ml_out=%p, of_out=%p\\n",
+           d_ll_out, d_ml_out, d_of_out);
+    printf("[FSE_CODES] Extra Ptrs: ll_extra=%p, ml_extra=%p, of_extra=%p\\n",
+           d_ll_extra_out, d_ml_extra_out, d_of_extra_out);
+    printf("[FSE_CODES] Bits Ptrs: ll_bits=%p, ml_bits=%p, of_bits=%p\\n",
+           d_ll_bits_out, d_ml_bits_out, d_of_bits_out);
+    printf("[FSE_CODES] IncompatPtr: %p\\n", d_incompatible_flag);
+
+    // Attempt to read first value from each input
+    if (num_sequences > 0) {
+      printf("[FSE_CODES] First Values: ll[0]=%u, ml[0]=%u, of[0]=%u\\n",
+             d_ll_in[0], d_ml_in[0], d_of_in[0]);
+    }
+  }
+
   if (idx >= num_sequences)
     return;
 
@@ -62,19 +84,41 @@ convert_sequences_to_fse_codes_kernel(const u32 *d_ll_in, const u32 *d_ml_in,
   u32 ll = d_ll_in[idx];
   u32 of = d_of_in[idx];
 
-  // Gap Detection:
-  // ML in [4323, 57310] cannot be encoded with Libzstd's table (Base 57311).
-  // Standard Base 4323 (Code 51) allows up to ~12514.
-  // So checking >= 4323 covers everything that WOULD use Code 51/52 in
-  // Standard but fails in New Mode if < 57311.
-  if (ml >= 4323 && ml < 57311) {
+  // Match Length
+  u32 ml_code = sequence::ZstdSequence::get_match_len_code(ml);
+  u32 ml_base = sequence::ZstdSequence::get_ml_base_predefined(ml_code);
+  u32 ml_bits = sequence::ZstdSequence::get_match_len_extra_bits(ml_code);
+  u32 ml_max = (ml_bits >= 32) ? 0xFFFFFFFF : (ml_base + (1u << ml_bits) - 1);
+  if (ml < ml_base || ml > ml_max)
+    *d_incompatible_flag = 1;
+
+  d_ml_out[idx] = (unsigned char)ml_code;
+  d_ml_bits_out[idx] = (unsigned char)ml_bits;
+  d_ml_extra_out[idx] = ml - ml_base;
+
+  // Literal Length
+  u32 ll_code = sequence::ZstdSequence::get_lit_len_code(ll);
+  u32 ll_base = sequence::ZstdSequence::get_ll_base_predefined(ll_code);
+  u32 ll_bits = sequence::ZstdSequence::get_lit_len_extra_bits(ll_code);
+  d_ll_out[idx] = (unsigned char)ll_code;
+  d_ll_bits_out[idx] = (unsigned char)ll_bits;
+  d_ll_extra_out[idx] = ll - ll_base;
+
+  // Offset
+  // RFC 8878: Offset Code encodes bits to read. Extra Value is remaining bits.
+  u32 of_code = sequence::ZstdSequence::get_offset_code(of);
+  // For Zstd Offset Codes, Bits == Code (mostly).
+  u32 of_bits = of_code;
+  u32 of_base = 1u << of_code;
+
+  // SAFETY CHECK: Ensure codes are within Predefined FSE Table limits
+  if (ll_code > 35 || ml_code > 52 || of_code > 28) {
     *d_incompatible_flag = 1;
   }
 
-  // Convert to Codes
-  d_ll_out[idx] = sequence::ZstdSequence::get_lit_len_code(ll);
-  d_ml_out[idx] = sequence::ZstdSequence::get_match_len_code(ml);
-  d_of_out[idx] = sequence::ZstdSequence::get_offset_code(of);
+  d_of_out[idx] = (unsigned char)of_code;
+  d_of_bits_out[idx] = (unsigned char)of_bits;
+  d_of_extra_out[idx] = of - of_base;
 }
 
 inline size_t align_to_boundary(size_t size, size_t alignment) {
@@ -556,12 +600,11 @@ public:
 // Internal Helper Functions
 // ============================================================================
 
-__global__ void copy_block_literals_kernel(const unsigned char *input,
-                                           const u32 *literal_lengths,
-                                           const u32 *match_lengths,
-                                           u32 num_sequences,
-                                           unsigned char *literals_buffer,
-                                           u32 block_idx, u32 capacity) {
+__global__ void
+copy_block_literals_kernel(const unsigned char *input,
+                           const u32 *literal_lengths, const u32 *match_lengths,
+                           u32 num_sequences, unsigned char *literals_buffer,
+                           u32 block_idx, u32 capacity, u32 input_size) {
   // Simple sequential copy per block (launched with 1 thread)
   // Optimization: Could be parallelized with prefix sums, but this is
   // functional
@@ -582,6 +625,13 @@ __global__ void copy_block_literals_kernel(const unsigned char *input,
     // Note: in_pos check is harder without knowing input size, but we assume
     // input valid
 
+    // Valid input bounds check
+    if (in_pos + ll > input_size) {
+      printf("[FATAL GPU] Block %u: Input OOB! Seq %u, LL %u, In %u, Size %u\n",
+             block_idx, i, ll, in_pos, input_size);
+      return;
+    }
+
     // Copy literals
     for (u32 k = 0; k < ll; ++k) {
       literals_buffer[out_pos + k] = input[in_pos + k];
@@ -599,14 +649,22 @@ __global__ void copy_block_literals_kernel(const unsigned char *input,
 }
 
 // Helper to launch the kernel
-void launch_copy_literals(const unsigned char *input,
+void launch_copy_literals(const unsigned char *input, u32 input_size,
                           const u32 *literal_lengths, const u32 *match_lengths,
                           u32 num_sequences, unsigned char *literals_buffer,
-                          cudaStream_t stream,
-                          u32 block_idx) { // Added block_idx
+                          cudaStream_t stream, u32 block_idx) {
+  printf("[LAUNCH] Copy Literals: Input=%p, LitLen=%p, MatchLen=%p, LitBuf=%p, "
+         "NumSeq=%u, Size=%u\n",
+         input, literal_lengths, match_lengths, literals_buffer, num_sequences,
+         input_size);
   copy_block_literals_kernel<<<1, 1, 0, stream>>>(
       input, literal_lengths, match_lengths, num_sequences, literals_buffer,
-      block_idx, 131072); // Hardcoded 128KB capacity for now
+      block_idx, 131072, input_size);
+  cudaError_t err = cudaDeviceSynchronize();
+  if (err != cudaSuccess) {
+    printf("[FATAL] Block %u: copy_literals Sync Failed: %s\n", block_idx,
+           cudaGetErrorString(err));
+  }
 }
 
 // ==============================================================================
@@ -1339,6 +1397,10 @@ public:
                       stream);
       cudaMallocAsync(&h_desc.d_nbBits_table, h_desc.table_size * sizeof(u8),
                       stream);
+      cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
+                      stream);
+      cudaMallocAsync(&h_desc.d_state_to_symbol, h_desc.table_size * sizeof(u8),
+                      stream);
 
       cudaMemcpyAsync(&d_cached_fse_tables[idx], &h_desc,
                       sizeof(fse::FSEEncodeTable), cudaMemcpyHostToDevice,
@@ -1352,6 +1414,9 @@ public:
     build_table(fse::TableType::LITERALS, 0);
     build_table(fse::TableType::OFFSETS, 1);
     build_table(fse::TableType::MATCH_LENGTHS, 2);
+
+    // CRITICAL: Sync to ensure all table builds complete before returning
+    cudaStreamSynchronize(stream);
 
     return Status::SUCCESS;
   }
@@ -1669,6 +1734,8 @@ public:
 
     // --- (NEW) Setup CompressionWorkspace ---
     CompressionWorkspace call_workspace;
+    call_workspace.d_fse_tables =
+        (void *)d_cached_fse_tables; // FIX: Assign cached tables
 
     unsigned char *workspace_start = workspace_ptr;
 
@@ -1759,6 +1826,9 @@ public:
         cudaMemsetAsync(call_workspace.d_matches, 0, matches_bytes, stream));
     workspace_ptr = align_ptr(workspace_ptr + matches_bytes, alignment);
 
+    // FIX: Assign d_lz77_temp to reuse d_matches memory (safe after LZ77)
+    call_workspace.d_lz77_temp = (u32 *)call_workspace.d_matches;
+
     call_workspace.d_costs = reinterpret_cast<void *>(workspace_ptr);
     call_workspace.max_costs = ZSTD_BLOCKSIZE_MAX + 1;
     size_t costs_bytes = call_workspace.num_blocks * (ZSTD_BLOCKSIZE_MAX + 1) *
@@ -1798,6 +1868,9 @@ public:
     // Literals buffer size = block size * num_blocks
     size_t literals_bytes = call_workspace.num_blocks * ZSTD_BLOCKSIZE_MAX;
     workspace_ptr = align_ptr(workspace_ptr + literals_bytes, alignment);
+
+    // FIX: Assign d_bitstream to reuse literals buffer (literals done by then)
+    call_workspace.d_bitstream = (void *)ctx.seq_ctx->d_literals_buffer;
 
     // (NEW) Partition per-block sums (3 slots per block)
     call_workspace.d_block_sums = reinterpret_cast<u32 *>(workspace_ptr);
@@ -2630,9 +2703,10 @@ public:
             d_all_match_lengths_reverse + (block_idx * block_size);
 
         // Extract literals using valid sequence data (including dummy)
-        launch_copy_literals(
-            block_input, d_lit_len_ptr, d_match_len_ptr, copy_count,
-            block_seq_ctxs[block_idx].d_literals_buffer, stream, block_idx);
+        launch_copy_literals(block_input, current_block_size_val, d_lit_len_ptr,
+                             d_match_len_ptr, copy_count,
+                             block_seq_ctxs[block_idx].d_literals_buffer,
+                             stream, block_idx);
       } else {
         // No sequences (literals only)
         CUDA_CHECK(cudaMemcpyAsync(block_seq_ctxs[block_idx].d_literals_buffer,
@@ -2659,7 +2733,13 @@ public:
 
       // (OPTIMIZATION) Removed per-block sync
       // cudaStreamSynchronize(stream);
-      cudaError_t lit_err = cudaGetLastError();
+      cudaError_t lit_err = cudaDeviceSynchronize();
+      if (lit_err != cudaSuccess) {
+        printf("[FATAL] Block %u: compress_literals Sync Failed: %s\n",
+               block_idx, cudaGetErrorString(lit_err));
+        status = Status::ERROR_CUDA_ERROR;
+        goto cleanup;
+      }
       if (lit_err != cudaSuccess) {
         printf("[ERROR] Block %u: compress_literals launch error: %s\n",
                block_idx, cudaGetErrorString(lit_err));
@@ -2683,6 +2763,14 @@ public:
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,
                                       seq_blocks, seq_threads, stream);
 
+        cudaError_t seq_err = cudaDeviceSynchronize();
+        if (seq_err != cudaSuccess) {
+          printf("[FATAL] Block %u: build_sequences Sync Failed: %s\n",
+                 block_idx, cudaGetErrorString(seq_err));
+          status = Status::ERROR_CUDA_ERROR;
+          goto cleanup;
+        }
+
         if (status != Status::SUCCESS)
           goto cleanup;
       }
@@ -2703,10 +2791,20 @@ public:
       unsigned char *ws_base = (unsigned char *)call_workspace.d_workspace +
                                (block_idx * per_block_size);
       seq_ws.d_lz77_temp = (u32 *)ws_base;
+      // FIX: Also initialize d_matches which is used by compress_sequences
+      seq_ws.d_matches = call_workspace.d_matches;
 
       status = compress_sequences(&block_seq_ctxs[block_idx],
                                   block_num_sequences[block_idx], writer,
                                   stream, &seq_ws);
+
+      cudaError_t comp_seq_err = cudaDeviceSynchronize();
+      if (comp_seq_err != cudaSuccess) {
+        printf("[FATAL] Block %u: compress_sequences Sync Failed: %s\n",
+               block_idx, cudaGetErrorString(comp_seq_err));
+        status = Status::ERROR_CUDA_ERROR;
+        goto cleanup;
+      }
 
       if (status != Status::SUCCESS) {
         printf("[ERROR] Block %d: compress_sequences failed with "
@@ -3512,65 +3610,71 @@ private:
       fhd |= 0x04; // Content checksum bit
     }
 
-    // Disable Single Segment mode (Bit 5 = 0x20)
-    // We want standard frames so that Block Headers are always present.
-    // This fixes compatibility with decompressors that expect block headers.
-    // fhd |= 0x20;
-    fhd &= ~0x20; // FORCE Single Segment OFF
-
-    // Determine FCS Field Size (Bits 7-6)
-    // 00: 1 byte (if Single Segment) or 0 (Unknown)
-    // 01: 2 bytes (Value - 256)
-    // 10: 4 bytes
-    // 11: 8 bytes
-
-    if (content_size < 256) {
-      // Standard frames cannot use 1-byte FCS. use 2-byte minimum (or 0).
-      // We'll use 2-byte encoding (01) even for small sizes.
-      // But 2-byte encoding defines Value = stored_val + 256.
-      // If content_size < 256, we can't represent it with 2-byte encoding!
-      // (Because min 2-byte val is 256).
-      // So we must use 4-byte encoding (10) or 0 (Unknown).
-      // Let's use 4-byte encoding for anything < 65536+256 to be safe.
-      fhd |= 0x80; // 10xxxxxx (4 bytes)
-    } else if (content_size < 65536 + 256) {
-      // 2 bytes
-      fhd |= 0x40; // 01xxxxxx
-    } else {
-      // 4 bytes
-      fhd |= 0x80; // 10xxxxxx
+    // Single Segment mode (Bit 5 = 0x20)
+    // For small files < block_size, we can use Single Segment mode.
+    // This reduces header size by 1 byte (omits Window Descriptor).
+    bool single_segment = (content_size <= config.block_size);
+    if (single_segment) {
+      fhd |= 0x20;
     }
 
-    h_header[offset] = fhd;
-    offset += 1;
+    // Determine bits 7-6 (FCS_Flag)
+    // Table 3: SS=1 -> 0:1B, 1:2B, 2:4B, 3:8B
+    // Table 2: SS=0 -> 0:0B, 1:2B, 2:4B, 3:8B
+    u32 fcs_flag = 0;
+    u32 fcs_field_size = 0;
 
-    // Write Window Descriptor (Required if !SingleSegment)
-    // Use window_log from config
-    // WD = (Exponent - 10) << 3.
-    unsigned char wd = (config.window_log - 10) << 3;
-    h_header[offset] = wd;
-    offset += 1;
+    if (single_segment) {
+      if (content_size < 256) {
+        fcs_flag = 0;
+        fcs_field_size = 1;
+      } else if (content_size < 65536) {
+        fcs_flag = 1;
+        fcs_field_size = 2;
+      } else {
+        fcs_flag = 2;
+        fcs_field_size = 4;
+      }
+    } else {
+      if (content_size == 0) {
+        fcs_flag = 0;
+        fcs_field_size = 0;
+      } else if (content_size < 65536 + 256) {
+        fcs_flag = 1;
+        fcs_field_size = 2;
+      } else {
+        fcs_flag = 2;
+        fcs_field_size = 4;
+      }
+    }
+    fhd |= (fcs_flag << 6);
+
+    h_header[offset++] = fhd;
+
+    // 2. Window Descriptor (ONLY if !Single Segment)
+    if (!single_segment) {
+      unsigned char wd = (config.window_log - 10) << 3;
+      h_header[offset++] = wd;
+    }
 
     // 3. Dictionary ID
     if (dict_buffer && dict_size > 0) {
-      memcpy(h_header + offset, &dict_id, 1);
-      offset += 1;
+      h_header[offset++] = 0; // Fixed 1-byte dict ID 0
     }
 
     // 4. Content Size
-    if (content_size < 256) {
-      // Use 4-byte encoding as decided above
-      u32 cs = content_size;
-      memcpy(h_header + offset, &cs, 4);
-      offset += 4;
-    } else if (content_size < 65536 + 256) {
-      u32 stored_size = content_size - 256;
-      h_header[offset++] = (unsigned char)(stored_size & 0xFF);
-      h_header[offset++] = (unsigned char)((stored_size >> 8) & 0xFF);
-    } else {
-      // Write as 4-byte little-endian
-      u32 cs = content_size;
-      memcpy(h_header + offset, &cs, 4);
+    if (fcs_field_size == 1) {
+      h_header[offset++] = (unsigned char)content_size;
+    } else if (fcs_field_size == 2) {
+      u32 val = content_size - 256;
+      printf("[DEBUG_FRAME] content_size=%u, single_segment=%d, val=%u (0x%X), "
+             "bytes: %02X %02X\n",
+             content_size, (int)single_segment, val, val,
+             (unsigned char)(val & 0xFF), (unsigned char)((val >> 8) & 0xFF));
+      h_header[offset++] = (unsigned char)(val & 0xFF);
+      h_header[offset++] = (unsigned char)((val >> 8) & 0xFF);
+    } else if (fcs_field_size == 4) {
+      memcpy(h_header + offset, &content_size, 4);
       offset += 4;
     }
 
@@ -4235,8 +4339,8 @@ private:
       header_len = 3;
     }
 
-    // Mode Byte: Predefined (5,5,5) -> 0x54 (LL=1, OF=1, ML=1)
-    header_buffer[header_len++] = 0x54;
+    // Mode Byte: Predefined (0,0,0) -> 0x00 (LL=0, OF=0, ML=0)
+    header_buffer[header_len++] = 0x00;
 
     // Copy Header to Output (Device)
     cudaMemcpyAsync(output, header_buffer, header_len, cudaMemcpyHostToDevice,
@@ -4278,6 +4382,12 @@ private:
         cudaMallocAsync(&h_desc.d_next_state, table_size * sizeof(u16), stream);
         cudaMallocAsync(&h_desc.d_nbBits_table, table_size * sizeof(u8),
                         stream);
+        // FIX: These were missing and caused k_build_ctable to crash writing to
+        // garbage
+        cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
+                        stream);
+        cudaMallocAsync(&h_desc.d_state_to_symbol, table_size * sizeof(u8),
+                        stream);
 
         cudaMemcpyAsync(&d_tables[idx], &h_desc, sizeof(fse::FSEEncodeTable),
                         cudaMemcpyHostToDevice, stream);
@@ -4302,9 +4412,10 @@ private:
     cudaMallocAsync(&d_bitstream, capacity, stream);
 
     Status launchStatus = fse::launch_fse_encoding_kernel(
-        seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
-        seq_ctx->d_match_lengths, num_sequences, d_bitstream, d_pos, capacity,
-        d_tables, stream);
+        seq_ctx->d_ll_codes, seq_ctx->d_ll_extras, seq_ctx->d_ll_num_bits,
+        seq_ctx->d_of_codes, seq_ctx->d_of_extras, seq_ctx->d_of_num_bits,
+        seq_ctx->d_ml_codes, seq_ctx->d_ml_extras, seq_ctx->d_ml_num_bits,
+        num_sequences, d_bitstream, d_pos, capacity, d_tables, stream);
 
     if (launchStatus != Status::SUCCESS)
       return launchStatus;
@@ -5359,11 +5470,25 @@ private:
     // Try Predefined Mode if Workspace is available
     if (workspace && workspace->d_lz77_temp) {
       // 1. Setup Buffers in Temp Workspace
-      // Partition d_lz77_temp (assumed large enough for 4*N u32s)
-      u32 *d_ll_codes = workspace->d_lz77_temp;
-      u32 *d_ml_codes = d_ll_codes + num_sequences;
-      u32 *d_of_codes = d_ml_codes + num_sequences;
-      u32 *d_incompatible = d_of_codes + num_sequences;
+      // Partition d_lz77_temp (assumed large enough for 4*N u32s -> 16*N bytes)
+      // We need 3*N bytes for codes, plus aligned space for incompatible flag.
+
+      // 1. Setup Buffers in Temp Workspace
+      // Use d_matches (void*) for u8 buffers (Codes, Bits) -> 6 * N bytes
+      u8 *d_match_base = (u8 *)workspace->d_matches;
+      u8 *d_ll_codes = d_match_base;
+      u8 *d_ml_codes = d_ll_codes + num_sequences;
+      u8 *d_of_codes = d_ml_codes + num_sequences;
+      u8 *d_ll_bits = d_of_codes + num_sequences;
+      u8 *d_ml_bits = d_ll_bits + num_sequences;
+      u8 *d_of_bits = d_ml_bits + num_sequences;
+
+      // Use d_lz77_temp (u32*) for u32 buffers (Extras) -> 3 * N u32s
+      u32 *d_temp_u32 = workspace->d_lz77_temp;
+      u32 *d_ll_extras = d_temp_u32;
+      u32 *d_ml_extras = d_ll_extras + num_sequences;
+      u32 *d_of_extras = d_ml_extras + num_sequences;
+      u32 *d_incompatible = d_of_extras + num_sequences;
 
       cudaMemsetAsync(d_incompatible, 0, sizeof(u32), stream);
 
@@ -5372,8 +5497,9 @@ private:
       u32 blocks = (num_sequences + threads - 1) / threads;
       convert_sequences_to_fse_codes_kernel<<<blocks, threads, 0, stream>>>(
           seq_ctx->d_literal_lengths, seq_ctx->d_match_lengths,
-          seq_ctx->d_offsets, num_sequences, d_ll_codes, d_ml_codes, d_of_codes,
-          d_incompatible);
+          seq_ctx->d_offsets, num_sequences, d_ll_codes, d_ll_extras, d_ll_bits,
+          d_ml_codes, d_ml_extras, d_ml_bits, d_of_codes, d_of_extras,
+          d_of_bits, d_incompatible);
 
       // 3. Check Flag
       u32 h_incompatible = 0;
@@ -5384,9 +5510,17 @@ private:
       if (h_incompatible == 0) {
         // Compatible! Use Predefined Mode.
         sequence::SequenceContext code_ctx = *seq_ctx;
-        code_ctx.d_literal_lengths = d_ll_codes;
-        code_ctx.d_match_lengths = d_ml_codes;
-        code_ctx.d_offsets = d_of_codes;
+        code_ctx.d_ll_codes = d_ll_codes;
+        code_ctx.d_ml_codes = d_ml_codes;
+        code_ctx.d_of_codes = d_of_codes;
+
+        code_ctx.d_ll_extras = d_ll_extras;
+        code_ctx.d_ml_extras = d_ml_extras;
+        code_ctx.d_of_extras = d_of_extras;
+
+        code_ctx.d_ll_num_bits = d_ll_bits;
+        code_ctx.d_ml_num_bits = d_ml_bits;
+        code_ctx.d_of_num_bits = d_of_bits;
 
         // Compute size available in writer? Writer doesn't expose capacity
         // easily here? encode_sequences_with_predefined_fse allocates its own
@@ -5708,6 +5842,9 @@ private:
     u32 of_mode = (fse_modes >> 4) & 0x03;
     u32 ml_mode = (fse_modes >> 2) & 0x03;
 
+    printf("[DEBUG_SEQ] Modes: LL=%u, OF=%u, ML=%u, NumSeq=%u\n", ll_mode,
+           of_mode, ml_mode, num_sequences);
+
     // Kernel config for RLE
     const u32 threads = 256;
     const u32 blocks = (num_sequences + threads - 1) / threads;
@@ -5749,13 +5886,8 @@ private:
       unsigned char val;
       CUDA_CHECK(cudaMemcpy(&val, input + offset, 1, cudaMemcpyDeviceToHost));
       offset++;
-      // Convert FSE code to actual literal length value (no extra bits for RLE)
-      // RFC 8878 Table 8: code < 16 -> value = code
-      //                   code >= 16 -> value = base + extra_bits (no extra
-      //                   bits for RLE)
-      u32 ll_value =
-          (val < 16) ? val
-                     : (16 + ((1u << ((val >> 1) - 7)) * ((val & 1) ? 3 : 2)));
+      // Convert FSE code to actual literal length base value
+      u32 ll_value = sequence::ZstdSequence::get_lit_len(val);
       expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
           seq_ctx->d_literal_lengths, num_sequences, ll_value);
     } else if (ll_mode == 2) { // Compressed (Table)
@@ -5836,82 +5968,8 @@ private:
       // RFC 8878 Table 9: code < 32 -> value = code + 3
       //                   code >= 32 -> value = base (from table)  + extra_bits
       //                   (no extra bits for RLE)
-      u32 ml_value =
-          (val < 32) ? (val + 3)
-                     : (35u + ((val - 32) << 1) +
-                        ((val >= 33) ? ((1u << ((val - 32) >> 1)) - 2) : 0));
-      // Simplified: for RLE, just use a lookup or the simpler formula
-      // Actually use the simpler approach: code + 3 for codes < 32, else lookup
-      if (val < 32) {
-        ml_value = val + 3;
-      } else {
-        // Use switch-case for codes 32-52 (from get_match_len)
-        switch (val) {
-        case 32:
-          ml_value = 35;
-          break;
-        case 33:
-          ml_value = 37;
-          break;
-        case 34:
-          ml_value = 39;
-          break;
-        case 35:
-          ml_value = 43;
-          break;
-        case 36:
-          ml_value = 47;
-          break;
-        case 37:
-          ml_value = 55;
-          break;
-        case 38:
-          ml_value = 63;
-          break;
-        case 39:
-          ml_value = 79;
-          break;
-        case 40:
-          ml_value = 95;
-          break;
-        case 41:
-          ml_value = 127;
-          break;
-        case 42:
-          ml_value = 159;
-          break;
-        case 43:
-          ml_value = 223;
-          break;
-        case 44:
-          ml_value = 287;
-          break;
-        case 45:
-          ml_value = 415;
-          break;
-        case 46:
-          ml_value = 543;
-          break;
-        case 47:
-          ml_value = 799;
-          break;
-        case 48:
-          ml_value = 1055;
-          break;
-        case 49:
-          ml_value = 1567;
-          break;
-        case 50:
-          ml_value = 2079;
-          break;
-        case 51:
-          ml_value = 3103;
-          break;
-        default:
-          ml_value = val + 3;
-          break; // Fallback
-        }
-      }
+      // Convert FSE code to actual match length base value
+      u32 ml_value = sequence::ZstdSequence::get_match_len(val);
       expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
           seq_ctx->d_match_lengths, num_sequences, ml_value);
     } else if (ml_mode == 2) { // Compressed
@@ -6816,6 +6874,7 @@ std::unique_ptr<ZstdManager> create_manager(const CompressionConfig &config) {
 
 std::unique_ptr<ZstdManager> create_manager(int compression_level) {
   auto config = CompressionConfig::from_level(compression_level);
+  config.cpu_threshold = 0; // FORCE GPU
   return create_manager(config);
 }
 

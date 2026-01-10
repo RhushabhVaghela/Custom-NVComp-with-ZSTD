@@ -106,8 +106,8 @@ struct FSEBitStreamReader {
       : stream_start(nullptr), stream_ptr(nullptr), bit_container(0),
         bits_remaining(0), bit_pos(0), stream_size(0) {}
 
-  __device__ __host__ FSEBitStreamReader(const unsigned char *input, u32 start_bit_pos,
-                                         u32 size) {
+  __device__ __host__ FSEBitStreamReader(const unsigned char *input,
+                                         u32 start_bit_pos, u32 size) {
     bit_pos = start_bit_pos;
     stream_start = input;
     stream_size = size;
@@ -123,14 +123,16 @@ struct FSEBitStreamReader {
     init_at_bit(input, start_bit_pos);
   }
 
-  __device__ __host__ void init_at_bit(const unsigned char *input, u32 start_bit_pos) {
+  __device__ __host__ void init_at_bit(const unsigned char *input,
+                                       u32 start_bit_pos) {
     bit_pos = start_bit_pos;
     stream_start = input;
   }
 
   __device__ __host__ void set_stream_size(u32 size) { stream_size = size; }
 
-  __device__ __host__ void init(const unsigned char *stream_end, size_t stream_size) {
+  __device__ __host__ void init(const unsigned char *stream_end,
+                                size_t stream_size) {
     stream_ptr = stream_end - 4;
     stream_start = stream_end - stream_size;
     bit_container = bswap32(*reinterpret_cast<const u32 *>(stream_ptr));
@@ -268,8 +270,10 @@ struct ZstdSequence {
   get_match_len_code(u32 length) {
     if (length < 3)
       return 0;
-    if (length <= 34)
+    if (length < 35)
       return (length - 3);
+
+    // RFC 8878 Table 17 mapping
     if (length <= 36)
       return 32;
     if (length <= 38)
@@ -278,37 +282,37 @@ struct ZstdSequence {
       return 34;
     if (length <= 42)
       return 35;
-    if (length <= 44)
+    if (length <= 46)
       return 36;
-    if (length <= 48)
+    if (length <= 50)
       return 37;
-    if (length <= 52)
+    if (length <= 58)
       return 38;
-    if (length <= 60)
+    if (length <= 66)
       return 39;
-    if (length <= 68)
+    if (length <= 82)
       return 40;
-    if (length <= 84)
+    if (length <= 98)
       return 41;
-    if (length <= 100)
+    if (length <= 130)
       return 42;
-    if (length <= 132)
+    if (length <= 162)
       return 43;
-    if (length <= 164)
+    if (length <= 226)
       return 44;
-    if (length <= 228)
+    if (length <= 290)
       return 45;
-    if (length <= 292)
+    if (length <= 418)
       return 46;
-    if (length <= 420)
+    if (length <= 546)
       return 47;
-    if (length <= 548)
+    if (length <= 802)
       return 48;
-    if (length <= 804)
+    if (length <= 1058)
       return 49;
-    if (length <= 1060)
+    if (length <= 1570)
       return 50;
-    if (length <= 1572)
+    if (length <= 2082)
       return 51;
     return 52;
   }
@@ -336,18 +340,14 @@ struct ZstdSequence {
   get_lit_len_extra_bits(u32 code) {
     if (code < 16)
       return 0;
-    // RFC 8878 Table 9
+    // RFC 8878 Table 16 - Bits
     static const u8 LL_bits[36] = {
-        0, 0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
-        1, 1,  1,  1,                                      // 16-19
-        2, 2,                                              // 20-21
-        3, 3,                                              // 22-23
-        4, 4,                                              // 24-25
-        5, 5,                                              // 26-27
-        6,                                                 // 28
-        7,                                                 // 29
-        8,                                                 // 30
-        9, 10, 11, 12, 13 // 31-35 (Max Code 35)
+        0, 0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, // 0-15
+        1, 1, 1, 1,                                           // 16-19
+        2, 2,                                                 // 20-21
+        3, 3,                                                 // 22-23
+        4, 6,                                                 // 24-25
+        7, 8, 9, 10, 11, 12, 13, 14, 15, 16                   // 26-35
     };
     return (code < 36) ? LL_bits[code] : 0;
   }
@@ -356,24 +356,20 @@ struct ZstdSequence {
   get_match_len_extra_bits(u32 code) {
     if (code < 32)
       return 0;
-    // RFC 8878 Table 11 - Correct extra bits for ML codes
+    // RFC 8878 Table 17 - Bits
     static const u8 ML_bits[53] = {
-        0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
-        0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16-31
-        1,  1, 1, 1,                                     // 32-35: 1 extra bit
-        2,  2,                                           // 36-37: 2 extra bits
-        3,  3,                                           // 38-39: 3 extra bits
-        4,  4,                                           // 40-41: 4 extra bits
-        5,  5,                                           // 42-43: 5 extra bits
-        6,                                               // 44: 6 extra bits
-        7,                                               // 45: 7 extra bits
-        8,                                               // 46: 8 extra bits
-        9,                                               // 47: 9 extra bits
-        10,                                              // 48: 10 extra bits
-        11,                                              // 49: 11 extra bits
-        12,                                              // 50: 12 extra bits
-        13,                                              // 51: 13 extra bits
-        16                                               // 52: 16 extra bits
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-15
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16-31
+        1, 1, 1, 1,                                     // 32-35
+        2, 2,                                           // 36-37
+        3, 3,                                           // 38-39
+        4, 4,                                           // 40-41
+        5, 5,                                           // 42-43
+        6, 6,                                           // 44-45
+        7, 7,                                           // 46-47
+        8, 8,                                           // 48-49
+        9, 9,                                           // 50-51
+        16                                              // 52
     };
     return (code < 53) ? ML_bits[code] : 0;
   }
@@ -400,59 +396,34 @@ struct ZstdSequence {
   __device__ __host__ static __forceinline__ u32 get_lit_len(u32 code) {
     if (code < 16)
       return code;
-    // RFC 8878 Table 9
+    // RFC 8878 Table 16 - Base Values
     static const u32 LL_base[36] = {
-        0,   1,    2,    3,    4,   5,  6,  7,
-        8,   9,    10,   11,   12,  13, 14, 15, // 0-15
-        16,  18,   20,   22,                    // 16-19
-        24,  28,                                // 20-21
-        32,  40,                                // 22-23
-        48,  64,                                // 24-25
-        80,  112,                               // 26-27 (RFC Standard)
-        144,                                    // 28
-        208,                                    // 29
-        336,                                    // 30
-        592, 1104, 2128, 4176, 8272             // 31-35
-    };
+        0,   1,   2,   3,    4,    5,    6,    7,     8,     9,
+        10,  11,  12,  13,   14,   15, // 0-15
+        16,  18,  20,  22,   24,   28,   32,   40,    48,    64,
+        128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
     return (code < 36) ? LL_base[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_ll_base_predefined(u32 code) {
+    // RFC 8878 Appendix A.1
     static const u32 LL_base_predefined[36] = {
-        0,   1,    2,    3,    4,   5,  6,  7,  8,  // 0-8
-        9,   10,   11,   12,   13,  14, 15, 16, 18, // 9-17
-        20,  22,   24,   28,   32,  44, 48, 64, 80, // 18-26 (Index 23: 40->44)
-        248, 144,  208,  336,       // 27-30 (Modified for Predefined)
-        592, 1104, 2128, 4176, 8272 // 31-35
-    };
+        0,  1,  2,   3,   4,   5,    6,    7,    8,    9,     10,    11,
+        12, 13, 14,  15,  16,  18,   20,   22,   24,   28,    32,    40,
+        48, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
     return (code < 36) ? LL_base_predefined[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32 get_match_len(u32 code) {
     if (code < 32)
       return code + 3;
-    // RFC 8878 Table 11 - Correct baselines for ML codes
+    // RFC 8878 Table 17 - Base Values
     static const u32 ML_base[53] = {
-        3,    4,   5,  6,  7,  8,  9,  10, 11, // 0-8: Base values 3-11
-        12,   13,  14, 15, 16, 17, 18, 19, 20, // 9-17: Base values 12-20
-        21,   22,  23, 24, 25, 26, 27, 28, 29, // 18-26: Base values 21-29
-        30,   31,  32, 33, 34,                 // 27-31: Base values 30-34
-        35,   37,  39, 41, // 32-35: Base values for 1 extra bit
-        43,   47,          // 36-37: Base values for 2 extra bits
-        51,   59,          // 38-39: Base values for 3 extra bits
-        67,   83,          // 40-41: Base values for 4 extra bits
-        99,   131,         // 42-43: Base values for 5 extra bits
-        163,               // 44: Base value for 6 extra bits
-        227,               // 45: Base value for 7 extra bits (RFC Standard)
-        355,               // 46: Base value for 8 extra bits
-        483,               // 47: Base value for 9 extra bits
-        739,               // 48: Base value for 10 extra bits
-        1251,              // 49: Base value for 11 extra bits
-        2275,              // 50: Base value for 12 extra bits
-        4323,              // 51: Base value for 13 extra bits
-        65539              // 52: Base value for 16 extra bits
-    };
+        3,  4,   5,   6,   7,   8,   9,   10,  11,   12,   13,  14, 15, 16,
+        17, 18,  19,  20,  21,  22,  23,  24,  25,   26,   27,  28, 29, 30,
+        31, 32,  33,  34,  35,  37,  39,  41,  43,   47,   51,  59, 67, 83,
+        99, 131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
     return (code < 53) ? ML_base[code] : 0;
   }
 
@@ -460,14 +431,12 @@ struct ZstdSequence {
   get_ml_base_predefined(u32 code) {
     if (code < 32)
       return code + 3;
+    // RFC 8878 Appendix A.2
     static const u32 ML_base_predefined[53] = {
-        3,   4,   5,   6,    7,    8,     9,    10,  11,  12, 13, 14,
-        15,  16,  17,  18,   19,   20,    21,   22,  23,  24, 25, 26,
-        27,  28,  29,  30,   31,   32,    33,   34,  35,  37, 39, 41,
-        43,  47,  51,  59,   67,   83,    99,   131, 163,
-        705,                                      // 45: Modified for Predefined
-        355, 483, 739, 1251, 2275, 57311, 65539}; // 51: Patched for libzstd
-                                                  // 64KB
+        3,  4,   5,   6,   7,   8,   9,   10,  11,   12,   13,  14, 15, 16,
+        17, 18,  19,  20,  21,  22,  23,  24,  25,   26,   27,  28, 29, 30,
+        31, 32,  33,  34,  35,  37,  39,  41,  43,   47,   51,  59, 67, 83,
+        99, 131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
     return (code < 53) ? ML_base_predefined[code] : 0;
   }
 

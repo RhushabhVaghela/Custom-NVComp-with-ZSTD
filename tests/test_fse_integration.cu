@@ -111,18 +111,42 @@ int main() {
     h_ml[i] = get_valid_sym(ml_norm_vec, i);
   }
 
-  u32 *d_ll, *d_of, *d_ml;
-  CHECK_CUDA(cudaMalloc(&d_ll, num_refs * 4));
-  CHECK_CUDA(cudaMalloc(&d_of, num_refs * 4));
-  CHECK_CUDA(cudaMalloc(&d_ml, num_refs * 4));
+  u8 *d_ll, *d_of, *d_ml;
+  u32 *d_ll_extras, *d_of_extras, *d_ml_extras;
+  u8 *d_ll_bits, *d_of_bits, *d_ml_bits;
+
+  CHECK_CUDA(cudaMalloc(&d_ll, num_refs));
+  CHECK_CUDA(cudaMalloc(&d_of, num_refs));
+  CHECK_CUDA(cudaMalloc(&d_ml, num_refs));
+
+  CHECK_CUDA(cudaMalloc(&d_ll_extras, num_refs * 4));
+  CHECK_CUDA(cudaMalloc(&d_of_extras, num_refs * 4));
+  CHECK_CUDA(cudaMalloc(&d_ml_extras, num_refs * 4));
+  CHECK_CUDA(cudaMemset(d_ll_extras, 0, num_refs * 4));
+  CHECK_CUDA(cudaMemset(d_of_extras, 0, num_refs * 4));
+  CHECK_CUDA(cudaMemset(d_ml_extras, 0, num_refs * 4));
+
+  CHECK_CUDA(cudaMalloc(&d_ll_bits, num_refs));
+  CHECK_CUDA(cudaMalloc(&d_of_bits, num_refs));
+  CHECK_CUDA(cudaMalloc(&d_ml_bits, num_refs));
+  CHECK_CUDA(cudaMemset(d_ll_bits, 0, num_refs));
+  CHECK_CUDA(cudaMemset(d_of_bits, 0, num_refs));
+  CHECK_CUDA(cudaMemset(d_ml_bits, 0, num_refs));
 
   // Update inputs on device
+  std::vector<u8> h_ll_u8(num_refs), h_of_u8(num_refs), h_ml_u8(num_refs);
+  for (int i = 0; i < num_refs; ++i) {
+    h_ll_u8[i] = (u8)h_ll[i];
+    h_of_u8[i] = (u8)h_of[i];
+    h_ml_u8[i] = (u8)h_ml[i];
+  }
+
   CHECK_CUDA(
-      cudaMemcpy(d_ll, h_ll.data(), num_refs * 4, cudaMemcpyHostToDevice));
+      cudaMemcpy(d_ll, h_ll_u8.data(), num_refs, cudaMemcpyHostToDevice));
   CHECK_CUDA(
-      cudaMemcpy(d_of, h_of.data(), num_refs * 4, cudaMemcpyHostToDevice));
+      cudaMemcpy(d_of, h_of_u8.data(), num_refs, cudaMemcpyHostToDevice));
   CHECK_CUDA(
-      cudaMemcpy(d_ml, h_ml.data(), num_refs * 4, cudaMemcpyHostToDevice));
+      cudaMemcpy(d_ml, h_ml_u8.data(), num_refs, cudaMemcpyHostToDevice));
 
   CHECK_CUDA(cudaStreamSynchronize(stream));
 
@@ -135,9 +159,10 @@ int main() {
   byte_t *d_bitstream;
   CHECK_CUDA(cudaMalloc(&d_bitstream, capacity));
 
-  Status launchStatus =
-      fse::launch_fse_encoding_kernel(d_ll, d_of, d_ml, num_refs, d_bitstream,
-                                      d_pos, capacity, d_tables, stream);
+  Status launchStatus = fse::launch_fse_encoding_kernel(
+      d_ll, d_ll_extras, d_ll_bits, d_of, d_of_extras, d_of_bits, d_ml,
+      d_ml_extras, d_ml_bits, num_refs, d_bitstream, d_pos, capacity, d_tables,
+      stream);
 
   check(launchStatus, "Kernel Launch");
 
@@ -166,6 +191,12 @@ int main() {
   cudaFree(d_ll);
   cudaFree(d_of);
   cudaFree(d_ml);
+  cudaFree(d_ll_extras);
+  cudaFree(d_of_extras);
+  cudaFree(d_ml_extras);
+  cudaFree(d_ll_bits);
+  cudaFree(d_of_bits);
+  cudaFree(d_ml_bits);
   cudaFree(d_pos);
   cudaFree(d_bitstream);
   cudaStreamDestroy(stream);

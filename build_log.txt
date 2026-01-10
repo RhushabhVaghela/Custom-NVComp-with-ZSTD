@@ -1,0 +1,24 @@
+[  0%] Building CUDA object CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_manager.cu.o
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(52): error: explicit type is missing ("int" assumed)
+  convert_sequences_to_fse_codes_kernel(
+  ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(60): warning #117-D: non-void function "cuda_zstd::convert_sequences_to_fse_codes_kernel" should return a value
+      return;
+            ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(95): warning #940-D: missing return statement at end of non-void function "cuda_zstd::convert_sequences_to_fse_codes_kernel"
+  }
+  ^
+
+/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu(5448): error: a host function call cannot be configured
+        convert_sequences_to_fse_codes_kernel<<<blocks, threads, 0, stream>>>(
+        ^
+
+2 errors detected in the compilation of "/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/src/cuda_zstd_manager.cu".
+gmake[3]: *** [CMakeFiles/cuda_zstd_static.dir/build.make:105: CMakeFiles/cuda_zstd_static.dir/src/cuda_zstd_manager.cu.o] Error 2
+gmake[2]: *** [CMakeFiles/Makefile2:259: CMakeFiles/cuda_zstd_static.dir/all] Error 2
+gmake[1]: *** [CMakeFiles/Makefile2:500: CMakeFiles/test_correctness.dir/rule] Error 2
+gmake: *** [Makefile:296: test_correctness] Error 2
