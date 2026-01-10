@@ -106,10 +106,12 @@ __global__ void convert_sequences_to_fse_codes_kernel(
 
   // Offset
   // RFC 8878: Offset Code encodes bits to read. Extra Value is remaining bits.
+  // For codes >= 3: extra_bits = code - 3, base = 1 << (code - 3)
+  // For codes 0-2 (repeat offsets): handled specially, not expected here
   u32 of_code = sequence::ZstdSequence::get_offset_code(of);
-  // For Zstd Offset Codes, Bits == Code (mostly).
-  u32 of_bits = of_code;
-  u32 of_base = 1u << of_code;
+  u32 of_bits = (of_code < 3) ? 0 : (of_code - 3); // FIX: was of_code
+  u32 of_base =
+      (of_code < 3) ? of : (1u << (of_code - 3)); // FIX: was 1u << of_code
 
   // SAFETY CHECK: Ensure codes are within Predefined FSE Table limits
   if (ll_code > 35 || ml_code > 52 || of_code > 28) {

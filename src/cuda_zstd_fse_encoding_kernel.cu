@@ -65,6 +65,15 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   u32 stateOF = table[1].d_symbol_first_state[d_of_codes[last_idx]];
   u32 stateML = table[2].d_symbol_first_state[d_ml_codes[last_idx]];
 
+  printf("[FSE_ENC] num_symbols=%u, last_idx=%u\\n", num_symbols, last_idx);
+  printf("[FSE_ENC] codes[last]: ll=%u, of=%u, ml=%u\\n",
+         (u32)d_ll_codes[last_idx], (u32)d_of_codes[last_idx],
+         (u32)d_ml_codes[last_idx]);
+  printf("[FSE_ENC] init_states: LL=%u, OF=%u, ML=%u\\n", stateLL, stateOF,
+         stateML);
+  printf("[FSE_ENC] table_logs: LL=%u, OF=%u, ML=%u\\n", table[0].table_log,
+         table[1].table_log, table[2].table_log);
+
   // 2. Loop N-2 down to 0
   if (num_symbols > 1) {
     for (i32 i = (i32)num_symbols - 2; i >= 0; i--) {
