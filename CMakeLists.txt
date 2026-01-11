@@ -88,6 +88,7 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_manager.cu
     src/cuda_zstd_lz77.cu
     src/cuda_zstd_fse.cu
+    src/cuda_zstd_fse_reference.cu
     src/cuda_zstd_fse_encoding_kernel.cu
     src/cuda_zstd_huffman.cu
     src/cuda_zstd_dictionary.cu

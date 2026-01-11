@@ -339,58 +339,19 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
 
   __syncthreads();
 
-  // Phase 4: Sym->State Mapping (Spreading) - Required for Initialization
+  // Phase 4: Init CTable for Encoder (Correct Zstd Logic: total + tableSize)
   // Single Thread (tid=0)
   if (tid == 0) {
     u32 tableSize = 1 << table_log;
-    u32 step = (tableSize >> 1) + (tableSize >> 3) + 3;
-    u32 pos = 0;
-
-    // Reset d_symbol_first_state
-    // (Assuming initialization to 0 or -1 elsewhere? We set it here)
-    // We only need it for existing symbols.
-
-    // Iterate symbols and frequencies to spread
+    // Iterate symbols to set Initial State
     for (u32 s = 0; s <= max_symbol; s++) {
-      int freq = (int)normalized_counters[s];
-      if (freq <= 0)
+      if ((i16)normalized_counters[s] == 0) {
+        table->d_symbol_first_state[s] = 0;
         continue;
-
-      // First placement is the Initialization State
-      // But Zstd fills table by iterating frequencies.
-      // For each occurrence: table[pos] = s. pos = (pos + step) & mask.
-
-      // We only need the FIRST state we assign to 's'.
-      // Wait. Zstd Decompressor uses the states in the table.
-      // Does it pick specific ones?
-      // "The state is a value from 0 to TableSize-1."
-      // The Encoder needs *A* state S such that Table[S].symbol == s.
-      // Any S works?
-      // Yes. But let's pick the one corresponding to the first placement logic?
-      // Actually any is valid. But finding ONE is easier if we simulate
-      // spreading.
-
-      // Simulate spreading for this symbol
-      // Only for the FIRST frequency count?
-      // No. The `pos` accumulates across ALL symbols.
-      // We must run the full loop to maintain `pos`.
-
-      // Wait. Standard Spreading iterates Symbols by Probability?
-      // No. By Symbol Value (0..255).
-      // ZSTD_buildDTable uses:
-      // for s in 0..max_symbol:
-      //   for i in 0..freq[s]-1:
-      //     table[pos] = s;
-      //     pos = (pos + step) & mask;
-      //
-      // So we track `pos` across symbols.
-
-      // First time we see 's', `pos` is a valid state for `s`.
-      table->d_symbol_first_state[s] = (u16)pos;
-
-      for (int i = 0; i < freq; i++) {
-        pos = (pos + step) & (tableSize - 1);
       }
+      // FSE Encoder Init State: total_cumulative_freq + table_size
+      // This ensures state is in range [tableSize, 2*tableSize - 1]
+      table->d_symbol_first_state[s] = (u16)(s_cum_freq[s] + tableSize);
     }
   }
 }
