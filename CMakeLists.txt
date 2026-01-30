@@ -1,37 +1,56 @@
 cmake_minimum_required(VERSION 3.18)
+
+# Fix for PDB path with spaces: Redirect PDBs to safe path
+file(MAKE_DIRECTORY "C:/Temp/NVComp_PDBs")
+set(CMAKE_PDB_OUTPUT_DIRECTORY "C:/Temp/NVComp_PDBs")
+set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY "C:/Temp/NVComp_PDBs")
+
+# Fix for PDB path with spaces: Use /Z7 via modern CMake abstraction
+if(POLICY CMP0141)
+  cmake_policy(SET CMP0141 NEW)
+endif()
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
+
 project(cuda_zstd LANGUAGES CXX CUDA C)
 
 # ==============================================================================
 # DEPENDENCIES: ZSTD (for CPU Smart Router)
 # ==============================================================================
 # Use system-installed zstd library (faster builds, no git dependency issues)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(ZSTD libzstd)
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(ZSTD QUIET libzstd)
+endif()
 
 if(NOT ZSTD_FOUND)
-    message(FATAL_ERROR
-        "\n"
-        "=========================================================================\n"
-        " ERROR: Zstandard (libzstd) development library not found!\n"
-        "=========================================================================\n"
-        "\n"
-        " This project requires the zstd library for CPU compression fallback.\n"
-        "\n"
-        " To install on Ubuntu/Debian/WSL:\n"
-        "     sudo apt update && sudo apt install libzstd-dev\n"
-        "\n"
-        " To install on Fedora/RHEL:\n"
-        "     sudo dnf install libzstd-devel\n"
-        "\n"
-        " To install on Arch Linux:\n"
-        "     sudo pacman -S zstd\n"
-        "\n"
-        " To install on macOS (Homebrew):\n"
-        "     brew install zstd\n"
-        "\n"
-        " After installation, re-run cmake.\n"
-        "=========================================================================\n"
+    message(STATUS "Zstandard not found via pkg-config. Attempting to download and build via FetchContent...")
+    
+    include(FetchContent)
+    FetchContent_Declare(
+        zstd
+        GIT_REPOSITORY https://github.com/facebook/zstd.git
+        GIT_TAG v1.5.5
+        SOURCE_SUBDIR build/cmake
     )
+    
+    # ZSTD options to minimize build time/artifacts
+    set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
+    
+    FetchContent_MakeAvailable(zstd)
+    
+    # Set variables expected by the rest of the script
+    if(TARGET libzstd_static)
+        set(ZSTD_LIBRARIES libzstd_static)
+        # Manually set include dir as target property might be missing or generator expression
+        set(ZSTD_INCLUDE_DIRS "${zstd_SOURCE_DIR}/lib")
+        message(STATUS "Built zstd via FetchContent at ${zstd_SOURCE_DIR}")
+        set(ZSTD_FOUND TRUE)
+    else()
+        message(FATAL_ERROR "Failed to build zstd via FetchContent")
+    endif()
 endif()
 
 message(STATUS "Found zstd: ${ZSTD_VERSION}")
@@ -41,6 +60,28 @@ link_directories(${ZSTD_LIBRARY_DIRS})
 # CUDA Configuration
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
+
+# Fix for MSVC/NVCC space-in-path issue: Use /Z7 (Embed Debug Info) instead of /Zi (PDB)
+if(MSVC)
+    message(STATUS "Patching flags to use /Z7 instead of /Zi")
+    foreach(lang C CXX CUDA)
+        # Global flags
+        set(var "CMAKE_${lang}_FLAGS")
+        string(REPLACE "/Zi" "/Z7" new_flags "${${var}}")
+        set(${var} "${new_flags}" CACHE STRING "Flags used by the compiler during all build types." FORCE)
+        
+        # Config-specific flags
+        foreach(type DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+             set(var "CMAKE_${lang}_FLAGS_${type}")
+             # Replace /Zi with /Z7
+             string(REPLACE "/Zi" "/Z7" new_flags "${${var}}")
+             # Also replace -Zi with -Z7 (common variation)
+             string(REPLACE "-Zi" "-Z7" new_flags "${new_flags}")
+             set(${var} "${new_flags}" CACHE STRING "Flags used by the compiler during ${type} builds." FORCE)
+        endforeach()
+    endforeach()
+    message(STATUS "Fixed CMAKE_CUDA_FLAGS_DEBUG: ${CMAKE_CUDA_FLAGS_DEBUG}")
+endif()
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_ARCHITECTURES 75 80 86 89 90)

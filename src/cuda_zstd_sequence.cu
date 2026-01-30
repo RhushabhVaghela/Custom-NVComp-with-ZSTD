@@ -52,6 +52,11 @@ __global__ void build_sequences_kernel(const u32 *d_literals_buffer,
   d_sequences[seq_idx].match_length = match_length;
   d_sequences[seq_idx].match_offset = offset;
   d_sequences[seq_idx].padding = 0; // (FIX) Ensure 16-byte vectorized write
+
+  if (idx == 0) {
+    printf("[DEBUG_BUILD] Seq 0: LL=%u, ML=%u, OF=%u, Ptr=%p\n", lit_len,
+           match_length, offset, d_sequences);
+  }
 }
 
 // Host-side function implementation
@@ -189,8 +194,7 @@ __device__ __forceinline__ u32 get_actual_offset(
  */
 __global__ void set_value_kernel(u32 *ptr, u32 value) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    // printf("[KERNEL] set_value_kernel: Writing %u to %p\n", value, ptr);
-    *ptr = value;
+    //     *ptr = value;
   }
 }
 
@@ -208,7 +212,10 @@ __global__ void compute_sequence_details_kernel(
   if (threadIdx.x != 0 || blockIdx.x != 0)
     return;
 
+  printf("[DEBUG_COMPUTE] Ptr=%p\n", sequences);
+
   SequenceState state;
+
   if (d_rep_codes_in) {
     state.rep_1 = d_rep_codes_in[0];
     state.rep_2 = d_rep_codes_in[1];
@@ -264,6 +271,7 @@ __global__ void compute_sequence_details_kernel(
     }
     total_literals += lit_len;
     total_output += lit_len + match_length;
+    //     if (i == 0 || i == num_sequences - 1) {
 
     if (match_length > 0) {
       if (is_raw_offsets) {
@@ -277,6 +285,13 @@ __global__ void compute_sequence_details_kernel(
     } else {
       d_actual_offsets[i] = 0; // No match
     }
+
+    if (i == 0) {
+      printf(
+          "[DEBUG_COMPUTE] 0: LL=%u, ML=%u, OF=%u, ActualOF=%u, TotalOut=%u\n",
+          lit_len, match_length, seq.match_offset, d_actual_offsets[i],
+          total_output);
+    }
   }
 
   // Add trailing literals to total output size
@@ -285,6 +300,9 @@ __global__ void compute_sequence_details_kernel(
   }
 
   *d_total_output_size = total_output;
+  printf("[DEBUG_COMPUTE] Finished. NumSeq=%u, TotalLit=%u, InputLit=%u, "
+         "TotalOut=%u\n",
+         num_sequences, total_literals, total_literal_count, total_output);
 
   // NEW: Write back persistent rep-codes for the next block
   if (d_rep_codes_in) {
@@ -327,12 +345,13 @@ compute_output_offsets_kernel(const u32 *d_literal_offsets,
  * Launch with <<<1, 256>>> or similar (1 block per ZSTD block).
  */
 __global__ void sequential_block_execute_sequences_kernel(
-    const Sequence *d_sequences, u32 num_sequences, const unsigned char *d_literals,
+    const Sequence *d_sequences, u32 num_sequences,
+    const unsigned char *d_literals,
     const u32 *d_literal_offsets, // From Pass 2
     const u32 *d_output_offsets,  // From Pass 2
     const u32 *d_actual_offsets,  // From Pass 1
-    unsigned char *output, u32 total_literal_count, const unsigned char *output_base,
-    u32 output_max_size) {
+    unsigned char *output, u32 total_literal_count,
+    const unsigned char *output_base, u32 output_max_size) {
   u32 tid = threadIdx.x;
   u32 block_dim = blockDim.x;
 
@@ -551,15 +570,22 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   // DEBUG: Verify first sequence offsets on host
   {
     u32 h_lit_off = 0, h_match_off = 0, h_out_off = 0;
+    u32 h_lit_len = 0, h_match_len = 0, h_actual_off = 0;
+
     CUDA_CHECK(cudaMemcpyAsync(&h_lit_off, d_literal_offsets, sizeof(u32),
                                cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaMemcpyAsync(&h_match_off, d_match_offsets, sizeof(u32),
                                cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaMemcpyAsync(&h_out_off, d_output_offsets, sizeof(u32),
                                cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpyAsync(&h_lit_len, d_literals_lengths, sizeof(u32),
+                               cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpyAsync(&h_match_len, d_match_lengths, sizeof(u32),
+                               cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpyAsync(&h_actual_off, d_actual_offsets, sizeof(u32),
+                               cudaMemcpyDeviceToHost, stream));
+
     CUDA_CHECK(cudaStreamSynchronize(stream));
-    printf("[DEBUG] Seq 0: LitOff=%u, MatchOff=%u, OutOff=%u\n", h_lit_off,
-           h_match_off, h_out_off);
   }
 
   // --- Pass 3: Execute Sequences (Sequential per block for dependencies) ---

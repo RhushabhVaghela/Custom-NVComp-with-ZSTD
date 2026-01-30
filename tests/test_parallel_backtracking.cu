@@ -81,7 +81,7 @@ BacktrackResult run_cpu_backtracking(const u8 *d_input, u32 input_size,
   auto start = std::chrono::high_resolution_clock::now();
 
   // Run V2 backtracking (via wrapper)
-  bool has_dummy = false;
+  u32 has_dummy = 0;
   Status status = backtrack_sequences(input_size, workspace, &num_sequences,
                                       &has_dummy, stream);
   cudaStreamSynchronize(stream);
@@ -129,7 +129,7 @@ BacktrackResult run_parallel_backtracking(const u8 *d_input, u32 input_size,
 
   // Run parallel backtracking
   // Use V2 wrapper
-  bool has_dummy = false;
+  u32 has_dummy = 0;
   Status status =
       backtrack_sequences(input_size, workspace, &num_sequences, &has_dummy, 0);
 
@@ -250,7 +250,7 @@ bool test_small_input_threshold() {
 
   // Test adaptive routing (should use CPU for < 1MB)
   u32 num_sequences = 0;
-  bool has_dummy = false;
+  u32 has_dummy = 0;
   Status status =
       backtrack_sequences(input_size, workspace, &num_sequences, &has_dummy, 0);
 
@@ -529,7 +529,7 @@ void run_benchmark_case(u32 size_mb, const char *pattern_name) {
   // Measure GPU Parallel Backtracking
   auto start_gpu = std::chrono::high_resolution_clock::now();
   u32 num_seq_gpu = 0;
-  bool has_dummy = false;
+  u32 has_dummy = 0;
   backtrack_sequences(input_size, workspace, &num_seq_gpu, &has_dummy, 0);
   cudaDeviceSynchronize();
   auto end_gpu = std::chrono::high_resolution_clock::now();

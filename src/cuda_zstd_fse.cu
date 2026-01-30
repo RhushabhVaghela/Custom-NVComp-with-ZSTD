@@ -28,6 +28,25 @@
 #include <functional>
 #include <stdio.h>
 
+#if defined(__CUDA_ARCH__)
+// Device code: nvcc provides __builtin_clz mapped to PTX
+#define clz_u32(x) __builtin_clz(x)
+#elif defined(_MSC_VER)
+// Host code on Windows (MSVC): Use intrinsics
+#include <intrin.h>
+#pragma intrinsic(_BitScanReverse)
+static inline int clz_u32(unsigned int x) {
+  unsigned long index;
+  if (_BitScanReverse(&index, x)) {
+    return 31 - index;
+  }
+  return 32;
+}
+#else
+// Host code on Linux/GCC/Clang: Use builtins
+#define clz_u32(x) __builtin_clz(x)
+#endif
+
 #undef min
 #undef max
 
@@ -796,7 +815,7 @@ __host__ Status reorder_symbols_for_gpu(FSEEncodeTable &table,
 
     u32 high_bit_freq = 0;
     if (freq > 0)
-      high_bit_freq = 31 - __builtin_clz(freq);
+      high_bit_freq = 31 - clz_u32(freq);
     u32 maxBitsOut = table.table_log - high_bit_freq;
 
     if (count_high > 0) {
@@ -1038,7 +1057,7 @@ __host__ Status FSE_buildCTable_Host(
     // nbBits = tableLog - highBit(nextState)
     u32 highBit = 0;
     if (nextState > 0) {
-      highBit = 31 - __builtin_clz(nextState);
+      highBit = 31 - clz_u32(nextState);
     }
     h_table.d_nbBits_table[state] = (u8)(table_log - highBit);
 
@@ -1068,7 +1087,7 @@ __host__ Status FSE_buildCTable_Host(
     // Calculate maxBitsOut and minStatePlus
     u32 high_bit = 0;
     if (freq > 0) {
-      high_bit = 31 - __builtin_clz(freq);
+      high_bit = 31 - clz_u32(freq);
     }
     u32 maxBitsOut = table_log - high_bit;
     u32 minStatePlus = (u32)freq << maxBitsOut;
@@ -1811,8 +1830,7 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   }
 
   // Cleanup
-  // printf("[DEBUG] Cleanup Start\n");
-  // fflush(stdout);
+  //   // fflush(stdout);
 
   // CRITICAL FIX: Always hand over offsets if requested, regardless of
   // context usage
@@ -1838,13 +1856,11 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
     cudaFree(d_dev_next_state_vals);
     cudaFree(d_dev_initial_states);
   }
-  // printf("[DEBUG] N4: ctable freed\n");
-  // fflush(stdout);
+  //   // fflush(stdout);
   // delete[] h_ctable.d_nbBits_table;
   // delete[] h_ctable.d_next_state_vals;
 
-  // printf("[DEBUG] Point N: Cleanup Done. Returning SUCCESS.\n");
-  // fflush(stdout);
+  //   // fflush(stdout);
 
   return Status::SUCCESS;
 }
@@ -2314,8 +2330,6 @@ __host__ Status analyze_block_statistics(const unsigned char *d_input,
   CUDA_CHECK(cudaDeviceSynchronize()); // Strict
                                        // sync
 
-  // printf("[DEBUG] Allocating "
-  //        "d_frequencies...\n");
   u32 *d_frequencies;
   CUDA_CHECK(cudaMalloc(&d_frequencies, 256 * sizeof(u32)));
   CUDA_CHECK(cudaMemset(d_frequencies, 0, 256 * sizeof(u32)));
@@ -2332,20 +2346,12 @@ __host__ Status analyze_block_statistics(const unsigned char *d_input,
   CUDA_CHECK(cudaFree(d_frequencies));
 
   // u32 *freqs = stats->frequencies;
-  // // unused printf("[DEBUG] Raw
-  // Frequencies Host: 0=%u 1=%u 2=%u
-  // 3=%u 255=%u\n", freqs[0],
-  //        freqs[1], freqs[2],
-  //        freqs[3], freqs[255]);
-
+  // // unused
   /*
   u32 sum = 0;
   for (int i = 0; i < 256; i++)
     sum += freqs[i];
-  printf("[DEBUG] Raw Frequency Sum: %u
-  (Input Size: %u)\n", sum,
-  input_size);
-  */
+    */
 
   stats->total_count = input_size;
   stats->max_symbol = 0;
@@ -2477,10 +2483,11 @@ extern const i16 default_of_norm[29] = {1, 1, 1, 1, 1,  1,  2,  2,  2, 1,
 // ML Distribution (Total 53) - RFC 8878
 // Table 3: Default FSE distribution for Match Lengths (ML)
 extern const i16 default_ml_norm[53] = {
-    1,  4,  3,  2,  2,  2,  2, 2, 2,                                     // 0-8
-    1,  1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 9-29
-    1,  1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 30-45
-    -1, -1, -1, -1, -1, -1, -1                            // 46-52 (Low-prob)
+    1,  4,  3,  2,  2,  2,  2,  2,  2, // 0-8
+    1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+    1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, // 9-31
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1 // 32-52
 };
 
 } // namespace predefined
@@ -2556,7 +2563,7 @@ find_chunk_boundaries_cpu(const unsigned char *d_bitstream, u32 bitstream_size,
     while (byte_idx >= 0) {
       if (buffer[byte_idx] != 0) {
         u32 byte_val = buffer[byte_idx];
-        int highest_bit = 31 - __builtin_clz(byte_val);
+        int highest_bit = 31 - clz_u32(byte_val);
         bit_pos = (u32)byte_idx * 8 + highest_bit;
         break;
       }
@@ -3417,12 +3424,11 @@ __host__ static Status FSE_buildDTable_Internal(const u16 *normalized_freqs,
     // Handle low-probability symbols (-1)
     if ((i16)normalized_freqs[symbol] == -1) {
       nb_bits = table_log; // Always read full table_log bits
-      new_state = 0;       // newState = 0 for low-prob symbols
     } else {
       // Calculate high_bit (CLZ)
       u32 high_bit;
 #if defined(__GNUC__) || defined(__clang__)
-      high_bit = 31 - __builtin_clz(next_state);
+      high_bit = 31 - clz_u32(next_state);
 #elif defined(_MSC_VER)
       high_bit = 0;
       u32 tmp = next_state;
@@ -3919,6 +3925,9 @@ __global__ void k_decode_sequences_interleaved(
   if (decode_ml)
     stateML = reader.read(ml_table.table_log);
 
+  printf("[GPU] Sentinel: pos=%u, Byte0=%02X\n", sentinel_pos, bitstream[0]);
+  printf("[GPU] InitStates: LL=%u, OF=%u, ML=%u\n", stateLL, stateOF, stateML);
+
   u64 total_lit_len = 0;
 
   // Decode Loop
@@ -3933,6 +3942,9 @@ __global__ void k_decode_sequences_interleaved(
       of_sym = of_table.symbol[stateOF];
     if (decode_ml)
       ml_sym = ml_table.symbol[stateML];
+
+    printf("[GPU] Seq %d: LL_sym=%u, OF_sym=%u, ML_sym=%u\n", i, ll_sym, of_sym,
+           ml_sym);
 
     // Read Extra Bits (Backwards: LL -> ML -> OF)
     u32 ll_extra =
@@ -3988,6 +4000,11 @@ __global__ void k_decode_sequences_interleaved(
       u32 newBits = reader.read(nb);
       stateML = ml_table.newState[stateML] + newBits;
     }
+
+    printf("[GPU] Seq %d: LL_extra=%u, ML_extra=%u, OF_extra=%u\n", i, ll_extra,
+           ml_extra, of_extra);
+    printf("[GPU] Seq %d: NextStates: LL=%u, OF=%u, ML=%u\n", i, stateLL,
+           stateOF, stateML);
 
     // Write Outputs with Limit Check
     if (decode_ll) {
@@ -4143,6 +4160,25 @@ __host__ Status decode_sequences_interleaved(
     copy_table_to_device(*h_ml_ptr, d_ml, stream);
 
   // Launch Kernel
+  if (input_size > 0) {
+    unsigned char last_byte = 0;
+    CUDA_CHECK(cudaMemcpy(&last_byte, d_input + input_size - 1, 1,
+                          cudaMemcpyDeviceToHost));
+    printf("[DEBUG_FSE] k_decode Launch: Size=%u, LastByte=%02X, NumSeq=%u\n",
+           input_size, last_byte, num_sequences);
+
+    // DEBUG: Dump first 8 bytes of bitstream
+    unsigned char first_bytes[8] = {0};
+    u32 dump_size = (input_size < 8) ? input_size : 8;
+    CUDA_CHECK(
+        cudaMemcpy(first_bytes, d_input, dump_size, cudaMemcpyDeviceToHost));
+    printf("[DEBUG_FSE] First bytes: ");
+    for (u32 i = 0; i < dump_size; i++)
+      printf("%02X ", first_bytes[i]);
+    printf("\n");
+  } else {
+    printf("[DEBUG_FSE] k_decode Launch: Size=0! NumSeq=%u\n", num_sequences);
+  }
   k_decode_sequences_interleaved<<<1, 1, 0, stream>>>(
       d_input, input_size, num_sequences, d_ll_out, d_of_out, d_ml_out, d_ll,
       d_of, d_ml, ll_mode, of_mode, ml_mode, literals_limit);

@@ -53,13 +53,13 @@ Status compute_optimal_parse_v2(const u8 *d_input, u32 input_size,
 // redundant D2H copies. Use this for streaming/small chunks.
 Status lz77_cpu_pipeline(u32 input_size, CompressionWorkspace &workspace,
                          const LZ77Config &config, u32 *h_num_sequences,
-                         bool *out_has_dummy, cudaStream_t stream);
+                         u32 *out_has_dummy, cudaStream_t stream);
 
 // PARALLEL GREEDY PIPELINE (fastest - trades compression ratio for speed)
 Status lz77_parallel_greedy_pipeline(u32 input_size,
                                      CompressionWorkspace &workspace,
                                      const LZ77Config &config,
-                                     u32 *h_num_sequences, bool *out_has_dummy,
+                                     u32 *h_num_sequences, u32 *out_has_dummy,
                                      cudaStream_t stream);
 
 // ASYNC PARALLEL GREEDY PIPELINE (for two-phase batched processing)
@@ -68,7 +68,7 @@ Status lz77_parallel_greedy_pipeline(u32 input_size,
 Status lz77_parallel_greedy_pipeline_async(
     u32 input_size, CompressionWorkspace &workspace, const LZ77Config &config,
     u32 *d_num_sequences, // Device pointer
-    bool *d_has_dummy,    // Device pointer
+    u32 *d_has_dummy,     // Device pointer
     cudaStream_t stream);
 
 // ==============================================================================
@@ -107,7 +107,7 @@ Status backtrack_sequences_cpu(const ParseCost *h_costs, u32 input_size,
 
 // Adaptive backtracking (chooses parallel or sequential based on input size)
 Status backtrack_sequences(u32 input_size, CompressionWorkspace &workspace,
-                           u32 *h_num_sequences, bool *out_has_dummy,
+                           u32 *h_num_sequences, u32 *out_has_dummy,
                            cudaStream_t stream);
 
 } // namespace lz77

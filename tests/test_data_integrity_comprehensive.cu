@@ -118,7 +118,7 @@ bool test_backtracking_integrity(const char *pattern_name,
 
   // Run backtracking (will use GPU parallel for >=1MB, CPU for <1MB)
   u32 num_sequences = 0;
-  bool has_dummy = false;
+  u32 has_dummy = 0;
   Status status =
       backtrack_sequences(input_size, workspace, &num_sequences, &has_dummy, 0);
   cudaDeviceSynchronize();

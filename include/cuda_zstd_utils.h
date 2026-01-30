@@ -11,6 +11,14 @@
 #include "cuda_zstd_nvcomp.h"
 #include "cuda_zstd_types.h"
 
+#include "cuda_zstd_nvcomp.h"
+#include "cuda_zstd_types.h"
+
+// Fix for Windows macro collision
+#ifdef ERROR_INVALID_PARAMETER
+#undef ERROR_INVALID_PARAMETER
+#endif
+
 namespace cuda_zstd {
 #ifndef CUDA_ZSTD_TYPES_H_FIXED_
 #error "TYPES H NOT INCLUDED"

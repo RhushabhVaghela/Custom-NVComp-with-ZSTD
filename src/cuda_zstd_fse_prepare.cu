@@ -34,9 +34,21 @@ __global__ void fse_prepare_sequences_kernel(
   u32 ml_extra = ml - ml_base;
 
   // Calculate offset code and extra bits
-  u32 of_code = sequence::ZstdSequence::get_offset_code(of);
+  // RFC 8878: Encoded Offset = Actual Offset + 3
+  // This bias is required because the decoder subtracts 3 from the decoded
+  // value (for non-RepCodes).
+  u32 of_enc = of + 3;
+
+  u32 of_code = sequence::ZstdSequence::get_offset_code(of_enc);
+  // We use the same 'of_enc' for extra bits calculation
   u32 of_num_bits = sequence::ZstdSequence::get_offset_code_extra_bits(of_code);
-  u32 of_extra = sequence::ZstdSequence::get_offset_extra_bits(of, of_code);
+  u32 of_extra = sequence::ZstdSequence::get_offset_extra_bits(of_enc, of_code);
+
+  if (idx == 0) {
+    printf("[FSE_PREPARE] idx=%u of=%u of_enc=%u of_code=%u of_extra=%u "
+           "num_bits=%u\n",
+           idx, of, of_enc, of_code, of_extra, of_num_bits);
+  }
 
   // Store results
   d_ll_codes[idx] = (u8)ll_code;

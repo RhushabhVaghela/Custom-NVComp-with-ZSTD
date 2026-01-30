@@ -183,7 +183,7 @@ __global__ void
 greedy_parse_kernel(const Match *matches, u32 input_size,
                     u32 *d_decisions, // Output: 0 = literal, >0 = match length
                     u32 *d_offsets_out, // Output: match offset (if match)
-                    u32 min_match) {
+                    u32 min_match, u32 input_size_for_match) {
 
   u32 pos = blockIdx.x * blockDim.x + threadIdx.x;
   if (pos >= input_size)
@@ -195,7 +195,8 @@ greedy_parse_kernel(const Match *matches, u32 input_size,
   }
 
   // Greedy decision: use match if valid, else literal
-  if (m.length >= min_match && m.offset > 0) {
+  // CRITICAL: Ensure we don't pick up garbage matches from uninitialized tail
+  if (m.length >= min_match && m.offset > 0 && pos < input_size_for_match) {
     d_decisions[pos] = m.length;
     d_offsets_out[pos] = m.offset;
   } else {
@@ -209,7 +210,7 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
                                            const u32 *offsets_in,
                                            u32 input_size, u32 *ll_out,
                                            u32 *ml_out, u32 *of_out,
-                                           u32 *seq_count, bool *has_dummy) {
+                                           u32 *seq_count, u32 *has_dummy) {
 
   // Single thread builds sequences (sequential on GPU but no D2H transfer!)
   if (threadIdx.x != 0 || blockIdx.x != 0)
@@ -229,6 +230,7 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
       ll_out[num_seqs] = literal_run;
       ml_out[num_seqs] = decision;
       of_out[num_seqs] = offsets_in[pos];
+
       num_seqs++;
       literal_run = 0;
       pos += decision;
@@ -245,10 +247,10 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
     // (FIX) Do NOT increment num_seqs for trailing literals.
     // They are not ZSTD sequences. They are handled by has_dummy.
     if (has_dummy)
-      *has_dummy = true;
+      *has_dummy = 1; // Use 1 for true
   } else {
     if (has_dummy)
-      *has_dummy = false;
+      *has_dummy = 0; // Use 0 for false
   }
 
   *seq_count = num_seqs;
@@ -259,29 +261,27 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
 Status build_sequences_from_greedy(const u32 *d_decisions, const u32 *d_offsets,
                                    u32 input_size,
                                    CompressionWorkspace &workspace,
-                                   u32 *h_num_sequences, bool *out_has_dummy,
+                                   u32 *h_num_sequences, u32 *out_has_dummy,
                                    cudaStream_t stream) {
 
   // Use workspace temp area for seq_count (already allocated)
   u32 *d_seq_count =
       (u32 *)((u8 *)workspace.d_lz77_temp + 2 * input_size * sizeof(u32));
+  u32 *d_has_dummy_dev = (u32 *)(d_seq_count + 1);
 
   // Build sequences entirely on GPU - no large D2H transfer!
   build_sequences_gpu_kernel<<<1, 1, 0, stream>>>(
       d_decisions, d_offsets, input_size, workspace.d_literal_lengths_reverse,
       workspace.d_match_lengths_reverse, workspace.d_offsets_reverse,
-      d_seq_count, nullptr); // has_dummy not needed here (manual check later)
+      d_seq_count, d_has_dummy_dev);
 
   // Only copy 4 bytes (seq count) instead of 128KB!
   // (OPTIMIZATION) Use sync copy to ensure we have the count
   cudaMemcpy(h_num_sequences, d_seq_count, sizeof(u32), cudaMemcpyDeviceToHost);
 
-  if (out_has_dummy && *h_num_sequences > 0) {
-    u32 last_ml;
-    cudaMemcpy(&last_ml,
-               workspace.d_match_lengths_reverse + *h_num_sequences - 1,
-               sizeof(u32), cudaMemcpyDeviceToHost);
-    *out_has_dummy = (last_ml == 0);
+  if (out_has_dummy) {
+    cudaMemcpy(out_has_dummy, d_has_dummy_dev, sizeof(u32),
+               cudaMemcpyDeviceToHost);
   }
 
   return Status::SUCCESS;
@@ -293,7 +293,7 @@ Status build_sequences_from_greedy_async(
     const u32 *d_decisions, const u32 *d_offsets, u32 input_size,
     CompressionWorkspace &workspace,
     u32 *d_num_sequences, // Device pointer
-    bool *d_has_dummy,    // Device pointer (can be nullptr)
+    u32 *d_has_dummy,     // Device pointer (can be nullptr)
     cudaStream_t stream) {
 
   // Build sequences entirely on GPU - no sync!
@@ -313,7 +313,7 @@ Status build_sequences_from_greedy_async(
 Status lz77_parallel_greedy_pipeline(u32 input_size,
                                      CompressionWorkspace &workspace,
                                      const LZ77Config &config,
-                                     u32 *h_num_sequences, bool *out_has_dummy,
+                                     u32 *h_num_sequences, u32 *out_has_dummy,
                                      cudaStream_t stream) {
 
   // OPTIMIZATION: Reuse workspace.d_lz77_temp instead of per-call cudaMalloc
@@ -330,7 +330,7 @@ Status lz77_parallel_greedy_pipeline(u32 input_size,
 
   greedy_parse_kernel<<<num_blocks, block_size, 0, stream>>>(
       (const Match *)workspace.d_matches, input_size, d_decisions,
-      d_offsets_out, config.min_match);
+      d_offsets_out, config.min_match, input_size);
 
   // Build sequences from greedy decisions
   Status status = build_sequences_from_greedy(
@@ -347,7 +347,7 @@ Status lz77_parallel_greedy_pipeline(u32 input_size,
 Status lz77_parallel_greedy_pipeline_async(
     u32 input_size, CompressionWorkspace &workspace, const LZ77Config &config,
     u32 *d_num_sequences, // Device pointer
-    bool *d_has_dummy,    // Device pointer
+    u32 *d_has_dummy,     // Device pointer
     cudaStream_t stream) {
 
   // OPTIMIZATION: Reuse workspace.d_lz77_temp instead of per-call cudaMalloc
@@ -360,7 +360,7 @@ Status lz77_parallel_greedy_pipeline_async(
 
   greedy_parse_kernel<<<num_blocks, block_size, 0, stream>>>(
       (const Match *)workspace.d_matches, input_size, d_decisions,
-      d_offsets_out, config.min_match);
+      d_offsets_out, config.min_match, input_size);
 
   // Build sequences - ASYNC version, no sync
   Status status = build_sequences_from_greedy_async(
@@ -378,7 +378,7 @@ Status lz77_parallel_greedy_pipeline_async(
 // ==============================================================================
 Status lz77_cpu_pipeline(u32 input_size, CompressionWorkspace &workspace,
                          const LZ77Config &config, u32 *h_num_sequences,
-                         bool *out_has_dummy, cudaStream_t stream) {
+                         u32 *out_has_dummy, cudaStream_t stream) {
 
   try {
     // 1. Sync stream to ensure matches from GPU are ready
@@ -764,7 +764,7 @@ Status backtrack_sequences_cpu(const ParseCost *h_costs, u32 input_size,
 
 // V2 Backtracking Implementation (Host-side)
 Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
-                              u32 *h_num_sequences, bool *out_has_dummy,
+                              u32 *h_num_sequences, u32 *out_has_dummy,
                               cudaStream_t stream) {
   // 1. Allocate host buffers for backtracking
   // We need costs and matches on host to trace the path
@@ -852,11 +852,11 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
     // We do NOT pop it, because launch_copy_literals needs it to copy the
     // trailing literals. Instead, we inform the caller.
     if (out_has_dummy)
-      *out_has_dummy = false;
+      *out_has_dummy = 0;
     if (!ml_buf.empty()) {
       if (ml_buf.back() == 0) {
         if (out_has_dummy)
-          *out_has_dummy = true;
+          *out_has_dummy = 1;
       }
     }
 
@@ -894,7 +894,7 @@ Status backtrack_sequences_v2(u32 input_size, CompressionWorkspace &workspace,
 }
 
 Status backtrack_sequences(u32 input_size, CompressionWorkspace &workspace,
-                           u32 *h_num_sequences, bool *out_has_dummy,
+                           u32 *h_num_sequences, u32 *out_has_dummy,
                            cudaStream_t stream) {
   // Adaptive routing: use parallel GPU for large inputs, CPU for small
   BacktrackConfig config = create_backtrack_config(input_size);

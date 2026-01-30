@@ -4,6 +4,11 @@
 #include "cuda_zstd_utils.h"
 #include <cooperative_groups.h>
 
+// Fix for Windows macro collision
+#ifdef ERROR_INVALID_PARAMETER
+#undef ERROR_INVALID_PARAMETER
+#endif
+
 namespace cuda_zstd {
 namespace fse {
 // ...
@@ -47,6 +52,7 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   auto write_bits = [&](u64 val, u32 nbBits) {
     if (nbBits == 0)
       return;
+    val &= ((1ULL << nbBits) - 1); // CRITICAL FIX: Mask higher bits!
     bitContainer |= (val << bitCount);
     bitCount += nbBits;
     while (bitCount >= 8) {
@@ -58,84 +64,87 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
     }
   };
 
-  // 1. Initialize States (Last Symbol)
-  u32 last_idx = num_symbols - 1;
-  // Use d_symbol_first_state to get a VALID starting state
-  u32 stateLL = table[0].d_symbol_first_state[d_ll_codes[last_idx]];
-  u32 stateOF = table[1].d_symbol_first_state[d_of_codes[last_idx]];
-  u32 stateML = table[2].d_symbol_first_state[d_ml_codes[last_idx]];
+  // 1. Initialize States with SEQUENCE 0 (Start of Chain)
+  // We encode Forward: 0 -> 1 -> ... -> N-1
+  // Final State corresponds to N-1
+  u32 start_idx = 0;
 
-  printf("[FSE_ENC] num_symbols=%u, last_idx=%u\\n", num_symbols, last_idx);
-  printf("[FSE_ENC] codes[last]: ll=%u, of=%u, ml=%u\\n",
-         (u32)d_ll_codes[last_idx], (u32)d_of_codes[last_idx],
-         (u32)d_ml_codes[last_idx]);
-  printf("[FSE_ENC] init_states: LL=%u, OF=%u, ML=%u\\n", stateLL, stateOF,
-         stateML);
-  printf("[FSE_ENC] table_logs: LL=%u, OF=%u, ML=%u\\n", table[0].table_log,
-         table[1].table_log, table[2].table_log);
+  // Use d_symbol_first_state to get a VALID starting state for Seq 0
+  u32 stateLL = table[0].d_symbol_first_state[d_ll_codes[start_idx]];
+  u32 stateOF = table[1].d_symbol_first_state[d_of_codes[start_idx]];
+  u32 stateML = table[2].d_symbol_first_state[d_ml_codes[start_idx]];
 
-  // 2. Loop N-2 down to 0
-  if (num_symbols > 1) {
-    for (i32 i = (i32)num_symbols - 2; i >= 0; i--) {
-      // RFC 8878 Forwards Encoding Order (Per sequence):
-      // Symbol States: OF, ML, LL
-      // Extra Bits: OF, ML, LL
-
-      // Offset (Table 1)
-      {
-        u8 code_cur = d_of_codes[i + 1];
-        u8 code_next = d_of_codes[i];
-        auto sym_cur = table[1].d_symbol_table[code_cur];
-        auto sym_next = table[1].d_symbol_table[code_next];
-
-        u32 nbBitsOut = (stateOF + sym_cur.deltaNbBits) >> 16;
-        write_bits(stateOF & ((1 << nbBitsOut) - 1), nbBitsOut);
-        stateOF = (stateOF >> nbBitsOut) + sym_next.deltaFindState;
-      }
-
-      // Match Length (Table 2)
-      {
-        u8 code_cur = d_ml_codes[i + 1];
-        u8 code_next = d_ml_codes[i];
-        auto sym_cur = table[2].d_symbol_table[code_cur];
-        auto sym_next = table[2].d_symbol_table[code_next];
-
-        u32 nbBitsOut = (stateML + sym_cur.deltaNbBits) >> 16;
-        write_bits(stateML & ((1 << nbBitsOut) - 1), nbBitsOut);
-        stateML = (stateML >> nbBitsOut) + sym_next.deltaFindState;
-      }
-
-      // Literal Length (Table 0)
-      {
-        u8 code_cur = d_ll_codes[i + 1];
-        u8 code_next = d_ll_codes[i];
-        auto sym_cur = table[0].d_symbol_table[code_cur];
-        auto sym_next = table[0].d_symbol_table[code_next];
-
-        u32 nbBitsOut = (stateLL + sym_cur.deltaNbBits) >> 16;
-        write_bits(stateLL & ((1 << nbBitsOut) - 1), nbBitsOut);
-        stateLL = (stateLL >> nbBitsOut) + sym_next.deltaFindState;
-      }
-
-      // Extra Bits (for sequence i+1)
-      write_bits(d_of_extras[i + 1], d_of_bits[i + 1]);
-      write_bits(d_ml_extras[i + 1], d_ml_bits[i + 1]);
-      write_bits(d_ll_extras[i + 1], d_ll_bits[i + 1]);
-    }
-  }
-
-  // 3. Write Final Fields for Sequence 0
-  // Extra bits for Seq 0
+  // 2. Write Extra Bits for SEQUENCE 0 FIRST
+  // Decoder reads these LAST (for Seq 0), so physically they must be at START
+  // (Low Addr)
   write_bits(d_of_extras[0], d_of_bits[0]);
   write_bits(d_ml_extras[0], d_ml_bits[0]);
   write_bits(d_ll_extras[0], d_ll_bits[0]);
 
-  // Final States
+  // 3. Loop 0 to N-2 (Transition states)
+  // Encodes Sequence i+1 using State i, producing State i+1
+  if (num_symbols > 1) {
+    for (u32 i = 0; i < num_symbols - 1; i++) {
+      // Encode Seq i+1
+      // Tables: LL=0, OF=1, ML=2
+      // Sub-State (Current) is used as 'nextState' base?
+      // Logic: state = newStateTable[state + delta] (Decoder)
+      // Encoder: state = (state >> nbBits) + delta; (Wait, this is previous
+      // wrong logic?)
+
+      // Zstd Encoder Logic:
+      // nbBits = (state + deltaNbBits) >> 16;
+      // write(state & mask, nbBits);
+      // state = nextStateTable[ (state >> nbBits) + deltaFindState ];
+      // But we need to encode SYMBOL i+1.
+      // The table lookups must use SYMBOL i+1 properties.
+      u32 next_idx = i + 1;
+
+      // Literal Length (Table 0)
+      {
+        u8 code = d_ll_codes[next_idx];
+        auto sym = table[0].d_symbol_table[code];
+        // Encode transition from Current State to Next State (valid for code)
+        u32 nbBitsOut = (stateLL + sym.deltaNbBits) >> 16;
+        write_bits(stateLL & ((1 << nbBitsOut) - 1), nbBitsOut);
+        stateLL = (stateLL >> nbBitsOut) + sym.deltaFindState;
+      }
+
+      // Match Length (Table 2)
+      {
+        u8 code = d_ml_codes[next_idx];
+        auto sym = table[2].d_symbol_table[code];
+        u32 nbBitsOut = (stateML + sym.deltaNbBits) >> 16;
+        write_bits(stateML & ((1 << nbBitsOut) - 1), nbBitsOut);
+        stateML = (stateML >> nbBitsOut) + sym.deltaFindState;
+      }
+
+      // Offset (Table 1)
+      {
+        u8 code = d_of_codes[next_idx];
+        auto sym = table[1].d_symbol_table[code];
+        u32 nbBitsOut = (stateOF + sym.deltaNbBits) >> 16;
+        write_bits(stateOF & ((1 << nbBitsOut) - 1), nbBitsOut);
+        stateOF = (stateOF >> nbBitsOut) + sym.deltaFindState;
+      }
+
+      // Write Extra Bits for Seq i+1
+      // These will be read by Decoder when processing Seq i+1
+      write_bits(d_of_extras[next_idx], d_of_bits[next_idx]);
+      write_bits(d_ml_extras[next_idx], d_ml_bits[next_idx]);
+      write_bits(d_ll_extras[next_idx], d_ll_bits[next_idx]);
+    }
+  }
+
+  // 4. Write Final States (Header)
+  // This corresponds to State N-1
+  // Decoder reads these FIRST (High Addr)
+  // Order: ML, OF, LL (from Zstd spec / decoder read order)
   write_bits(stateML, table[2].table_log);
   write_bits(stateOF, table[1].table_log);
   write_bits(stateLL, table[0].table_log);
 
-  // 4. Flush Sentinel '1'
+  // 5. Flush Sentinel '1'
   write_bits(1, 1);
   while (bitCount > 0) {
     if (ptr < end_limit)
@@ -339,19 +348,46 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
 
   __syncthreads();
 
-  // Phase 4: Init CTable for Encoder (Correct Zstd Logic: total + tableSize)
-  // Single Thread (tid=0)
+  // Phase 4: Init CTable for Encoder using SPREADING (Critical for Correctness)
+  // The Encoder InitState must match a valid slot in the Decoder's Spread
+  // Table.
   if (tid == 0) {
     u32 tableSize = 1 << table_log;
-    // Iterate symbols to set Initial State
+    u32 step = (tableSize >> 1) + (tableSize >> 3) + 3;
+    u32 mask = tableSize - 1;
+    u32 pos = 0;
+
+    // Reset first states
     for (u32 s = 0; s <= max_symbol; s++) {
-      if ((i16)normalized_counters[s] == 0) {
-        table->d_symbol_first_state[s] = 0;
-        continue;
+      table->d_symbol_first_state[s] = 0;
+    }
+
+    // 2a. High Threshold: Place -1 symbols at the end
+    u32 high_threshold = tableSize - 1;
+    for (u32 s = 0; s <= max_symbol; s++) {
+      if ((i16)normalized_counters[s] == -1) {
+        table->d_symbol_first_state[s] = (u16)(tableSize + high_threshold);
+        high_threshold--;
       }
-      // FSE Encoder Init State: total_cumulative_freq + table_size
-      // This ensures state is in range [tableSize, 2*tableSize - 1]
-      table->d_symbol_first_state[s] = (u16)(s_cum_freq[s] + tableSize);
+    }
+
+    // 2b. Spread positive symbols
+    for (u32 s = 0; s <= max_symbol; s++) {
+      int n = (int)normalized_counters[s];
+      if (n <= 0) // Skip 0 and -1 (already handled)
+        continue;
+
+      for (int i = 0; i < n; i++) {
+        // Skip positions occupied by high threshold symbols
+        while (pos > high_threshold) {
+          pos = (pos + step) & mask;
+        }
+
+        if (table->d_symbol_first_state[s] == 0) {
+          table->d_symbol_first_state[s] = (u16)(tableSize + pos);
+        }
+        pos = (pos + step) & mask;
+      }
     }
   }
 }

@@ -6,7 +6,7 @@ Modify benchmark implementations to accommodate hardware constraints of an Asus 
 
 Prepare the entire codebase for production deployment by removing all unnecessary debug print statements, patch-related comments, and temporary development artifacts. Retain only professional documentation comments that explain function purposes, usage, and important implementation details. Clean the project by removing unnecessary files and folders while preserving the following directory structure: @/.history, @/benchmarks, @/cmake, @/docs, @/include, @/previous_conversation_resources, @/latest_conversation_resources, @/src, and @/tests.
 
-Execute the build process using the command wsl bash -lc "rm -rf build/ && mkdir build && cd build && cmake .. && make -j8" and systematically address and resolve all compilation warnings to achieve a clean build. Ensure the project compiles without warnings across all platforms and configurations.
+Execute the build process using the command "rm -rf build/ && mkdir build && cd build && cmake .. && make -j8" and systematically address and resolve all compilation warnings to achieve a clean build. Ensure the project compiles without warnings across all platforms and configurations.
 
 Verify that test coverage reaches 100% for the entire codebase and confirm that no additional unit or integration tests are required. Fix all build errors, test failures, and warnings without modifying the underlying logic of the existing implementation. Maintain the integrity of all algorithms, data structures, and functional behavior while making only the minimal necessary changes to ensure tests pass successfully.
 
@@ -18,18 +18,16 @@ Remove all instances of the [DEBUG] marker and associated debug code from the en
 
 Develop a separate benchmark that utilizes the standard zstd library to encode a reference file and compares the results against the custom GPU-based compression implementation. Ensure both benchmarks operate on identical input data and report comparable metrics including encoding time, throughput, compression ratio, and resource utilization. Output comprehensive comparison results to facilitate performance evaluation and optimization decisions.
 
-Always execute commands within the Windows Subsystem for Linux environment using the prefix wsl bash -lc for all build, test, and benchmark operations to ensure consistent environment and behavior.
-
 you do not need to run all the tests after every updates, just run the specific test that is failing and you are trying to fix, this saves lot of time
 
 no need to execute the complete ctests again and again for simple code change, you can directly execute that specific test after modifications-
 
-wsl bash -lc "cd '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build' && ctest -R TEST_NAME"
+"cd '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build' && ctest -R TEST_NAME"
 OR
-wsl bash -lc "cd '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build' && ctest -R TEST_NAME --output-on-failure 2>&1"
+"cd '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build' && ctest -R TEST_NAME --output-on-failure 2>&1"
 
 eg-
-wsl bash -lc "cd '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build' && ctest -R test_libzstd_interop --output-on-failure 2>&1"
+"cd '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build' && ctest -R test_libzstd_interop --output-on-failure 2>&1"
 
 ### Run All Tests
 

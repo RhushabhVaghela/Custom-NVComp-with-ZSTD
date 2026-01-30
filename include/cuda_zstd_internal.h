@@ -454,24 +454,21 @@ struct ZstdSequence {
 
   __device__ __host__ static __forceinline__ u32 get_offset(u32 code) {
     // RFC 8878 Table 14: For OF_Code N (where N >= 1):
-    //   Baseline = 1 << N
-    //   Extra bits = N
-    //   Offset range = [1<<N, (1<<(N+1))-1]
-    // Example: OF_Code 8 -> baseline 256, extra 8 bits -> offset 256-511
+    //   Baseline = 1 << (N - 3)
+    //   Extra bits = N - 3
     //
     // OF_Codes 0,1,2 can be rep codes depending on literal_length (handled by
     // caller) For OF_Code 0: offset = 1 (no extra bits)
-    if (code == 0)
+    if (code < 3)
       return 1;
-    // For OF_Code >= 1: baseline = 1 << code
-    return 1u << code;
+    // For OF_Code >= 3: baseline = 1 << (code - 3)
+    return 1u << (code - 3);
   }
 
   __device__ __host__ static __forceinline__ u32
   get_offset_bits(u32 symbol, FSEBitStreamReader &reader) {
-    if (symbol == 0)
-      return 0;
-    return reader.read(symbol);
+    u32 num_bits = get_offset_code_extra_bits(symbol);
+    return (num_bits > 0) ? reader.read(num_bits) : 0;
   }
 };
 

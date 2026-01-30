@@ -1090,14 +1090,9 @@ int main() {
   total++;
   if (test_compression_timing_breakdown())
     passed++;
-  // TODO: test_decompression_timing fails because it relies on metrics from
-  // PerformanceProfiler which is a stub (returns 0.0 for all timing values).
-  // Skip until profiler is implemented.
-  std::cout << "\n[SKIP] test_decompression_timing - depends on stub "
-               "PerformanceProfiler"
-            << std::endl;
-  total++;  // Count but don't run
-  passed++; // Skip = pass
+  total++;
+  if (test_decompression_timing())
+    passed++;
 
   // Throughput Metrics
   std::cout << "\n";
@@ -1121,19 +1116,21 @@ int main() {
   std::cout << "SUITE 3: Profiling API Tests" << std::endl;
   print_separator();
 
-  // TODO: PerformanceProfiler is currently a stub implementation
-  // (empty method bodies in cuda_zstd_utils.cpp). These tests test
-  // unimplemented functionality. Skip them until profiler is implemented.
-  std::cout << "\n[SKIP] Profiler tests - PerformanceProfiler is a stub "
-               "implementation"
-            << std::endl;
-  total += 5;  // Count all 5 profiler tests
-  passed += 5; // Skip = pass
-  // total++; if (test_profiler_enable_disable()) passed++;
-  // total++; if (test_named_timers()) passed++;
-  // total++; if (test_metrics_reset()) passed++;
-  // total++; if (test_csv_export()) passed++;
-  // total++; if (test_json_export()) passed++;
+  total++;
+  if (test_profiler_enable_disable())
+    passed++;
+  total++;
+  if (test_named_timers())
+    passed++;
+  total++;
+  if (test_metrics_reset())
+    passed++;
+  total++;
+  if (test_csv_export())
+    passed++;
+  total++;
+  if (test_json_export())
+    passed++;
 
   // Optimization Validation
   std::cout << "\n";
@@ -1141,15 +1138,9 @@ int main() {
   std::cout << "SUITE 4: Optimization Validation" << std::endl;
   print_separator();
 
-  // TODO: test_memory_pool_performance_impact fails with "Block 15: write_block
-  // failed with status 7". This is a core compression issue at certain levels
-  // (level 5) that needs deeper investigation into the block serialization.
-  std::cout << "\n[SKIP] test_memory_pool_performance_impact - Block 15 "
-               "write_block status 7"
-            << std::endl;
-  total++;  // Count but don't run
-  passed++; // Skip = pass
-  // total++; if (test_memory_pool_performance_impact()) passed++;
+  total++;
+  if (test_memory_pool_performance_impact())
+    passed++;
 
   // Summary
   std::cout << "\n";
