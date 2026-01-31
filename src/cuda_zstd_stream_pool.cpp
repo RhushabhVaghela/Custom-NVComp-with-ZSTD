@@ -11,124 +11,172 @@
 namespace cuda_zstd {
 
 StreamPool::StreamPool(size_t pool_size) {
-  //     // std::cerr << "StreamPool ctor() pool_size=" << pool_size <<
-  //     std::endl;
   if (pool_size == 0)
     pool_size = 1;
 
-  resources_.resize(pool_size);
+  // Pre-allocate vector capacity but don't resize yet
+  resources_.reserve(pool_size);
+
   const char *dbg = getenv("CUDA_ZSTD_DEBUG_POOL");
   bool debug = (dbg && std::atoi(dbg) != 0);
 
-  for (size_t i = 0; i < pool_size; ++i) {
-    PerStreamResources &r = resources_[i];
+  // Verify CUDA context is initialized before creating streams
+  int device_count = 0;
+  cudaError_t ctx_err = cudaGetDeviceCount(&device_count);
+  if (ctx_err != cudaSuccess || device_count == 0) {
+    fprintf(stderr,
+            "[CRITICAL] StreamPool: CUDA not available or no devices found\n");
+    // Create a minimal pool with null streams - will fail gracefully later
+    resources_.clear();
+    return;
+  }
 
-    // Initialize stream to 0 before creation attempt
-    r.stream = 0;
-    
-    // Ensure CUDA context is ready before creating stream
-    // This helps avoid illegal memory access on some GPUs
-    cudaError_t sync_err = cudaDeviceSynchronize();
-    if (sync_err != cudaSuccess) {
-      // Context may not be ready, try to get device properties
-      int device = 0;
-      cudaError_t dev_err = cudaGetDevice(&device);
-      if (dev_err != cudaSuccess) {
-        // Cannot get device, skip stream creation for this index
-        fprintf(stderr, "[WARN] StreamPool: Cannot get CUDA device, skipping stream %zu\n", i);
-        break;
-      }
+  // Ensure CUDA context is active on current thread
+  int current_device = 0;
+  cudaError_t dev_err = cudaGetDevice(&current_device);
+  if (dev_err != cudaSuccess) {
+    fprintf(
+        stderr,
+        "[WARN] StreamPool: Cannot get current CUDA device, trying device 0\n");
+    cudaError_t set_err = cudaSetDevice(0);
+    if (set_err != cudaSuccess) {
+      fprintf(stderr, "[CRITICAL] StreamPool: Cannot set CUDA device 0\n");
+      resources_.clear();
+      return;
     }
-    
-    cudaError_t err = cudaStreamCreate(&r.stream);
+  }
+
+  size_t created_count = 0;
+  for (size_t i = 0; i < pool_size; ++i) {
+    PerStreamResources r;
+    // Initialize stream to 0 before creation attempt
+    r.stream = nullptr;
+
+    // Create stream with non-blocking flag for better performance
+    cudaError_t err =
+        cudaStreamCreateWithFlags(&r.stream, cudaStreamNonBlocking);
 
     if (err != cudaSuccess) {
       fprintf(
           stderr,
           "[CRITICAL] StreamPool: cudaStreamCreate failed at index %zu: %s\n",
           i, cudaGetErrorString(err));
-      // Cleanup any resources created so far
-      for (size_t j = 0; j < i; ++j) {
-        cudaStreamDestroy(resources_[j].stream);
-      }
-      resources_.clear();
-      // Create at least one working stream with default flags
-      cudaError_t fallback_err = cudaStreamCreateWithFlags(&r.stream, cudaStreamNonBlocking);
-      if (fallback_err == cudaSuccess) {
+
+      // If we haven't created any streams yet, this is fatal
+      if (created_count == 0) {
+        // Try one more time with default stream flags
+        err = cudaStreamCreate(&r.stream);
+        if (err != cudaSuccess) {
+          fprintf(stderr,
+                  "[CRITICAL] StreamPool: Fallback stream creation also "
+                  "failed: %s\n",
+                  cudaGetErrorString(err));
+          resources_.clear();
+          return;
+        }
+        // Success with fallback - add this stream
         resources_.push_back(r);
-        free_idx_.push((int)0);
-        fprintf(stderr, "[INFO] StreamPool: Created fallback stream successfully\n");
-      } else {
-        fprintf(stderr, "[CRITICAL] StreamPool: Fallback stream creation also failed\n");
+        free_idx_.push(static_cast<int>(resources_.size() - 1));
+        created_count++;
       }
+      // If we have some streams, just stop creating more
       break;
     }
 
-    free_idx_.push((int)i);
+    // Successfully created stream - add to pool
+    resources_.push_back(r);
+    free_idx_.push(static_cast<int>(resources_.size() - 1));
+    created_count++;
+  }
+
+  if (debug) {
+    fprintf(stderr, "[DEBUG] StreamPool: Created %zu/%zu streams\n",
+            created_count, pool_size);
   }
 }
 
 StreamPool::~StreamPool() {
-  //     // std::cerr << "StreamPool dtor" << std::endl;
+  // Lock to ensure no concurrent access during destruction
   std::unique_lock<std::mutex> lock(mtx_);
-  while (!free_idx_.empty())
+
+  // Clear the free queue
+  while (!free_idx_.empty()) {
     free_idx_.pop();
+  }
 
   // Check if CUDA is still initialized before cleanup
-  // cudaGetDeviceCount will return cudaErrorInitializationError if CUDA is
-  // deinitialized
   int device_count = 0;
   cudaError_t init_check = cudaGetDeviceCount(&device_count);
-  bool cuda_initialized =
-      (init_check == cudaSuccess || init_check == cudaErrorNoDevice);
+  bool cuda_initialized = (init_check == cudaSuccess);
 
   if (!cuda_initialized) {
-    // CUDA context is already torn down, skip cleanup to avoid errors
-    //         // std::cerr << "StreamPool dtor: CUDA already deinitialized,
-    //         skipping cleanup" << std::endl;
+    // CUDA context is already torn down, skip cleanup
     return;
   }
 
+  // Unlock during CUDA operations to avoid deadlocks
+  lock.unlock();
+
   // Cleanup resources
   for (auto &r : resources_) {
-    if (r.stream) {
-      // Ensure stream has completed any work before destroying.
+    if (r.stream != nullptr) {
+      // Ensure stream has completed any work before destroying
       cudaError_t sync_err = cudaStreamSynchronize(r.stream);
       if (sync_err != cudaSuccess && sync_err != cudaErrorCudartUnloading) {
-        //                 // std::cerr << "StreamPool::~StreamPool:
-        //                 cudaStreamSynchronize failed -> " << sync_err <<
-        //                 std::endl;
+        // Log error but continue cleanup
+        fprintf(stderr, "[WARN] StreamPool: cudaStreamSynchronize failed "
+                        "during destruction\n");
       }
+
       cudaError_t destroy_err = cudaStreamDestroy(r.stream);
       if (destroy_err != cudaSuccess &&
           destroy_err != cudaErrorCudartUnloading) {
-        //                 // std::cerr << "StreamPool::~StreamPool:
-        //                 cudaStreamDestroy failed -> " << destroy_err <<
-        //                 std::endl;
+        fprintf(
+            stderr,
+            "[WARN] StreamPool: cudaStreamDestroy failed during destruction\n");
       }
-      r.stream = 0;
+      r.stream = nullptr;
     }
   }
 }
 
 int StreamPool::acquire_index() {
   std::unique_lock<std::mutex> lock(mtx_);
+
+  // Check if pool has any resources
+  if (resources_.empty()) {
+    fprintf(stderr, "[ERROR] StreamPool: No streams available in pool\n");
+    return -1;
+  }
+
   while (free_idx_.empty()) {
-    const char *dbg = getenv("CUDA_ZSTD_DEBUG_POOL");
-    bool debug = (dbg && std::atoi(dbg) != 0);
-    //            if (debug) std::cerr << "StreamPool: waiting for free
-    //            index..." << std::endl;
     cv_.wait(lock);
   }
+
   int idx = free_idx_.front();
   free_idx_.pop();
+
+  // Validate index is within bounds
+  if (idx < 0 || static_cast<size_t>(idx) >= resources_.size()) {
+    fprintf(stderr, "[CRITICAL] StreamPool: Invalid index %d (pool size %zu)\n",
+            idx, resources_.size());
+    return -1;
+  }
+
   return idx;
 }
 
 int StreamPool::acquire_index_for(size_t timeout_ms) {
   std::unique_lock<std::mutex> lock(mtx_);
+
+  // Check if pool has any resources
+  if (resources_.empty()) {
+    fprintf(stderr, "[ERROR] StreamPool: No streams available in pool\n");
+    return -1;
+  }
+
   if (timeout_ms == 0) {
-    // A zero timeout means block indefinitely (preserve existing behaviour)
+    // A zero timeout means block indefinitely
     while (free_idx_.empty()) {
       cv_.wait(lock);
     }
@@ -139,25 +187,43 @@ int StreamPool::acquire_index_for(size_t timeout_ms) {
       return -1;
     }
   }
+
   int idx = free_idx_.front();
   free_idx_.pop();
+
+  // Validate index is within bounds
+  if (idx < 0 || static_cast<size_t>(idx) >= resources_.size()) {
+    fprintf(stderr, "[CRITICAL] StreamPool: Invalid index %d (pool size %zu)\n",
+            idx, resources_.size());
+    return -1;
+  }
+
   return idx;
 }
 
 void StreamPool::release_index(int idx) {
   {
     std::unique_lock<std::mutex> lock(mtx_);
+
+    // Validate index before releasing
+    if (idx < 0 || static_cast<size_t>(idx) >= resources_.size()) {
+      fprintf(stderr,
+              "[CRITICAL] StreamPool: Attempted to release invalid index %d\n",
+              idx);
+      return;
+    }
+
     free_idx_.push(idx);
-    const char *dbg = getenv("CUDA_ZSTD_DEBUG_POOL");
-    bool debug = (dbg && std::atoi(dbg) != 0);
-    //             if (debug) std::cerr << "StreamPool: released index " << idx
-    //             << std::endl;
   }
   cv_.notify_one();
 }
 
 StreamPool::Guard StreamPool::acquire() {
   int idx = acquire_index();
+  if (idx < 0) {
+    // Return an invalid guard if acquisition failed
+    return Guard(nullptr, -1);
+  }
   return Guard(this, idx);
 }
 
@@ -170,16 +236,56 @@ std::optional<StreamPool::Guard> StreamPool::acquire_for(size_t timeout_ms) {
 
 StreamPool::Guard::Guard(StreamPool *pool, int idx)
     : pool_(pool), resources_(nullptr), idx_(-1) {
+
+  // Validate inputs
+  if (pool == nullptr || idx < 0) {
+    pool_ = nullptr;
+    idx_ = -1;
+    resources_ = nullptr;
+    return;
+  }
+
+  // Lock to safely access pool resources
+  std::unique_lock<std::mutex> lock(pool->mtx_);
+
+  // Validate index is within bounds
+  if (static_cast<size_t>(idx) >= pool->resources_.size()) {
+    fprintf(stderr,
+            "[CRITICAL] StreamPool::Guard: Index %d out of bounds (size %zu)\n",
+            idx, pool->resources_.size());
+    pool_ = nullptr;
+    idx_ = -1;
+    resources_ = nullptr;
+    return;
+  }
+
+  // Validate stream is not null
+  if (pool->resources_[idx].stream == nullptr) {
+    fprintf(stderr,
+            "[CRITICAL] StreamPool::Guard: Stream at index %d is null\n", idx);
+    pool_ = nullptr;
+    idx_ = -1;
+    resources_ = nullptr;
+    return;
+  }
+
+  // All validations passed - initialize guard
   idx_ = idx;
-  if (idx_ >= 0)
-    resources_ = &pool_->resources_[idx_];
+  resources_ = &pool->resources_[idx];
 }
 
 StreamPool::Guard::~Guard() {
-  if (pool_ && idx_ >= 0) {
+  if (pool_ != nullptr && idx_ >= 0) {
     pool_->release_index(idx_);
     idx_ = -1;
+    pool_ = nullptr;
+    resources_ = nullptr;
   }
+}
+
+size_t StreamPool::available_count() const {
+  std::unique_lock<std::mutex> lock(mtx_);
+  return free_idx_.size();
 }
 
 } // namespace cuda_zstd

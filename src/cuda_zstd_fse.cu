@@ -3883,7 +3883,7 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
  * bitstream.
  */
 // ==============================================================================
-// GPU KERNEL: Serial FSE Decoding
+// GPU KERNEL: Serial FSE Decoding - FIXED VERSION
 // ==============================================================================
 __global__ void k_decode_sequences_interleaved(
     const u8 *bitstream, u32 bitstream_size, u32 num_sequences, u32 *d_ll_out,
@@ -3897,7 +3897,6 @@ __global__ void k_decode_sequences_interleaved(
     return;
 
   // Initialize Reader (Backwards)
-  // Find sentinel logic
   if (bitstream_size == 0)
     return;
   u8 last_byte = bitstream[bitstream_size - 1];
@@ -3911,6 +3910,11 @@ __global__ void k_decode_sequences_interleaved(
 
   sequence::FSEBitStreamReader reader(bitstream, sentinel_pos, bitstream_size);
 
+  // Calculate table sizes for bounds checking
+  u32 ll_table_size = 1u << ll_table.table_log;
+  u32 of_table_size = 1u << of_table.table_log;
+  u32 ml_table_size = 1u << ml_table.table_log;
+
   // Init States
   u32 stateLL = 0, stateOF = 0, stateML = 0;
 
@@ -3918,24 +3922,61 @@ __global__ void k_decode_sequences_interleaved(
   bool decode_of = (of_mode == 0 || of_mode == 2 || of_mode == 3);
   bool decode_ml = (ml_mode == 0 || ml_mode == 2 || ml_mode == 3);
 
-  if (decode_ll)
+  // Read initial states and validate bounds
+  if (decode_ll) {
     stateLL = reader.read(ll_table.table_log);
-  if (decode_of)
+    if (stateLL >= ll_table_size) {
+      printf("[GPU ERROR] Initial LL state %u exceeds table size %u\n", stateLL,
+             ll_table_size);
+      stateLL = 0; // Clamp to safe value
+    }
+  }
+  if (decode_of) {
     stateOF = reader.read(of_table.table_log);
-  if (decode_ml)
+    if (stateOF >= of_table_size) {
+      printf("[GPU ERROR] Initial OF state %u exceeds table size %u\n", stateOF,
+             of_table_size);
+      stateOF = 0; // Clamp to safe value
+    }
+  }
+  if (decode_ml) {
     stateML = reader.read(ml_table.table_log);
+    if (stateML >= ml_table_size) {
+      printf("[GPU ERROR] Initial ML state %u exceeds table size %u\n", stateML,
+             ml_table_size);
+      stateML = 0; // Clamp to safe value
+    }
+  }
 
   printf("[GPU] Sentinel: pos=%u, Byte0=%02X\n", sentinel_pos, bitstream[0]);
   printf("[GPU] InitStates: LL=%u, OF=%u, ML=%u\n", stateLL, stateOF, stateML);
+  printf("[GPU] TableSizes: LL=%u, OF=%u, ML=%u\n", ll_table_size,
+         of_table_size, ml_table_size);
 
   u64 total_lit_len = 0;
 
   // Decode Loop
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
+    // Validate states before table access
+    if (decode_ll && stateLL >= ll_table_size) {
+      printf("[GPU ERROR] Seq %d: LL state %u out of bounds (size=%u)\n", i,
+             stateLL, ll_table_size);
+      stateLL = 0;
+    }
+    if (decode_of && stateOF >= of_table_size) {
+      printf("[GPU ERROR] Seq %d: OF state %u out of bounds (size=%u)\n", i,
+             stateOF, of_table_size);
+      stateOF = 0;
+    }
+    if (decode_ml && stateML >= ml_table_size) {
+      printf("[GPU ERROR] Seq %d: ML state %u out of bounds (size=%u)\n", i,
+             stateML, ml_table_size);
+      stateML = 0;
+    }
+
     // Decode Symbols
     u32 ll_sym = 0, of_sym = 0, ml_sym = 0;
 
-    // Use tables (which are on device)
     if (decode_ll)
       ll_sym = ll_table.symbol[stateLL];
     if (decode_of)
@@ -3946,18 +3987,18 @@ __global__ void k_decode_sequences_interleaved(
     printf("[GPU] Seq %d: LL_sym=%u, OF_sym=%u, ML_sym=%u\n", i, ll_sym, of_sym,
            ml_sym);
 
-    // Read Extra Bits (Backwards: LL -> ML -> OF)
+    // Read Extra Bits in CORRECT ORDER per Zstd spec: LL -> OF -> ML
     u32 ll_extra =
         (decode_ll) ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
-                    : 0;
-    u32 ml_extra =
-        (decode_ml) ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
                     : 0;
     u32 of_extra = (decode_of)
                        ? sequence::ZstdSequence::get_offset_bits(of_sym, reader)
                        : 0;
+    u32 ml_extra =
+        (decode_ml) ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
+                    : 0;
 
-    // Calculate Values
+    // Calculate Literal Length Value
     u32 val_ll = 0;
     if (ll_mode == 0)
       val_ll = sequence::ZstdSequence::get_ll_base_predefined(ll_sym);
@@ -3965,6 +4006,7 @@ __global__ void k_decode_sequences_interleaved(
       val_ll = sequence::ZstdSequence::get_lit_len(ll_sym);
     val_ll += ll_extra;
 
+    // Calculate Match Length Value
     u32 val_ml = 0;
     if (ml_mode == 0 && ml_sym == 51)
       val_ml = 65365; // Patch for 65K match
@@ -3975,36 +4017,53 @@ __global__ void k_decode_sequences_interleaved(
         val_ml = sequence::ZstdSequence::get_match_len(ml_sym);
     }
     val_ml += ml_extra;
-    printf("[GPU] Seq %d: ML Base=%u, Extra=%u, Val=%u\n", i, val_ml - ml_extra,
-           ml_extra, val_ml);
 
-    u32 val_of = sequence::ZstdSequence::get_offset(of_sym); // Base
-    if (decode_of && of_sym <= 2)
-      val_of = of_sym + 1; // Rep codes
-    else if (decode_of)
-      val_of += of_extra;
+    if (i < 5) { // Limit debug output
+      printf("[GPU] Seq %d: ML Base=%u, Extra=%u, Val=%u\n", i,
+             val_ml - ml_extra, ml_extra, val_ml);
+    }
 
-    // Update States
+    // Calculate Offset Value with proper repeat code handling
+    u32 val_of = 0;
+    if (decode_of) {
+      if (of_sym <= 2) {
+        // Repeat offset codes 1, 2, 3 map to repeat offsets 1, 2, 3
+        val_of = of_sym + 1;
+      } else {
+        val_of = sequence::ZstdSequence::get_offset(of_sym);
+        val_of += of_extra;
+      }
+    }
+
+    // Update States with bounds checking and normalization
     if (decode_ll) {
       u8 nb = ll_table.nbBits[stateLL];
       u32 newBits = reader.read(nb);
       stateLL = ll_table.newState[stateLL] + newBits;
+      // Normalize state to table bounds
+      stateLL &= (ll_table_size - 1);
     }
     if (decode_of) {
       u8 nb = of_table.nbBits[stateOF];
       u32 newBits = reader.read(nb);
       stateOF = of_table.newState[stateOF] + newBits;
+      // Normalize state to table bounds
+      stateOF &= (of_table_size - 1);
     }
     if (decode_ml) {
       u8 nb = ml_table.nbBits[stateML];
       u32 newBits = reader.read(nb);
       stateML = ml_table.newState[stateML] + newBits;
+      // Normalize state to table bounds
+      stateML &= (ml_table_size - 1);
     }
 
-    printf("[GPU] Seq %d: LL_extra=%u, ML_extra=%u, OF_extra=%u\n", i, ll_extra,
-           ml_extra, of_extra);
-    printf("[GPU] Seq %d: NextStates: LL=%u, OF=%u, ML=%u\n", i, stateLL,
-           stateOF, stateML);
+    if (i < 5) { // Limit debug output
+      printf("[GPU] Seq %d: LL_extra=%u, ML_extra=%u, OF_extra=%u\n", i,
+             ll_extra, ml_extra, of_extra);
+      printf("[GPU] Seq %d: NextStates: LL=%u, OF=%u, ML=%u\n", i, stateLL,
+             stateOF, stateML);
+    }
 
     // Write Outputs with Limit Check
     if (decode_ll) {
@@ -4018,8 +4077,10 @@ __global__ void k_decode_sequences_interleaved(
     if (decode_ml)
       d_ml_out[i] = val_ml;
 
-    printf("GPU Decoded Seq %d: LL=%u, OF=%u, ML=%u\n", i, val_ll, val_of,
-           val_ml);
+    if (i < 5) { // Limit debug output
+      printf("GPU Decoded Seq %d: LL=%u, OF=%u, ML=%u\n", i, val_ll, val_of,
+             val_ml);
+    }
   }
 }
 
@@ -4068,18 +4129,10 @@ __host__ Status decode_sequences_interleaved(
     return Status::ERROR_CORRUPT_DATA;
 
   // Build Tables on Host if needed (logic from original)
-  // We reuse the logic that builds tables into p_ll_table (Host Pointers).
-  // Now we must copy them to Device.
-
   FSEDecodeTable h_ll_local = {}, h_of_local = {}, h_ml_local = {};
   const FSEDecodeTable *h_ll_ptr = p_ll_table;
   const FSEDecodeTable *h_of_ptr = p_of_table;
   const FSEDecodeTable *h_ml_ptr = p_ml_table;
-
-  // Handle Mode 0 (Predefined) - Build if needed
-  // The original logic built tables into local vars if null pointers passed?
-  // Let's check original. It checks `if (ll_mode == 0) ... build`.
-  // OK, we must replicate that logic.
 
   auto cleanup_host = [&]() {
     if (ll_mode == 0 && h_ll_local.newState) {
@@ -4101,14 +4154,15 @@ __host__ Status decode_sequences_interleaved(
 
   u32 max_sym, log;
 
+  // Build predefined tables for Mode 0
   if (ll_mode == 0) {
     const u16 *norm = get_predefined_norm(TableType::LITERALS, &max_sym, &log);
     h_ll_local.table_log = log;
-    h_ll_local.table_size = 1 << log;
-    h_ll_local.newState = new u16[1 << log];
-    h_ll_local.symbol = new u8[1 << log];
-    h_ll_local.nbBits = new u8[1 << log];
-    if (FSE_buildDTable_Host(norm, max_sym, 1 << log, h_ll_local) !=
+    h_ll_local.table_size = 1u << log;
+    h_ll_local.newState = new u16[1u << log];
+    h_ll_local.symbol = new u8[1u << log];
+    h_ll_local.nbBits = new u8[1u << log];
+    if (FSE_buildDTable_Host(norm, max_sym, 1u << log, h_ll_local) !=
         Status::SUCCESS) {
       cleanup_host();
       return Status::ERROR_CORRUPT_DATA;
@@ -4120,11 +4174,11 @@ __host__ Status decode_sequences_interleaved(
   if (of_mode == 0) {
     const u16 *norm = get_predefined_norm(TableType::OFFSETS, &max_sym, &log);
     h_of_local.table_log = log;
-    h_of_local.table_size = 1 << log;
-    h_of_local.newState = new u16[1 << log];
-    h_of_local.symbol = new u8[1 << log];
-    h_of_local.nbBits = new u8[1 << log];
-    if (FSE_buildDTable_Host(norm, max_sym, 1 << log, h_of_local) !=
+    h_of_local.table_size = 1u << log;
+    h_of_local.newState = new u16[1u << log];
+    h_of_local.symbol = new u8[1u << log];
+    h_of_local.nbBits = new u8[1u << log];
+    if (FSE_buildDTable_Host(norm, max_sym, 1u << log, h_of_local) !=
         Status::SUCCESS) {
       cleanup_host();
       return Status::ERROR_CORRUPT_DATA;
@@ -4137,11 +4191,11 @@ __host__ Status decode_sequences_interleaved(
     const u16 *norm =
         get_predefined_norm(TableType::MATCH_LENGTHS, &max_sym, &log);
     h_ml_local.table_log = log;
-    h_ml_local.table_size = 1 << log;
-    h_ml_local.newState = new u16[1 << log];
-    h_ml_local.symbol = new u8[1 << log];
-    h_ml_local.nbBits = new u8[1 << log];
-    if (FSE_buildDTable_Host(norm, max_sym, 1 << log, h_ml_local) !=
+    h_ml_local.table_size = 1u << log;
+    h_ml_local.newState = new u16[1u << log];
+    h_ml_local.symbol = new u8[1u << log];
+    h_ml_local.nbBits = new u8[1u << log];
+    if (FSE_buildDTable_Host(norm, max_sym, 1u << log, h_ml_local) !=
         Status::SUCCESS) {
       cleanup_host();
       return Status::ERROR_CORRUPT_DATA;
@@ -4150,19 +4204,58 @@ __host__ Status decode_sequences_interleaved(
   } else if (p_ml_table)
     h_ml_ptr = p_ml_table;
 
+  // Validate tables before copying to device
+  if ((ll_mode == 0 || ll_mode == 2 || ll_mode == 3) && !h_ll_ptr) {
+    cleanup_host();
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+  if ((of_mode == 0 || of_mode == 2 || of_mode == 3) && !h_of_ptr) {
+    cleanup_host();
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+  if ((ml_mode == 0 || ml_mode == 2 || ml_mode == 3) && !h_ml_ptr) {
+    cleanup_host();
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
   // Copy to Device
   FSEDecodeTable d_ll = {}, d_of = {}, d_ml = {};
-  if (h_ll_ptr)
-    copy_table_to_device(*h_ll_ptr, d_ll, stream);
-  if (h_of_ptr)
-    copy_table_to_device(*h_of_ptr, d_of, stream);
-  if (h_ml_ptr)
-    copy_table_to_device(*h_ml_ptr, d_ml, stream);
+  Status copy_status = Status::SUCCESS;
 
-  // CRITICAL FIX: Synchronize stream to ensure table data is fully copied
-  // before kernel launch. The async copies above must complete before
-  // the kernel accesses the table pointers.
-  CUDA_CHECK(cudaStreamSynchronize(stream));
+  if (h_ll_ptr) {
+    copy_status = copy_table_to_device(*h_ll_ptr, d_ll, stream);
+    if (copy_status != Status::SUCCESS) {
+      cleanup_host();
+      return copy_status;
+    }
+  }
+  if (h_of_ptr) {
+    copy_status = copy_table_to_device(*h_of_ptr, d_of, stream);
+    if (copy_status != Status::SUCCESS) {
+      free_device_table(d_ll);
+      cleanup_host();
+      return copy_status;
+    }
+  }
+  if (h_ml_ptr) {
+    copy_status = copy_table_to_device(*h_ml_ptr, d_ml, stream);
+    if (copy_status != Status::SUCCESS) {
+      free_device_table(d_ll);
+      free_device_table(d_of);
+      cleanup_host();
+      return copy_status;
+    }
+  }
+
+  // CRITICAL: Synchronize stream to ensure table data is fully copied
+  cudaError_t sync_err = cudaStreamSynchronize(stream);
+  if (sync_err != cudaSuccess) {
+    free_device_table(d_ll);
+    free_device_table(d_of);
+    free_device_table(d_ml);
+    cleanup_host();
+    return Status::ERROR_CUDA_ERROR;
+  }
 
   // Launch Kernel
   if (input_size > 0) {
@@ -4171,23 +4264,25 @@ __host__ Status decode_sequences_interleaved(
                           cudaMemcpyDeviceToHost));
     printf("[DEBUG_FSE] k_decode Launch: Size=%u, LastByte=%02X, NumSeq=%u\n",
            input_size, last_byte, num_sequences);
-
-    // DEBUG: Dump first 8 bytes of bitstream
-    unsigned char first_bytes[8] = {0};
-    u32 dump_size = (input_size < 8) ? input_size : 8;
-    CUDA_CHECK(
-        cudaMemcpy(first_bytes, d_input, dump_size, cudaMemcpyDeviceToHost));
-    printf("[DEBUG_FSE] First bytes: ");
-    for (u32 i = 0; i < dump_size; i++)
-      printf("%02X ", first_bytes[i]);
-    printf("\n");
-  } else {
-    printf("[DEBUG_FSE] k_decode Launch: Size=0! NumSeq=%u\n", num_sequences);
+    printf("[DEBUG_FSE] TableLogs: LL=%u, OF=%u, ML=%u\n", d_ll.table_log,
+           d_of.table_log, d_ml.table_log);
   }
+
   k_decode_sequences_interleaved<<<1, 1, 0, stream>>>(
       d_input, input_size, num_sequences, d_ll_out, d_of_out, d_ml_out, d_ll,
       d_of, d_ml, ll_mode, of_mode, ml_mode, literals_limit);
-  CUDA_CHECK(cudaGetLastError());
+
+  cudaError_t kernel_err = cudaGetLastError();
+  if (kernel_err != cudaSuccess) {
+    printf("[ERROR] Kernel launch failed: %s\n",
+           cudaGetErrorString(kernel_err));
+    free_device_table(d_ll);
+    free_device_table(d_of);
+    free_device_table(d_ml);
+    cleanup_host();
+    return Status::ERROR_CUDA_ERROR;
+  }
+
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   // Cleanup

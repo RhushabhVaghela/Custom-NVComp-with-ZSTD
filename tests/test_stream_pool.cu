@@ -1,314 +1,413 @@
-#include "cuda_error_checking.h"
-#include "cuda_zstd_manager.h"
+// ==============================================================================
+// test_stream_pool.cu - Unit tests for StreamPool memory safety fixes
+// ==============================================================================
+// Tests for verifying the fixes to stream pool memory access issues:
+// 1. Use-after-free in constructor fallback path
+// 2. Missing bounds checking in Guard constructor
+// 3. Thread safety issues
+// 4. Proper error handling
+// ==============================================================================
+
 #include "cuda_zstd_stream_pool.h"
 #include <atomic>
-#include <cstdlib>
-#include <future>
-#include <iostream>
-#include <string>
+#include <cassert>
+#include <chrono>
+#include <cstdio>
+#include <cuda_runtime.h>
 #include <thread>
 #include <vector>
 
+
 using namespace cuda_zstd;
 
-bool run_pool_test_thread(int thread_id) {
-  // Create manager instance per thread to avoid internal state sharing
-  std::cerr << "Thread " << thread_id << ": before create_manager" << std::endl;
-  auto mgr = create_manager(3);
-  std::cerr << "Thread " << thread_id << ": after create_manager" << std::endl;
-  std::cout << "Thread " << thread_id << ": created manager" << std::endl;
+// Test macros
+#define TEST_ASSERT(cond, msg)                                                 \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      fprintf(stderr, "[FAIL] %s:%d: %s\n", __FILE__, __LINE__, msg);          \
+      return false;                                                            \
+    }                                                                          \
+  } while (0)
 
-  const size_t data_size = 256 * 1024; // 256KB
-  std::vector<uint8_t> h_data(data_size);
-  for (size_t i = 0; i < data_size; i++)
-    h_data[i] = (uint8_t)((i + thread_id) & 0xFF);
+#define TEST_ASSERT_EQ(a, b, msg) TEST_ASSERT((a) == (b), msg)
 
-  void *d_input = nullptr;
-  void *d_compressed = nullptr;
-  void *d_temp = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_input, data_size));
-  std::cerr << "Thread " << thread_id << ": cudaMalloc d_input" << std::endl;
-  CUDA_CHECK(cudaMalloc(&d_compressed, data_size * 2));
-  std::cerr << "Thread " << thread_id << ": cudaMalloc d_compressed"
-            << std::endl;
+// Global test counter
+static int g_tests_passed = 0;
+static int g_tests_failed = 0;
 
-  size_t temp_size = mgr->get_compress_temp_size(data_size);
-  CUDA_CHECK(cudaMalloc(&d_temp, temp_size));
-  std::cerr << "Thread " << thread_id << ": cudaMalloc d_temp" << std::endl;
+void test_passed(const char *name) {
+  printf("[PASS] %s\n", name);
+  g_tests_passed++;
+}
 
-  CUDA_CHECK(
-      cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice));
-  std::cerr << "Thread " << thread_id << ": cudaMemcpy to device" << std::endl;
+void test_failed(const char *name) {
+  printf("[FAIL] %s\n", name);
+  g_tests_failed++;
+}
 
-  size_t compressed_size = 0;
-  // Create a dedicated stream for this thread so we avoid acquiring from
-  // the global stream pool and reduce contention.
-  cudaStream_t user_stream = 0;
-  CUDA_CHECK(cudaStreamCreate(&user_stream));
-
-  // For a lightweight stream-pool concurrency test we prefer a simple
-  // async operation on the pool stream to avoid invoking the full
-  // compression pipeline (which can be heavy and flaky on some drivers).
-  const char *simple_env = getenv("CUDA_ZSTD_SIMPLE_STREAM_TEST");
-  bool simple_test =
-      (simple_env == nullptr) || (std::string(simple_env) != "0");
-
-  Status status = Status::SUCCESS;
-  std::future<Status> compress_task;
-  if (simple_test) {
-    // Local pool for testing
-    int num_streams = 2;
-    cuda_zstd::StreamPool local_pool(num_streams);
-    auto pool = &local_pool;
-    if (!pool)
-      return false;
-
-    auto guard = pool->acquire_for(10000);
-    if (!guard.has_value())
-      return false;
-
-    cudaStream_t pool_stream = guard->get_stream();
-    cudaError_t err = cudaMemsetAsync(d_temp, 0xEF, temp_size, pool_stream);
-    if (err != cudaSuccess) {
-      std::cerr << "cudaMemsetAsync failed: " << cudaGetErrorString(err)
-                << std::endl;
-      return false;
-    }
-    err = cudaStreamSynchronize(pool_stream);
-    if (err != cudaSuccess) {
-      std::cerr << "cudaStreamSynchronize failed: " << cudaGetErrorString(err)
-                << std::endl;
-      return false;
-    }
-    // GPU operation succeeded using acquired pool stream
-    status = Status::SUCCESS;
-  } else {
-    compress_task = std::async(std::launch::async, [&]() {
-      return mgr->compress(d_input, data_size, d_compressed, &compressed_size,
-                           d_temp, temp_size, nullptr, 0,
-                           user_stream /* use explicit stream to avoid pool */
-      );
-    });
+// ==============================================================================
+// Test 1: Basic pool creation and validity
+// ==============================================================================
+bool test_basic_creation() {
+  // Test creating pool with default size
+  {
+    StreamPool pool;
+    TEST_ASSERT(pool.is_valid(), "Default pool should be valid");
+    TEST_ASSERT(pool.size() > 0, "Pool should have streams");
+    TEST_ASSERT(pool.available_count() == pool.size(),
+                "All streams should be available");
   }
 
-  std::cerr << "Thread " << thread_id << ": waiting for compress" << std::endl;
-  if (!simple_test && compress_task.wait_for(std::chrono::seconds(100)) ==
-                          std::future_status::timeout) {
-    std::cerr << "Thread " << thread_id << " compress timed out\n";
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_temp);
-    if (user_stream)
-      cudaStreamDestroy(user_stream);
-    return false;
-  }
-  if (!simple_test)
-    status = compress_task.get();
-  std::cerr << "Thread " << thread_id << ": compress completed with status "
-            << status_to_string(status) << std::endl;
-  if (status != Status::SUCCESS) {
-    if (user_stream)
-      cudaStreamDestroy(user_stream);
+  // Test creating pool with specific size
+  {
+    StreamPool pool(4);
+    TEST_ASSERT(pool.is_valid(), "Pool(4) should be valid");
+    TEST_ASSERT_EQ(pool.size(), 4, "Pool should have 4 streams");
+    TEST_ASSERT_EQ(pool.available_count(), 4,
+                   "All 4 streams should be available");
   }
 
-  if (status != Status::SUCCESS) {
-    if (status == Status::ERROR_TIMEOUT) {
-      std::cerr << "Thread " << thread_id
-                << " timed out acquiring a stream from the global pool ("
-                << status_to_string(status) << ")" << std::endl;
-    } else {
-      std::cerr << "Thread " << thread_id
-                << " compress failed: " << status_to_string(status)
-                << std::endl;
-    }
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_temp);
-    return false;
+  // Test creating pool with size 0 (should default to 1)
+  {
+    StreamPool pool(0);
+    TEST_ASSERT(pool.is_valid(), "Pool(0) should be valid");
+    TEST_ASSERT(pool.size() > 0, "Pool(0) should have at least 1 stream");
   }
 
-  // If we only ran the lightweight pool operation, skip roundtrip
-  if (simple_test) {
-    std::vector<uint8_t> h_check(temp_size);
-    CUDA_CHECK(
-        cudaMemcpy(h_check.data(), d_temp, temp_size, cudaMemcpyDeviceToHost));
-    for (size_t i = 0; i < temp_size; ++i) {
-      if (h_check[i] != 0xEF) {
-        std::cerr << "Thread " << thread_id << " pool op data mismatch at " << i
-                  << std::endl;
-        cudaFree(d_input);
-        cudaFree(d_compressed);
-        cudaFree(d_temp);
-        return false;
-      }
-    }
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_temp);
-    return true;
-  }
-
-  // Decompress single-shot to verify roundtrip
-  size_t decomp_temp = mgr->get_decompress_temp_size(compressed_size);
-  void *d_decomp_temp = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_decomp_temp, decomp_temp));
-
-  void *d_out = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_out, data_size));
-
-  size_t out_size = data_size;
-  // Decompress on a separate thread to prevent unexpected hangs
-  // Use an explicit stream for deterministic concurrency (avoid stream
-  // pool acquisition for this test) to reduce potential deadlocks. Reuse
-  // the `user_stream` created for compression.
-  auto decompress_task = std::async(std::launch::async, [&]() {
-    return mgr->decompress(d_compressed, compressed_size, d_out, &out_size,
-                           d_decomp_temp, decomp_temp, user_stream);
-  });
-  std::cerr << "Thread " << thread_id << ": waiting for decompress"
-            << std::endl;
-  if (decompress_task.wait_for(std::chrono::seconds(100)) ==
-      std::future_status::timeout) {
-    std::cerr << "Thread " << thread_id << " decompress timed out\n";
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_temp);
-    cudaFree(d_decomp_temp);
-    cudaFree(d_out);
-    if (user_stream)
-      cudaStreamDestroy(user_stream);
-    return false;
-  }
-  status = decompress_task.get();
-  if (user_stream)
-    cudaStreamDestroy(user_stream);
-  std::cerr << "Thread " << thread_id << ": decompress completed with status "
-            << status_to_string(status) << std::endl;
-
-  if (status != Status::SUCCESS || out_size != data_size) {
-    std::cerr << "Thread " << thread_id
-              << " decompress failed: " << status_to_string(status)
-              << std::endl;
-    cudaFree(d_input);
-    cudaFree(d_compressed);
-    cudaFree(d_temp);
-    cudaFree(d_decomp_temp);
-    cudaFree(d_out);
-    if (user_stream)
-      cudaStreamDestroy(user_stream);
-    return false;
-  }
-
-  std::vector<uint8_t> h_out(data_size);
-  CUDA_CHECK(
-      cudaMemcpy(h_out.data(), d_out, data_size, cudaMemcpyDeviceToHost));
-
-  for (size_t i = 0; i < data_size; i++) {
-    if (h_out[i] != h_data[i]) {
-      std::cerr << "Thread " << thread_id << " data mismatch at " << i
-                << std::endl;
-      cudaFree(d_input);
-      cudaFree(d_compressed);
-      cudaFree(d_temp);
-      cudaFree(d_decomp_temp);
-      cudaFree(d_out);
-      return false;
-    }
-  }
-
-  cudaFree(d_input);
-  cudaFree(d_compressed);
-  cudaFree(d_temp);
-  cudaFree(d_decomp_temp);
-  cudaFree(d_out);
-  if (user_stream)
-    cudaStreamDestroy(user_stream);
   return true;
 }
 
-int main() {
-  SKIP_IF_NO_CUDA_RET(0);
-  check_cuda_device();
+// ==============================================================================
+// Test 2: Stream acquisition and release
+// ==============================================================================
+bool test_acquire_release() {
+  StreamPool pool(4);
 
-  // Print detailed CUDA error contexts during test runs to aid debugging
-  cuda_zstd::set_error_callback([](const cuda_zstd::ErrorContext &ctx) {
-    std::cerr << "CUDA Error: " << cuda_zstd::get_detailed_error_message(ctx)
-              << std::endl;
-  });
+  // Acquire all streams
+  auto guard1 = pool.acquire();
+  auto guard2 = pool.acquire();
+  auto guard3 = pool.acquire();
+  auto guard4 = pool.acquire();
 
-  // Ensure the global stream pool has enough streams for this test so
-  // the pool isn't exhausted and test threads block indefinitely.
-  // Read from env var to allow easier debugging of multithreaded hangs.
-  const char *env_threads = getenv("CUDA_ZSTD_NUM_THREADS");
-  int num_threads = 2;
-  if (env_threads) {
-    try {
-      num_threads = std::max(1, std::stoi(env_threads));
-    } catch (...) {
-    }
-  }
+  TEST_ASSERT(guard1.is_valid(), "Guard1 should be valid");
+  TEST_ASSERT(guard2.is_valid(), "Guard2 should be valid");
+  TEST_ASSERT(guard3.is_valid(), "Guard3 should be valid");
+  TEST_ASSERT(guard4.is_valid(), "Guard4 should be valid");
+
+  TEST_ASSERT(guard1.get_stream() != nullptr, "Guard1 should have stream");
+  TEST_ASSERT(guard2.get_stream() != nullptr, "Guard2 should have stream");
+  TEST_ASSERT(guard3.get_stream() != nullptr, "Guard3 should have stream");
+  TEST_ASSERT(guard4.get_stream() != nullptr, "Guard4 should have stream");
+
+  TEST_ASSERT_EQ(pool.available_count(), 0, "No streams should be available");
+
+  // Guards release automatically when they go out of scope
+  return true;
+}
+
+// ==============================================================================
+// Test 3: Guard validation and invalid access
+// ==============================================================================
+bool test_guard_validation() {
+  // Test invalid guard from failed acquisition
   {
-    std::string env_val = std::to_string(num_threads);
-    setenv("CUDA_ZSTD_STREAM_POOL_SIZE", env_val.c_str(), 1);
-    // Use a generous timeout to let the test proceed normally. Value is in ms.
-    setenv("CUDA_ZSTD_STREAM_POOL_TIMEOUT_MS", "100000", 1);
+    StreamPool pool(0); // Empty pool
+
+    // This should return an invalid guard since pool has no streams
+    auto guard = pool.acquire();
+    TEST_ASSERT(!guard.is_valid(), "Guard from empty pool should be invalid");
+    TEST_ASSERT(guard.get_stream() == nullptr,
+                "Invalid guard should return nullptr");
   }
+
+  // Test guard movement
+  {
+    StreamPool pool(2);
+    auto guard1 = pool.acquire();
+    TEST_ASSERT(guard1.is_valid(), "Original guard should be valid");
+
+    auto guard2 = std::move(guard1);
+    TEST_ASSERT(guard2.is_valid(), "Moved-to guard should be valid");
+    // guard1 is in moved-from state, behavior is implementation-defined
+  }
+
+  return true;
+}
+
+// ==============================================================================
+// Test 4: Timeout-based acquisition
+// ==============================================================================
+bool test_timeout_acquisition() {
+  StreamPool pool(2);
+
+  // Acquire all streams
+  auto guard1 = pool.acquire();
+  auto guard2 = pool.acquire();
+
+  // Try to acquire with timeout - should fail
+  auto guard3_opt = pool.acquire_for(10); // 10ms timeout
+  TEST_ASSERT(!guard3_opt.has_value(), "Should fail to acquire with timeout");
+
+  // Release one and try again
+  guard1.~Guard(); // Force release
+
+  // Need to create new pool since we can't easily force release
+  StreamPool pool2(2);
+  auto g1 = pool2.acquire();
+
+  auto g2_opt = pool2.acquire_for(100); // Should succeed quickly
+  TEST_ASSERT(g2_opt.has_value(), "Should acquire with timeout");
+  TEST_ASSERT(g2_opt->is_valid(), "Acquired guard should be valid");
+
+  return true;
+}
+
+// ==============================================================================
+// Test 5: Thread safety - concurrent acquisition
+// ==============================================================================
+bool test_thread_safety() {
+  const int num_threads = 8;
+  const int iterations = 100;
+  StreamPool pool(4);
+  std::atomic<int> success_count{0};
+  std::atomic<int> fail_count{0};
 
   std::vector<std::thread> threads;
 
-  std::cerr << "Testing Stream Pool with " << num_threads
-            << " concurrent compressions\n";
-
-  std::atomic<bool> ok(true);
-
-  // print pool size for debug; should match num_threads and show that the
-  // environment variable was read by the pool constructor.
-  // Global pool removed
-  // cuda_zstd::StreamPool *pool = cuda_zstd::get_global_stream_pool();
-  // if (pool)
-
-  // Debug: try creating a manager on the main thread to validate manager
-  // construction does not block. If this hangs, it indicates a global
-  // initialization issue.
-  std::cerr << "Main: creating a manager for debug" << std::endl;
-  auto mgr_debug = create_manager(3);
-  if (!mgr_debug) {
-    std::cerr << "Main: debug manager creation failed" << std::endl;
-  } else {
-    std::cerr << "Main: debug manager creation succeeded" << std::endl;
+  for (int t = 0; t < num_threads; ++t) {
+    threads.emplace_back([&]() {
+      for (int i = 0; i < iterations; ++i) {
+        auto guard = pool.acquire();
+        if (guard.is_valid()) {
+          // Do some work with the stream
+          cudaStream_t stream = guard.get_stream();
+          if (stream != nullptr) {
+            // Simple kernel launch or sync to test stream validity
+            cudaError_t err = cudaStreamSynchronize(stream);
+            if (err == cudaSuccess) {
+              success_count++;
+            } else {
+              fail_count++;
+            }
+          } else {
+            fail_count++;
+          }
+        } else {
+          fail_count++;
+        }
+      }
+    });
   }
 
-  // If specified, run threads concurrently to exercise heavy contention.
-  const char *run_concurrent_env = getenv("CUDA_ZSTD_RUN_CONCURRENT");
-  bool run_concurrent =
-      (run_concurrent_env && std::string(run_concurrent_env) == "1");
-
-  if (run_concurrent) {
-    std::cerr << "Running pool test with concurrency: " << num_threads
-              << std::endl;
-    for (int i = 0; i < num_threads; ++i) {
-      threads.emplace_back([&, i]() {
-        if (!run_pool_test_thread(i))
-          ok = false;
-      });
-    }
-    for (auto &t : threads)
-      t.join();
-  } else {
-    // Default to sequential mode for expedited debugging and deterministic
-    // output, but allow concurrency when environment asks for it.
-    for (int i = 0; i < num_threads; ++i) {
-      std::cerr << "Running pool test thread sequentially: " << i << std::endl;
-      if (!run_pool_test_thread(i))
-        ok = false;
-    }
+  for (auto &t : threads) {
+    t.join();
   }
 
-  if (ok) {
-    std::cout << "StreamPool test PASSED" << std::endl;
+  TEST_ASSERT_EQ(success_count.load(), num_threads * iterations,
+                 "All acquisitions should succeed");
+  TEST_ASSERT_EQ(fail_count.load(), 0, "No failures should occur");
+
+  return true;
+}
+
+// ==============================================================================
+// Test 6: Stream functionality validation
+// ==============================================================================
+bool test_stream_functionality() {
+  StreamPool pool(2);
+
+  auto guard = pool.acquire();
+  TEST_ASSERT(guard.is_valid(), "Guard should be valid");
+
+  cudaStream_t stream = guard.get_stream();
+  TEST_ASSERT(stream != nullptr, "Should have valid stream");
+
+  // Test that the stream actually works
+  int *d_data;
+  cudaError_t err = cudaMalloc(&d_data, sizeof(int));
+  TEST_ASSERT(err == cudaSuccess, "Should allocate device memory");
+
+  err = cudaMemsetAsync(d_data, 0, sizeof(int), stream);
+  TEST_ASSERT(err == cudaSuccess, "Should do async memset");
+
+  err = cudaStreamSynchronize(stream);
+  TEST_ASSERT(err == cudaSuccess, "Should synchronize stream");
+
+  cudaFree(d_data);
+
+  return true;
+}
+
+// ==============================================================================
+// Test 7: Multiple pool instances
+// ==============================================================================
+bool test_multiple_pools() {
+  StreamPool pool1(2);
+  StreamPool pool2(4);
+  StreamPool pool3(8);
+
+  TEST_ASSERT(pool1.is_valid(), "Pool1 should be valid");
+  TEST_ASSERT(pool2.is_valid(), "Pool2 should be valid");
+  TEST_ASSERT(pool3.is_valid(), "Pool3 should be valid");
+
+  auto g1 = pool1.acquire();
+  auto g2 = pool2.acquire();
+  auto g3 = pool3.acquire();
+
+  TEST_ASSERT(g1.is_valid(), "Guard1 should be valid");
+  TEST_ASSERT(g2.is_valid(), "Guard2 should be valid");
+  TEST_ASSERT(g3.is_valid(), "Guard3 should be valid");
+
+  // Each pool should have independent streams
+  TEST_ASSERT(g1.get_stream() != g2.get_stream(),
+              "Streams should be different");
+  TEST_ASSERT(g2.get_stream() != g3.get_stream(),
+              "Streams should be different");
+
+  return true;
+}
+
+// ==============================================================================
+// Test 8: Stress test - rapid acquire/release
+// ==============================================================================
+bool test_stress_acquire_release() {
+  const int iterations = 1000;
+  StreamPool pool(4);
+
+  for (int i = 0; i < iterations; ++i) {
+    auto guard = pool.acquire();
+    TEST_ASSERT(guard.is_valid(), "Guard should be valid in iteration");
+
+    // Quick operation
+    cudaStream_t stream = guard.get_stream();
+    cudaStreamSynchronize(stream);
+
+    // Guard releases automatically
+  }
+
+  TEST_ASSERT_EQ(pool.available_count(), pool.size(),
+                 "All streams should be available after stress test");
+
+  return true;
+}
+
+// ==============================================================================
+// Test 9: Edge cases
+// ==============================================================================
+bool test_edge_cases() {
+  // Test pool with size 1
+  {
+    StreamPool pool(1);
+    TEST_ASSERT(pool.is_valid(), "Pool(1) should be valid");
+
+    auto g1 = pool.acquire();
+    TEST_ASSERT(g1.is_valid(), "Single stream guard should be valid");
+
+    // Try to acquire another - should block (we won't actually wait)
+    auto g2_opt = pool.acquire_for(1);
+    TEST_ASSERT(!g2_opt.has_value(),
+                "Should timeout waiting for single stream");
+  }
+
+  // Test that streams are properly released
+  {
+    StreamPool pool(2);
+
+    // Acquire and release multiple times to ensure proper recycling
+    for (int i = 0; i < 10; ++i) {
+      auto g1 = pool.acquire();
+      auto g2 = pool.acquire();
+      TEST_ASSERT(g1.is_valid() && g2.is_valid(),
+                  "Both guards should be valid");
+      // Guards release at end of iteration
+    }
+
+    TEST_ASSERT_EQ(pool.available_count(), 2,
+                   "Both streams should be available");
+  }
+
+  return true;
+}
+
+// ==============================================================================
+// Test 10: CUDA error handling
+// ==============================================================================
+bool test_cuda_error_handling() {
+  // This test verifies the pool handles CUDA errors gracefully
+  StreamPool pool(2);
+
+  auto guard = pool.acquire();
+  TEST_ASSERT(guard.is_valid(), "Guard should be valid");
+
+  cudaStream_t stream = guard.get_stream();
+
+  // Verify stream is functional
+  cudaError_t err = cudaStreamSynchronize(stream);
+  TEST_ASSERT(err == cudaSuccess, "Stream should be functional");
+
+  return true;
+}
+
+// ==============================================================================
+// Main test runner
+// ==============================================================================
+int main() {
+  printf("============================================================\n");
+  printf("Stream Pool Unit Tests - Memory Safety Verification\n");
+  printf("============================================================\n\n");
+
+  // Check CUDA availability
+  int device_count = 0;
+  cudaError_t err = cudaGetDeviceCount(&device_count);
+  if (err != cudaSuccess || device_count == 0) {
+    printf("[SKIP] No CUDA devices available, skipping tests\n");
     return 0;
-  } else {
-    std::cerr << "StreamPool test FAILED" << std::endl;
-    return 1;
   }
+
+  printf("Found %d CUDA device(s)\n\n", device_count);
+
+  // Run all tests
+  struct TestCase {
+    const char *name;
+    bool (*func)();
+  };
+
+  TestCase tests[] = {
+      {"Basic Pool Creation", test_basic_creation},
+      {"Stream Acquisition/Release", test_acquire_release},
+      {"Guard Validation", test_guard_validation},
+      {"Timeout Acquisition", test_timeout_acquisition},
+      {"Thread Safety", test_thread_safety},
+      {"Stream Functionality", test_stream_functionality},
+      {"Multiple Pools", test_multiple_pools},
+      {"Stress Test", test_stress_acquire_release},
+      {"Edge Cases", test_edge_cases},
+      {"CUDA Error Handling", test_cuda_error_handling},
+  };
+
+  const int num_tests = sizeof(tests) / sizeof(tests[0]);
+
+  for (int i = 0; i < num_tests; ++i) {
+    printf("Running: %s...\n", tests[i].name);
+    try {
+      if (tests[i].func()) {
+        test_passed(tests[i].name);
+      } else {
+        test_failed(tests[i].name);
+      }
+    } catch (const std::exception &e) {
+      fprintf(stderr, "[EXCEPTION] %s: %s\n", tests[i].name, e.what());
+      test_failed(tests[i].name);
+    } catch (...) {
+      fprintf(stderr, "[EXCEPTION] %s: Unknown exception\n", tests[i].name);
+      test_failed(tests[i].name);
+    }
+  }
+
+  printf("\n============================================================\n");
+  printf("Results: %d passed, %d failed out of %d tests\n", g_tests_passed,
+         g_tests_failed, num_tests);
+  printf("============================================================\n");
+
+  return g_tests_failed > 0 ? 1 : 0;
 }

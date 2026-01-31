@@ -1639,6 +1639,27 @@ public:
     DictionaryContent *d_dict_content = nullptr;
     unsigned char *d_dict_buffer = nullptr;
     if (has_dictionary) {
+      // Validate dictionary before use
+      if (!dict.raw_content || dict.raw_size == 0) {
+        return Status::ERROR_INVALID_PARAMETER;
+      }
+
+      // Check dictionary size bounds
+      if (dict.raw_size > dictionary::MAX_DICT_SIZE) {
+        return Status::ERROR_INVALID_PARAMETER;
+      }
+
+      // Check workspace has enough space for dictionary
+      size_t dict_workspace_needed =
+          align_to_boundary(sizeof(DictionaryContent), alignment) +
+          align_to_boundary(dict.raw_size, alignment);
+      if ((size_t)(workspace_ptr -
+                   static_cast<unsigned char *>(temp_workspace)) +
+              dict_workspace_needed >
+          temp_size) {
+        return Status::ERROR_BUFFER_TOO_SMALL;
+      }
+
       d_dict_content = reinterpret_cast<DictionaryContent *>(workspace_ptr);
       workspace_ptr =
           align_ptr(workspace_ptr + sizeof(DictionaryContent), alignment);
@@ -1647,7 +1668,6 @@ public:
       workspace_ptr = align_ptr(workspace_ptr + dict.raw_size, alignment);
 
       // Check if dictionary is already on device
-
       cudaPointerAttributes dict_attrs;
       cudaError_t dict_attr_err =
           cudaPointerGetAttributes(&dict_attrs, dict.raw_content);
@@ -1658,15 +1678,26 @@ public:
       if (dict_attr_err == cudaSuccess &&
           dict_attrs.type == cudaMemoryTypeDevice) {
         // Dictionary already on device, use device-to-device copy
-
-        CUDA_CHECK(cudaMemcpyAsync(d_dict_buffer, dict.raw_content,
-                                   dict.raw_size, cudaMemcpyDeviceToDevice,
-                                   stream));
+        cudaError_t memcpy_err =
+            cudaMemcpyAsync(d_dict_buffer, dict.raw_content, dict.raw_size,
+                            cudaMemcpyDeviceToDevice, stream);
+        if (memcpy_err != cudaSuccess) {
+          return Status::ERROR_CUDA_ERROR;
+        }
       } else {
         // Dictionary on host, use host-to-device copy
-        CUDA_CHECK(cudaMemcpyAsync(d_dict_buffer, dict.raw_content,
-                                   dict.raw_size, cudaMemcpyHostToDevice,
-                                   stream));
+        cudaError_t memcpy_err =
+            cudaMemcpyAsync(d_dict_buffer, dict.raw_content, dict.raw_size,
+                            cudaMemcpyHostToDevice, stream);
+        if (memcpy_err != cudaSuccess) {
+          return Status::ERROR_CUDA_ERROR;
+        }
+      }
+
+      // Synchronize to ensure dictionary upload is complete before use
+      cudaError_t sync_err = cudaStreamSynchronize(stream);
+      if (sync_err != cudaSuccess) {
+        return Status::ERROR_CUDA_ERROR;
       }
 
       // Set up DictionaryContent structure
@@ -1675,9 +1706,12 @@ public:
       h_dict_content.size = dict.raw_size;
       h_dict_content.dict_id = dict.header.dictionary_id;
 
-      CUDA_CHECK(cudaMemcpyAsync(d_dict_content, &h_dict_content,
-                                 sizeof(DictionaryContent),
-                                 cudaMemcpyHostToDevice, stream));
+      cudaError_t content_memcpy_err = cudaMemcpyAsync(
+          d_dict_content, &h_dict_content, sizeof(DictionaryContent),
+          cudaMemcpyHostToDevice, stream);
+      if (content_memcpy_err != cudaSuccess) {
+        return Status::ERROR_CUDA_ERROR;
+      }
     }
 
     // Check if uncompressed_data is already on device BEFORE
@@ -2971,7 +3005,15 @@ public:
 
     *is_last = (val & 1);
     u32 type = (val >> 1) & 3;
-    u32 size = (val >> 3);
+    // RFC 8878 Block Size decoding: Extract 21 bits from positions 3-23
+    // val bits 0-23: [Last:0][Type:1-2][Size:3-7][Size:8-15][Size:16-20]
+    // Byte 0 bits 3-7 = Size bits 0-4
+    // Byte 1 bits 0-7 = Size bits 5-12
+    // Byte 2 bits 0-7 = Size bits 13-20
+    u32 size =
+        ((val >> 3) & 0x1F) |         // 5 bits from byte 0
+        (((val >> 8) & 0xFF) << 5) |  // 8 bits from byte 1 (shifted by 5)
+        (((val >> 16) & 0xFF) << 13); // 8 bits from byte 2 (shifted by 13)
 
     *block_size = size;
     *header_size = 3;
@@ -3387,8 +3429,19 @@ public:
       }
     }
 
-    // Validate dictionary
-    if (!new_dict.raw_content || new_dict.raw_size == 0) {
+    // Validate dictionary parameters
+    if (!new_dict.raw_content) {
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+
+    // Validate dictionary size
+    if (new_dict.raw_size == 0) {
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+
+    // Check dictionary size bounds
+    if (new_dict.raw_size < dictionary::MIN_DICT_SIZE ||
+        new_dict.raw_size > dictionary::MAX_DICT_SIZE) {
       return Status::ERROR_INVALID_PARAMETER;
     }
 
@@ -3409,6 +3462,13 @@ public:
     if (load_status != Status::SUCCESS) {
       // Log warning but don't fail - some dictionaries may not have tables
       // and we can still use the raw content for matches
+      // Reset has_dictionary if critical error
+      if (load_status == Status::ERROR_OUT_OF_MEMORY) {
+        has_dictionary = false;
+        dict.raw_content = nullptr;
+        dict.raw_size = 0;
+        return load_status;
+      }
     }
 
     return Status::SUCCESS;
@@ -3431,7 +3491,18 @@ public:
    * @return Status::SUCCESS if tables loaded, error code otherwise
    */
   Status load_dictionary_tables(const dictionary::Dictionary &dict) {
-    if (!dict.raw_content || dict.raw_size < dictionary::MIN_DICT_SIZE) {
+    // Validate input parameters
+    if (!dict.raw_content) {
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+
+    // Check minimum dictionary size
+    if (dict.raw_size < dictionary::MIN_DICT_SIZE) {
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+
+    // Check maximum dictionary size to prevent overflow
+    if (dict.raw_size > dictionary::MAX_DICT_SIZE) {
       return Status::ERROR_INVALID_PARAMETER;
     }
 
@@ -3440,20 +3511,39 @@ public:
 
     // Verify magic number (first 4 bytes)
     if (remaining < 8) {
+      // Dictionary too small to contain header
+      // Not an error - may be raw content only
+      return Status::SUCCESS;
+    }
+
+    // Bounds-check before reading magic number
+    if (!ptr) {
       return Status::ERROR_INVALID_PARAMETER;
     }
 
-    u32 magic = *reinterpret_cast<const u32 *>(ptr);
+    u32 magic = 0;
+    // Safe copy instead of reinterpret_cast to avoid alignment issues
+    memcpy(&magic, ptr, sizeof(u32));
+
     if (magic != dictionary::DICT_MAGIC_NUMBER) {
       // Not a trained dictionary - may be raw content only
       // This is not an error, just means no entropy tables available
       return Status::SUCCESS;
     }
+
+    // Bounds check before advancing
+    if (remaining < 4) {
+      return Status::ERROR_CORRUPT_DATA;
+    }
     ptr += 4;
     remaining -= 4;
 
     // Read dictionary ID (next 4 bytes)
-    // u32 dict_id = *reinterpret_cast<const u32 *>(ptr);
+    if (remaining < 4) {
+      return Status::ERROR_CORRUPT_DATA;
+    }
+    // u32 dict_id = 0;
+    // memcpy(&dict_id, ptr, sizeof(u32));
     ptr += 4;
     remaining -= 4;
 
@@ -3461,8 +3551,12 @@ public:
     // Format: Huffman literals table, then FSE tables for ML and Offsets
 
     // Parse entropy tables header sizes from dict.header if available
-    if (dict.header.entropy_tables_size > 0 &&
-        dict.header.entropy_tables_size <= remaining) {
+    if (dict.header.entropy_tables_size > 0) {
+      // Validate entropy tables size against remaining buffer
+      if (dict.header.entropy_tables_size > remaining) {
+        return Status::ERROR_CORRUPT_DATA;
+      }
+
       // Dictionary has valid entropy tables section
       // The tables are parsed lazily during compression/decompression
       // when they are actually needed, using offsets from the header
@@ -3925,18 +4019,26 @@ private:
     u32 block_size = use_compressed ? compressed_size : original_size;
     u32 block_type = use_compressed ? 2 : 0; // 2 = Compressed, 0 = Raw
 
-    // Build 3-byte block header per RFC 8878:
-    // Byte 0: Last_Block(1) | Block_Type(2) | Block_Size(5 lower bits)
-    // Byte 1: Block_Size(8 middle bits)
-    // Byte 2: Block_Size(8 upper bits)
+    // RFC 8878 Block Header Encoding (3 bytes, little-endian):
+    // Bits 0:    Last_Block (1 bit)
+    // Bits 1-2:  Block_Type (2 bits: 0=Raw, 1=RLE, 2=Compressed)
+    // Bits 3-23: Block_Size (21 bits)
+    //
+    // Byte layout (little-endian):
+    // Byte 0: [Last_Block:0][Block_Type:1-2][Block_Size:3-7] (5 bits)
+    // Byte 1: [Block_Size:8-15] (8 bits)
+    // Byte 2: [Block_Size:16-23] (8 bits)
     unsigned char header[3];
     u32 last_bit = is_last ? 1 : 0;
-    u32 type_bits = block_type << 1; // Type occupies bits 1-2
+    u32 type_bits = (block_type & 0x03) << 1; // Type occupies bits 1-2
 
+    // Extract 5 lowest bits of size and place at bits 3-7
     header[0] =
-        (unsigned char)((block_size & 0x07) << 3) | type_bits | last_bit;
-    header[1] = (unsigned char)((block_size >> 3) & 0xFF);
-    header[2] = (unsigned char)((block_size >> 11) & 0xFF);
+        (unsigned char)(((block_size & 0x1F) << 3) | type_bits | last_bit);
+    // Next 8 bits of size (bits 5-12)
+    header[1] = (unsigned char)((block_size >> 5) & 0xFF);
+    // Final 8 bits of size (bits 13-20)
+    header[2] = (unsigned char)((block_size >> 13) & 0xFF);
 
     // Write header
     CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset, header, 3,

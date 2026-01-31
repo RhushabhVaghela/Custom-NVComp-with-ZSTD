@@ -9,7 +9,6 @@
 #include <queue>
 #include <vector>
 
-
 namespace cuda_zstd {
 
 class StreamPool {
@@ -26,7 +25,19 @@ public:
     Guard &operator=(Guard &&) noexcept = default;
     Guard(const Guard &) = delete;
     Guard &operator=(const Guard &) = delete;
-    cudaStream_t get_stream() const { return resources_->stream; }
+
+    // Get the CUDA stream - returns nullptr if guard is invalid
+    cudaStream_t get_stream() const {
+      return resources_ ? resources_->stream : nullptr;
+    }
+
+    // Check if this guard is valid and can be used
+    bool is_valid() const {
+      return pool_ != nullptr && resources_ != nullptr && idx_ >= 0;
+    }
+
+    // Get the pool index (for debugging)
+    int get_index() const { return idx_; }
 
   private:
     StreamPool *pool_;
@@ -40,7 +51,14 @@ public:
   // Return the configured size of the pool (number of streams)
   size_t size() const { return resources_.size(); }
 
+  // Check if the pool is valid and has working streams
+  bool is_valid() const { return !resources_.empty(); }
+
+  // Return the number of available (free) streams
+  size_t available_count() const;
+
   // Acquire a stream and its associated resources, blocking if none available
+  // Returns an invalid Guard if pool has no streams - always check is_valid()
   Guard acquire();
 
   // Acquire a stream with a timeout (milliseconds). Returns an empty optional
@@ -54,7 +72,7 @@ public:
 private:
   std::vector<PerStreamResources> resources_;
   std::queue<int> free_idx_;
-  std::mutex mtx_;
+  mutable std::mutex mtx_;
   std::condition_variable cv_;
 
   // Internal helpers
