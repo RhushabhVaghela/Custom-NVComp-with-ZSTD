@@ -3914,7 +3914,7 @@ private:
 
     bool single_segment = (fhd >> 5) & 0x01;
     bool has_dict_id = (fhd & 0x03) != 0;
-    bool has_content_size = (fhd & 0xC0) != 0;
+    // Note: (fhd & 0xC0) indicates content size field presence in header
     bool checksum_flag = (fhd >> 2) & 0x01;
 
     if (is_single_segment)
@@ -4018,7 +4018,6 @@ private:
     }
 
     // Determine block type and size
-    bool is_rle = false; // RLE detection would require additional logic
     u32 block_size = use_compressed ? compressed_size : original_size;
     u32 block_type = use_compressed ? 2 : 0; // 2 = Compressed, 0 = Raw
 

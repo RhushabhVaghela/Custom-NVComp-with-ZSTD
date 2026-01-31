@@ -281,14 +281,18 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
   // We strictly enforcing AL=6 and starting from bit 0 matches libzstd
   // behavior.
 
-  u32 accuracy_log = 6;
+  // Read Accuracy Log (4 bits) - RFC 8878 Section 4.2.1.2
+  u32 accuracy_log = h_input[0] & 0x0F;
+  if (accuracy_log > 6) {
+    fprintf(stderr, "[ERROR] Huffman FSE Accuracy Log too large: %u > 6\n",
+            accuracy_log);
+    return Status::ERROR_CORRUPT_DATA;
+  }
 
   constexpr u32 MAX_HUF_ALPHABET = 12; // weights 0-11
-  constexpr u32 MAX_TABLE_SIZE = 64;   // 2^6
-
   u32 table_size = 1 << accuracy_log;
   i16 norm_counts[MAX_HUF_ALPHABET] = {0};
-  u32 bit_pos_header = 0; // Start at 0, skipping explicit AL read
+  u32 bit_pos_header = 4; // Start after 4 bits of AL
   i32 remaining = table_size;
   u32 symbol = 0;
 
@@ -360,6 +364,10 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
     return Status::ERROR_CORRUPT_DATA;
   }
 
+  // MAX_TABLE_SIZE is the maximum size for FSE/Huffman tables
+  // Based on ZSTD spec: max table size is 2^12 = 4096 for FSE
+  // Using 4096 to accommodate all valid table sizes
+  const u32 MAX_TABLE_SIZE = 4096;
   u8 table_symbol[MAX_TABLE_SIZE] = {0};
   u32 step = (table_size >> 1) + (table_size >> 3) + 3;
   u32 mask = table_size - 1;
