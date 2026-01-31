@@ -375,27 +375,16 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
   // I will implement `deltaFindState = s_cum_freq[s] - 1`. This is the standard
   // Zstd implementation line.
 
-  // ZSTD uses -1, but we experienced state underflow (0 -> -1 -> huge).
-  // Trying raw cumul to keep state positive.
+  // Simplified correct formula: deltaFindState = cumulative_frequency
+  // This ensures state transitions properly within the symbol's state range
   for (u32 s = tid; s <= max_symbol; s += blockDim.x) {
-    if ((i16)normalized_counters[s] == 0)
-      continue;
-    // Recalculate minStatePlus for deltaFindState
-    u32 freq = normalized_counters[s];
-    u32 maxBitsOut;
-    if (freq == 1) {
-      maxBitsOut = table_log;
-    } else {
-      maxBitsOut = table_log - get_highest_bit(freq - 1);
-    }
-    u32 minStatePlus = freq << maxBitsOut;
-
-    // Zstd Formula:
-    // deltaFindState = tableSize + cumFreq - 1 - minStatePlus
-    u32 tableSize = 1 << table_log;
-    i32 delta = (i32)(tableSize + s_cum_freq[s] - 1) - (i32)minStatePlus;
-
-    table->d_symbol_table[s].deltaFindState = delta;
+    if ((i16)normalized_counters[s] <= 0)
+      continue; // Skip 0 and -1 symbols
+    
+    // The encoder transitions: state = (state >> nbBits) + deltaFindState
+    // We want the new state to be in range [cum[s], cum[s] + freq[s] - 1]
+    // So deltaFindState = cum[s] maps (state >> nbBits) to the correct slot
+    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s];
   }
 
   __syncthreads();
@@ -415,10 +404,12 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
     }
 
     // 2a. High Threshold: Place -1 symbols at the end
+    // Per RFC 8878: low-probability symbols get 1 slot at high positions
     u32 high_threshold = tableSize - 1;
     for (u32 s = 0; s <= max_symbol; s++) {
       if ((i16)normalized_counters[s] == -1) {
-        table->d_symbol_first_state[s] = (u16)(tableSize + high_threshold);
+        // State value must match decoder: just the position, not tableSize + pos
+        table->d_symbol_first_state[s] = (u16)high_threshold;
         high_threshold--;
       }
     }
@@ -435,8 +426,10 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
           pos = (pos + step) & mask;
         }
 
+        // Only record the first state for this symbol (matches decoder's first slot)
         if (table->d_symbol_first_state[s] == 0) {
-          table->d_symbol_first_state[s] = (u16)(tableSize + pos);
+          // State value must match decoder: just the position
+          table->d_symbol_first_state[s] = (u16)pos;
         }
         pos = (pos + step) & mask;
       }
