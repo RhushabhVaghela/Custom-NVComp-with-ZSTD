@@ -3,6 +3,7 @@
 #include "cuda_zstd_fse_encoding_kernel.h"
 #include "cuda_zstd_utils.h"
 #include <cooperative_groups.h>
+#include <stdio.h>
 
 // Fix for Windows macro collision
 #ifdef ERROR_INVALID_PARAMETER
@@ -41,8 +42,15 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
     const u8 *__restrict__ d_ml_bits, u32 num_symbols,
     unsigned char *__restrict__ output_bitstream, size_t *output_pos,
     size_t bitstream_capacity, const FSEEncodeTable *table) {
+  // Only thread 0 does the encoding (FSE is inherently sequential)
   if (threadIdx.x != 0 || num_symbols == 0 || bitstream_capacity == 0)
     return;
+  
+  // Validate input pointers
+  if (!d_ll_codes || !d_of_codes || !d_ml_codes || !output_bitstream || !output_pos || !table) {
+    if (output_pos) *output_pos = 0;
+    return;
+  }
 
   unsigned char *ptr = output_bitstream;
   unsigned char *end_limit = output_bitstream + bitstream_capacity;
@@ -52,7 +60,7 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   auto write_bits = [&](u64 val, u32 nbBits) {
     if (nbBits == 0)
       return;
-    val &= ((1ULL << nbBits) - 1); // CRITICAL FIX: Mask higher bits!
+    // val &= ((1ULL << nbBits) - 1); // CRITICAL FIX: Mask higher bits!
     bitContainer |= (val << bitCount);
     bitCount += nbBits;
     while (bitCount >= 8) {
@@ -64,27 +72,48 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
     }
   };
 
+  if (threadIdx.x == 0)
+    printf("[GPU_ENC] START Seq0\n");
+
   // 1. Initialize States with SEQUENCE 0 (Start of Chain)
   // We encode Forward: 0 -> 1 -> ... -> N-1
   // Final State corresponds to N-1
   u32 start_idx = 0;
 
+  // Validate table pointers before dereferencing
+  if (!table[0].d_symbol_first_state || !table[1].d_symbol_first_state || !table[2].d_symbol_first_state) {
+    *output_pos = 0;
+    return;
+  }
+  
+  // Validate max_symbol bounds
+  u8 ll_code = d_ll_codes[start_idx];
+  u8 of_code = d_of_codes[start_idx];
+  u8 ml_code = d_ml_codes[start_idx];
+  
+  if (ll_code > table[0].max_symbol || of_code > table[1].max_symbol || ml_code > table[2].max_symbol) {
+    *output_pos = 0;
+    return;
+  }
+
   // Use d_symbol_first_state to get a VALID starting state for Seq 0
-  u32 stateLL = table[0].d_symbol_first_state[d_ll_codes[start_idx]];
-  u32 stateOF = table[1].d_symbol_first_state[d_of_codes[start_idx]];
-  u32 stateML = table[2].d_symbol_first_state[d_ml_codes[start_idx]];
+  u32 stateLL = table[0].d_symbol_first_state[ll_code];
+  u32 stateOF = table[1].d_symbol_first_state[of_code];
+  u32 stateML = table[2].d_symbol_first_state[ml_code];
 
   // 2. Write Extra Bits for SEQUENCE 0 FIRST
   // Decoder reads these LAST (for Seq 0), so physically they must be at START
   // (Low Addr)
-  write_bits(d_of_extras[0], d_of_bits[0]);
   write_bits(d_ml_extras[0], d_ml_bits[0]);
+  write_bits(d_of_extras[0], d_of_bits[0]);
   write_bits(d_ll_extras[0], d_ll_bits[0]);
 
   // 3. Loop 0 to N-2 (Transition states)
   // Encodes Sequence i+1 using State i, producing State i+1
   if (num_symbols > 1) {
     for (u32 i = 0; i < num_symbols - 1; i++) {
+      if (threadIdx.x == 0 && i < 3)
+        printf("[GPU_ENC] LOOP %u\n", i);
       // Encode Seq i+1
       // Tables: LL=0, OF=1, ML=2
       // Sub-State (Current) is used as 'nextState' base?
@@ -103,33 +132,53 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
       // Literal Length (Table 0)
       {
         u8 code = d_ll_codes[next_idx];
+        // Validate symbol code is within table bounds
+        if (!table[0].d_symbol_table || code > table[0].max_symbol) {
+          *output_pos = 0;
+          return;
+        }
         auto sym = table[0].d_symbol_table[code];
         // Encode transition from Current State to Next State (valid for code)
         u32 nbBitsOut = (stateLL + sym.deltaNbBits) >> 16;
-        write_bits(stateLL & ((1 << nbBitsOut) - 1), nbBitsOut);
+        if (nbBitsOut > 0) {
+          write_bits(stateLL & ((1ULL << nbBitsOut) - 1), nbBitsOut);
+        }
         stateLL = (stateLL >> nbBitsOut) + sym.deltaFindState;
       }
 
       // Match Length (Table 2)
       {
         u8 code = d_ml_codes[next_idx];
+        // Validate symbol code is within table bounds
+        if (!table[2].d_symbol_table || code > table[2].max_symbol) {
+          *output_pos = 0;
+          return;
+        }
         auto sym = table[2].d_symbol_table[code];
         u32 nbBitsOut = (stateML + sym.deltaNbBits) >> 16;
-        write_bits(stateML & ((1 << nbBitsOut) - 1), nbBitsOut);
+        if (nbBitsOut > 0) {
+          write_bits(stateML & ((1ULL << nbBitsOut) - 1), nbBitsOut);
+        }
         stateML = (stateML >> nbBitsOut) + sym.deltaFindState;
       }
 
       // Offset (Table 1)
       {
         u8 code = d_of_codes[next_idx];
+        // Validate symbol code is within table bounds
+        if (!table[1].d_symbol_table || code > table[1].max_symbol) {
+          *output_pos = 0;
+          return;
+        }
         auto sym = table[1].d_symbol_table[code];
         u32 nbBitsOut = (stateOF + sym.deltaNbBits) >> 16;
-        write_bits(stateOF & ((1 << nbBitsOut) - 1), nbBitsOut);
+        if (nbBitsOut > 0) {
+          write_bits(stateOF & ((1ULL << nbBitsOut) - 1), nbBitsOut);
+        }
         stateOF = (stateOF >> nbBitsOut) + sym.deltaFindState;
       }
 
-      // Write Extra Bits for Seq i+1
-      // These will be read by Decoder when processing Seq i+1
+      // Revert Swap: OF, ML, LL
       write_bits(d_of_extras[next_idx], d_of_bits[next_idx]);
       write_bits(d_ml_extras[next_idx], d_ml_bits[next_idx]);
       write_bits(d_ll_extras[next_idx], d_ll_bits[next_idx]);
@@ -154,6 +203,9 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   }
 
   *output_pos = ptr - output_bitstream;
+  if (threadIdx.x == 0) {
+    printf("[GPU_ENC] END LB=%02X\n", (unsigned int)*(ptr - 1));
+  }
 }
 
 // -----------------------------------------------------------------------------
