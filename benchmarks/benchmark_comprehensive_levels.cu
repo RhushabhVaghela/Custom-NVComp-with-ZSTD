@@ -1,8 +1,10 @@
 // benchmark_comprehensive_levels.cu
-// Comprehensive Compression Benchmark for Levels 1-22 and Data Sizes 1MB-10GB
-// Tests: Encoding-only, Decoding-only, Full Pipeline (Encode+Decode)
+// Comprehensive Compression Benchmark for Levels 1-22 and Data Sizes 1MB-256MB
+// Modified for Asus Zephyrus G16 (32GB RAM / 16GB VRAM) - Reduced from 1GB to
+// 256MB max Tests: Encoding-only, Decoding-only, Full Pipeline (Encode+Decode)
 // Measures: Throughput (MB/s), Duration (ms), Compression Ratio
 // Validates: 100% data integrity with checksums
+// Safety: Max 4GB VRAM per benchmark to prevent system instability
 
 #include "cuda_zstd_hash.h"
 #include "cuda_zstd_manager.h"
@@ -32,16 +34,19 @@ using namespace cuda_zstd;
     }                                                                          \
   } while (0)
 
-// Hardware-safe constants
-#define MAX_VRAM_PER_BENCHMARK (8ULL * 1024 * 1024 * 1024) // 8GB max
+// Hardware-safe constants for Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
+#define MAX_VRAM_PER_BENCHMARK                                                 \
+  (4ULL * 1024 * 1024 * 1024) // 4GB max per benchmark
 #define MAX_OUTPUT_MULTIPLIER 1.5f
+#define MAX_SAFE_DATA_SIZE (256ULL * 1024 * 1024) // 256MB max per test
 
-// Data sizes to test (representative subset)
+// Data sizes to test (reduced for 16GB VRAM constraint)
+// Note: Removed 1GB test to prevent memory exhaustion
 const size_t DATA_SIZES[] = {
     1ULL * 1024 * 1024,   // 1 MB
     10ULL * 1024 * 1024,  // 10 MB
     100ULL * 1024 * 1024, // 100 MB
-    1024ULL * 1024 * 1024 // 1 GB
+    256ULL * 1024 * 1024  // 256 MB (reduced from 1GB for hardware safety)
 };
 const int NUM_DATA_SIZES = 4;
 
@@ -609,7 +614,8 @@ void print_summary(const std::vector<BenchmarkResult> &results) {
 int main(int argc, char **argv) {
   std::cout << "========================================\n";
   std::cout << "  CUDA ZSTD Comprehensive Benchmark\n";
-  std::cout << "  Levels 1-22, Sizes 1MB-1GB\n";
+  std::cout << "  Levels 1-22, Sizes 1MB-256MB (G16 Safe)\n";
+  std::cout << "  Max VRAM per test: 4GB\n";
   std::cout << "========================================\n\n";
 
   // Parse arguments

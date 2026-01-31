@@ -106,7 +106,6 @@ void benchmark_decode(size_t input_size, int iterations) {
     std::vector<byte_t> header_bytes(32);
     CHECK(cudaMemcpy(header_bytes.data(), d_compressed, 32,
                      cudaMemcpyDeviceToHost));
-    printf("[DEBUG] First 32 bytes of compressed data:\n");
     for (int i = 0; i < 32; i++) {
       printf("%02X ", header_bytes[i]);
       if ((i + 1) % 16 == 0)

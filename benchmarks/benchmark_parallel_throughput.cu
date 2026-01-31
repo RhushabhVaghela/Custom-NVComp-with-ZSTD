@@ -3,6 +3,9 @@
 //
 // Measures throughput (GB/s) of generic compress with multiple streams
 // vs single stream serialization using NVCOMP API.
+//
+// Compatible with Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
+// - Uses 16MB data size (well within 16GB VRAM constraint)
 // ============================================================================
 
 #include "../include/benchmark_results.h"
@@ -16,7 +19,6 @@
 #include <memory>
 #include <random>
 #include <vector>
-
 
 using namespace cuda_zstd;
 using namespace cuda_zstd::nvcomp_v5;

@@ -40,3 +40,21 @@ STICKY ERROR after Test #143: invalid argument
 FAILED: Logarithmic on 128 MB (Parallel)
 FAILED: Linear_128 on 128 MB (Parallel)
 FAILED: CubeRoot_K150 on 128 MB (Parallel)
+FAILED: Fixed_128KB on 256 MB (Parallel)
+STICKY ERROR after Test #148: invalid argument
+FAILED: Fixed_256KB on 256 MB (Parallel)
+STICKY ERROR after Test #149: invalid argument
+FAILED: Fixed_512KB on 256 MB (Parallel)
+STICKY ERROR after Test #150: invalid argument
+FAILED: Fixed_1MB on 256 MB (Parallel)
+STICKY ERROR after Test #151: invalid argument
+FAILED: Fixed_2MB on 256 MB (Parallel)
+STICKY ERROR after Test #152: invalid argument
+FAILED: CubeRoot_K150 on 256 MB (Parallel)
+FAILED: Fixed_128KB on 512 MB (Parallel)
+FAILED: Fixed_256KB on 512 MB (Parallel)
+FAILED: Fixed_512KB on 512 MB (Parallel)
+FAILED: Fixed_1MB on 512 MB (Parallel)
+FAILED: Fixed_2MB on 512 MB (Parallel)
+FAILED: CubeRoot_K150 on 512 MB (Serial)
+FAILED: CubeRoot_K150 on 512 MB (Parallel)

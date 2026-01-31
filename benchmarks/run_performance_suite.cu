@@ -3,6 +3,10 @@
 // ==============================================================================
 // Runs compression/decompression across a range of chunk sizes and reports
 // throughput.
+//
+// Modified for Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
+// - Reduced ops_per_run from 50 to 25 to prevent memory accumulation
+// - Safe for 16GB VRAM constraint
 
 #include <chrono>
 #include <cuda_runtime.h>
@@ -61,7 +65,7 @@ Result benchmark_size(size_t size, int runs = 5, int warmup = 2) {
   }
 
   // Throughput Measurement: Pipelined
-  const int ops_per_run = 50; // Queue 50 ops per run to hide latency
+  const int ops_per_run = 25; // Reduced from 50 for 16GB VRAM safety
   // Increase runs to get meaningful time
   int actual_runs = (runs < 10 && size < 1024 * 1024) ? 50 : runs;
 

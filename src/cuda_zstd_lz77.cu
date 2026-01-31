@@ -42,8 +42,8 @@ struct HashUpdate {
  * Uses __vcrc32() for fast, high-quality hashing with better distribution
  * than multiplication-based hashing. Reduces collisions by 10-15%.
  */
-__device__ __forceinline__ u32 crc32_hash(const unsigned char *data, u32 min_match,
-                                          u32 hash_log) {
+__device__ __forceinline__ u32 crc32_hash(const unsigned char *data,
+                                          u32 min_match, u32 hash_log) {
   // Read 4 bytes for CRC32 (min_match is typically 3-4)
   u32 value = 0;
   if (min_match >= 4) {
@@ -79,14 +79,16 @@ __device__ __forceinline__ u32 crc32_hash(const unsigned char *data, u32 min_mat
  * - Hash distribution: 10-15% fewer collisions
  * - Memory bandwidth: ~50-100 GB/s -> ~400-600 GB/s
  */
-__global__ void build_hash_chains_kernel(const unsigned char *input, u32 input_size,
+__global__ void build_hash_chains_kernel(const unsigned char *input,
+                                         u32 input_size,
                                          const DictionaryContent *dict,
                                          hash::HashTable hash_table,
                                          hash::ChainTable chain_table,
                                          u32 min_match, u32 hash_log) {
   // Shared memory for tiled processing
-  __shared__ unsigned char s_input_tile[2048 + 64]; // 2KB tile + margin for lookahead
-  __shared__ HashUpdate s_updates[512];      // Hash updates for this block
+  __shared__ unsigned char
+      s_input_tile[2048 + 64];          // 2KB tile + margin for lookahead
+  __shared__ HashUpdate s_updates[512]; // Hash updates for this block
   __shared__ u32 s_update_count;
   __shared__ u32 s_radix_counts[256]; // For 8-bit radix sort
 
@@ -190,23 +192,11 @@ __global__ void build_hash_chains_kernel(const unsigned char *input, u32 input_s
           if (h >= hash_table.size) {
             if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
                          // g_debug_print_limit) {
-              //                             printf("[DEBUG]
-              //                             build_hash_chains_kernel OOB
-              //                             hash=%u hash_size=%u pos=%u
-              //                             block=%d thread=%d\n", h,
-              //                             hash_table.size, pos, blockIdx.x,
-              //                             threadIdx.x);
             }
           }
           if (pos >= chain_table.size) {
             if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
                          // g_debug_print_limit) {
-              //                             printf("[DEBUG]
-              //                             build_hash_chains_kernel OOB pos=%u
-              //                             chain_size=%u block=%d
-              //                             thread=%d\n", pos,
-              //                             chain_table.size, blockIdx.x,
-              //                             threadIdx.x);
             }
           }
 #endif
@@ -324,16 +314,8 @@ __global__ void build_hash_chains_kernel(const unsigned char *input, u32 input_s
         u32 prev_pos = atomicExch(&hash_table.table[h], pos);
 #if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
         if (h >= hash_table.size) {
-          //                     printf("[DEBUG] build_hash_chains_kernel
-          //                     (input) OOB hash=%u hash_size=%u pos=%u
-          //                     block=%d thread=%d\n", h, hash_table.size, pos,
-          //                     blockIdx.x, threadIdx.x);
         }
         if (pos >= chain_table.size) {
-          //                     printf("[DEBUG] build_hash_chains_kernel
-          //                     (input) OOB pos=%u chain_size=%u block=%d
-          //                     thread=%d\n", pos, chain_table.size,
-          //                     blockIdx.x, threadIdx.x);
         }
 #endif
         // Guard: avoid OOB writes into the chain_table when chain size
@@ -389,8 +371,8 @@ __device__ inline u32 match_length(const unsigned char *input,
 }
 
 __device__ inline Match
-find_best_match_parallel(const unsigned char *input, u32 current_pos, u32 input_size,
-                         const DictionaryContent *dict,
+find_best_match_parallel(const unsigned char *input, u32 current_pos,
+                         u32 input_size, const DictionaryContent *dict,
                          const hash::HashTable &hash_table,
                          const hash::ChainTable &chain_table,
                          const LZ77Config &config, u32 window_min) {
@@ -564,11 +546,6 @@ find_best_match_parallel(const unsigned char *input, u32 current_pos, u32 input_
     if (match_candidate_pos >= chain_table.size) {
       if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
                    // g_debug_print_limit) {
-        //                 printf("[DEBUG] find_best_match_parallel OOB
-        //                 match_candidate_pos=%u chain_size=%u idx=%u
-        //                 current_global_pos=%u\n",
-        //                        match_candidate_pos, chain_table.size,
-        //                        current_pos, current_global_pos);
       }
     }
 #endif
@@ -682,11 +659,6 @@ __global__ void parallel_find_all_matches_kernel(
   // Low-volume debug prints: throttle via bitmask so console isn't flooded.
   const u32 DEBUG_LOG_STRIDE = 1u << 16; // print once every 65536 idx
   if ((idx & (DEBUG_LOG_STRIDE - 1)) == 0u) {
-    //         printf("[DEBUG] parallel_find_all_matches_kernel: idx=%u
-    //         current_global_pos=%u dict_size=%u window_min=%u hash_size=%u
-    //         chain_size=%u\n",
-    //                idx, current_global_pos, dict_size, window_min,
-    //                hash_table.size, chain_table.size);
   }
 #endif
 
@@ -884,11 +856,11 @@ not stack
  * SAFETY: All memory pre-allocated, no shared buffers, thread-safe writes
  */
 __global__ void reverse_and_build_sequences_kernel(
-    const unsigned char *input, u32 input_size, const u32 *d_literal_lengths_reverse,
-    const u32 *d_match_lengths_reverse, const u32 *d_offsets_reverse,
-    u32 num_sequences, u32 *d_literal_lengths, u32 *d_match_lengths,
-    u32 *d_offsets, unsigned char *d_literals_buffer, u32 *d_total_literals_count,
-    bool output_raw_values) {
+    const unsigned char *input, u32 input_size,
+    const u32 *d_literal_lengths_reverse, const u32 *d_match_lengths_reverse,
+    const u32 *d_offsets_reverse, u32 num_sequences, u32 *d_literal_lengths,
+    u32 *d_match_lengths, u32 *d_offsets, unsigned char *d_literals_buffer,
+    u32 *d_total_literals_count, bool output_raw_values) {
   u32 tid = blockIdx.x * blockDim.x + threadIdx.x;
 
   // Phase 1: Reverse sequences (Parallel)
@@ -995,10 +967,11 @@ Status free_lz77_context(LZ77Context &ctx) {
   return Status::SUCCESS;
 }
 
-Status find_matches(LZ77Context &ctx, const unsigned char *d_input, size_t input_size,
-                    const DictionaryContent *dict,
-                    CompressionWorkspace *workspace, const unsigned char *d_window,
-                    size_t window_size, cudaStream_t stream) {
+Status find_matches(LZ77Context &ctx, const unsigned char *d_input,
+                    size_t input_size, const DictionaryContent *dict,
+                    CompressionWorkspace *workspace,
+                    const unsigned char *d_window, size_t window_size,
+                    cudaStream_t stream) {
   if (!d_input || input_size == 0 || !workspace) {
     return Status::ERROR_INVALID_PARAMETER;
   }

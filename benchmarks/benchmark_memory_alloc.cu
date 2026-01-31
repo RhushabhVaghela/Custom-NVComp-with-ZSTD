@@ -3,13 +3,16 @@
 //
 // Measures overhead of cudaMalloc/cudaFree during compression loop.
 // Helps justify the need for a Memory Pool (Phase 2).
+//
+// Compatible with Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
+// - Max allocation size: 32MB (well within hardware limits)
+// - Max iterations: 100 (low memory pressure)
 // ============================================================================
 
 #include "cuda_error_checking.h"
 #include <chrono>
 #include <iostream>
 #include <vector>
-
 
 void benchmark_allocations(size_t size, int iterations) {
   std::cout << "Benchmarking Alloc/Free: Size=" << size

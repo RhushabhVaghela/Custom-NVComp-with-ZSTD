@@ -3,6 +3,9 @@
  *
  * Measures end-to-end throughput using PipelinedBatchManager
  * with overlapping H2D, Compute, D2H transfers.
+ *
+ * Modified for Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
+ * - Reduced dataset from 512MB to 256MB to prevent memory exhaustion
  */
 
 #include "../src/pipeline_manager.hpp"
@@ -42,9 +45,9 @@ int main() {
   std::cout << "======================================================\n"
             << std::endl;
 
-  // Dataset: 512MB (reduced from 4GB to prevent memory issues)
+  // Dataset: 256MB (reduced from 512MB for Asus Zephyrus G16 - 16GB VRAM)
   // For larger datasets, ensure sufficient RAM and use chunked processing
-  const size_t DATA_SIZE = 512ULL * 1024 * 1024;
+  const size_t DATA_SIZE = 256ULL * 1024 * 1024;
   std::cout << "Allocating and generating " << (DATA_SIZE >> 20)
             << "MB synthetic data..." << std::endl;
 

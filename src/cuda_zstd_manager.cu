@@ -3278,19 +3278,40 @@ public:
         write_offset += decompressed_size;
         read_offset += blk_size;
       } else if (blk_is_rle) {
-        unsigned char rle_byte;
-        CUDA_CHECK(cudaMemcpy(&rle_byte, d_input + read_offset, 1,
-                              cudaMemcpyDeviceToHost));
-        const u32 threads = 256;
-        const u32 blocks = (blk_size + threads - 1) / threads;
-        expand_rle_kernel<<<blocks, threads, 0, stream>>>(
-            d_output + write_offset, blk_size, rle_byte);
+        // Validate output bounds for RLE expansion
+        if (write_offset + blk_size > d_output_max_size) {
+          return Status::ERROR_BUFFER_TOO_SMALL;
+        }
+        // Handle empty RLE block (blk_size = 0)
+        if (blk_size > 0) {
+          unsigned char rle_byte;
+          CUDA_CHECK(cudaMemcpy(&rle_byte, d_input + read_offset, 1,
+                                cudaMemcpyDeviceToHost));
+          const u32 threads = 256;
+          const u32 blocks = (blk_size + threads - 1) / threads;
+          // Ensure at least 1 block for kernel launch
+          if (blocks > 0) {
+            expand_rle_kernel<<<blocks, threads, 0, stream>>>(
+                d_output + write_offset, blk_size, rle_byte);
+          }
+        }
         write_offset += blk_size;
         read_offset += 1;
       } else { // RAW
-        CUDA_CHECK(cudaMemcpyAsync(d_output + write_offset,
-                                   d_input + read_offset, blk_size,
-                                   cudaMemcpyDeviceToDevice, stream));
+        // Validate input bounds before reading
+        if (read_offset + blk_size > h_compressed_size_remaining) {
+          return Status::ERROR_CORRUPT_DATA;
+        }
+        // Validate output bounds before writing
+        if (write_offset + blk_size > d_output_max_size) {
+          return Status::ERROR_BUFFER_TOO_SMALL;
+        }
+        // Handle empty Raw block (blk_size = 0) - skip memcpy
+        if (blk_size > 0) {
+          CUDA_CHECK(cudaMemcpyAsync(d_output + write_offset,
+                                     d_input + read_offset, blk_size,
+                                     cudaMemcpyDeviceToDevice, stream));
+        }
         write_offset += blk_size;
         read_offset += blk_size;
       }
@@ -3899,24 +3920,44 @@ private:
       // Debug logic removed
     }
 
-    // Continue implementation or return success matching logic flow
-    // If this was the end of logic, we should return.
-    // Looking at previous patterns, write_block likely copies data.
-    // Use compressed if better.
+    // Determine block type and size
+    bool is_rle = false; // RLE detection would require additional logic
+    u32 block_size = use_compressed ? compressed_size : original_size;
+    u32 block_type = use_compressed ? 2 : 0; // 2 = Compressed, 0 = Raw
+
+    // Build 3-byte block header per RFC 8878:
+    // Byte 0: Last_Block(1) | Block_Type(2) | Block_Size(5 lower bits)
+    // Byte 1: Block_Size(8 middle bits)
+    // Byte 2: Block_Size(8 upper bits)
+    unsigned char header[3];
+    u32 last_bit = is_last ? 1 : 0;
+    u32 type_bits = block_type << 1; // Type occupies bits 1-2
+
+    header[0] =
+        (unsigned char)((block_size & 0x07) << 3) | type_bits | last_bit;
+    header[1] = (unsigned char)((block_size >> 3) & 0xFF);
+    header[2] = (unsigned char)((block_size >> 11) & 0xFF);
+
+    // Write header
+    CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset, header, 3,
+                               cudaMemcpyHostToDevice, stream));
+    *compressed_offset += 3;
+
+    // Write block content
     if (use_compressed) {
-      if (compressed_data) {
-        cudaMemcpyAsync(output + *compressed_offset, compressed_data,
-                        compressed_size, cudaMemcpyDeviceToDevice, stream);
+      if (compressed_data && compressed_size > 0) {
+        CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset, compressed_data,
+                                   compressed_size, cudaMemcpyDeviceToDevice,
+                                   stream));
       }
     } else {
-      if (original_data) {
-        cudaMemcpyAsync(output + *compressed_offset, original_data,
-                        original_size, cudaMemcpyDeviceToDevice, stream);
-        // Store size as uncompressed? Depends on format.
-        // Assuming minimal implementation correct for cleanup context
+      if (original_data && original_size > 0) {
+        CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset, original_data,
+                                   original_size, cudaMemcpyDeviceToDevice,
+                                   stream));
       }
     }
-    *compressed_offset += (use_compressed ? compressed_size : original_size);
+    *compressed_offset += block_size;
 
     return Status::SUCCESS;
   }

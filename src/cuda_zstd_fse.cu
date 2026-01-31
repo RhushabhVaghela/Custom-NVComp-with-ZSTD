@@ -4159,6 +4159,11 @@ __host__ Status decode_sequences_interleaved(
   if (h_ml_ptr)
     copy_table_to_device(*h_ml_ptr, d_ml, stream);
 
+  // CRITICAL FIX: Synchronize stream to ensure table data is fully copied
+  // before kernel launch. The async copies above must complete before
+  // the kernel accesses the table pointers.
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+
   // Launch Kernel
   if (input_size > 0) {
     unsigned char last_byte = 0;

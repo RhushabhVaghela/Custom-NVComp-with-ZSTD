@@ -1,3 +1,8 @@
+// benchmark_batch_throughput.cu
+// Batch throughput benchmark for CUDA ZSTD
+// Modified for Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
+// Reduced batch counts to prevent memory exhaustion during parallel processing
+
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
 #include <chrono>
@@ -266,11 +271,13 @@ int main() {
   std::cout << "Using OpenMP Max Threads: " << omp_get_max_threads()
             << std::endl;
 
+  // Reduced batch counts for Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
+  // Original counts: 2000, 1500, 1000, 500 could cause memory exhaustion
   std::vector<std::pair<size_t, int>> batch_cases = {
-      {4096, 2000},
-      {16384, 1500},
-      {64 * 1024, 1000},
-      {256 * 1024, 500},
+      {4096, 1000},      // Reduced from 2000
+      {16384, 750},      // Reduced from 1500
+      {64 * 1024, 500},  // Reduced from 1000
+      {256 * 1024, 250}, // Reduced from 500
   };
 
   for (auto &c : batch_cases) {

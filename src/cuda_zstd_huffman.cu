@@ -1267,14 +1267,9 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
   analyze_frequencies_kernel<<<blocks, threads, 0, stream>>>(
       d_input, input_size, d_frequencies);
 
-  //     fprintf(stderr, "[DEBUG] encode_huffman: After
-  //     analyze_frequencies_kernel\n");
-
   // Use pinned memory for async transfer
   u32 *h_frequencies = nullptr;
   CUDA_CHECK(cudaMallocHost(&h_frequencies, MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
-  //     fprintf(stderr, "[DEBUG] encode_huffman: cudaMallocHost succeeded,
-  //     ptr=%p\n", h_frequencies);
 
   CUDA_CHECK(cudaMemcpyAsync(h_frequencies, d_frequencies,
                              MAX_HUFFMAN_SYMBOLS * sizeof(u32),
@@ -1288,15 +1283,11 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
   }
 
   // --- 2. Build Tables on Host ---
-  //     fprintf(stderr, "[DEBUG] encode_huffman: Starting tree build\n");
   HuffmanNode *h_nodes = new HuffmanNode[MAX_HUFFMAN_SYMBOLS * 2];
   u32 num_nodes = 0;
   i32 root_idx = -1;
   HuffmanTreeBuilder::build_tree(h_frequencies, MAX_HUFFMAN_SYMBOLS, h_nodes,
                                  num_nodes, root_idx);
-
-  //     fprintf(stderr, "[DEBUG] encode_huffman: Tree built, num_nodes=%u\n",
-  //     num_nodes);
 
   u8 *h_code_lengths = new u8[MAX_HUFFMAN_SYMBOLS];
   // (FIX) Need to actually generate the code lengths from the tree
