@@ -3931,11 +3931,13 @@ __global__ void k_decode_sequences_interleaved(
   bool decode_ml = (ml_mode == 0 || ml_mode == 2 || ml_mode == 3);
 
   // Read initial states and validate bounds
+  printf("[GPU] Before reading initial states: bit_pos=%u\n", reader.bit_pos);
+  
   if (decode_ll) {
     u32 bits_before = reader.bit_pos;
     stateLL = reader.read(ll_table.table_log);
-    printf("[GPU] Read LL state: bits_before=%u, read %u bits, state=%u\n", 
-           bits_before, ll_table.table_log, stateLL);
+    printf("[GPU] Read LL state: bits_before=%u, read %u bits, state=%u, remaining=%u\n", 
+           bits_before, ll_table.table_log, stateLL, reader.bit_pos);
     if (stateLL >= ll_table_size) {
       printf("[GPU ERROR] Initial LL state %u exceeds table size %u\n", stateLL,
              ll_table_size);
@@ -3985,6 +3987,11 @@ __global__ void k_decode_sequences_interleaved(
   int loop_count = 0;
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
     loop_count++;
+    // DEBUG: Check state before bounds validation
+    if (i == (int)num_sequences - 1) {
+      printf("[GPU] Loop start: stateLL=%u, ll_table_size=%u, decode_ll=%d\n", 
+             stateLL, ll_table_size, decode_ll);
+    }
     // Validate states before table access
     if (decode_ll && stateLL >= ll_table_size) {
       printf("[GPU ERROR] Seq %d: LL state %u out of bounds (size=%u)\n", i,
@@ -4066,17 +4073,23 @@ __global__ void k_decode_sequences_interleaved(
 
     // Update States with bounds checking and normalization
     if (decode_ll) {
+      u32 oldState = stateLL; // Save old state BEFORE update
       u8 nb = ll_table.nbBits[stateLL];
+      u32 bits_before = reader.bit_pos;
       u32 newBits = reader.read(nb);
       u32 baseState = ll_table.newState[stateLL];
-      stateLL = baseState + newBits;
-      // DEBUG: Trace state transition
+      // DEBUG: Trace state transition BEFORE update
       if (i < 3) {
-        printf("[GPU] LL State update: old=%u, nbBits=%u, newBits=%u, baseState=%u, result=%u\n",
-               (stateLL - newBits) & (ll_table_size - 1), nb, newBits, baseState, stateLL);
+        printf("[GPU] LL State update: old=%u, bit_pos=%u, nb=%u, newBits=%u (read %u bits), baseState=%u\n",
+               oldState, bits_before, nb, newBits, nb, baseState);
       }
+      stateLL = baseState + newBits;
       // Normalize state to table bounds
       stateLL &= (ll_table_size - 1);
+      // DEBUG: Show result
+      if (i < 3) {
+        printf("[GPU] LL State result: newState=%u, remaining_bits=%u\n", stateLL, reader.bit_pos);
+      }
     }
     if (decode_of) {
       u8 nb = of_table.nbBits[stateOF];
