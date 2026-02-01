@@ -416,16 +416,23 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
   // I will implement `deltaFindState = s_cum_freq[s] - 1`. This is the standard
   // Zstd implementation line.
 
-  // Simplified correct formula: deltaFindState = cumulative_frequency
+  // Set deltaFindState for all symbols with positive frequency
+  // deltaFindState = cumulative_frequency - 1 (standard Zstd formula)
   // This ensures state transitions properly within the symbol's state range
   for (u32 s = tid; s <= max_symbol; s += blockDim.x) {
-    if ((i16)normalized_counters[s] <= 0)
-      continue; // Skip 0 and -1 symbols
+    u32 freq = normalized_counters[s];
+    if (freq == 0 || freq == (u32)-1)  // Skip 0 and 0xFFFF (invalid)
+      continue;
     
     // The encoder transitions: state = (state >> nbBits) + deltaFindState
     // We want the new state to be in range [cum[s], cum[s] + freq[s] - 1]
-    // So deltaFindState = cum[s] maps (state >> nbBits) to the correct slot
-    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s];
+    // Standard Zstd: deltaFindState = cum[s] - 1
+    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s] - 1;
+    
+    if (s < 5 && tid == 0) {
+      printf("[CTABLE] Symbol %u: freq=%u, cum=%u, deltaFind=%d\n",
+             s, freq, s_cum_freq[s], (i32)s_cum_freq[s] - 1);
+    }
   }
 
   __syncthreads();

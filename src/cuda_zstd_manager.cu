@@ -4423,6 +4423,12 @@ private:
         cudaMallocAsync(&h_desc.d_state_to_symbol, table_size * sizeof(u8),
                         stream);
 
+        // CRITICAL: Zero-initialize all table memory before kernel runs
+        cudaMemsetAsync(h_desc.d_symbol_table, 0, 
+                        (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream);
+        cudaMemsetAsync(h_desc.d_symbol_first_state, 0, 
+                        (max_s + 1) * sizeof(u16), stream);
+
         cudaMemcpyAsync(&d_tables[idx], &h_desc, sizeof(fse::FSEEncodeTable),
                         cudaMemcpyHostToDevice, stream);
 
