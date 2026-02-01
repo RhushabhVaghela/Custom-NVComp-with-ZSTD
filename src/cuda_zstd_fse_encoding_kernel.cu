@@ -43,11 +43,19 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
     unsigned char *__restrict__ output_bitstream, size_t *output_pos,
     size_t bitstream_capacity, const FSEEncodeTable *table) {
   // Only thread 0 does the encoding (FSE is inherently sequential)
-  if (threadIdx.x != 0 || num_symbols == 0 || bitstream_capacity == 0)
+  if (threadIdx.x != 0 || num_symbols == 0 || bitstream_capacity == 0) {
+    // Early exit for non-thread-0 (no debug print to reduce spam)
     return;
+  }
+  
+  // DEBUG: Thread 0 starting with num_symbols
+  printf("[FSE_ENCODE] Thread 0 START: num_symbols=%u, capacity=%llu\n", 
+         num_symbols, (unsigned long long)bitstream_capacity);
   
   // Validate input pointers
   if (!d_ll_codes || !d_of_codes || !d_ml_codes || !output_bitstream || !output_pos || !table) {
+    printf("[FSE_ENCODE] NULL pointer: ll=%p, of=%p, ml=%p, out=%p, pos=%p, table=%p\n",
+           d_ll_codes, d_of_codes, d_ml_codes, output_bitstream, output_pos, table);
     if (output_pos) *output_pos = 0;
     return;
   }
@@ -104,8 +112,11 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   // Decoder reads these LAST (for Seq 0), so physically they must be at START
   // (Low Addr)
   write_bits(d_ml_extras[0], d_ml_bits[0]);
+  if (bitCount > 10000) printf("[FSE_ENCODE] AFTER Seq0 ML extras: bitCount=%u\n", bitCount);
   write_bits(d_of_extras[0], d_of_bits[0]);
+  if (bitCount > 10000) printf("[FSE_ENCODE] AFTER Seq0 OF extras: bitCount=%u\n", bitCount);
   write_bits(d_ll_extras[0], d_ll_bits[0]);
+  if (bitCount > 10000) printf("[FSE_ENCODE] AFTER Seq0 LL extras: bitCount=%u\n", bitCount);
 
   // 3. Loop 0 to N-2 (Transition states)
   // Encodes Sequence i+1 using State i, producing State i+1
@@ -179,6 +190,12 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
       write_bits(d_of_extras[next_idx], d_of_bits[next_idx]);
       write_bits(d_ml_extras[next_idx], d_ml_bits[next_idx]);
       write_bits(d_ll_extras[next_idx], d_ll_bits[next_idx]);
+      
+      if (bitCount > 10000) {
+        printf("[FSE_ENCODE] CORRUPTION at i=%u: bitCount=%u, next_idx=%u\n", 
+               i, bitCount, next_idx);
+        break;
+      }
     }
   }
 
@@ -199,8 +216,14 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
     bitCount = (bitCount > 8) ? bitCount - 8 : 0;
   }
 
-  *output_pos = ptr - output_bitstream;
+  size_t final_pos = ptr - output_bitstream;
+  *output_pos = final_pos;
   if (threadIdx.x == 0) {
+    size_t total_bits = final_pos * 8 + bitCount;
+    printf("[FSE_ENCODE] Thread 0 END: num_symbols=%u, output_pos=%llu\n",
+           num_symbols, (unsigned long long)final_pos);
+    printf("[FSE_ENCODE] Complete: wrote %llu bytes (%llu bits) for %u sequences\n",
+           (unsigned long long)final_pos, (unsigned long long)total_bits, num_symbols);
   }
 }
 

@@ -2704,14 +2704,23 @@ public:
           cudaMemcpyAsync(h_of.data(), d_of, num_seq * sizeof(u32),
                           cudaMemcpyDeviceToHost, stream);
           cudaStreamSynchronize(stream);
+          u32 total_ml = 0, total_ll = 0;
           for (u32 s = 0; s < num_seq; s++) {
+            total_ll += h_ll[s];
+            total_ml += h_ml[s];
+            if (s < 3 || s >= num_seq - 2) {
+              printf("[COMPRESS_SEQ] Block %u seq %u: LL=%u ML=%u OF=%u\n",
+                     block_idx, s, h_ll[s], h_ml[s], h_of[s]);
+            }
           }
+          printf("[COMPRESS_SEQ] Block %u totals: %u seq, LL=%u, ML=%u, out=%u\n",
+                 block_idx, num_seq, total_ll, total_ml, total_ll + total_ml);
+        } else {
+          // No sequences (literals only)
+          CUDA_CHECK(cudaMemcpyAsync(block_seq_ctxs[block_idx].d_literals_buffer,
+                                     block_input, current_block_size_val,
+                                     cudaMemcpyDeviceToDevice, stream));
         }
-      } else {
-        // No sequences (literals only)
-        CUDA_CHECK(cudaMemcpyAsync(block_seq_ctxs[block_idx].d_literals_buffer,
-                                   block_input, current_block_size_val,
-                                   cudaMemcpyDeviceToDevice, stream));
       }
 
       // Compress Literals
@@ -4216,7 +4225,9 @@ private:
     CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(u32)));
     CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
 
-    // Debug output removed for production
+    printf("[MANAGER] Calling execute_sequences: num_sequences=%u, literals_size=%u\n",
+           ctx.seq_ctx->num_sequences, literals_decompressed_size);
+    
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
@@ -4237,14 +4248,13 @@ private:
     CUDA_CHECK(cudaMemcpyAsync(output_size, d_output_size, sizeof(u32),
                                cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream));
-    if (*output_size == 0 && literals_decompressed_size > 0) {
-      //     }
+    
+    printf("[DEBUG] After sequence execution: output_size=%u (expected ~%u)\n",
+           *output_size, literals_decompressed_size + 100); // Rough estimate
 
-      cudaFree(d_output_size);
+    cudaFree(d_output_size);
 
-      return status;
-    }
-    return Status::SUCCESS;
+    return status;
   }
 
   Status compress_literals(
@@ -4303,6 +4313,14 @@ private:
     } else {
       return Status::ERROR_INVALID_PARAMETER;
     }
+
+    // DEBUG: Show what header is being written
+    printf("[COMPRESS] Writing Raw literals header: num_literals=%u, header_len=%u, header=[",
+           num_literals, header_len);
+    for (u32 i = 0; i < header_len; i++) {
+      printf("%02X ", header[i]);
+    }
+    printf("], compressed_size=%u (same as num_literals for Raw)\n", num_literals);
 
     if (!writer.write_bytes(header, header_len, stream)) {
       return Status::ERROR_BUFFER_TOO_SMALL;
@@ -4432,6 +4450,9 @@ private:
     cudaMallocAsync(&d_bitstream, capacity, stream);
     cudaMemsetAsync(d_bitstream, 0xAA, capacity, stream);
 
+    printf("[FSE_LAUNCH] num_sequences=%u, d_ll_codes=%p, d_of_codes=%p, d_ml_codes=%p\n",
+           num_sequences, seq_ctx->d_ll_codes, seq_ctx->d_of_codes, seq_ctx->d_ml_codes);
+    
     Status launchStatus = fse::launch_fse_encoding_kernel(
         seq_ctx->d_ll_codes, seq_ctx->d_ll_extras, seq_ctx->d_ll_num_bits,
         seq_ctx->d_of_codes, seq_ctx->d_of_extras, seq_ctx->d_of_num_bits,
@@ -5705,6 +5726,7 @@ private:
     }
 
     seq_ctx->num_sequences = num_sequences;
+    printf("[DECOMPRESS_SEQ] Set seq_ctx->num_sequences = %u\n", num_sequences);
 
     if (num_sequences == 0) {
       return Status::SUCCESS;

@@ -184,7 +184,11 @@ bool test_identity_property() {
   status = manager->decompress(d_compressed, compressed_size, d_output,
                                &decompressed_size, d_temp, temp_size);
   ASSERT_STATUS(status, "Decompression failed");
-  ASSERT_EQ(decompressed_size, data_size, "Size mismatch");
+  if (decompressed_size != data_size) {
+    std::cerr << "  [FAIL] Size mismatch: expected " << data_size 
+              << ", got " << decompressed_size << std::endl;
+    return false;
+  }
 
   // Verify
   std::vector<uint8_t> h_output(data_size);

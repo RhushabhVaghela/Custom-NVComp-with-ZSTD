@@ -1265,13 +1265,11 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
   h_table.table_log = table_log;
   h_table.table_size = table_size;
 
-  // Allocate decode table arrays
-  h_table.symbol = new u8[table_size];
-  h_table.nbBits = new u8[table_size];
-  h_table.newState = new u16[table_size];
-
+  // CRITICAL: Caller MUST pre-allocate these arrays before calling this function
+  // We do NOT allocate here to avoid pointer replacement issues
   if (!h_table.symbol || !h_table.nbBits || !h_table.newState) {
-    return Status::ERROR_OUT_OF_MEMORY;
+    printf("[ERROR] FSE_buildDTable_Host: Arrays not pre-allocated!\n");
+    return Status::ERROR_INVALID_PARAMETER;
   }
 
   // Use shared spreading function for encoder/decoder compatibility
@@ -1302,6 +1300,9 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
   }
 
   // Build DTable using official Zstd formula
+  printf("[BUILD] Building table: size=%u, log=%u, max_sym=%u\n", 
+         table_size, table_log, max_symbol);
+  
   for (u32 state = 0; state < table_size; state++) {
     u8 symbol = spread_symbol[state];
 
@@ -1332,7 +1333,16 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
     h_table.symbol[state] = symbol;
     h_table.nbBits[state] = (u8)nbBits;
     h_table.newState[state] = newState;
+    
+    // DEBUG: Verify write worked
+    if (state == 1) {
+      printf("[BUILD_WRITE] state=1: wrote newState=%u, read back=%u\n",
+             newState, h_table.newState[1]);
+    }
   }
+  
+  printf("[BUILD] Table complete: newState[0]=%u, newState[1]=%u, newState[%u]=%u\n",
+         h_table.newState[0], h_table.newState[1], table_size-1, h_table.newState[table_size-1]);
 
   return Status::SUCCESS;
 }
@@ -3983,6 +3993,8 @@ __global__ void k_decode_sequences_interleaved(
   printf("[GPU] InitStates: LL=%u, OF=%u, ML=%u\n", stateLL, stateOF, stateML);
   printf("[GPU] TableSizes: LL=%u, OF=%u, ML=%u\n", ll_table_size,
          of_table_size, ml_table_size);
+  printf("[GPU] Table pointers: newState=%p, symbol=%p, nbBits=%p\n",
+         ll_table.newState, ll_table.symbol, ll_table.nbBits);
   
   // DEBUG: Verify table contents
   printf("[GPU] LL table: table_log=%u, symbol[%u]=%u, nbBits[%u]=%u, newState[%u]=%u\n",
@@ -3992,6 +4004,9 @@ __global__ void k_decode_sequences_interleaved(
          (stateLL < ll_table_size) ? ll_table.nbBits[stateLL] : 999,
          stateLL,
          (stateLL < ll_table_size) ? ll_table.newState[stateLL] : 999);
+  // Check newState[0] and newState[1] specifically
+  printf("[GPU] LL table newState[0]=%u, newState[1]=%u (direct read)\n",
+         ll_table.newState[0], ll_table.newState[1]);
 
   u64 total_lit_len = 0;
 
@@ -4112,12 +4127,17 @@ __global__ void k_decode_sequences_interleaved(
       stateOF &= (of_table_size - 1);
     }
     if (decode_ml) {
+      u32 old_state_ml = stateML;
       u8 nb = ml_table.nbBits[stateML];
       u32 newBits = reader.read(nb);
       u32 baseState = ml_table.newState[stateML];
       stateML = baseState + newBits;
       // Normalize state to table bounds
       stateML &= (ml_table_size - 1);
+      if (i < 3) {
+        printf("[GPU] ML State Trans: old=%u, nb=%u, newBits=%u, base=%u, new=%u\n",
+               old_state_ml, nb, newBits, baseState, stateML);
+      }
     }
 
     if (i < 5) { // Limit debug output
@@ -4166,6 +4186,10 @@ Status copy_table_to_device(const FSEDecodeTable &h_table,
   printf("[HOST] Host table symbol[0]=%u, symbol[%u]=%u\n", 
          h_table.symbol ? h_table.symbol[0] : 999,
          size-1, h_table.symbol ? h_table.symbol[size-1] : 999);
+  printf("[HOST] Host table newState[0]=%u, newState[1]=%u, newState[%u]=%u (BEFORE COPY)\n",
+         h_table.newState ? h_table.newState[0] : 999,
+         h_table.newState ? h_table.newState[1] : 999,
+         size-1, h_table.newState ? h_table.newState[size-1] : 999);
 
   CUDA_CHECK(cudaMalloc(&d_table.symbol, size * sizeof(u8)));
   CUDA_CHECK(cudaMalloc(&d_table.nbBits, size * sizeof(u8)));
@@ -4186,6 +4210,14 @@ Status copy_table_to_device(const FSEDecodeTable &h_table,
   u8 first_symbol = 0;
   cudaMemcpy(&first_symbol, d_table.symbol, sizeof(u8), cudaMemcpyDeviceToHost);
   printf("[HOST] Device table symbol[0]=%u after copy\n", first_symbol);
+  
+  // DEBUG: Check newState values
+  u16 first_newstate = 0, second_newstate = 0, last_newstate = 0;
+  cudaMemcpy(&first_newstate, d_table.newState, sizeof(u16), cudaMemcpyDeviceToHost);
+  cudaMemcpy(&second_newstate, d_table.newState + 1, sizeof(u16), cudaMemcpyDeviceToHost);
+  cudaMemcpy(&last_newstate, d_table.newState + (size-1), sizeof(u16), cudaMemcpyDeviceToHost);
+  printf("[HOST] Device table newState[0]=%u, newState[1]=%u, newState[%u]=%u (AFTER COPY)\n", 
+         first_newstate, second_newstate, size-1, last_newstate);
 
   return Status::SUCCESS;
 }
@@ -4341,6 +4373,14 @@ __host__ Status decode_sequences_interleaved(
   // Launch Kernel
   if (input_size > 0) {
     // Debug output removed for production
+  }
+
+  // DEBUG: Verify table values right before kernel launch
+  {
+    u16 ns0 = 0, ns1 = 0;
+    cudaMemcpy(&ns0, d_ll.newState, sizeof(u16), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&ns1, d_ll.newState + 1, sizeof(u16), cudaMemcpyDeviceToHost);
+    printf("[PRE-KERNEL] LL table newState[0]=%u, newState[1]=%u\n", ns0, ns1);
   }
 
   k_decode_sequences_interleaved<<<1, 1, 0, stream>>>(
