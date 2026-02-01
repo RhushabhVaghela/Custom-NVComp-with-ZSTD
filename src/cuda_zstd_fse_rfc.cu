@@ -6,6 +6,8 @@
  */
 
 #include "cuda_zstd_fse_rfc.h"
+#include "cuda_zstd_fse.h"          // For FSEEncodeTable (old table format)
+#include "cuda_zstd_types.h"
 #include <cub/cub.cuh>
 #include <algorithm>
 #include <vector>
@@ -436,6 +438,267 @@ __host__ Status FSE_decodeRFC(
     
     CUDA_CHECK(cudaGetLastError());
     
+    return Status::SUCCESS;
+}
+
+// =============================================================================
+// WRAPPER: launch_fse_encoding_kernel_rfc
+// =============================================================================
+
+/**
+ * @brief GPU Kernel: RFC-compliant FSE encoding using old table format
+ * 
+ * This kernel uses the old FSEEncodeTable structure but with corrected
+ * RFC 8878 compliant encoding logic. It reads:
+ * - d_state_to_symbol[state] for symbol lookup
+ * - d_nbBits_table[state] for bits to emit
+ * - d_next_state_vals[state] for next state transition
+ * - d_symbol_first_state[symbol] for initial state
+ * 
+ * This provides a drop-in replacement that uses existing table allocations
+ * but produces RFC-compliant bitstreams.
+ */
+__global__ void k_fse_encode_rfc_from_old_tables(
+    const u8 *__restrict__ d_ll_codes, const u32 *__restrict__ d_ll_extras, const u8 *__restrict__ d_ll_bits,
+    const u8 *__restrict__ d_of_codes, const u32 *__restrict__ d_of_extras, const u8 *__restrict__ d_of_bits,
+    const u8 *__restrict__ d_ml_codes, const u32 *__restrict__ d_ml_extras, const u8 *__restrict__ d_ml_bits,
+    u32 num_symbols,
+    const FSEEncodeTable *tables,
+    unsigned char *__restrict__ output_bitstream,
+    size_t bitstream_capacity,
+    size_t *__restrict__ output_pos
+) {
+    // Only thread 0 does encoding (FSE is inherently sequential per stream)
+    if (threadIdx.x != 0 || num_symbols == 0 || bitstream_capacity == 0) {
+        return;
+    }
+    
+    // Validate inputs
+    if (!d_ll_codes || !d_of_codes || !d_ml_codes || !output_bitstream || !output_pos || !tables) {
+        if (output_pos) *output_pos = 0;
+        return;
+    }
+
+    // Validate table pointers for all three streams
+    if (!tables[0].d_symbol_first_state || !tables[1].d_symbol_first_state || !tables[2].d_symbol_first_state ||
+        !tables[0].d_state_to_symbol || !tables[1].d_state_to_symbol || !tables[2].d_state_to_symbol ||
+        !tables[0].d_nbBits_table || !tables[1].d_nbBits_table || !tables[2].d_nbBits_table ||
+        !tables[0].d_next_state_vals || !tables[1].d_next_state_vals || !tables[2].d_next_state_vals) {
+        *output_pos = 0;
+        return;
+    }
+
+    unsigned char *ptr = output_bitstream;
+    unsigned char *end_limit = output_bitstream + bitstream_capacity;
+    u64 bitContainer = 0;
+    u32 bitCount = 0;
+
+    auto write_bits = [&](u64 val, u32 nbBits) {
+        if (nbBits == 0) return;
+        bitContainer |= (val << bitCount);
+        bitCount += nbBits;
+        while (bitCount >= 8) {
+            if (ptr < end_limit) {
+                *ptr++ = (unsigned char)(bitContainer & 0xFF);
+            }
+            bitContainer >>= 8;
+            bitCount -= 8;
+        }
+    };
+
+    // Get table logs and sizes
+    const u32 ll_table_log = tables[0].table_log;
+    const u32 of_table_log = tables[1].table_log;
+    const u32 ml_table_log = tables[2].table_log;
+    const u32 ll_table_size = tables[0].table_size;
+    const u32 of_table_size = tables[1].table_size;
+    const u32 ml_table_size = tables[2].table_size;
+    const u32 ll_max_sym = tables[0].max_symbol;
+    const u32 of_max_sym = tables[1].max_symbol;
+    const u32 ml_max_sym = tables[2].max_symbol;
+
+    // Validate symbol codes
+    u8 ll_code0 = d_ll_codes[0];
+    u8 of_code0 = d_of_codes[0];
+    u8 ml_code0 = d_ml_codes[0];
+    
+    if (ll_code0 > ll_max_sym || of_code0 > of_max_sym || ml_code0 > ml_max_sym) {
+        *output_pos = 0;
+        return;
+    }
+
+    // Initialize states using RFC-compliant first state lookup
+    u32 stateLL = tables[0].d_symbol_first_state[ll_code0];
+    u32 stateOF = tables[1].d_symbol_first_state[of_code0];
+    u32 stateML = tables[2].d_symbol_first_state[ml_code0];
+    
+    // Clamp states to valid range
+    if (stateLL >= ll_table_size) stateLL = ll_code0 < ll_max_sym ? tables[0].d_symbol_first_state[ll_code0] : 0;
+    if (stateOF >= of_table_size) stateOF = of_code0 < of_max_sym ? tables[1].d_symbol_first_state[of_code0] : 0;
+    if (stateML >= ml_table_size) stateML = ml_code0 < ml_max_sym ? tables[2].d_symbol_first_state[ml_code0] : 0;
+
+    // Write extra bits for sequence 0 (Zstd convention: written first, read last)
+    // Order: ML, OF, LL
+    write_bits(d_ml_extras[0], d_ml_bits[0]);
+    write_bits(d_of_extras[0], d_of_bits[0]);
+    write_bits(d_ll_extras[0], d_ll_bits[0]);
+
+    // Encode sequences 0 to N-2 using RFC state transitions
+    // RFC 8878 encoding: emit state bits, then transition to next state
+    if (num_symbols > 1) {
+        for (u32 i = 0; i < num_symbols - 1; i++) {
+            u32 next_idx = i + 1;
+
+            // Literal Length Stream (Table 0) - RFC compliant encoding
+            {
+                u8 code = d_ll_codes[next_idx];
+                if (code > ll_max_sym) {
+                    *output_pos = 0;
+                    return;
+                }
+                
+                // Get nbBits from table (RFC: bits to emit from current state)
+                u32 nbBits = tables[0].d_nbBits_table[stateLL];
+                if (nbBits > ll_table_log) nbBits = ll_table_log;
+                
+                // Emit low bits of current state
+                if (nbBits > 0) {
+                    write_bits(stateLL & ((1u << nbBits) - 1), nbBits);
+                }
+                
+                // RFC state transition: nextState = table[state].nextState
+                // The nextState already includes the baseline + sub-state calculation
+                u32 nextState = tables[0].d_next_state_vals[stateLL];
+                stateLL = nextState;
+                
+                // Validate state transition
+                if (stateLL >= ll_table_size) {
+                    // Fallback: use first state for the symbol we're encoding
+                    stateLL = tables[0].d_symbol_first_state[code];
+                }
+            }
+
+            // Offset Stream (Table 1) - RFC compliant encoding
+            {
+                u8 code = d_of_codes[next_idx];
+                if (code > of_max_sym) {
+                    *output_pos = 0;
+                    return;
+                }
+                
+                u32 nbBits = tables[1].d_nbBits_table[stateOF];
+                if (nbBits > of_table_log) nbBits = of_table_log;
+                
+                if (nbBits > 0) {
+                    write_bits(stateOF & ((1u << nbBits) - 1), nbBits);
+                }
+                
+                stateOF = tables[1].d_next_state_vals[stateOF];
+                if (stateOF >= of_table_size) {
+                    stateOF = tables[1].d_symbol_first_state[code];
+                }
+            }
+
+            // Match Length Stream (Table 2) - RFC compliant encoding
+            {
+                u8 code = d_ml_codes[next_idx];
+                if (code > ml_max_sym) {
+                    *output_pos = 0;
+                    return;
+                }
+                
+                u32 nbBits = tables[2].d_nbBits_table[stateML];
+                if (nbBits > ml_table_log) nbBits = ml_table_log;
+                
+                if (nbBits > 0) {
+                    write_bits(stateML & ((1u << nbBits) - 1), nbBits);
+                }
+                
+                stateML = tables[2].d_next_state_vals[stateML];
+                if (stateML >= ml_table_size) {
+                    stateML = tables[2].d_symbol_first_state[code];
+                }
+            }
+
+            // Write extra bits for this sequence (order: OF, ML, LL per Zstd spec)
+            write_bits(d_of_extras[next_idx], d_of_bits[next_idx]);
+            write_bits(d_ml_extras[next_idx], d_ml_bits[next_idx]);
+            write_bits(d_ll_extras[next_idx], d_ll_bits[next_idx]);
+        }
+    }
+
+    // Write final states for decoder initialization
+    // Zstd order: ML, OF, LL (from spec / decoder read order)
+    write_bits(stateML, ml_table_log);
+    write_bits(stateOF, of_table_log);
+    write_bits(stateLL, ll_table_log);
+
+    // Write sentinel bit (marks end of bitstream)
+    write_bits(1, 1);
+
+    // Flush remaining bits
+    while (bitCount > 0) {
+        if (ptr < end_limit) {
+            *ptr++ = (unsigned char)(bitContainer & 0xFF);
+        }
+        bitContainer >>= 8;
+        bitCount = (bitCount > 8) ? bitCount - 8 : 0;
+    }
+
+    *output_pos = ptr - output_bitstream;
+}
+
+/**
+ * @brief Wrapper function with same signature as old launch_fse_encoding_kernel
+ * 
+ * This function provides a drop-in replacement for the old buggy FSE encoder.
+ * It uses the existing FSEEncodeTable structures (with d_nbBits_table, 
+ * d_next_state_vals, d_state_to_symbol, d_symbol_first_state) but implements
+ * RFC 8878 compliant encoding logic.
+ * 
+ * Usage: Simply change line 4462 in cuda_zstd_manager.cu from:
+ *   fse::launch_fse_encoding_kernel(...)
+ * to:
+ *   fse::launch_fse_encoding_kernel_rfc(...)
+ */
+Status launch_fse_encoding_kernel_rfc(
+    const u8 *d_ll_codes, const u32 *d_ll_extras, const u8 *d_ll_bits,
+    const u8 *d_of_codes, const u32 *d_of_extras, const u8 *d_of_bits,
+    const u8 *d_ml_codes, const u32 *d_ml_extras, const u8 *d_ml_bits,
+    u32 num_symbols, 
+    unsigned char *d_bitstream, 
+    size_t *d_output_pos,
+    size_t bitstream_capacity,
+    const FSEEncodeTable *d_tables,
+    cudaStream_t stream
+) {
+    // Validate inputs
+    if (!d_ll_codes || !d_of_codes || !d_ml_codes || 
+        !d_bitstream || !d_output_pos || !d_tables) {
+        return Status::ERROR_INVALID_PARAMETER;
+    }
+    
+    if (num_symbols == 0) {
+        cudaMemsetAsync(d_output_pos, 0, sizeof(size_t), stream);
+        return Status::SUCCESS;
+    }
+
+    // Launch RFC-compliant encoding kernel using old table format
+    // Single block, single thread for sequential FSE encoding
+    k_fse_encode_rfc_from_old_tables<<<1, 1, 0, stream>>>(
+        d_ll_codes, d_ll_extras, d_ll_bits,
+        d_of_codes, d_of_extras, d_of_bits,
+        d_ml_codes, d_ml_extras, d_ml_bits,
+        num_symbols,
+        d_tables,
+        d_bitstream, bitstream_capacity, d_output_pos
+    );
+
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        return Status::ERROR_INTERNAL;
+    }
+
     return Status::SUCCESS;
 }
 

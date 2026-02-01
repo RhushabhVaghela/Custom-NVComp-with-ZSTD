@@ -5,6 +5,7 @@
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_fse_encoding_kernel.h"
+#include "cuda_zstd_fse_rfc.h"  // NEW: RFC 8878 compliant implementation
 #include "cuda_zstd_huffman.h"
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_lz77.h" // Ensure Match and ParseCost are defined
@@ -4459,7 +4460,8 @@ private:
     printf("[FSE_LAUNCH] num_sequences=%u, d_ll_codes=%p, d_of_codes=%p, d_ml_codes=%p\n",
            num_sequences, seq_ctx->d_ll_codes, seq_ctx->d_of_codes, seq_ctx->d_ml_codes);
     
-    Status launchStatus = fse::launch_fse_encoding_kernel(
+    // Use RFC 8878 compliant encoding (NEW)
+    Status launchStatus = fse::launch_fse_encoding_kernel_rfc(
         seq_ctx->d_ll_codes, seq_ctx->d_ll_extras, seq_ctx->d_ll_num_bits,
         seq_ctx->d_of_codes, seq_ctx->d_of_extras, seq_ctx->d_of_num_bits,
         seq_ctx->d_ml_codes, seq_ctx->d_ml_extras, seq_ctx->d_ml_num_bits,
