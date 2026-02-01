@@ -53,9 +53,7 @@ __global__ void build_sequences_kernel(const u32 *d_literals_buffer,
   d_sequences[seq_idx].match_offset = offset;
   d_sequences[seq_idx].padding = 0; // (FIX) Ensure 16-byte vectorized write
 
-  if (idx == 0) {
-           match_length, offset, d_sequences);
-  }
+
 }
 
 // Host-side function implementation
@@ -297,8 +295,7 @@ __global__ void compute_sequence_details_kernel(
   }
 
   *d_total_output_size = total_output;
-         "TotalOut=%u\n",
-         num_sequences, total_literals, total_literal_count, total_output);
+  // Debug output removed for production
 
   // NEW: Write back persistent rep-codes for the next block
   if (d_rep_codes_in) {

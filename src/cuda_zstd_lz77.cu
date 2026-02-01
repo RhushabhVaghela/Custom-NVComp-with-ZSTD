@@ -666,10 +666,6 @@ __global__ void parallel_find_all_matches_kernel(
       strat = "GREEDY";
     if (config.strategy == Strategy::LAZY)
       strat = "LAZY";
-
-           "(int=%d), hash_log=%u, chain_log=%u\n",
-           config.nice_length, config.min_match, strat, (int)config.strategy,
-           config.hash_log, config.chain_log);
   }
 
   // Find best match using parallel helper

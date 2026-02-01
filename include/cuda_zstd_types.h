@@ -209,8 +209,12 @@ struct CompressionConfig {
   u32 min_match = 3;           // Minimum match length (3-7)
   u32 target_length = 0;       // Target match length
   u32 block_size = 128 * 1024; // Compression block size
-  bool enable_ldm = false;     // Long distance matching
-  u32 ldm_hash_log = 20;       // LDM hash table size
+  // NOTE: Long Distance Matching (LDM) is not implemented.
+  // LDM is a ZSTD feature for large window compression that requires
+  // additional hash tables and Huffman tree management. The fields
+  // below are reserved for future implementation.
+  bool enable_ldm = false;     // RESERVED: LDM not yet supported
+  u32 ldm_hash_log = 20;       // RESERVED: LDM hash table size (unused)
   ChecksumPolicy checksum = ChecksumPolicy::NO_COMPUTE_NO_VERIFY;
 
   // Smart Router Configuration

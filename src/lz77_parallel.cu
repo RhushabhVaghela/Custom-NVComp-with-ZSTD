@@ -30,10 +30,7 @@ __global__ void find_matches_kernel(const u8 *input, u32 input_size,
   if (pos >= input_size - config.min_match)
     return;
 
-  // DEBUG PROBES
-  if (pos == 0)
-  if (pos == 104)
-  if (pos == 174)
+  // DEBUG PROBES removed for production
 
   u32 hash = compute_hash(input, pos, hash_log);
   u32 hash_idx = hash % (1 << hash_log);

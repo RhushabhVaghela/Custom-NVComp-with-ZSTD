@@ -1006,12 +1006,7 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
     }
   }
 
-  if (threadIdx.x == 0 && blockIdx.x == 0) {
-           max_len);
-           "[5]=%u, [6]=%u, [7]=%u\n",
-           length_count[1], length_count[2], length_count[3], length_count[4],
-           length_count[5], length_count[6], length_count[7]);
-  }
+
 
   // Build first_code table (canonical Huffman codes)
   // RFC 8878 Section 4.1.1: Canonical Huffman codes
@@ -1042,9 +1037,7 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
     for (u32 sym = 0; sym < num_symbols; ++sym) {
       if (code_lengths[sym] == len) {
         d_symbols[idx] = static_cast<u8>(sym);
-        if (threadIdx.x == 0 && blockIdx.x == 0 && idx < 10) {
-                 len, sym, idx, sym);
-        }
+
         idx++;
       }
     }

@@ -286,6 +286,22 @@ private:
 // STREAMING MANAGER
 // ==============================================================================
 
+/**
+ * @brief Streaming compression manager for chunked data processing.
+ * 
+ * NOTE: This is a basic implementation that compresses each chunk independently.
+ * Full streaming compression with sliding window history (for optimal compression
+ * ratios across chunks) is not yet implemented. Each chunk is compressed as a
+ * complete independent ZSTD frame.
+ * 
+ * Current limitations:
+ * - No sliding window history between chunks (5-10% compression loss vs full streaming)
+ * - No hash chain persistence across chunk boundaries
+ * - Each chunk produces a complete ZSTD frame with full headers
+ * 
+ * For applications requiring maximum compression ratios on large streaming data,
+ * consider using the batch manager with larger block sizes instead.
+ */
 class ZstdStreamingManager {
 public:
   ZstdStreamingManager();
@@ -297,6 +313,9 @@ public:
   Status init_decompression(cudaStream_t stream = 0);
 
   // Streaming compression
+  // NOTE: Each chunk is compressed independently. No window history is maintained
+  // between chunks, which may result in lower compression ratios compared to
+  // full streaming implementations.
   Status compress_chunk(const void *input, size_t input_size, void *output,
                         size_t *output_size, bool is_last_chunk,
                         cudaStream_t stream = 0);

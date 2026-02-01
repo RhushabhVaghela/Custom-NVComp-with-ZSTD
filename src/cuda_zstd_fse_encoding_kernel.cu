@@ -72,12 +72,12 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
     }
   };
 
-  if (threadIdx.x == 0)
-
   // 1. Initialize States with SEQUENCE 0 (Start of Chain)
   // We encode Forward: 0 -> 1 -> ... -> N-1
   // Final State corresponds to N-1
   u32 start_idx = 0;
+
+  if (threadIdx.x == 0)
 
   // Validate table pointers before dereferencing
   if (!table[0].d_symbol_first_state || !table[1].d_symbol_first_state || !table[2].d_symbol_first_state) {
@@ -111,7 +111,6 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   // Encodes Sequence i+1 using State i, producing State i+1
   if (num_symbols > 1) {
     for (u32 i = 0; i < num_symbols - 1; i++) {
-      if (threadIdx.x == 0 && i < 3)
       // Encode Seq i+1
       // Tables: LL=0, OF=1, ML=2
       // Sub-State (Current) is used as 'nextState' base?

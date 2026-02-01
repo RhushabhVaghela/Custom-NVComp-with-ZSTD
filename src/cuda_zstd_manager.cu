@@ -333,12 +333,7 @@ Status parse_frame_header(const unsigned char *input, u32 input_size,
 
 __global__ void debug_inspect_memory(const unsigned char *ptr, u32 size,
                                      const char *label) {
-  if (size > 0 && ptr) {
-    // Debug output removed for production
-           ptr, ptr[0], (size > 1 ? ptr[1] : 0), (size > 2 ? ptr[2] : 0));
-  } else {
-    // Debug output removed for production
-  }
+  // Debug output removed for production - noop
 }
 
 // Kernel: Check if a block is RLE (all bytes identical)
@@ -3215,7 +3210,7 @@ public:
           break;
       }
 
-             h_compressed_size_remaining);
+      // Debug output removed for production
 
       if (read_offset >= 250 && read_offset <= 300) {
         unsigned char h_area[128];
@@ -3258,17 +3253,11 @@ public:
       {
         unsigned char bh_raw[3];
         cudaMemcpy(bh_raw, d_input + read_offset, 3, cudaMemcpyDeviceToHost);
-               bh_raw[0], bh_raw[1], bh_raw[2]);
+        // Debug output removed for production
       }
 
       read_offset += blk_header_size;
-             blk_is_compressed ? "Compressed" : (blk_is_rle ? "RLE" : "Raw"),
-             blk_size, blk_is_last, read_offset, h_compressed_size_remaining);
-
-      // Early exit debug
-      if (blk_is_last) {
-               read_offset);
-      }
+      // Debug output removed for production
 
       // === Process Block ===
       if (blk_is_compressed) {
@@ -3351,8 +3340,7 @@ public:
         // Wait for all GPU operations to complete
         CUDA_CHECK(cudaStreamSynchronize(stream));
 
-               stored_checksum, (u32)computed_checksum,
-               (unsigned long long)computed_checksum);
+        // Debug output removed for production
 
         // Compare checksums (Lower 32 bits)
         if (stored_checksum != (u32)computed_checksum) {
@@ -3361,8 +3349,7 @@ public:
           return Status::ERROR_CHECKSUM_FAILED;
         }
       } else {
-               "rem=%zu\n",
-               read_offset, h_compressed_size_remaining);
+        // Debug output removed for production
       }
     }
 
@@ -3800,9 +3787,7 @@ private:
       h_header[offset++] = (unsigned char)content_size;
     } else if (fcs_field_size == 2) {
       u32 val = content_size - 256;
-             "bytes: %02X %02X\n",
-             content_size, (int)single_segment, val, val,
-             (unsigned char)(val & 0xFF), (unsigned char)((val >> 8) & 0xFF));
+      // Debug output removed for production
       h_header[offset++] = (unsigned char)(val & 0xFF);
       h_header[offset++] = (unsigned char)((val >> 8) & 0xFF);
     } else if (fcs_field_size == 4) {
@@ -4036,7 +4021,7 @@ private:
       u32 actual_dump = std::min((u32)DUMP_SIZE, input_size);
       CUDA_CHECK(
           cudaMemcpy(h_dump, input, actual_dump, cudaMemcpyDeviceToHost));
-             input);
+      // Debug output removed for production
       for (int i = 0; i < actual_dump; i++) {
         printf("%02x ", h_dump[i]);
         if ((i + 1) % 16 == 0)
@@ -4129,8 +4114,7 @@ private:
         CUDA_CHECK(cudaMemcpy(h_tail,
                               input + sequences_offset + seq_len - dump_tail,
                               dump_tail, cudaMemcpyDeviceToHost));
-               "bytes): ",
-               dump_tail);
+        // Debug output removed for production
         for (int i = 0; i < (int)dump_tail; i++)
           printf("%02X ", h_tail[i]);
         printf("\n");
@@ -4169,8 +4153,7 @@ private:
       const u32 threads = 256;
       const u32 blocks = (ctx.seq_ctx->num_sequences + threads - 1) / threads;
 
-             "d_sequences=%p\n",
-             ctx.seq_ctx->d_sequences);
+      // Debug output removed for production
       status = sequence::build_sequences(
           *ctx.seq_ctx, ctx.seq_ctx->num_sequences, blocks, threads, stream);
       if (status != Status::SUCCESS) {
@@ -4210,9 +4193,7 @@ private:
     CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(u32)));
     CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
 
-    //
-           "d_sequences=%p\n",
-           ctx.seq_ctx->d_sequences);
+    // Debug output removed for production
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
@@ -4301,15 +4282,11 @@ private:
     }
 
     if (!writer.write_bytes(header, header_len, stream)) {
-             "Off=%zu\n",
-             131072UL, writer.get_offset());
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
     if (num_literals > 0) {
       if (!writer.write_bytes(literals, num_literals, stream, true)) {
-               "Off=%zu\n",
-               131072UL, writer.get_offset());
         return Status::ERROR_BUFFER_TOO_SMALL;
       }
     }
