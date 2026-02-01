@@ -2900,7 +2900,6 @@ public:
     stats.blocks_processed += num_blocks;
 
   cleanup:
-    printf("[TRACE] compress: Reached cleanup. Status=%d\n", (int)status);
     // Final synchronization to ensure all async operations complete
     cudaStreamSynchronize(stream);
 
@@ -3195,7 +3194,6 @@ public:
     {
       unsigned char h_head[16];
       CUDA_CHECK(cudaMemcpy(h_head, d_input, 16, cudaMemcpyDeviceToHost));
-      printf("[DEBUG_BLK] Stream Start: ");
       for (int k = 0; k < 16; k++)
         printf("%02X ", h_head[k]);
       printf("\n");
@@ -3217,7 +3215,6 @@ public:
           break;
       }
 
-      printf("[DEBUG_DECOMP] Loop Start: read_off=%u, rem=%zu\n", read_offset,
              h_compressed_size_remaining);
 
       if (read_offset >= 250 && read_offset <= 300) {
@@ -3226,7 +3223,6 @@ public:
             (u32)128, (u32)(h_compressed_size_remaining - read_offset));
         CUDA_CHECK(cudaMemcpy(h_area, d_input + read_offset, actual_area,
                               cudaMemcpyDeviceToHost));
-        printf("[DEBUG_BLK] Boundary Dump @ %u: ", read_offset);
         for (u32 k = 0; k < actual_area; k++)
           printf("%02X ", h_area[k]);
         printf("\n");
@@ -3262,18 +3258,15 @@ public:
       {
         unsigned char bh_raw[3];
         cudaMemcpy(bh_raw, d_input + read_offset, 3, cudaMemcpyDeviceToHost);
-        printf("[DEBUG_BLK] Raw Header @ %u: %02X %02X %02X\n", read_offset,
                bh_raw[0], bh_raw[1], bh_raw[2]);
       }
 
       read_offset += blk_header_size;
-      printf("[DEBUG_BLK] Block: Type=%s, Size=%u, Last=%d, Offset=%u/%zu\n",
              blk_is_compressed ? "Compressed" : (blk_is_rle ? "RLE" : "Raw"),
              blk_size, blk_is_last, read_offset, h_compressed_size_remaining);
 
       // Early exit debug
       if (blk_is_last) {
-        printf("[DEBUG_DECOMP] Last block flag detected at read_offset=%u\n",
                read_offset);
       }
 
@@ -3358,7 +3351,6 @@ public:
         // Wait for all GPU operations to complete
         CUDA_CHECK(cudaStreamSynchronize(stream));
 
-        printf("[DEBUG_CSUM] Stored: %08X, Computed: %08X (Full: %016llX)\n",
                stored_checksum, (u32)computed_checksum,
                (unsigned long long)computed_checksum);
 
@@ -3369,7 +3361,6 @@ public:
           return Status::ERROR_CHECKSUM_FAILED;
         }
       } else {
-        printf("[DEBUG_CSUM] No 4-byte checksum found at end. read_offset=%u, "
                "rem=%zu\n",
                read_offset, h_compressed_size_remaining);
       }
@@ -3809,7 +3800,6 @@ private:
       h_header[offset++] = (unsigned char)content_size;
     } else if (fcs_field_size == 2) {
       u32 val = content_size - 256;
-      printf("[DEBUG_FRAME] content_size=%u, single_segment=%d, val=%u (0x%X), "
              "bytes: %02X %02X\n",
              content_size, (int)single_segment, val, val,
              (unsigned char)(val & 0xFF), (unsigned char)((val >> 8) & 0xFF));
@@ -4030,7 +4020,6 @@ private:
     if (!input || !output || !output_size) {
       return Status::ERROR_INVALID_PARAMETER;
     }
-    // printf("[DEBUG_BLK] decompress_block: input_size=%u, output_max=%u\n",
     //        input_size, output_max_size);
     // fflush(stdout);
 
@@ -4047,7 +4036,6 @@ private:
       u32 actual_dump = std::min((u32)DUMP_SIZE, input_size);
       CUDA_CHECK(
           cudaMemcpy(h_dump, input, actual_dump, cudaMemcpyDeviceToHost));
-      printf("[DEBUG_BLK] Block Start Dump (%u bytes) @ %p:\n", input_size,
              input);
       for (int i = 0; i < actual_dump; i++) {
         printf("%02x ", h_dump[i]);
@@ -4078,7 +4066,6 @@ private:
       //       return Status::ERROR_CUDA_ERROR;
     }
 
-    // printf("[DEBUG_BLK] literals: header=%u, comp=%u, decomp=%u\n",
     //        literals_header_size, literals_compressed_size,
     //        literals_decompressed_size);
 
@@ -4089,7 +4076,6 @@ private:
       u32 actual_dump = std::min((u32)DUMP_SIZE, literals_decompressed_size);
       CUDA_CHECK(cudaMemcpy(h_dump, d_decompressed_literals, actual_dump,
                             cudaMemcpyDeviceToHost));
-      // printf("[DEBUG_LITS] Literals Dump (%u bytes):\n", actual_dump);
       // for (int i = 0; i < actual_dump; i++) {
       //   printf("%02x ", h_dump[i]);
       //   if ((i + 1) % 16 == 0)
@@ -4143,7 +4129,6 @@ private:
         CUDA_CHECK(cudaMemcpy(h_tail,
                               input + sequences_offset + seq_len - dump_tail,
                               dump_tail, cudaMemcpyDeviceToHost));
-        printf("[DEBUG_DEC] Sequence Tail (%u "
                "bytes): ",
                dump_tail);
         for (int i = 0; i < (int)dump_tail; i++)
@@ -4158,7 +4143,6 @@ private:
       return status;
     }
 
-    // printf("[DEBUG_BLK] decompress_sequences
     // completed. num_seq=%u\n",
     //        ctx.seq_ctx->num_sequences);
 
@@ -4185,7 +4169,6 @@ private:
       const u32 threads = 256;
       const u32 blocks = (ctx.seq_ctx->num_sequences + threads - 1) / threads;
 
-      printf("[DEBUG_MGR] Before Build: "
              "d_sequences=%p\n",
              ctx.seq_ctx->d_sequences);
       status = sequence::build_sequences(
@@ -4228,7 +4211,6 @@ private:
     CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
 
     //
-    printf("[DEBUG_MGR] Before Execute: "
            "d_sequences=%p\n",
            ctx.seq_ctx->d_sequences);
     status = sequence::execute_sequences(
@@ -4315,12 +4297,10 @@ private:
       header[2] = (unsigned char)((num_literals >> 12) & 0xFF);
       header_len = 3;
     } else {
-      printf("[TRACE] compress_literals: Invalid Size %u\n", num_literals);
       return Status::ERROR_INVALID_PARAMETER;
     }
 
     if (!writer.write_bytes(header, header_len, stream)) {
-      printf("[TRACE] compress_literals: Header write failed! Cap=%zu "
              "Off=%zu\n",
              131072UL, writer.get_offset());
       return Status::ERROR_BUFFER_TOO_SMALL;
@@ -4328,7 +4308,6 @@ private:
 
     if (num_literals > 0) {
       if (!writer.write_bytes(literals, num_literals, stream, true)) {
-        printf("[TRACE] compress_literals: Body write failed! Cap=%zu "
                "Off=%zu\n",
                131072UL, writer.get_offset());
         return Status::ERROR_BUFFER_TOO_SMALL;
@@ -4824,7 +4803,6 @@ private:
       *output_size = totalSize;
     
     if (bitStream.size() > 0) {
-        printf("[DEBUG_ENC] FSE Bitstream Size=%zu, LastByte=%02X\n", bitStream.size(), bitStream.back());
     }
 
     // Copy Header + Bitstream to Device
@@ -5533,7 +5511,6 @@ private:
       return Status::ERROR_CORRUPT_DATA;
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
                           cudaMemcpyDeviceToHost));
-    // printf("[DEBUG_LITS_REAL] Ptr=%p, Hdr Bytes: %02X %02X %02X %02X
     // %02X\n",
     //        input, h_header[0], h_header[1], h_header[2], h_header[3],
     //        h_header[4]);
@@ -5585,7 +5562,6 @@ private:
       if (literals_type == 1) {
         *h_compressed_size = 1;
       }
-      printf("[DEBUG_LITS_VAL] %s Result: Header=%u, Decomp=%u, CompSize=%u\n",
              (literals_type == 0 ? "Raw" : "RLE"), *h_header_size,
              *h_decompressed_size, *h_compressed_size);
     }
@@ -5659,7 +5635,6 @@ private:
                            (h_header[4] << 10);
     }
 
-    printf("[DEBUG_LITS_RFC] Result: Type=%u, Fmt=%u, Hdr=%u, Comp=%u, "
            "Decomp=%u\n",
            literals_type, size_format, *h_header_size, *h_compressed_size,
            *h_decompressed_size);
@@ -5784,7 +5759,6 @@ private:
     u32 of_mode = (fse_modes >> 4) & 0x03;
     u32 ml_mode = (fse_modes >> 2) & 0x03;
 
-    printf("[DEBUG_SEQ] Modes: LL=%u, OF=%u, ML=%u, NumSeq=%u\n", ll_mode,
            of_mode, ml_mode, num_sequences);
 
     // Kernel config for RLE
