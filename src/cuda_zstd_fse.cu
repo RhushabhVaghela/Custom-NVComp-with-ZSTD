@@ -4243,13 +4243,7 @@ __host__ Status decode_sequences_interleaved(
 
   // Launch Kernel
   if (input_size > 0) {
-    unsigned char last_byte = 0;
-    CUDA_CHECK(cudaMemcpy(&last_byte, d_input + input_size - 1, 1,
-                          cudaMemcpyDeviceToHost));
-    printf("[DEBUG_FSE] k_decode Launch: Size=%u, LastByte=%02X, NumSeq=%u\n",
-           input_size, last_byte, num_sequences);
-    printf("[DEBUG_FSE] TableLogs: LL=%u, OF=%u, ML=%u\n", d_ll.table_log,
-           d_of.table_log, d_ml.table_log);
+    // Debug output removed for production
   }
 
   k_decode_sequences_interleaved<<<1, 1, 0, stream>>>(

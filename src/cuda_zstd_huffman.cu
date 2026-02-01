@@ -1007,9 +1007,7 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
   }
 
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    printf("[BUILD-DECODE-TABLE] num_symbols=%u, max_len=%u\n", num_symbols,
            max_len);
-    printf("[BUILD-DECODE-TABLE] length_count[1]=%u, [2]=%u, [3]=%u, [4]=%u, "
            "[5]=%u, [6]=%u, [7]=%u\n",
            length_count[1], length_count[2], length_count[3], length_count[4],
            length_count[5], length_count[6], length_count[7]);
@@ -1045,7 +1043,6 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
       if (code_lengths[sym] == len) {
         d_symbols[idx] = static_cast<u8>(sym);
         if (threadIdx.x == 0 && blockIdx.x == 0 && idx < 10) {
-          printf("[BUILD-DECODE-TABLE] len=%u, sym=%u -> idx=%u, symbol=%u\n",
                  len, sym, idx, sym);
         }
         idx++;

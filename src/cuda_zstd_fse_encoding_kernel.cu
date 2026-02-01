@@ -73,7 +73,6 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   };
 
   if (threadIdx.x == 0)
-    printf("[GPU_ENC] START Seq0\n");
 
   // 1. Initialize States with SEQUENCE 0 (Start of Chain)
   // We encode Forward: 0 -> 1 -> ... -> N-1
@@ -113,7 +112,6 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   if (num_symbols > 1) {
     for (u32 i = 0; i < num_symbols - 1; i++) {
       if (threadIdx.x == 0 && i < 3)
-        printf("[GPU_ENC] LOOP %u\n", i);
       // Encode Seq i+1
       // Tables: LL=0, OF=1, ML=2
       // Sub-State (Current) is used as 'nextState' base?
@@ -204,7 +202,6 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
 
   *output_pos = ptr - output_bitstream;
   if (threadIdx.x == 0) {
-    printf("[GPU_ENC] END LB=%02X\n", (unsigned int)*(ptr - 1));
   }
 }
 

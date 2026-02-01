@@ -639,11 +639,8 @@ __global__ void parallel_find_all_matches_kernel(
   }
 
   if (idx == 0)
-    printf("[KERNEL] Input Ptr: %p\n", input);
   if (idx == 104)
-    printf("[KERNEL] Input[104] = %02X\n", input[104]);
   if (idx == 174)
-    printf("[KERNEL] Input[174] = %02X\n", input[174]);
 
   if (idx >= input_size - config.min_match) {
     return;
@@ -670,7 +667,6 @@ __global__ void parallel_find_all_matches_kernel(
     if (config.strategy == Strategy::LAZY)
       strat = "LAZY";
 
-    printf("[KERNEL] Config Check: nice_length=%u, min_match=%u, strategy=%s "
            "(int=%d), hash_log=%u, chain_log=%u\n",
            config.nice_length, config.min_match, strat, (int)config.strategy,
            config.hash_log, config.chain_log);

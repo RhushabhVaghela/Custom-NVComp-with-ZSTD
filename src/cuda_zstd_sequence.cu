@@ -54,7 +54,6 @@ __global__ void build_sequences_kernel(const u32 *d_literals_buffer,
   d_sequences[seq_idx].padding = 0; // (FIX) Ensure 16-byte vectorized write
 
   if (idx == 0) {
-    printf("[DEBUG_BUILD] Seq 0: LL=%u, ML=%u, OF=%u, Ptr=%p\n", lit_len,
            match_length, offset, d_sequences);
   }
 }
@@ -212,7 +211,6 @@ __global__ void compute_sequence_details_kernel(
   if (threadIdx.x != 0 || blockIdx.x != 0)
     return;
 
-  printf("[DEBUG_COMPUTE] Ptr=%p\n", sequences);
 
   SequenceState state;
 
@@ -264,7 +262,6 @@ __global__ void compute_sequence_details_kernel(
       if (d_error_flag) {
         *d_error_flag = 5; // Error: Total literals exceed input
       }
-      // printf("[KERNEL ERROR] Literals overflow at seq %u: Check=%u + %u > "
       //        "Limit=%u\n",
       //        i, total_literals, lit_len, total_literal_count);
       return;
@@ -300,7 +297,6 @@ __global__ void compute_sequence_details_kernel(
   }
 
   *d_total_output_size = total_output;
-  printf("[DEBUG_COMPUTE] Finished. NumSeq=%u, TotalLit=%u, InputLit=%u, "
          "TotalOut=%u\n",
          num_sequences, total_literals, total_literal_count, total_output);
 
@@ -389,7 +385,6 @@ __global__ void sequential_block_execute_sequences_kernel(
       // match_src >= output_base.
       if (match_src < output_base) {
         // Invalid match offset (before start of stream)
-        // printf("[KERNEL ERROR] Invalid match offset: src=%p < base=%p at seq
         // %u\n", match_src, output_base, i); We can't recover easily, but we
         // must avoid crash. Truncate or zero fill?
         match_src = output; // Safe dummy
