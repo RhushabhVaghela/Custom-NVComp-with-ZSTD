@@ -4068,21 +4068,29 @@ __global__ void k_decode_sequences_interleaved(
     if (decode_ll) {
       u8 nb = ll_table.nbBits[stateLL];
       u32 newBits = reader.read(nb);
-      stateLL = ll_table.newState[stateLL] + newBits;
+      u32 baseState = ll_table.newState[stateLL];
+      stateLL = baseState + newBits;
+      // DEBUG: Trace state transition
+      if (i < 3) {
+        printf("[GPU] LL State update: old=%u, nbBits=%u, newBits=%u, baseState=%u, result=%u\n",
+               (stateLL - newBits) & (ll_table_size - 1), nb, newBits, baseState, stateLL);
+      }
       // Normalize state to table bounds
       stateLL &= (ll_table_size - 1);
     }
     if (decode_of) {
       u8 nb = of_table.nbBits[stateOF];
       u32 newBits = reader.read(nb);
-      stateOF = of_table.newState[stateOF] + newBits;
+      u32 baseState = of_table.newState[stateOF];
+      stateOF = baseState + newBits;
       // Normalize state to table bounds
       stateOF &= (of_table_size - 1);
     }
     if (decode_ml) {
       u8 nb = ml_table.nbBits[stateML];
       u32 newBits = reader.read(nb);
-      stateML = ml_table.newState[stateML] + newBits;
+      u32 baseState = ml_table.newState[stateML];
+      stateML = baseState + newBits;
       // Normalize state to table bounds
       stateML &= (ml_table_size - 1);
     }
@@ -4127,6 +4135,13 @@ Status copy_table_to_device(const FSEDecodeTable &h_table,
   if (size == 0)
     return Status::SUCCESS;
 
+  // DEBUG: Verify host table is populated
+  printf("[HOST] copy_table_to_device: table_size=%u, table_log=%u\n", 
+         size, h_table.table_log);
+  printf("[HOST] Host table symbol[0]=%u, symbol[%u]=%u\n", 
+         h_table.symbol ? h_table.symbol[0] : 999,
+         size-1, h_table.symbol ? h_table.symbol[size-1] : 999);
+
   CUDA_CHECK(cudaMalloc(&d_table.symbol, size * sizeof(u8)));
   CUDA_CHECK(cudaMalloc(&d_table.nbBits, size * sizeof(u8)));
   CUDA_CHECK(cudaMalloc(&d_table.newState, size * sizeof(u16)));
@@ -4138,6 +4153,14 @@ Status copy_table_to_device(const FSEDecodeTable &h_table,
   CUDA_CHECK(cudaMemcpyAsync(d_table.newState, h_table.newState,
                              size * sizeof(u16), cudaMemcpyHostToDevice,
                              stream));
+
+  // CRITICAL: Synchronize to ensure copy completes before kernel launch
+  cudaStreamSynchronize(stream);
+
+  // DEBUG: Verify device table was copied
+  u8 first_symbol = 0;
+  cudaMemcpy(&first_symbol, d_table.symbol, sizeof(u8), cudaMemcpyDeviceToHost);
+  printf("[HOST] Device table symbol[0]=%u after copy\n", first_symbol);
 
   return Status::SUCCESS;
 }
