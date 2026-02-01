@@ -5562,8 +5562,6 @@ private:
       if (literals_type == 1) {
         *h_compressed_size = 1;
       }
-             (literals_type == 0 ? "Raw" : "RLE"), *h_header_size,
-             *h_decompressed_size, *h_compressed_size);
     }
     // Redundant legacy parsing removed. RFC 8878 logic below handles Type 2/3.
 
@@ -5634,10 +5632,6 @@ private:
       *h_compressed_size = ((h_header[2] >> 6) & 0x03) | (h_header[3] << 2) |
                            (h_header[4] << 10);
     }
-
-           "Decomp=%u\n",
-           literals_type, size_format, *h_header_size, *h_compressed_size,
-           *h_decompressed_size);
 
     if (*h_header_size + *h_compressed_size > input_size)
       return Status::ERROR_CORRUPT_DATA;
@@ -5758,8 +5752,6 @@ private:
     u32 ll_mode = (fse_modes >> 6) & 0x03;
     u32 of_mode = (fse_modes >> 4) & 0x03;
     u32 ml_mode = (fse_modes >> 2) & 0x03;
-
-           of_mode, ml_mode, num_sequences);
 
     // Kernel config for RLE
     const u32 threads = 256;
