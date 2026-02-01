@@ -150,8 +150,7 @@ set(CUDA_ZSTD_SOURCES
     src/lz77_parallel.cu
     src/pipeline_manager.cu
     
-    # New implementations
-    src/streaming_implementation.cpp
+    # LDM implementation stub (documented as not supported)
     src/ldm_implementation.cu
 )
 
