@@ -169,19 +169,10 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
         }
         auto sym = table[2].d_symbol_table[code];
         u32 nbBitsOut = (stateML + sym.deltaNbBits) >> 16;
-        if (i < 3 && threadIdx.x == 0) {
-          printf("[FSE_ENCODE] ML seq %d: state=%u, code=%u, deltaNb=%d, deltaFind=%d, nbOut=%u\n",
-                 i, stateML, code, sym.deltaNbBits, sym.deltaFindState, nbBitsOut);
-        }
         if (nbBitsOut > 0) {
           write_bits(stateML & ((1ULL << nbBitsOut) - 1), nbBitsOut);
         }
-        u32 oldState = stateML;
         stateML = (stateML >> nbBitsOut) + sym.deltaFindState;
-        if (i < 3 && threadIdx.x == 0) {
-          printf("[FSE_ENCODE] ML transition: %u -> %u (>>%u + %d)\n",
-                 oldState, stateML, nbBitsOut, sym.deltaFindState);
-        }
       }
 
       // Offset (Table 1)
@@ -274,12 +265,8 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
       continue;
     }
 
-    u32 maxBitsOut;
-    if (freq == 1) {
-      maxBitsOut = table_log;
-    } else {
-      maxBitsOut = table_log - get_highest_bit(freq - 1);
-    }
+    // Fix: Use freq (not freq-1) for correct maxBitsOut calculation
+    u32 maxBitsOut = table_log - get_highest_bit(freq);
     u32 minStatePlus = (u32)freq << maxBitsOut;
 
     table->d_symbol_table[s].deltaNbBits = (maxBitsOut << 16) - minStatePlus;
@@ -417,7 +404,7 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
   // Zstd implementation line.
 
   // Set deltaFindState for all symbols with positive frequency
-  // deltaFindState = cumulative_frequency - 1 (standard Zstd formula)
+  // Fix: Use cumulative_frequency (not cum - 1) for direct addition formula
   // This ensures state transitions properly within the symbol's state range
   for (u32 s = tid; s <= max_symbol; s += blockDim.x) {
     u32 freq = normalized_counters[s];
@@ -425,13 +412,12 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
       continue;
     
     // The encoder transitions: state = (state >> nbBits) + deltaFindState
-    // We want the new state to be in range [cum[s], cum[s] + freq[s] - 1]
-    // Standard Zstd: deltaFindState = cum[s] - 1
-    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s] - 1;
+    // For direct addition, use cum (not cum - 1)
+    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s];
     
     if (s < 5 && tid == 0) {
       printf("[CTABLE] Symbol %u: freq=%u, cum=%u, deltaFind=%d\n",
-             s, freq, s_cum_freq[s], (i32)s_cum_freq[s] - 1);
+             s, freq, s_cum_freq[s], (i32)s_cum_freq[s]);
     }
   }
 
