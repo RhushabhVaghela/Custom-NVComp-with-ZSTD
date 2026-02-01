@@ -468,8 +468,12 @@ __global__ void k_fse_encode_rfc_from_old_tables(
     size_t bitstream_capacity,
     size_t *__restrict__ output_pos
 ) {
+    printf("[RFC_KERNEL] ENTER: threadIdx.x=%d num_symbols=%u\n", threadIdx.x, num_symbols);
+    
     // Only thread 0 does encoding (FSE is inherently sequential per stream)
     if (threadIdx.x != 0 || num_symbols == 0 || bitstream_capacity == 0) {
+        printf("[RFC_KERNEL] EARLY RETURN: threadIdx=%d num_sym=%u cap=%zu\n", 
+               threadIdx.x, num_symbols, bitstream_capacity);
         return;
     }
     
@@ -480,13 +484,23 @@ __global__ void k_fse_encode_rfc_from_old_tables(
     }
 
     // Validate table pointers for all three streams
+    // Note: We only check fields that are actually populated by k_build_ctable
+    // and used by this kernel. d_nbBits_table and d_next_state_vals are NOT used.
     if (!tables[0].d_symbol_first_state || !tables[1].d_symbol_first_state || !tables[2].d_symbol_first_state ||
-        !tables[0].d_state_to_symbol || !tables[1].d_state_to_symbol || !tables[2].d_state_to_symbol ||
-        !tables[0].d_nbBits_table || !tables[1].d_nbBits_table || !tables[2].d_nbBits_table ||
-        !tables[0].d_next_state_vals || !tables[1].d_next_state_vals || !tables[2].d_next_state_vals) {
+        !tables[0].d_symbol_table || !tables[1].d_symbol_table || !tables[2].d_symbol_table) {
+        printf("[RFC_KERNEL] ERROR: Null table pointer detected\n");
+        printf("[RFC_KERNEL] first_state: %p %p %p\n",
+               tables[0].d_symbol_first_state, tables[1].d_symbol_first_state, tables[2].d_symbol_first_state);
+        printf("[RFC_KERNEL] symbol_table: %p %p %p\n",
+               tables[0].d_symbol_table, tables[1].d_symbol_table, tables[2].d_symbol_table);
         *output_pos = 0;
         return;
     }
+
+    printf("[RFC_KERNEL] Starting encoding: num_symbols=%u\n", num_symbols);
+    printf("[RFC_KERNEL] Table logs: LL=%u OF=%u ML=%u\n", tables[0].table_log, tables[1].table_log, tables[2].table_log);
+    printf("[RFC_KERNEL] Table sizes: LL=%u OF=%u ML=%u\n", tables[0].table_size, tables[1].table_size, tables[2].table_size);
+    printf("[RFC_KERNEL] Max symbols: LL=%u OF=%u ML=%u\n", tables[0].max_symbol, tables[1].max_symbol, tables[2].max_symbol);
 
     unsigned char *ptr = output_bitstream;
     unsigned char *end_limit = output_bitstream + bitstream_capacity;
@@ -557,18 +571,26 @@ __global__ void k_fse_encode_rfc_from_old_tables(
                     return;
                 }
                 
-                // Get nbBits from table (RFC: bits to emit from current state)
-                u32 nbBits = tables[0].d_nbBits_table[stateLL];
+                // Compute nbBits using Zstd FSE formula: (state + deltaNbBits) >> 16
+                printf("[RFC_KERNEL] LL i=%u code=%u max_sym=%u\n", i, code, ll_max_sym);
+                if (code > tables[0].max_symbol) {
+                    printf("[RFC_KERNEL] ERROR: LL code %u > max_symbol %u\n", code, tables[0].max_symbol);
+                    *output_pos = 0;
+                    return;
+                }
+                u32 deltaNbBitsLL = tables[0].d_symbol_table[code].deltaNbBits;
+                printf("[RFC_KERNEL] LL deltaNbBits=%u state=%u\n", deltaNbBitsLL, stateLL);
+                u32 nbBits = (stateLL + deltaNbBitsLL) >> 16;
                 if (nbBits > ll_table_log) nbBits = ll_table_log;
-                
+
                 // Emit low bits of current state
                 if (nbBits > 0) {
                     write_bits(stateLL & ((1u << nbBits) - 1), nbBits);
                 }
-                
-                // RFC state transition: nextState = table[state].nextState
-                // The nextState already includes the baseline + sub-state calculation
-                u32 nextState = tables[0].d_next_state_vals[stateLL];
+
+                // RFC state transition: newState = (state >> nbBits) + deltaFindState
+                i32 deltaFindLL = tables[0].d_symbol_table[code].deltaFindState;
+                u32 nextState = (stateLL >> nbBits) + (u32)deltaFindLL;
                 stateLL = nextState;
                 
                 // Validate state transition
@@ -586,14 +608,18 @@ __global__ void k_fse_encode_rfc_from_old_tables(
                     return;
                 }
                 
-                u32 nbBits = tables[1].d_nbBits_table[stateOF];
+                // Compute nbBits using Zstd FSE formula
+                u32 deltaNbBitsOF = tables[1].d_symbol_table[code].deltaNbBits;
+                u32 nbBits = (stateOF + deltaNbBitsOF) >> 16;
                 if (nbBits > of_table_log) nbBits = of_table_log;
                 
                 if (nbBits > 0) {
                     write_bits(stateOF & ((1u << nbBits) - 1), nbBits);
                 }
                 
-                stateOF = tables[1].d_next_state_vals[stateOF];
+                // State transition: newState = (state >> nbBits) + deltaFindState
+                i32 deltaFindOF = tables[1].d_symbol_table[code].deltaFindState;
+                stateOF = (stateOF >> nbBits) + (u32)deltaFindOF;
                 if (stateOF >= of_table_size) {
                     stateOF = tables[1].d_symbol_first_state[code];
                 }
@@ -607,14 +633,18 @@ __global__ void k_fse_encode_rfc_from_old_tables(
                     return;
                 }
                 
-                u32 nbBits = tables[2].d_nbBits_table[stateML];
+                // Compute nbBits using Zstd FSE formula
+                u32 deltaNbBitsML = tables[2].d_symbol_table[code].deltaNbBits;
+                u32 nbBits = (stateML + deltaNbBitsML) >> 16;
                 if (nbBits > ml_table_log) nbBits = ml_table_log;
                 
                 if (nbBits > 0) {
                     write_bits(stateML & ((1u << nbBits) - 1), nbBits);
                 }
                 
-                stateML = tables[2].d_next_state_vals[stateML];
+                // State transition: newState = (state >> nbBits) + deltaFindState
+                i32 deltaFindML = tables[2].d_symbol_table[code].deltaFindState;
+                stateML = (stateML >> nbBits) + (u32)deltaFindML;
                 if (stateML >= ml_table_size) {
                     stateML = tables[2].d_symbol_first_state[code];
                 }
@@ -661,12 +691,12 @@ __global__ void k_fse_encode_rfc_from_old_tables(
  * to:
  *   fse::launch_fse_encoding_kernel_rfc(...)
  */
-Status launch_fse_encoding_kernel_rfc(
+__host__ Status launch_fse_encoding_kernel_rfc(
     const u8 *d_ll_codes, const u32 *d_ll_extras, const u8 *d_ll_bits,
     const u8 *d_of_codes, const u32 *d_of_extras, const u8 *d_of_bits,
     const u8 *d_ml_codes, const u32 *d_ml_extras, const u8 *d_ml_bits,
-    u32 num_symbols, 
-    unsigned char *d_bitstream, 
+    u32 num_symbols,
+    unsigned char *d_bitstream,
     size_t *d_output_pos,
     size_t bitstream_capacity,
     const FSEEncodeTable *d_tables,
