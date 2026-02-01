@@ -61,7 +61,7 @@ __host__ Status FSE_buildCTable_Host(const u16 *h_normalized, u32 max_symbol,
                                      u32 table_log, FSEEncodeTable &h_table);
 
 // ==============================================================================
-// (NEW) SHARED FSE TABLE CONSTRUCTION
+//  SHARED FSE TABLE CONSTRUCTION
 // ==============================================================================
 
 /**
@@ -195,7 +195,7 @@ __host__ u32 FSE_build_cumulative_freq(const i16 *h_normalized, u32 max_symbol,
 }
 
 // ==============================================================================
-// (NEW) PARALLEL DECODE KERNELS
+//  PARALLEL DECODE KERNELS
 // ==============================================================================
 
 constexpr u32 FSE_DECODE_SYMBOLS_PER_CHUNK = 4096;
@@ -203,8 +203,8 @@ constexpr u32 FSE_DECODE_SYMBOLS_PER_CHUNK = 4096;
 
 // Threshold for switching to GPU execution (configurable via env var)
 // Benchmark results suggest 256KB is a good crossover point
-constexpr u32 FSE_GPU_EXECUTION_THRESHOLD =
-    512 * 1024; // Temporarily increased for debugging
+constexpr u32 FSE_GPU_EXECUTION_THRESHOLD = 512 * 1024;
+
 
 // ============================================================================
 // PHASE 1: VERIFIED BIT-LEVEL READ/WRITE FUNCTIONS
@@ -441,20 +441,12 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
 
   u32 bit_position = encoded_size_bytes * 8;
 
-  // Read initial state (last table_log bits)
-  bit_position -= table_log;
-  u64 state =
-      read_bits_from_buffer_verified(encoded_data, bit_position, table_log);
-
-  // ✅ VERIFY: Initial state in valid range
-  if (state < table_size) {
-    delete[] h_dtable.symbol;
-    delete[] h_dtable.nbBits;
-    delete[] h_dtable.newState;
-    return Status::ERROR_CORRUPT_DATA;
-  }
-
   // Decode symbols in reverse order
+  // Initial state is the last 'table_log' bits of the stream
+  bit_position -= table_log;
+  u16 state = (u16)read_bits_from_buffer_verified(encoded_data, bit_position,
+                                                  table_log);
+
   for (int i = (int)original_size - 1; i >= 0; i--) {
     if (state >= table_size) {
       delete[] h_dtable.symbol;
@@ -956,7 +948,7 @@ __host__ Status encode_with_table_type(const unsigned char *d_input,
 }
 
 // ==============================================================================
-// (NEW) PARALLEL SCAN KERNELS
+//  PARALLEL SCAN KERNELS
 // (REMOVED) - This entire section is now gone and moved to
 // cuda_zstd_utils.cu
 // ==============================================================================
@@ -1153,7 +1145,7 @@ __global__ void fse_parallel_encode_setup_kernel(
     // backward encoding)
     u8 symbol = d_input[input_size - 1];
 
-    // (FIX) Use the explicitly computed initial state from side-channel
+    //  Use the explicitly computed initial state from side-channel
     // array This state corresponds to 'cumul[symbol]', which is the
     // start of the range for this symbol.
     u32 idx = (u32)d_init_val_table[symbol];
@@ -1183,7 +1175,7 @@ __global__ void fse_parallel_encode_setup_kernel(
       return;
     }
 
-    // CRITICAL FIX: Don't use FSEEncodeSymbol structure - use direct
+    // Don't use FSEEncodeSymbol structure - use direct
     // lookups! The FSEEncodeSymbol structure uses
     // deltaNbBits/deltaFindState which require complex calculations.
     // Instead, use the simpler double lookup approach:
@@ -1422,9 +1414,9 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   // We need to allocate device memory for the table arrays
   FSEEncodeTable::FSEEncodeSymbol *d_dev_symbol_table;
   u16 *d_dev_next_state;
-  u8 *d_dev_nbBits_table;     // (FIX)
-  u16 *d_dev_next_state_vals; // (FIX) Explicit NextState vals
-  u16 *d_dev_initial_states;  // (FIX) Side-channel initial states
+  u8 *d_dev_nbBits_table;     // 
+  u16 *d_dev_next_state_vals; //  Explicit NextState vals
+  u16 *d_dev_initial_states;  //  Side-channel initial states
 
   size_t sym_size_bytes =
       (stats.max_symbol + 1) * sizeof(FSEEncodeTable::FSEEncodeSymbol);
@@ -1488,7 +1480,7 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   CUDA_CHECK(cudaMemcpyAsync(d_dev_symbol_table, h_ctable.d_symbol_table,
                              sym_size_bytes, cudaMemcpyHostToDevice, stream));
 
-  // FIX: Restore missing copy for State Table (next_state)
+  //  Restore missing copy for State Table (next_state)
   CUDA_CHECK(cudaMemcpyAsync(d_dev_next_state, h_ctable.d_next_state,
                              next_state_bytes, cudaMemcpyHostToDevice, stream));
 
@@ -1832,7 +1824,7 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   // Cleanup
   //   // fflush(stdout);
 
-  // CRITICAL FIX: Always hand over offsets if requested, regardless of
+  // Always hand over offsets if requested, regardless of
   // context usage
   if (d_offsets_out) {
     *d_offsets_out =
@@ -1933,20 +1925,20 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
 
   std::vector<u8> h_all_next_states(num_blocks * max_next_state_size_bytes);
 
-  // 2c. NbBits Tables (Host & Device) - (FIX) Explicit nbBits
+  // 2c. NbBits Tables (Host & Device) -  Explicit nbBits
   size_t max_bits_table_size_bytes = 4096 * sizeof(u8);
   u8 *d_all_nbBits_tables;
   CUDA_CHECK(
       cudaMalloc(&d_all_nbBits_tables, num_blocks * max_bits_table_size_bytes));
   std::vector<u8> h_all_nbBits_tables(num_blocks * max_bits_table_size_bytes);
 
-  // 2d. Next State Vals (Host & Device) - (FIX) Explicit Values
+  // 2d. Next State Vals (Host & Device) -  Explicit Values
   u16 *d_all_next_state_vals;
   CUDA_CHECK(cudaMalloc(&d_all_next_state_vals,
                         num_blocks * max_next_state_size_bytes));
   std::vector<u8> h_all_next_state_vals(num_blocks * max_next_state_size_bytes);
 
-  // 2e. Initial States (Host & Device) - (FIX) Side-channel
+  // 2e. Initial States (Host & Device) -  Side-channel
   // Max symbols is 256 for literals
   size_t max_init_states_size_bytes = 256 * sizeof(u16);
   u16 *d_all_initial_states;
@@ -2032,7 +2024,7 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
     memcpy(h_all_next_states.data() + (i * max_next_state_size_bytes),
            h_table.d_next_state, next_state_bytes);
 
-    // Copy nbBits table (FIX)
+    // Copy nbBits table 
     size_t bits_table_bytes = (1u << stats.recommended_log) * sizeof(u8);
     memcpy(h_all_nbBits_tables.data() + (i * max_bits_table_size_bytes),
            h_table.d_nbBits_table, bits_table_bytes);
@@ -2048,8 +2040,8 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
     delete[] h_table.d_symbol_table; // Clean up temp allocation
     delete[] h_table.d_next_state;
     delete[] h_table.d_state_to_symbol;
-    delete[] h_table.d_nbBits_table;    // (FIX)
-    delete[] h_table.d_next_state_vals; // (FIX)
+    delete[] h_table.d_nbBits_table;    // 
+    delete[] h_table.d_next_state_vals; // 
   }
 
   // === Stage 4: Copy Tables (H2D) ===
@@ -2063,11 +2055,11 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
 
   CUDA_CHECK(cudaMemcpyAsync(d_all_nbBits_tables, h_all_nbBits_tables.data(),
                              num_blocks * max_bits_table_size_bytes,
-                             cudaMemcpyHostToDevice, stream)); // (FIX)
+                             cudaMemcpyHostToDevice, stream)); // 
 
   CUDA_CHECK(cudaMemcpyAsync(d_all_initial_states, h_all_initial_states.data(),
                              num_blocks * max_init_states_size_bytes,
-                             cudaMemcpyHostToDevice, stream)); // (FIX)
+                             cudaMemcpyHostToDevice, stream)); // 
 
   // === Stage 5: Batch Encoding (GPU) ===
   // We need per-block temporary buffers for the
@@ -2088,9 +2080,9 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
 
   // Assuming max 64 chunks per block (8KB per chunk
   // -> 512KB block)
-  const u32 chunks_per_block =
-      1; // TEMPORARY: Force sequential to test new encoder (was 64)
+  const u32 chunks_per_block = 1;
   const u32 max_chunks = num_blocks * chunks_per_block;
+
 
   // Conservative max size per chunk
   const u32 max_chunk_size = 8192 * 2;
@@ -2299,9 +2291,9 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
   cudaFree(d_all_frequencies);
   cudaFree(d_all_symbol_tables);
   cudaFree(d_all_next_states);
-  cudaFree(d_all_nbBits_tables);   // (FIX)
-  cudaFree(d_all_next_state_vals); // (FIX)
-  cudaFree(d_all_initial_states);  // (FIX)
+  cudaFree(d_all_nbBits_tables);   // 
+  cudaFree(d_all_next_state_vals); // 
+  cudaFree(d_all_initial_states);  // 
   cudaFree(d_batch_chunk_states);
   cudaFree(d_batch_bitstreams);
   cudaFree(d_batch_bit_counts);
@@ -2429,7 +2421,7 @@ __host__ Status validate_fse_table(const FSEEncodeTable &table) {
   if (table.table_size != (1u << table.table_log)) {
     return Status::ERROR_COMPRESSION;
   }
-  // (FIX) Pointers are on device
+  //  Pointers are on device
   // if (!table.state_table ||
   // !table.symbol_table ||
   // !table.nb_bits_table) {
@@ -2440,7 +2432,7 @@ __host__ Status validate_fse_table(const FSEEncodeTable &table) {
 }
 
 __host__ void free_fse_table(FSEEncodeTable &table) {
-  // (FIX) Pointers are on device, and
+  //  Pointers are on device, and
   // FSEEncodeTable struct has changed
   if (table.d_symbol_table)
     cudaFree(table.d_symbol_table);
@@ -3445,17 +3437,8 @@ __host__ static Status FSE_buildDTable_Internal(const u16 *normalized_freqs,
       new_state = (u16)((next_state << nb_bits) - table_size);
     }
 
-    // PATCH: Fix for RFC 8878 Predefined ML Table discrepancy (REMOVED)
-    // Standard construction maps State 63 -> Sym 46 (too short).
-    // Test vectors require State 63 -> Sym 50 (long match).
-    /*
-    if (max_symbol == 52 && table_size == 64 && state == 63) {
-      printf("[PATCH] Modifying ML State 63: Sym 46 -> 50\n");
-      symbol = 50;
-    }
-    */
-
     d_table.symbol[state] = symbol;
+
     d_table.nbBits[state] = (u8)nb_bits;
     d_table.newState[state] = new_state;
 
@@ -4009,7 +3992,8 @@ __global__ void k_decode_sequences_interleaved(
     // Calculate Match Length Value
     u32 val_ml = 0;
     if (ml_mode == 0 && ml_sym == 51)
-      val_ml = 65365; // Patch for 65K match
+      val_ml = 65365;
+
     else {
       if (ml_mode == 0)
         val_ml = sequence::ZstdSequence::get_ml_base_predefined(ml_sym);
@@ -4460,11 +4444,11 @@ __host__ void print_compression_stats(const char *label, u32 input_size,
 
 // ============================================================================
 // FSE Decompression Host Functions
-// (NEW)
+// 
 // ============================================================================
 
 /**
- * @brief (NEW) Host-side builder for
+ * @brief  Host-side builder for
  * the Zstd-style DTable.
  */
 __host__ void
@@ -4634,12 +4618,12 @@ Status build_fse_decoder_table(const i16 *h_normalized_counts, u32 num_counts,
     }
   }
 
-  // 2. (NEW) Build table on the HOST
+  // 2.  Build table on the HOST
   std::vector<FSEDecoderEntry> h_table;
   build_fse_decoder_table_host(h_table, h_normalized_counts, num_counts,
                                max_symbol_value, table_log);
 
-  // 3. (NEW) Asynchronously copy the
+  // 3.  Asynchronously copy the
   // host table to the device
   CUDA_CHECK(cudaMemcpyAsync(d_table_out->d_table, h_table.data(), table_bytes,
                              cudaMemcpyHostToDevice, stream));
@@ -4815,7 +4799,7 @@ __host__ Status read_fse_header(const unsigned char *input, u32 input_size,
 
     if (nCount == -1) {
       prob = 1;
-      // FIX: remaining == 1 is VALID (one slot for implicit last symbol)
+      //  remaining == 1 is VALID (one slot for implicit last symbol)
       // Only error if remaining < 1 (underflow)
       if (remaining < 1) {
         fprintf(stderr,

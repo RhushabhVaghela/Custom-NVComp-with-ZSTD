@@ -914,7 +914,7 @@ Status backtrack_sequences(u32 input_size, CompressionWorkspace &workspace,
     // Set dummy flag based on last sequence
     if (out_has_dummy)
       *out_has_dummy = false;
-    // TODO: Could check last ML to set dummy flag properly
+
 
     return status;
   } else {

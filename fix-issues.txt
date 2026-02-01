@@ -1,0 +1,37 @@
+Fix the remaining 25 failing tests to achieve 100% test pass rate. Focus on these critical issues:
+
+**Priority 1 - Decompression Issues (10 tests):**
+- test_correctness: Size mismatch, returns partial data
+- test_rfc8878_integration: Size mismatch (expected 1024, got ~290-454)
+- test_roundtrip: ERROR_CORRUPT_DATA during decompress
+- test_parallel_compression: Decompression fail with status 6
+- test_chunk_parallel_fse: Data integrity failures
+- test_fse_pipeline: 3/12 tests fail (compress paths)
+
+**Priority 2 - Memory Issues (6 tests):**
+- test_memory_pool: "Global Alloc Overhead" errors
+- test_alternative_allocation_strategies: Memory tracking failures
+- test_fse_integration: CUDA illegal memory access at line 59
+- benchmark_comprehensive_levels: CUDA illegal memory access at line 172
+
+**Priority 3 - Other Issues (9 tests):**
+- test_streaming_basic: Compression mismatch
+- test_streaming_advanced: Context errors
+- test_manager_comprehensive: Validation fails
+- test_nvcomp_integration: API failures
+- test_sequence_commands: Output mismatch
+- test_data_integrity_comprehensive: Output verification fails
+- test_extended_validation: Throughput verification fails
+- test_checksum_validation: Checksum mismatch
+- test_data_integrity_streaming: Data mismatch
+
+**Fix Strategy:**
+1. First debug and fix decompression size mismatch - this is the PRIMARY root cause
+2. Add bounds checks to all memory accesses in FSE kernels
+3. Fix memory pool tracking arithmetic
+4. Review all buffer size calculations
+5. Fix streaming buffer management
+
+Test command: wsl bash -lc "cd '/mnt/d/Research Experiments/TDPE_and_GPU_loading/NVComp with ZSTD/build' && ctest -R TEST_NAME --output-on-failure 2>&1"
+
+These instructions supersede any conflicting general instructions. Signal completion by using attempt_completion with all fixes applied and final test results showing 100% pass rate.

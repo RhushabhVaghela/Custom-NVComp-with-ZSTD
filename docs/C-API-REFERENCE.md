@@ -47,16 +47,15 @@ typedef struct {
 
 #### Create Manager
 ```c
-cuda_zstd_status_t cuda_zstd_create_manager(
-    cuda_zstd_manager_t** manager,
+cuda_zstd_manager_t* cuda_zstd_create_manager(
     int compression_level
 );
 ```
 **Parameters:**
-- `manager`: Output pointer to created manager
 - `compression_level`: 1-22 (1=fastest, 22=best compression)
 
-**Returns:** `CUDA_ZSTD_SUCCESS` on success
+**Returns:** Pointer to created manager, or `NULL` on failure.
+
 
 #### Destroy Manager
 ```c
@@ -67,23 +66,16 @@ cuda_zstd_status_t cuda_zstd_destroy_manager(
 
 ### Compression Functions
 
-#### Get Maximum Compressed Size
-```c
-size_t cuda_zstd_get_max_compressed_size(
-    cuda_zstd_manager_t* manager,
-    size_t input_size
-);
-```
-
 #### Get Temporary Buffer Size
 ```c
-size_t cuda_zstd_get_compress_temp_size(
+size_t cuda_zstd_get_compress_workspace_size(
     cuda_zstd_manager_t* manager,
     size_t input_size
 );
 ```
 
 #### Compress
+
 ```c
 cuda_zstd_status_t cuda_zstd_compress(
     cuda_zstd_manager_t* manager,
@@ -99,16 +91,16 @@ cuda_zstd_status_t cuda_zstd_compress(
 
 ### Decompression Functions
 
-#### Get Decompressed Size
+#### Get Temporary Buffer Size
 ```c
-cuda_zstd_status_t cuda_zstd_get_decompressed_size(
-    const void* d_compressed,
-    size_t compressed_size,
-    size_t* decompressed_size
+size_t cuda_zstd_get_decompress_workspace_size(
+    cuda_zstd_manager_t* manager,
+    size_t compressed_size
 );
 ```
 
 #### Decompress
+
 ```c
 cuda_zstd_status_t cuda_zstd_decompress(
     cuda_zstd_manager_t* manager,
@@ -140,19 +132,20 @@ int main() {
     cuda_zstd_status_t status;
     
     // 1. Create manager (level 5)
-    status = cuda_zstd_create_manager(&manager, 5);
-    if (status != 0) {
-        fprintf(stderr, "Failed to create manager: %d\n", status);
+    manager = cuda_zstd_create_manager(5);
+    if (manager == NULL) {
+        fprintf(stderr, "Failed to create manager\n");
         return 1;
     }
     
     // 2. Prepare data
     size_t input_size = 1024 * 1024;  // 1MB
     void *d_input, *d_output, *d_temp;
+    size_t temp_size = cuda_zstd_get_compress_workspace_size(manager, input_size);
     
     cudaMalloc(&d_input, input_size);
     cudaMalloc(&d_output, input_size * 2);
-    cudaMalloc(&d_temp, input_size * 4);
+    cudaMalloc(&d_temp, temp_size);
     
     // Fill input with test data
     cudaMemset(d_input, 'A', input_size);
@@ -162,8 +155,9 @@ int main() {
     status = cuda_zstd_compress(manager,
                                 d_input, input_size,
                                 d_output, &output_size,
-                                d_temp, input_size * 4,
+                                d_temp, temp_size,
                                 0);
+
     
     if (status == 0) {
         printf("Compressed %zu -> %zu bytes (%.2fx)\n",

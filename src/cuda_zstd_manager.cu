@@ -62,26 +62,6 @@ __global__ void convert_sequences_to_fse_codes_kernel(
     unsigned char *d_of_bits_out, u32 *d_incompatible_flag) {
   u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-  // DEBUG: Print pointer validity for thread 0
-  if (idx == 0) {
-    printf("[FSE_CODES] num_sequences=%u\\n", num_sequences);
-    printf("[FSE_CODES] Input Ptrs: ll=%p, ml=%p, of=%p\\n", d_ll_in, d_ml_in,
-           d_of_in);
-    printf("[FSE_CODES] Output Ptrs: ll_out=%p, ml_out=%p, of_out=%p\\n",
-           d_ll_out, d_ml_out, d_of_out);
-    printf("[FSE_CODES] Extra Ptrs: ll_extra=%p, ml_extra=%p, of_extra=%p\\n",
-           d_ll_extra_out, d_ml_extra_out, d_of_extra_out);
-    printf("[FSE_CODES] Bits Ptrs: ll_bits=%p, ml_bits=%p, of_bits=%p\\n",
-           d_ll_bits_out, d_ml_bits_out, d_of_bits_out);
-    printf("[FSE_CODES] IncompatPtr: %p\\n", d_incompatible_flag);
-
-    // Attempt to read first value from each input
-    if (num_sequences > 0) {
-      printf("[FSE_CODES] First Values: ll[0]=%u, ml[0]=%u, of[0]=%u\\n",
-             d_ll_in[0], d_ml_in[0], d_of_in[0]);
-    }
-  }
-
   if (idx >= num_sequences)
     return;
 

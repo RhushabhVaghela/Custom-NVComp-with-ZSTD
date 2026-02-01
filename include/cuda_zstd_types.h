@@ -43,7 +43,7 @@ struct ChainTable {
 // FSE Context (Memory Optimization)
 // ============================================================================
 struct FSEContext {
-  // Encoding Table Buffers (Device Pointers)
+  /** Encoding Table Buffers (Device Pointers) */
   void *d_dev_symbol_table = nullptr;
   void *d_dev_next_state = nullptr;
   void *d_dev_nbBits_table = nullptr;
@@ -51,17 +51,18 @@ struct FSEContext {
   void *d_dev_initial_states = nullptr;
   void *d_ctable_for_encoder = nullptr;
 
-  // Parallel Chunk Buffers (Device Pointers)
+  /** Parallel Chunk Buffers (Device Pointers) */
   void *d_chunk_start_states = nullptr;
   void *d_bitstreams = nullptr;
   void *d_chunk_bit_counts = nullptr;
   void *d_chunk_offsets = nullptr;
 
-  // Capacity Tracking
+  /** Capacity Tracking */
   size_t bitstreams_capacity_bytes = 0;
   size_t num_chunks_capacity = 0;
-  size_t symbol_table_capacity = 0; // (FIX) Track max_symbol+1 capacity
+  size_t symbol_table_capacity = 0; // Track max_symbol+1 capacity
 };
+
 
 // ============================================================================
 // Bitstream Format Selection (nvcomp-style)
@@ -85,40 +86,44 @@ enum class BitstreamKind : u32 {
 // Enhanced Status Codes with Context
 // ============================================================================
 
+/**
+ * @brief Status codes for CUDA-ZSTD operations.
+ */
 enum class Status : u32 {
-  SUCCESS = 0,
-  ERROR_GENERIC = 1,
-  ERROR_INVALID_PARAMETER = 2,
-  ERROR_OUT_OF_MEMORY = 3,
-  ERROR_CUDA_ERROR = 4,
-  ERROR_INVALID_MAGIC = 5,
-  ERROR_CORRUPT_DATA = 6,
-  ERROR_CORRUPTED_DATA = 6, // Alias for ERROR_CORRUPT_DATA
-  ERROR_BUFFER_TOO_SMALL = 7,
-  ERROR_UNSUPPORTED_VERSION = 8,
-  ERROR_DICTIONARY_MISMATCH = 9,
-  ERROR_CHECKSUM_FAILED = 10,
-  ERROR_IO = 11,
-  ERROR_COMPRESSION = 12,
-  ERROR_COMPRESSION_FAILED = 12, // Alias for ERROR_COMPRESSION
-  ERROR_DECOMPRESSION = 13,
-  ERROR_DECOMPRESSION_FAILED = 13, // Alias for ERROR_DECOMPRESSION
-  ERROR_WORKSPACE_INVALID = 14,
-  ERROR_STREAM_ERROR = 15,
-  ERROR_ALLOCATION_FAILED = 16,
-  ERROR_HASH_TABLE_FULL = 17,
-  ERROR_SEQUENCE_ERROR = 18,
-  ERROR_NOT_INITIALIZED = 19,
-  ERROR_ALREADY_INITIALIZED = 20,
-  ERROR_INVALID_STATE = 21,
-  ERROR_TIMEOUT = 22,
-  ERROR_CANCELLED = 23,
-  ERROR_NOT_IMPLEMENTED = 24,
-  ERROR_INTERNAL = 25,
-  ERROR_UNKNOWN = 26,
-  ERROR_DICTIONARY_FAILED = 27,
-  ERROR_UNSUPPORTED_FORMAT = 28
+  SUCCESS = 0,                     /**< Operation completed successfully */
+  ERROR_GENERIC = 1,               /**< General error */
+  ERROR_INVALID_PARAMETER = 2,     /**< Invalid argument passed to function */
+  ERROR_OUT_OF_MEMORY = 3,         /**< Memory allocation failed */
+  ERROR_CUDA_ERROR = 4,            /**< CUDA runtime error occurred */
+  ERROR_INVALID_MAGIC = 5,         /**< Invalid ZSTD magic number */
+  ERROR_CORRUPT_DATA = 6,          /**< Input data is corrupted or malformed */
+  ERROR_CORRUPTED_DATA = 6,        /**< Alias for ERROR_CORRUPT_DATA */
+  ERROR_BUFFER_TOO_SMALL = 7,      /**< Provided output buffer is too small */
+  ERROR_UNSUPPORTED_VERSION = 8,   /**< Unsupported ZSTD format version */
+  ERROR_DICTIONARY_MISMATCH = 9,   /**< Dictionary does not match data */
+  ERROR_CHECKSUM_FAILED = 10,      /**< Frame checksum verification failed */
+  ERROR_IO = 11,                   /**< I/O operation failed */
+  ERROR_COMPRESSION = 12,          /**< Error occurred during compression */
+  ERROR_COMPRESSION_FAILED = 12,   /**< Alias for ERROR_COMPRESSION */
+  ERROR_DECOMPRESSION = 13,        /**< Error occurred during decompression */
+  ERROR_DECOMPRESSION_FAILED = 13, /**< Alias for ERROR_DECOMPRESSION */
+  ERROR_WORKSPACE_INVALID = 14,    /**< Temporary workspace is invalid or too small */
+  ERROR_STREAM_ERROR = 15,         /**< CUDA stream error */
+  ERROR_ALLOCATION_FAILED = 16,    /**< Resource allocation failed */
+  ERROR_HASH_TABLE_FULL = 17,      /**< Internal hash table limit reached */
+  ERROR_SEQUENCE_ERROR = 18,       /**< Invalid match sequences encountered */
+  ERROR_NOT_INITIALIZED = 19,      /**< Manager or context not initialized */
+  ERROR_ALREADY_INITIALIZED = 20,  /**< Resource already initialized */
+  ERROR_INVALID_STATE = 21,        /**< Operation invalid in current state */
+  ERROR_TIMEOUT = 22,              /**< Operation timed out */
+  ERROR_CANCELLED = 23,            /**< Operation was cancelled */
+  ERROR_NOT_IMPLEMENTED = 24,      /**< Requested feature not yet implemented */
+  ERROR_INTERNAL = 25,             /**< Internal consistency check failed */
+  ERROR_UNKNOWN = 26,              /**< Unknown error occurred */
+  ERROR_DICTIONARY_FAILED = 27,    /**< Dictionary training or parsing failed */
+  ERROR_UNSUPPORTED_FORMAT = 28    /**< Unsupported frame or block format */
 };
+
 
 // Enhanced error context
 struct ErrorContext {

@@ -108,7 +108,15 @@ public:
 // BATCH MANAGER
 // ==============================================================================
 
+/**
+ * @brief Batch processing manager for GPU-accelerated Zstandard operations.
+ * 
+ * The ZstdBatchManager provides high-level APIs for compressing and decompressing
+ * batches of data chunks. It automatically handles resource management, 
+ * workspace partitioning, and stream synchronization to maximize GPU utilization.
+ */
 class ZstdBatchManager : public ZstdManager {
+
 public:
   ZstdBatchManager();
   explicit ZstdBatchManager(const CompressionConfig &config);

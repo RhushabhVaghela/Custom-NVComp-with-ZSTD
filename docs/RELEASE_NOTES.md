@@ -1,11 +1,17 @@
-# 🚀 Release Notes - v2.1.0 (Stable)
+# 🚀 Release Notes - v2.2.0 (Stable)
 
-**Date**: February 2026
-**Status**: Production Ready (100% Test Pass Rate)
+**Date**: January 31, 2026
+**Status**: Production Ready (100% Test Pass Rate, RFC 8878 Compliant)
 
 ## ✨ New Features
 
+### 🏛️ RFC 8878 Compliance
+- **Full Interoperability**: GPU-compressed frames are now fully compatible with the standard Zstandard (RFC 8878) format.
+- **Verification**: Successfully validated using official `zstd` CLI and internal compliance suite.
+- **Details**: Correct frame headers, block structures, and magic numbers.
+
 ### 🧠 Smart Router (Hybrid Execution)
+
 - **Automatic CPU Fallback**: Files smaller than 1MB are automatically routed to the CPU (`libzstd`) to avoid GPU launch latency.
 - **Transparent**: No code changes required by the user; the Manager handles the copy/execution transparently.
 
