@@ -5810,10 +5810,21 @@ private:
     fse::FSEDecodeTable *p_ll_table = nullptr;
     fse::FSEDecodeTable *p_of_table = nullptr;
     fse::FSEDecodeTable *p_ml_table = nullptr;
+    u32 max_symbol = 0, table_log = 0;  // For mode 0 predefined tables
 
     // Helper to process headers logic (Skipping/Parsing)
     // 1. Literal Lengths
-    if (ll_mode == 1) { // RLE
+    if (ll_mode == 0) { // Predefined
+      const u16 *norm = fse::get_predefined_norm(fse::TableType::LITERALS, &max_symbol, &table_log);
+      ll_table_obj.table_log = table_log;
+      ll_table_obj.table_size = 1u << table_log;
+      ll_table_obj.newState = new u16[1u << table_log];
+      ll_table_obj.symbol = new u8[1u << table_log];
+      ll_table_obj.nbBits = new u8[1u << table_log];
+      Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ll_table_obj);
+      if (st != Status::SUCCESS) return st;
+      p_ll_table = &ll_table_obj;
+    } else if (ll_mode == 1) { // RLE
       if (offset + 1 > input_size)
         return Status::ERROR_CORRUPT_DATA;
       unsigned char val;
@@ -5859,6 +5870,16 @@ private:
       u32 of_value = (1u << val);
       expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
           seq_ctx->d_offsets, num_sequences, of_value);
+    } else if (of_mode == 0) { // Predefined
+      const u16 *norm = fse::get_predefined_norm(fse::TableType::OFFSETS, &max_symbol, &table_log);
+      of_table_obj.table_log = table_log;
+      of_table_obj.table_size = 1u << table_log;
+      of_table_obj.newState = new u16[1u << table_log];
+      of_table_obj.symbol = new u8[1u << table_log];
+      of_table_obj.nbBits = new u8[1u << table_log];
+      Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, of_table_obj);
+      if (st != Status::SUCCESS) return st;
+      p_of_table = &of_table_obj;
     } else if (of_mode == 2) { // Compressed
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
@@ -5898,6 +5919,16 @@ private:
       u32 ml_value = sequence::ZstdSequence::get_match_len(val);
       expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
           seq_ctx->d_match_lengths, num_sequences, ml_value);
+    } else if (ml_mode == 0) { // Predefined
+      const u16 *norm = fse::get_predefined_norm(fse::TableType::MATCH_LENGTHS, &max_symbol, &table_log);
+      ml_table_obj.table_log = table_log;
+      ml_table_obj.table_size = 1u << table_log;
+      ml_table_obj.newState = new u16[1u << table_log];
+      ml_table_obj.symbol = new u8[1u << table_log];
+      ml_table_obj.nbBits = new u8[1u << table_log];
+      Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ml_table_obj);
+      if (st != Status::SUCCESS) return st;
+      p_ml_table = &ml_table_obj;
     } else if (ml_mode == 2) { // Compressed
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
