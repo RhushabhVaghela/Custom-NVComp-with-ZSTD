@@ -138,7 +138,7 @@ void benchmark_chunk_size_sweep() {
   printf("(Note: Chunk size is currently hardcoded; this shows baseline)\n\n");
 
   // For now, just run with the default chunk size
-  // TODO: Parameterize chunk size in encode_fse_advanced
+  // Note: Chunk size parameterization could be added for more detailed testing
 
   u32 data_size = 10 * 1024 * 1024;
   BenchmarkResult r = run_benchmark(data_size, 10);

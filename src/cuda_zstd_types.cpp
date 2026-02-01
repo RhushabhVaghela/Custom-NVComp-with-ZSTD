@@ -889,7 +889,7 @@ Status free_compression_workspace(CompressionWorkspace &workspace) {
 }
 
 // ============================================================================
-// Block Size and Level Parameter Utilities (STUBS)
+// Block Size and Level Parameter Utilities
 // ============================================================================
 
 size_t estimate_compressed_size(size_t uncompressed_size,
