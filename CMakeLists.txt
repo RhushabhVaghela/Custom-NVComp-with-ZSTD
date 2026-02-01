@@ -149,6 +149,10 @@ set(CUDA_ZSTD_SOURCES
     src/error_context.cpp
     src/lz77_parallel.cu
     src/pipeline_manager.cu
+    
+    # New implementations
+    src/streaming_implementation.cpp
+    src/ldm_implementation.cu
 )
 
 # Static library
@@ -464,6 +468,16 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     target_link_libraries(benchmark_streaming cuda_zstd_static)
     add_test(NAME benchmark_streaming COMMAND benchmark_streaming)
     set_property(TEST benchmark_streaming PROPERTY LABELS "benchmark")
+
+    # Streaming Comparison Benchmark (basic vs with history)
+    add_executable(benchmark_streaming_comparison benchmarks/benchmark_streaming_comparison.cu)
+    set_target_properties(benchmark_streaming_comparison PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    )
+    target_link_libraries(benchmark_streaming_comparison cuda_zstd_static)
+    add_test(NAME benchmark_streaming_comparison COMMAND benchmark_streaming_comparison)
+    set_property(TEST benchmark_streaming_comparison PROPERTY LABELS "benchmark")
 
     # Pipeline Streaming Benchmark (Phase 2b)
     add_executable(benchmark_pipeline_streaming benchmarks/benchmark_pipeline_streaming.cu)
