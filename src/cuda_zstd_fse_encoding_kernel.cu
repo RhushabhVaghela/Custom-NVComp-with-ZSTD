@@ -203,6 +203,8 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   // This corresponds to State N-1
   // Decoder reads these FIRST (High Addr)
   // Order: ML, OF, LL (from Zstd spec / decoder read order)
+  printf("[FSE_ENCODE] Writing final states: ML=%u(%u bits), OF=%u(%u bits), LL=%u(%u bits)\n",
+         stateML, table[2].table_log, stateOF, table[1].table_log, stateLL, table[0].table_log);
   write_bits(stateML, table[2].table_log);
   write_bits(stateOF, table[1].table_log);
   write_bits(stateLL, table[0].table_log);
@@ -224,6 +226,12 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
            num_symbols, (unsigned long long)final_pos);
     printf("[FSE_ENCODE] Complete: wrote %llu bytes (%llu bits) for %u sequences\n",
            (unsigned long long)final_pos, (unsigned long long)total_bits, num_symbols);
+    // Dump last 8 bytes of bitstream for debugging
+    printf("[FSE_ENCODE] Last bytes:");
+    for (int i = (int)final_pos - 8; i < (int)final_pos; i++) {
+      if (i >= 0) printf(" %02X", output_bitstream[i]);
+    }
+    printf("\n");
   }
 }
 
