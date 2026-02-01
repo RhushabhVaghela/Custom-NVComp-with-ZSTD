@@ -17,7 +17,7 @@ namespace fse {
 // HELPER FUNCTIONS
 // =============================================================================
 
-__host__ __device__ __forceinline__ u32 highestBit(u32 v) {
+__device__ __forceinline__ u32 highestBit(u32 v) {
     if (v == 0) return 0;
     return 31 - __clz(v);
 }
