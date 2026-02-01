@@ -310,6 +310,8 @@ public:
 
   // Initialization
   Status init_compression(cudaStream_t stream = 0, size_t max_chunk_size = 0);
+  Status init_compression_with_history(cudaStream_t stream = 0,
+                                       size_t max_chunk_size = 0);
   Status init_decompression(cudaStream_t stream = 0);
 
   // Streaming compression
@@ -320,6 +322,14 @@ public:
                         size_t *output_size, bool is_last_chunk,
                         cudaStream_t stream = 0);
 
+  // Streaming compression with window history (enhanced implementation)
+  // This version maintains a sliding window across chunks for better compression.
+  // The window size is determined by the compression configuration.
+  Status compress_chunk_with_history(const void *input, size_t input_size,
+                                     void *output, size_t *output_size,
+                                     bool is_last_chunk,
+                                     cudaStream_t stream = 0);
+
   // Streaming decompression
   Status decompress_chunk(const void *input, size_t input_size, void *output,
                           size_t *output_size, bool *is_last_chunk,
@@ -327,7 +337,9 @@ public:
 
   // Control
   Status reset();
+  Status reset_streaming();
   Status flush(cudaStream_t stream = 0);
+  Status flush_streaming(cudaStream_t stream = 0);
 
   // Configuration
   Status set_config(const CompressionConfig &config);

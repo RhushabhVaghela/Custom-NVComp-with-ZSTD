@@ -33,6 +33,12 @@ using namespace cuda_zstd;
         return false; \
     }
 
+#define TEST_ASSERT_STATUS_EQ(actual, expected, msg) \
+    if ((actual) != (expected)) { \
+        std::cerr << "FAIL: " << msg << " (status=" << (int)(actual) << " != " << (int)(expected) << ") at line " << __LINE__ << std::endl; \
+        return false; \
+    }
+
 // Generate compressible test data with repeating patterns
 void generate_compressible_data(std::vector<uint8_t>& data, size_t size, unsigned int seed = 42) {
     data.resize(size);
@@ -112,7 +118,7 @@ bool test_configuration() {
     // Test get_config returns correct config
     CompressionConfig retrieved = manager.get_config();
     TEST_ASSERT_EQ(retrieved.window_log, config.window_log, "Window log should match");
-    TEST_ASSERT_EQ(retrieved.compression_level, config.compression_level, "Compression level should match");
+    TEST_ASSERT_EQ(retrieved.level, config.level, "Compression level should match");
     
     // Test set_config before initialization
     CompressionConfig new_config = CompressionConfig::from_level(6);
@@ -120,7 +126,7 @@ bool test_configuration() {
     TEST_ASSERT_STATUS(status, "set_config failed");
     
     retrieved = manager.get_config();
-    TEST_ASSERT_EQ(retrieved.compression_level, 6, "Compression level should be updated");
+    TEST_ASSERT_EQ(retrieved.level, 6, "Compression level should be updated");
     
     std::cout << "  PASS" << std::endl;
     return true;
@@ -474,15 +480,15 @@ bool test_invalid_parameters() {
     
     // Test null input
     Status status = manager.compress_chunk(nullptr, 1024, d_output, &output_size, true, 0);
-    TEST_ASSERT_EQ(status, Status::ERROR_INVALID_PARAMETER, "Should fail with null input");
-    
+    TEST_ASSERT_STATUS_EQ(status, Status::ERROR_INVALID_PARAMETER, "Should fail with null input");
+
     // Test null output
     status = manager.compress_chunk(data.data(), 1024, nullptr, &output_size, true, 0);
-    TEST_ASSERT_EQ(status, Status::ERROR_INVALID_PARAMETER, "Should fail with null output");
-    
+    TEST_ASSERT_STATUS_EQ(status, Status::ERROR_INVALID_PARAMETER, "Should fail with null output");
+
     // Test null output_size
     status = manager.compress_chunk(data.data(), 1024, d_output, nullptr, true, 0);
-    TEST_ASSERT_EQ(status, Status::ERROR_INVALID_PARAMETER, "Should fail with null output_size");
+    TEST_ASSERT_STATUS_EQ(status, Status::ERROR_INVALID_PARAMETER, "Should fail with null output_size");
     
     cudaFree(d_output);
     

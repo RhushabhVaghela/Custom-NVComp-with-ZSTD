@@ -3882,14 +3882,26 @@ __global__ void k_decode_sequences_interleaved(
   // Initialize Reader (Backwards)
   if (bitstream_size == 0)
     return;
-  u8 last_byte = bitstream[bitstream_size - 1];
-  if (last_byte == 0)
-    return; // Error
-
-  int hb = 7;
-  while (hb >= 0 && !((last_byte >> hb) & 1))
-    hb--;
-  u32 sentinel_pos = (bitstream_size - 1) * 8 + hb;
+  
+  // Find sentinel bit (1) starting from the last byte
+  // The sentinel marks the end of the bitstream
+  u32 sentinel_pos = 0;
+  bool found_sentinel = false;
+  
+  for (int byte_idx = (int)bitstream_size - 1; byte_idx >= 0 && !found_sentinel; --byte_idx) {
+    u8 byte = bitstream[byte_idx];
+    for (int bit = 7; bit >= 0; --bit) {
+      if ((byte >> bit) & 1) {
+        sentinel_pos = byte_idx * 8 + bit;
+        found_sentinel = true;
+        break;
+      }
+    }
+  }
+  
+  if (!found_sentinel) {
+    return; // Error: no sentinel bit found in stream
+  }
 
   sequence::FSEBitStreamReader reader(bitstream, sentinel_pos, bitstream_size);
 

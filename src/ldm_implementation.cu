@@ -371,7 +371,7 @@ __host__ Status ldm_process_block(LDMContext& ctx,
     // 4. Update rolling hash state
     // 5. Update window position
     
-    return Status::ERROR_NOT_SUPPORTED;
+    return Status::ERROR_NOT_IMPLEMENTED;
 }
 
 /**

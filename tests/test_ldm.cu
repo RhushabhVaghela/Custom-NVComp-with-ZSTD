@@ -12,7 +12,7 @@
 #include <vector>
 
 // Include LDM implementation
-#include "ldm_implementation.cu"
+#include "../src/ldm_implementation.cu"
 
 using namespace cuda_zstd;
 using namespace cuda_zstd::ldm;
@@ -176,7 +176,7 @@ bool test_ldm_not_supported() {
     return true;
 }
 
-// Test 7: ldm_process_block returns NOT_SUPPORTED
+// Test 7: ldm_process_block returns NOT_IMPLEMENTED
 bool test_ldm_process_block_stub() {
     std::cout << "Test: LDM process block stub..." << std::endl;
     
@@ -196,16 +196,16 @@ bool test_ldm_process_block_stub() {
         
         status = ldm_process_block(ctx, d_data, 1024, d_matches, 0);
         
-        // Should return NOT_SUPPORTED
-        TEST_ASSERT_STATUS(status, Status::ERROR_NOT_SUPPORTED,
-                           "ldm_process_block should return NOT_SUPPORTED");
+        // Should return NOT_IMPLEMENTED
+        TEST_ASSERT_STATUS(status, Status::ERROR_NOT_IMPLEMENTED,
+                           "ldm_process_block should return NOT_IMPLEMENTED");
         
         cudaFree(d_data);
         cudaFree(d_matches);
         ldm_cleanup_context(ctx);
     }
     
-    std::cout << "  PASS (ldm_process_block correctly returns NOT_SUPPORTED)" << std::endl;
+    std::cout << "  PASS (ldm_process_block correctly returns NOT_IMPLEMENTED)" << std::endl;
     return true;
 }
 

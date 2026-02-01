@@ -74,13 +74,13 @@ BenchmarkResult run_benchmark_basic(size_t chunk_size, int num_chunks, int itera
     }
     
     void *d_input = nullptr, *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_input, chunk_size));
-    CUDA_CHECK(cudaMalloc(&d_output, chunk_size * 2));
-    
+    CUDA_CHECK_RET(cudaMalloc(&d_input, chunk_size), BenchmarkResult{});
+    CUDA_CHECK_RET(cudaMalloc(&d_output, chunk_size * 2), BenchmarkResult{});
+
     // Warmup
     ZstdStreamingManager manager;
     manager.init_compression(0, chunk_size * 2);
-    CUDA_CHECK(cudaMemcpy(d_input, chunks[0].data(), chunk_size, cudaMemcpyHostToDevice));
+    CUDA_CHECK_RET(cudaMemcpy(d_input, chunks[0].data(), chunk_size, cudaMemcpyHostToDevice), BenchmarkResult{});
     size_t out_size = 0;
     manager.compress_chunk(d_input, chunk_size, d_output, &out_size, false, 0);
     
@@ -95,12 +95,12 @@ BenchmarkResult run_benchmark_basic(size_t chunk_size, int num_chunks, int itera
         auto start = std::chrono::high_resolution_clock::now();
         
         for (int i = 0; i < num_chunks; ++i) {
-            CUDA_CHECK(cudaMemcpy(d_input, chunks[i].data(), chunk_size, cudaMemcpyHostToDevice));
+            CUDA_CHECK_RET(cudaMemcpy(d_input, chunks[i].data(), chunk_size, cudaMemcpyHostToDevice), BenchmarkResult{});
             size_t compressed = 0;
             mgr.compress_chunk(d_input, chunk_size, d_output, &compressed, (i == num_chunks - 1), 0);
             if (iter == 0) total_compressed += compressed;
         }
-        
+
         cudaDeviceSynchronize();
         auto end = std::chrono::high_resolution_clock::now();
         
@@ -137,13 +137,13 @@ BenchmarkResult run_benchmark_with_history(size_t chunk_size, int num_chunks, in
     }
     
     void *d_input = nullptr, *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_input, chunk_size));
-    CUDA_CHECK(cudaMalloc(&d_output, chunk_size * 2));
-    
+    CUDA_CHECK_RET(cudaMalloc(&d_input, chunk_size), BenchmarkResult{});
+    CUDA_CHECK_RET(cudaMalloc(&d_output, chunk_size * 2), BenchmarkResult{});
+
     // Warmup
     ZstdStreamingManager manager;
     manager.init_compression_with_history(0, chunk_size * 2);
-    CUDA_CHECK(cudaMemcpy(d_input, chunks[0].data(), chunk_size, cudaMemcpyHostToDevice));
+    CUDA_CHECK_RET(cudaMemcpy(d_input, chunks[0].data(), chunk_size, cudaMemcpyHostToDevice), BenchmarkResult{});
     size_t out_size = 0;
     manager.compress_chunk_with_history(d_input, chunk_size, d_output, &out_size, false, 0);
     
@@ -158,7 +158,7 @@ BenchmarkResult run_benchmark_with_history(size_t chunk_size, int num_chunks, in
         auto start = std::chrono::high_resolution_clock::now();
         
         for (int i = 0; i < num_chunks; ++i) {
-            CUDA_CHECK(cudaMemcpy(d_input, chunks[i].data(), chunk_size, cudaMemcpyHostToDevice));
+            CUDA_CHECK_RET(cudaMemcpy(d_input, chunks[i].data(), chunk_size, cudaMemcpyHostToDevice), BenchmarkResult{});
             size_t compressed = 0;
             mgr.compress_chunk_with_history(d_input, chunk_size, d_output, &compressed, (i == num_chunks - 1), 0);
             if (iter == 0) total_compressed += compressed;

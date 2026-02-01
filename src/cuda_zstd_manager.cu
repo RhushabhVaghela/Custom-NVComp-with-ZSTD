@@ -6578,6 +6578,14 @@ Status ZstdStreamingManager::init_compression(cudaStream_t stream,
   return Status::SUCCESS;
 }
 
+Status ZstdStreamingManager::init_compression_with_history(cudaStream_t stream,
+                                                           size_t max_chunk_size) {
+  // STUB: History-based compression not yet implemented
+  (void)stream;
+  (void)max_chunk_size;
+  return Status::ERROR_NOT_IMPLEMENTED;
+}
+
 Status ZstdStreamingManager::init_decompression(cudaStream_t stream) {
   if (pimpl_->decomp_initialized)
     reset();
@@ -6674,6 +6682,22 @@ Status ZstdStreamingManager::compress_chunk(const void *input,
   }
 
   return Status::SUCCESS;
+}
+
+Status ZstdStreamingManager::compress_chunk_with_history(const void *input,
+                                                         size_t input_size,
+                                                         void *output,
+                                                         size_t *output_size,
+                                                         bool is_last_chunk,
+                                                         cudaStream_t stream) {
+  // STUB: History-based compression not yet implemented
+  (void)input;
+  (void)input_size;
+  (void)output;
+  (void)output_size;
+  (void)is_last_chunk;
+  (void)stream;
+  return Status::ERROR_NOT_IMPLEMENTED;
 }
 
 Status ZstdStreamingManager::decompress_chunk(const void *input,
