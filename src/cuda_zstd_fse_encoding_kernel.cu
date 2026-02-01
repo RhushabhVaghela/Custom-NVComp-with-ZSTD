@@ -169,18 +169,10 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
         }
         auto sym = table[2].d_symbol_table[code];
         u32 nbBitsOut = (stateML + sym.deltaNbBits) >> 16;
-        if (i < 3) {
-          printf("[FSE_ENCODE] ML i=%u: state=%u, code=%u, deltaNb=%u, deltaFind=%d, nbOut=%u\n",
-                 i, stateML, code, sym.deltaNbBits, sym.deltaFindState, nbBitsOut);
-        }
         if (nbBitsOut > 0) {
           write_bits(stateML & ((1ULL << nbBitsOut) - 1), nbBitsOut);
         }
-        u32 oldState = stateML;
         stateML = (stateML >> nbBitsOut) + sym.deltaFindState;
-        if (i < 3) {
-          printf("[FSE_ENCODE] ML transition: %u -> %u\n", oldState, stateML);
-        }
       }
 
       // Offset (Table 1)
@@ -278,9 +270,9 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
     u32 minStatePlus = (u32)freq << maxBitsOut;
     u32 deltaNb = (maxBitsOut << 16) - minStatePlus;
 
-    if (s < 5 && tid == 0) {
-      printf("[CTABLE_BUILD] Symbol %u: freq=%u, maxBits=%u, minStatePlus=%u, deltaNb=%u\n",
-             s, freq, maxBitsOut, minStatePlus, deltaNb);
+    if ((s == 45) && tid == 0) {
+      printf("[CTABLE_BUILD] Symbol 45: freq=%u, maxBits=%u, minStatePlus=%u, deltaNb=%u\n",
+             freq, maxBitsOut, minStatePlus, deltaNb);
     }
 
     table->d_symbol_table[s].deltaNbBits = deltaNb;
