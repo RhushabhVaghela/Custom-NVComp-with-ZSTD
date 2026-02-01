@@ -571,17 +571,24 @@ __global__ void k_fse_encode_rfc_from_old_tables(
                     return;
                 }
                 
-                // Compute nbBits using Zstd FSE formula: (state + deltaNbBits) >> 16
-                printf("[RFC_KERNEL] LL i=%u code=%u max_sym=%u\n", i, code, ll_max_sym);
-                if (code > tables[0].max_symbol) {
-                    printf("[RFC_KERNEL] ERROR: LL code %u > max_symbol %u\n", code, tables[0].max_symbol);
+                // Validate code before accessing table
+                if (code > ll_max_sym || code >= 256) {
+                    printf("[RFC_KERNEL] ERROR: LL code %u out of bounds (max=%u)\n", code, ll_max_sym);
                     *output_pos = 0;
                     return;
                 }
+                
+                // Validate state before using in formula
+                if (stateLL >= ll_table_size) {
+                    printf("[RFC_KERNEL] ERROR: LL state %u out of bounds (size=%u)\n", stateLL, ll_table_size);
+                    stateLL = 0;  // Fallback to safe state
+                }
+                
+                // Compute nbBits using Zstd FSE formula: (state + deltaNbBits) >> 16
                 u32 deltaNbBitsLL = tables[0].d_symbol_table[code].deltaNbBits;
-                printf("[RFC_KERNEL] LL deltaNbBits=%u state=%u\n", deltaNbBitsLL, stateLL);
                 u32 nbBits = (stateLL + deltaNbBitsLL) >> 16;
                 if (nbBits > ll_table_log) nbBits = ll_table_log;
+                if (nbBits > 16) nbBits = 0;  // Safety check
 
                 // Emit low bits of current state
                 if (nbBits > 0) {
@@ -603,15 +610,23 @@ __global__ void k_fse_encode_rfc_from_old_tables(
             // Offset Stream (Table 1) - RFC compliant encoding
             {
                 u8 code = d_of_codes[next_idx];
-                if (code > of_max_sym) {
+                if (code > of_max_sym || code >= 256) {
+                    printf("[RFC_KERNEL] ERROR: OF code %u out of bounds (max=%u)\n", code, of_max_sym);
                     *output_pos = 0;
                     return;
+                }
+                
+                // Validate state
+                if (stateOF >= of_table_size) {
+                    printf("[RFC_KERNEL] ERROR: OF state %u out of bounds (size=%u)\n", stateOF, of_table_size);
+                    stateOF = 0;
                 }
                 
                 // Compute nbBits using Zstd FSE formula
                 u32 deltaNbBitsOF = tables[1].d_symbol_table[code].deltaNbBits;
                 u32 nbBits = (stateOF + deltaNbBitsOF) >> 16;
                 if (nbBits > of_table_log) nbBits = of_table_log;
+                if (nbBits > 16) nbBits = 0;
                 
                 if (nbBits > 0) {
                     write_bits(stateOF & ((1u << nbBits) - 1), nbBits);
@@ -628,15 +643,23 @@ __global__ void k_fse_encode_rfc_from_old_tables(
             // Match Length Stream (Table 2) - RFC compliant encoding
             {
                 u8 code = d_ml_codes[next_idx];
-                if (code > ml_max_sym) {
+                if (code > ml_max_sym || code >= 256) {
+                    printf("[RFC_KERNEL] ERROR: ML code %u out of bounds (max=%u)\n", code, ml_max_sym);
                     *output_pos = 0;
                     return;
+                }
+                
+                // Validate state
+                if (stateML >= ml_table_size) {
+                    printf("[RFC_KERNEL] ERROR: ML state %u out of bounds (size=%u)\n", stateML, ml_table_size);
+                    stateML = 0;
                 }
                 
                 // Compute nbBits using Zstd FSE formula
                 u32 deltaNbBitsML = tables[2].d_symbol_table[code].deltaNbBits;
                 u32 nbBits = (stateML + deltaNbBitsML) >> 16;
                 if (nbBits > ml_table_log) nbBits = ml_table_log;
+                if (nbBits > 16) nbBits = 0;
                 
                 if (nbBits > 0) {
                     write_bits(stateML & ((1u << nbBits) - 1), nbBits);
