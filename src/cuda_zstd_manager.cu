@@ -334,10 +334,10 @@ Status parse_frame_header(const unsigned char *input, u32 input_size,
 __global__ void debug_inspect_memory(const unsigned char *ptr, u32 size,
                                      const char *label) {
   if (size > 0 && ptr) {
-    printf("[DEBUG_GPU] %s: ptr=%p [0]=0x%02X [1]=0x%02X [2]=0x%02X\n", label,
+    // Debug output removed for production
            ptr, ptr[0], (size > 1 ? ptr[1] : 0), (size > 2 ? ptr[2] : 0));
   } else {
-    printf("[DEBUG_GPU] %s: ptr=%p size=%u\n", label, ptr, size);
+    // Debug output removed for production
   }
 }
 
@@ -615,12 +615,7 @@ copy_block_literals_kernel(const unsigned char *input,
     // Copy literals
     for (u32 k = 0; k < ll; ++k) {
       literals_buffer[out_pos + k] = input[in_pos + k];
-      // PROBE
-      if (out_pos + k == 174) {
-        printf("[COPY] Block %u: Copying Byte 174. Input=%02X (Ptr=%p) -> "
-               "Buffer\n",
-               block_idx, input[in_pos + k], input);
-      }
+
     }
 
     in_pos += ll + ml;
@@ -633,17 +628,12 @@ void launch_copy_literals(const unsigned char *input, u32 input_size,
                           const u32 *literal_lengths, const u32 *match_lengths,
                           u32 num_sequences, unsigned char *literals_buffer,
                           cudaStream_t stream, u32 block_idx) {
-  printf("[LAUNCH] Copy Literals: Input=%p, LitLen=%p, MatchLen=%p, LitBuf=%p, "
-         "NumSeq=%u, Size=%u\n",
-         input, literal_lengths, match_lengths, literals_buffer, num_sequences,
-         input_size);
   copy_block_literals_kernel<<<1, 1, 0, stream>>>(
       input, literal_lengths, match_lengths, num_sequences, literals_buffer,
       block_idx, 131072, input_size);
   cudaError_t err = cudaDeviceSynchronize();
   if (err != cudaSuccess) {
-    printf("[FATAL] Block %u: copy_literals Sync Failed: %s\n", block_idx,
-           cudaGetErrorString(err));
+    // Log synchronization error silently
   }
 }
 
@@ -2036,10 +2026,8 @@ public:
     if (status != Status::SUCCESS) {
       if (device_workspace)
         cudaFree(device_workspace);
-      printf("[TRACE] compress: Header write failed status=%d\n", (int)status);
       return status;
     }
-    printf("[TRACE] compress: Header OK. Entering Loop.\n");
 
     compressed_offset += header_size;
 
@@ -2251,10 +2239,6 @@ public:
           std::min(block_size, (u32)uncompressed_size - block_start);
 
       const unsigned char *block_input = d_input + block_start;
-      // DEBUG:
-      if (block_idx == 0) {
-        printf("[DEBUG_PTR] block_input=%p\n", block_input);
-      }
 
       // (TWO-PHASE) Store per-block state for Phase 2 processing
       block_inputs[block_idx] = block_input;
@@ -2320,15 +2304,6 @@ public:
           d_all_offsets_reverse + (block_idx * block_size);
       block_ws.max_sequences =
           block_size; // Capacity equals block size (worst case)
-
-      if (block_idx == 0) {
-        printf("[DEBUG_PTR] d_lz77_temp=%p, d_lit_rev=%p, d_ml_rev=%p, "
-               "d_of_rev=%p\n",
-               (void *)block_ws.d_lz77_temp,
-               (void *)block_ws.d_literal_lengths_reverse,
-               (void *)block_ws.d_match_lengths_reverse,
-               (void *)block_ws.d_offsets_reverse);
-      }
 
       // Costs Buffer - Not used by greedy pipeline?
       // greedy pipeline uses d_matches input -> sequences output.
@@ -2833,7 +2808,7 @@ public:
                block_idx, (int)status);
         goto cleanup;
       }
-      printf("[TRACE] compress: Block %u compress_sequences OK.\n", block_idx);
+
 
       block_compressed_sizes[block_idx] = writer.get_offset();
 
@@ -2854,11 +2829,8 @@ public:
       );
 
       if (status != Status::SUCCESS) {
-        printf("[ERROR] Block %u: write_block failed with status %d\n",
-               block_idx, (int)status);
         goto cleanup;
       }
-      printf("[TRACE] compress: Block %u write_block OK.\n", block_idx);
 
       /* continue; */ // End of block logic
 
