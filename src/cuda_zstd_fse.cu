@@ -3911,6 +3911,18 @@ __global__ void k_decode_sequences_interleaved(
   // DEBUG: Dump bits around sentinel
   printf("[GPU] Sentinel found at bit position %u (byte %u, bit %u)\n", 
          sentinel_pos, sentinel_pos / 8, sentinel_pos % 8);
+  printf("[GPU] Bitstream size: %u bytes (%u bits), num_sequences: %u\n",
+         bitstream_size, bitstream_size * 8, num_sequences);
+  
+  // Validate we have enough bits
+  u32 total_bits_available = sentinel_pos;  // Bits from start to sentinel
+  u32 min_bits_needed = num_sequences * 3;  // Minimum 3 bits per sequence (very conservative)
+  if (total_bits_available < min_bits_needed) {
+    printf("[GPU ERROR] Not enough bits! Available: %u, Need: %u (for %u sequences)\n",
+           total_bits_available, min_bits_needed, num_sequences);
+    // Continue anyway to see what happens
+  }
+  
   printf("[GPU] Dumping bytes around sentinel:\n");
   for (int i = (int)bitstream_size - 1; i >= 0 && i >= (int)bitstream_size - 8; --i) {
     printf("  Byte[%d] = %02X\n", i, bitstream[i]);

@@ -4077,7 +4077,15 @@ private:
     //   cudaError_t e = cudaGetLastError();
     //   if (e)
     //         // }
+    
+    // DEBUG: Trace sequences offset calculation
+    printf("[DEBUG] Before sequences_offset: literals_header_size=%u, literals_compressed_size=%u, input_size=%u\n",
+           literals_header_size, literals_compressed_size, input_size);
+    
     u32 sequences_offset = literals_header_size + literals_compressed_size;
+    
+    printf("[DEBUG] sequences_offset=%u, remaining=%u\n", 
+           sequences_offset, input_size - sequences_offset);
 
     // DEBUG: Trace sequence offset calculation
     // DEBUG: Trace sequence offset calculation
