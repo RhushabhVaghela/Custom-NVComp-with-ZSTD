@@ -4098,8 +4098,23 @@ private:
       return Status::ERROR_CORRUPT_DATA;
     }
 
-    // decompress_sequences, offset=%u, size=%u\n",
-    // //                 sequences_offset, input_size - sequences_offset);
+    // DEBUG: Dump sequence section header bytes
+    {
+      unsigned char seq_hdr[8];
+      u32 seq_remaining = input_size - sequences_offset;
+      u32 to_copy = std::min(8u, seq_remaining);
+      if (to_copy > 0) {
+        CUDA_CHECK(cudaMemcpy(seq_hdr, input + sequences_offset, to_copy,
+                              cudaMemcpyDeviceToHost));
+        printf("[DEBUG] sequences_offset=%u, input_size=%u, remaining=%u\n",
+               sequences_offset, input_size, seq_remaining);
+        printf("[DEBUG] Sequence header bytes at offset: ");
+        for (u32 i = 0; i < to_copy; i++) {
+          printf("%02X ", seq_hdr[i]);
+        }
+        printf("\n");
+      }
+    }
 
     status = decompress_sequences(input + sequences_offset,
                                   input_size - sequences_offset, ctx.seq_ctx,
@@ -5642,6 +5657,10 @@ private:
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
                           cudaMemcpyDeviceToHost));
 
+    // DEBUG: Show what header bytes were read
+    printf("[DEBUG] decompress_sequences: input_size=%u, h_header=[%02X %02X %02X %02X %02X]\n",
+           input_size, h_header[0], h_header[1], h_header[2], h_header[3], h_header[4]);
+
     if (seq_ctx == nullptr) {
       // fprintf(stderr, "[ERROR] seq_ctx is NULL!\n");
       return Status::ERROR_INVALID_PARAMETER;
@@ -5651,16 +5670,20 @@ private:
     u32 offset = 0;
 
     if (h_header[0] == 0) {
+      printf("[DEBUG] h_header[0]==0, setting num_sequences=0\n");
       seq_ctx->num_sequences = 0;
       return Status::SUCCESS;
     } else if (h_header[0] < 128) {
       num_sequences = h_header[0];
+      printf("[DEBUG] h_header[0] < 128: num_sequences=%u (header[0]=%u)\n", num_sequences, h_header[0]);
       offset = 1;
     } else if (h_header[0] < 255) {
       if (input_size < 2) {
         //         return Status::ERROR_CORRUPT_DATA;
       }
       num_sequences = ((h_header[0] - 128) << 8) + h_header[1];
+      printf("[DEBUG] 128 <= h_header[0] < 255: num_sequences=%u (header=[%u,%u])\n",
+             num_sequences, h_header[0], h_header[1]);
       offset = 2;
     } else {
       if (input_size < 3) {
@@ -5668,6 +5691,8 @@ private:
         return Status::ERROR_CORRUPT_DATA;
       }
       num_sequences = (h_header[1] << 8) + h_header[2] + 0x7F00;
+      printf("[DEBUG] h_header[0]==255: num_sequences=%u (header=[%u,%u,%u])\n",
+             num_sequences, h_header[0], h_header[1], h_header[2]);
       offset = 3;
     }
 

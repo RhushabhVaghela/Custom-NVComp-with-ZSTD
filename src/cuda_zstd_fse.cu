@@ -3879,6 +3879,10 @@ __global__ void k_decode_sequences_interleaved(
   if (num_sequences == 0)
     return;
 
+  // DEBUG: Print num_sequences at start
+  printf("[GPU] k_decode_sequences_interleaved START: num_sequences=%u, bitstream_size=%u\n",
+         num_sequences, bitstream_size);
+
   // Initialize Reader (Backwards)
   if (bitstream_size == 0)
     return;
@@ -3900,7 +3904,16 @@ __global__ void k_decode_sequences_interleaved(
   }
   
   if (!found_sentinel) {
+    printf("[GPU ERROR] No sentinel bit found in bitstream of size %u\n", bitstream_size);
     return; // Error: no sentinel bit found in stream
+  }
+
+  // DEBUG: Dump bits around sentinel
+  printf("[GPU] Sentinel found at bit position %u (byte %u, bit %u)\n", 
+         sentinel_pos, sentinel_pos / 8, sentinel_pos % 8);
+  printf("[GPU] Dumping bytes around sentinel:\n");
+  for (int i = (int)bitstream_size - 1; i >= 0 && i >= (int)bitstream_size - 8; --i) {
+    printf("  Byte[%d] = %02X\n", i, bitstream[i]);
   }
 
   sequence::FSEBitStreamReader reader(bitstream, sentinel_pos, bitstream_size);
@@ -3919,7 +3932,10 @@ __global__ void k_decode_sequences_interleaved(
 
   // Read initial states and validate bounds
   if (decode_ll) {
+    u32 bits_before = reader.bit_pos;
     stateLL = reader.read(ll_table.table_log);
+    printf("[GPU] Read LL state: bits_before=%u, read %u bits, state=%u\n", 
+           bits_before, ll_table.table_log, stateLL);
     if (stateLL >= ll_table_size) {
       printf("[GPU ERROR] Initial LL state %u exceeds table size %u\n", stateLL,
              ll_table_size);
@@ -3927,7 +3943,10 @@ __global__ void k_decode_sequences_interleaved(
     }
   }
   if (decode_of) {
+    u32 bits_before = reader.bit_pos;
     stateOF = reader.read(of_table.table_log);
+    printf("[GPU] Read OF state: bits_before=%u, read %u bits, state=%u\n", 
+           bits_before, of_table.table_log, stateOF);
     if (stateOF >= of_table_size) {
       printf("[GPU ERROR] Initial OF state %u exceeds table size %u\n", stateOF,
              of_table_size);
@@ -3935,7 +3954,10 @@ __global__ void k_decode_sequences_interleaved(
     }
   }
   if (decode_ml) {
+    u32 bits_before = reader.bit_pos;
     stateML = reader.read(ml_table.table_log);
+    printf("[GPU] Read ML state: bits_before=%u, read %u bits, state=%u\n", 
+           bits_before, ml_table.table_log, stateML);
     if (stateML >= ml_table_size) {
       printf("[GPU ERROR] Initial ML state %u exceeds table size %u\n", stateML,
              ml_table_size);
@@ -3947,11 +3969,22 @@ __global__ void k_decode_sequences_interleaved(
   printf("[GPU] InitStates: LL=%u, OF=%u, ML=%u\n", stateLL, stateOF, stateML);
   printf("[GPU] TableSizes: LL=%u, OF=%u, ML=%u\n", ll_table_size,
          of_table_size, ml_table_size);
+  
+  // DEBUG: Verify table contents
+  printf("[GPU] LL table: table_log=%u, symbol[%u]=%u, nbBits[%u]=%u, newState[%u]=%u\n",
+         ll_table.table_log, stateLL, 
+         (stateLL < ll_table_size) ? ll_table.symbol[stateLL] : 999,
+         stateLL,
+         (stateLL < ll_table_size) ? ll_table.nbBits[stateLL] : 999,
+         stateLL,
+         (stateLL < ll_table_size) ? ll_table.newState[stateLL] : 999);
 
   u64 total_lit_len = 0;
 
   // Decode Loop
+  int loop_count = 0;
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
+    loop_count++;
     // Validate states before table access
     if (decode_ll && stateLL >= ll_table_size) {
       printf("[GPU ERROR] Seq %d: LL state %u out of bounds (size=%u)\n", i,
@@ -4078,6 +4111,10 @@ __global__ void k_decode_sequences_interleaved(
              val_ml);
     }
   }
+
+  // DEBUG: Print completion summary
+  printf("[GPU] k_decode_sequences_interleaved COMPLETE: Loop ran %d times (num_sequences=%u)\n",
+         loop_count, num_sequences);
 }
 
 // Helper to copy simple table to device
