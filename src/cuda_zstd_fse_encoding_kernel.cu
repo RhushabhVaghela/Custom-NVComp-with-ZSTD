@@ -107,6 +107,11 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
   u32 stateLL = table[0].d_symbol_first_state[ll_code];
   u32 stateOF = table[1].d_symbol_first_state[of_code];
   u32 stateML = table[2].d_symbol_first_state[ml_code];
+  
+  if (threadIdx.x == 0) {
+    printf("[FSE_ENCODE] Initial states from first_state table: LL(code=%u)=%u, OF(code=%u)=%u, ML(code=%u)=%u\n",
+           ll_code, stateLL, of_code, stateOF, ml_code, stateML);
+  }
 
   // 2. Write Extra Bits for SEQUENCE 0 FIRST
   // Decoder reads these LAST (for Seq 0), so physically they must be at START
@@ -164,10 +169,19 @@ __global__ void __launch_bounds__(256) k_encode_fse_interleaved(
         }
         auto sym = table[2].d_symbol_table[code];
         u32 nbBitsOut = (stateML + sym.deltaNbBits) >> 16;
+        if (i < 3 && threadIdx.x == 0) {
+          printf("[FSE_ENCODE] ML seq %d: state=%u, code=%u, deltaNb=%d, deltaFind=%d, nbOut=%u\n",
+                 i, stateML, code, sym.deltaNbBits, sym.deltaFindState, nbBitsOut);
+        }
         if (nbBitsOut > 0) {
           write_bits(stateML & ((1ULL << nbBitsOut) - 1), nbBitsOut);
         }
+        u32 oldState = stateML;
         stateML = (stateML >> nbBitsOut) + sym.deltaFindState;
+        if (i < 3 && threadIdx.x == 0) {
+          printf("[FSE_ENCODE] ML transition: %u -> %u (>>%u + %d)\n",
+                 oldState, stateML, nbBitsOut, sym.deltaFindState);
+        }
       }
 
       // Offset (Table 1)
