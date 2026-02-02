@@ -1,3 +1,5 @@
+# Fix for ZSTD (FetchContent) policy compatibility with newer CMake
+set(CMAKE_POLICY_VERSION_MINIMUM "3.5")
 cmake_minimum_required(VERSION 3.18)
 
 # Fix for PDB path with spaces: Redirect PDBs to safe path
@@ -10,6 +12,10 @@ if(POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
 endif()
 set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
+
+
+# Allow unsupported compilers (fixes VS 2022 v18+ with CUDA 12.8)
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
 
 project(cuda_zstd LANGUAGES CXX CUDA C)
 
@@ -130,6 +136,7 @@ set(CUDA_ZSTD_SOURCES
     src/cuda_zstd_lz77.cu
     src/cuda_zstd_fse.cu
     src/cuda_zstd_fse_rfc.cu
+    src/cuda_zstd_fse_rfc_decoder.cu
     src/cuda_zstd_fse_reference.cu
     src/cuda_zstd_fse_encoding_kernel.cu
     src/cuda_zstd_huffman.cu
@@ -342,7 +349,9 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
     add_executable(benchmark_phase3 benchmarks/benchmark_phase3.cu 
         src/cuda_zstd_fse.cu 
         src/cuda_zstd_fse_encoding_kernel.cu
-        src/cuda_zstd_utils.cu 
+        src/cuda_zstd_fse_rfc.cu
+        src/cuda_zstd_fse_rfc_decoder.cu
+        src/cuda_zstd_utils.cu
         src/cuda_zstd_manager.cu
         src/cuda_zstd_c_api.cpp
         src/cuda_zstd_types.cpp

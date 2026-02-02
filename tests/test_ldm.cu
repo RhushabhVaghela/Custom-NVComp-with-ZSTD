@@ -164,21 +164,21 @@ bool test_ldm_reset() {
 // LDM FUNCTIONALITY TESTS (STUB VERIFICATION)
 // ============================================================================
 
-// Test 6: ldm_is_supported() returns false
-bool test_ldm_not_supported() {
-    std::cout << "Test: LDM not supported flag..." << std::endl;
+// Test 6: ldm_is_supported() returns true
+bool test_ldm_is_supported() {
+    std::cout << "Test: LDM is supported flag..." << std::endl;
     
-    // ldm_is_supported() should return false
+    // ldm_is_supported() should return true
     bool supported = ldm_is_supported();
-    TEST_ASSERT_EQ(supported, false, "LDM should report as not supported");
+    TEST_ASSERT_EQ(supported, true, "LDM should report as supported");
     
-    std::cout << "  PASS (LDM correctly reports as not supported)" << std::endl;
+    std::cout << "  PASS (LDM correctly reports as supported)" << std::endl;
     return true;
 }
 
-// Test 7: ldm_process_block returns NOT_IMPLEMENTED
-bool test_ldm_process_block_stub() {
-    std::cout << "Test: LDM process block stub..." << std::endl;
+// Test 7: ldm_process_block returns SUCCESS
+bool test_ldm_process_block() {
+    std::cout << "Test: LDM process block..." << std::endl;
     
     LDMContext ctx;
     
@@ -191,21 +191,21 @@ bool test_ldm_process_block_stub() {
         void* d_data = nullptr;
         cudaMalloc(&d_data, 1024);
         
-        LDMMatch* d_matches = nullptr;
-        cudaMalloc(&d_matches, 1024 * sizeof(LDMMatch));
+        lz77::Match* d_matches = nullptr;
+        cudaMalloc(&d_matches, 1024 * sizeof(lz77::Match));
         
-        status = ldm_process_block(ctx, d_data, 1024, d_matches, 0);
+        status = ldm_process_block(ctx, d_data, 1024, d_matches, 0, 0);
         
-        // Should return NOT_IMPLEMENTED
-        TEST_ASSERT_STATUS(status, Status::ERROR_NOT_IMPLEMENTED,
-                           "ldm_process_block should return NOT_IMPLEMENTED");
+        // Should return SUCCESS now
+        TEST_ASSERT_STATUS(status, Status::SUCCESS,
+                           "ldm_process_block should return SUCCESS");
         
         cudaFree(d_data);
         cudaFree(d_matches);
         ldm_cleanup_context(ctx);
     }
     
-    std::cout << "  PASS (ldm_process_block correctly returns NOT_IMPLEMENTED)" << std::endl;
+    std::cout << "  PASS (ldm_process_block correctly returns SUCCESS)" << std::endl;
     return true;
 }
 
@@ -304,9 +304,9 @@ int main() {
     if (test_ldm_cleanup()) passed++; else failed++;
     if (test_ldm_reset()) passed++; else failed++;
     
-    // Functionality tests (stub verification)
-    if (test_ldm_not_supported()) passed++; else failed++;
-    if (test_ldm_process_block_stub()) passed++; else failed++;
+    // Functionality tests (now supported)
+    if (test_ldm_is_supported()) passed++; else failed++;
+    if (test_ldm_process_block()) passed++; else failed++;
     if (test_ldm_stats()) passed++; else failed++;
     
     // Algorithm tests
@@ -319,8 +319,8 @@ int main() {
     std::cout << "Test Results: " << passed << " passed, " << failed << " failed" << std::endl;
     std::cout << "========================================" << std::endl;
     std::cout << std::endl;
-    std::cout << "LDM Status: Infrastructure present, full implementation NOT SUPPORTED" << std::endl;
-    std::cout << "To enable LDM, implement ldm_process_block() and integrate with LZ77" << std::endl;
+    std::cout << "LDM Status: Functional implementation present" << std::endl;
+    std::cout << "LDM is integrated with the matching pipeline." << std::endl;
     
     return (failed == 0) ? 0 : 1;
 }

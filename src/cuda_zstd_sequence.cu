@@ -52,8 +52,6 @@ __global__ void build_sequences_kernel(const u32 *d_literals_buffer,
   d_sequences[seq_idx].match_length = match_length;
   d_sequences[seq_idx].match_offset = offset;
   d_sequences[seq_idx].padding = 0; // (FIX) Ensure 16-byte vectorized write
-
-
 }
 
 // Host-side function implementation
@@ -209,7 +207,6 @@ __global__ void compute_sequence_details_kernel(
   if (threadIdx.x != 0 || blockIdx.x != 0)
     return;
 
-
   SequenceState state;
 
   if (d_rep_codes_in) {
@@ -281,9 +278,9 @@ __global__ void compute_sequence_details_kernel(
       d_actual_offsets[i] = 0; // No match
     }
 
-    printf(
-        "[SEQ_DETAIL] i=%u: LL=%u, ML=%u, OF=%u, total_out=%u\n",
-        i, lit_len, match_length, seq.match_offset, total_output);
+    // printf(
+    //     "[SEQ_DETAIL] i=%u: LL=%u, ML=%u, OF=%u, total_out=%u\n",
+    //     i, lit_len, match_length, seq.match_offset, total_output);
   }
 
   // Add trailing literals to total output size
@@ -292,8 +289,9 @@ __global__ void compute_sequence_details_kernel(
   }
 
   *d_total_output_size = total_output;
-  printf("[SEQ_COMPUTE] Final: num_sequences=%u, total_literals=%u/%u, total_output=%u\n",
-         num_sequences, total_literals, total_literal_count, total_output);
+  // printf("[SEQ_COMPUTE] Final: num_sequences=%u, total_literals=%u/%u,
+  // total_output=%u\n",
+  //        num_sequences, total_literals, total_literal_count, total_output);
 
   // NEW: Write back persistent rep-codes for the next block
   if (d_rep_codes_in) {
@@ -507,8 +505,9 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   }
 
   // --- Pass 1: Compute sizes and rep-codes (Sequential) ---
-  printf("[SEQ_CALL] About to launch compute_sequence_details_kernel: num_sequences=%u, literal_count=%u\n",
-         num_sequences, literal_count);
+  // printf("[SEQ_CALL] About to launch compute_sequence_details_kernel:
+  // num_sequences=%u, literal_count=%u\n",
+  //        num_sequences, literal_count);
   compute_sequence_details_kernel<<<1, 1, 0, stream>>>(
       d_sequences, num_sequences, literal_count, d_actual_offsets,
       d_literals_lengths, d_match_lengths,
@@ -518,7 +517,7 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
       d_error_flag    // NEW: Pass error flag
   );
   cudaStreamSynchronize(stream);
-  printf("[SEQ_CALL] Kernel completed, checking error flag\n");
+  // printf("[SEQ_CALL] Kernel completed, checking error flag\n");
 
   // Check for validation errors
   u32 h_error_flag = 0;
@@ -527,18 +526,6 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   if (h_error_flag != 0) {
-    if (h_error_flag == 4 && num_sequences > 512) {
-      // Suppress benign "Offset 0" errors which might be valid in some contexts
-      // (e.g. literals only?) Actually, ZSTD spec says match len > 0 must have
-      // offset > 0. If match len > 0 and offset == 0, it IS corrupt.
-    }
-    printf("[ERROR] execute_sequences: Validation failed with error_flag=%u\n",
-           h_error_flag);
-    cudaFree(d_actual_offsets);
-    cudaFree(d_literals_lengths);
-    cudaFree(d_match_lengths);
-    cudaFree(d_literal_offsets);
-    cudaFree(d_match_offsets);
     cudaFree(d_output_offsets);
     if (d_rep_codes_local)
       cudaFree(d_rep_codes_local);

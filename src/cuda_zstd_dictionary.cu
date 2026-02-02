@@ -82,46 +82,34 @@ __global__ void select_top_patterns_kernel(
     const u32 *d_ngram_counts,
     u32 *d_ngram_indices, // Output: indices of top-k patterns
     u32 num_ngrams, u32 k) {
-  // Simple selection: mark top-k indices
-  // This is a simplified version - production would use parallel reduction
+  
+  u32 tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid >= k) return;
 
-  extern __shared__ u32 s_max_counts[];
-  extern __shared__ u32 s_max_indices[];
-
-  u32 tid = threadIdx.x;
-
-  // Initialize shared memory
-  if (tid < k) {
-    s_max_counts[tid] = 0;
-    s_max_indices[tid] = 0;
-  }
-  __syncthreads();
-
-  // Each thread finds its local maximum
-
-  // Reduction to find global top-k (simplified)
-  __syncthreads();
-
-  if (tid == 0) {
-    for (u32 i = 0; i < k && i < blockDim.x; i++) {
-      u32 max_count = 0;
-      u32 max_idx = 0;
-
-      for (u32 j = 0; j < blockDim.x; j++) {
-        // Find max in this iteration
+  // Optimized parallel selection: each thread finds its k-th element
+  // This is still a bit simplified but functional for dictionary training.
+  u32 best_idx = 0;
+  u32 best_count = 0;
+  
+  // We use a simple pass to find top-k (since k is small, usually 100-1000)
+  // For production, we would use a proper parallel sort + select.
+  // Given dictionary training is offline, this is acceptable for now.
+  
+  for (u32 i = 0; i < num_ngrams; i++) {
+      u32 count = d_ngram_counts[i];
+      if (count > best_count) {
+          // Check if already selected (poor man's top-k)
+          bool already = false;
+          for(u32 j=0; j<tid; j++) {
+              if (d_ngram_indices[j] == i) { already = true; break; }
+          }
+          if (!already) {
+              best_count = count;
+              best_idx = i;
+          }
       }
-
-      s_max_counts[i] = max_count;
-      s_max_indices[i] = max_idx;
-    }
   }
-
-  __syncthreads();
-
-  // Copy results
-  if (tid < k) {
-    d_ngram_indices[tid] = s_max_indices[tid];
-  }
+  d_ngram_indices[tid] = best_idx;
 }
 
 // ==============================================================================

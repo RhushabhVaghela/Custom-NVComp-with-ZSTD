@@ -1438,7 +1438,8 @@ public:
                           size_t uncompressed_size, void *compressed_data,
                           size_t *compressed_size, void *temp_workspace,
                           size_t temp_size, const void *dict_buffer,
-                          size_t dict_size, cudaStream_t stream) override {
+                          size_t dict_size, cudaStream_t stream,
+                          void *streaming_context = nullptr) override {
     std::lock_guard<std::mutex> lock(api_mutex);
     fflush(stdout);
     void *device_workspace = nullptr; // Scope for cleanup
@@ -2491,11 +2492,15 @@ public:
 
         // LZ77 kernel will be launched below
         // Pass 1: Find Matches
+        StreamingContext *s_ctx = static_cast<StreamingContext *>(streaming_context);
+        u32 *d_hash_p = s_ctx ? s_ctx->d_hash_table_state : nullptr;
+        u32 *d_chain_p = s_ctx ? s_ctx->d_chain_table_state : nullptr;
+
         status = static_cast<Status>(cuda_zstd::lz77::find_matches_parallel(
             block_input, current_block_size_val,
             reinterpret_cast<cuda_zstd::CompressionWorkspace *>(
                 &thread_block_ws),
-            lz77_config, block_stream));
+            lz77_config, block_stream, d_hash_p, d_chain_p));
 
         // GRANULAR ERROR CHECK: Sync stream first to catch async errors
         // (OPTIMIZATION) Removed per-block sync to allow pipelining
@@ -2690,33 +2695,7 @@ public:
                              block_seq_ctxs[block_idx].d_literals_buffer,
                              stream, block_idx);
 
-        // DEBUG: Dump CPU sequences
-        if (num_seq > 0) {
-          std::vector<u32> h_ll(num_seq), h_ml(num_seq), h_of(num_seq);
-          const u32 *d_ll =
-              d_all_lit_lengths_reverse + (block_idx * block_size);
-          const u32 *d_ml =
-              d_all_match_lengths_reverse + (block_idx * block_size);
-          const u32 *d_of = d_all_offsets_reverse + (block_idx * block_size);
-          cudaMemcpyAsync(h_ll.data(), d_ll, num_seq * sizeof(u32),
-                          cudaMemcpyDeviceToHost, stream);
-          cudaMemcpyAsync(h_ml.data(), d_ml, num_seq * sizeof(u32),
-                          cudaMemcpyDeviceToHost, stream);
-          cudaMemcpyAsync(h_of.data(), d_of, num_seq * sizeof(u32),
-                          cudaMemcpyDeviceToHost, stream);
-          cudaStreamSynchronize(stream);
-          u32 total_ml = 0, total_ll = 0;
-          for (u32 s = 0; s < num_seq; s++) {
-            total_ll += h_ll[s];
-            total_ml += h_ml[s];
-            if (s < 3 || s >= num_seq - 2) {
-              printf("[COMPRESS_SEQ] Block %u seq %u: LL=%u ML=%u OF=%u\n",
-                     block_idx, s, h_ll[s], h_ml[s], h_of[s]);
-            }
-          }
-          printf("[COMPRESS_SEQ] Block %u totals: %u seq, LL=%u, ML=%u, out=%u\n",
-                 block_idx, num_seq, total_ll, total_ml, total_ll + total_ml);
-        } else {
+        if (num_seq == 0) {
           // No sequences (literals only)
           CUDA_CHECK(cudaMemcpyAsync(block_seq_ctxs[block_idx].d_literals_buffer,
                                      block_input, current_block_size_val,
@@ -4250,8 +4229,7 @@ private:
                                cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream));
     
-    printf("[DEBUG] After sequence execution: output_size=%u (expected ~%u)\n",
-           *output_size, literals_decompressed_size + 100); // Rough estimate
+    /* output_size check removed for production */
 
     cudaFree(d_output_size);
 
@@ -4455,7 +4433,7 @@ private:
     size_t capacity = num_sequences * 8 + 512;
     unsigned char *d_bitstream;
     cudaMallocAsync(&d_bitstream, capacity, stream);
-    cudaMemsetAsync(d_bitstream, 0xAA, capacity, stream);
+    cudaMemsetAsync(d_bitstream, 0, capacity, stream);
 
     printf("[FSE_LAUNCH] num_sequences=%u, d_ll_codes=%p, d_of_codes=%p, d_ml_codes=%p\n",
            num_sequences, seq_ctx->d_ll_codes, seq_ctx->d_of_codes, seq_ctx->d_ml_codes);
@@ -6216,10 +6194,11 @@ Status ZstdBatchManager::compress(const void *uncompressed_data,
                                   void *compressed_data,
                                   size_t *compressed_size, void *temp_workspace,
                                   size_t temp_size, const void *dict_buffer,
-                                  size_t dict_size, cudaStream_t stream) {
+                                  size_t dict_size, cudaStream_t stream,
+                                  void *streaming_context) {
   return pimpl_->manager->compress(
       uncompressed_data, uncompressed_size, compressed_data, compressed_size,
-      temp_workspace, temp_size, dict_buffer, dict_size, stream);
+      temp_workspace, temp_size, dict_buffer, dict_size, stream, streaming_context);
 }
 
 Status ZstdBatchManager::decompress(const void *compressed_data,
@@ -6284,7 +6263,8 @@ Status ZstdBatchManager::compress_batch(const std::vector<BatchItem> &items,
     item.status = pimpl_->manager->compress(
         item.input_ptr, item.input_size, item.output_ptr, &item.output_size,
         item_workspace, item_workspace_size, nullptr, 0,
-        compute_stream // Use dedicated compute stream
+        compute_stream, // Use dedicated compute stream
+        nullptr         // No streaming context for batch
     );
 
     if (item.status != Status::SUCCESS) {
@@ -6578,10 +6558,15 @@ public:
   bool decomp_initialized;
   bool frame_header_parsed;
 
+  // History / Streaming state
+  size_t history_capacity;     // Size of d_window_history
+  size_t current_history_size; // Bytes currently in history
+
   explicit Impl(const CompressionConfig &cfg)
       : config(cfg), has_dictionary(false), stream(nullptr), owns_stream(false),
         d_workspace(nullptr), workspace_size(0), comp_initialized(false),
-        decomp_initialized(false), frame_header_parsed(false) {
+        decomp_initialized(false), frame_header_parsed(false),
+        history_capacity(0), current_history_size(0) {
     manager = create_manager(config);
   }
 
@@ -6674,10 +6659,47 @@ Status ZstdStreamingManager::init_compression(cudaStream_t stream,
 
 Status ZstdStreamingManager::init_compression_with_history(cudaStream_t stream,
                                                            size_t max_chunk_size) {
-  // STUB: History-based compression not yet implemented
-  (void)stream;
-  (void)max_chunk_size;
-  return Status::ERROR_NOT_IMPLEMENTED;
+  if (pimpl_->comp_initialized)
+    return Status::SUCCESS;
+
+  Status s = pimpl_->alloc_workspace(stream, max_chunk_size);
+  if (s != Status::SUCCESS)
+    return s;
+
+  // Allocate history buffer
+  size_t window_size = 1ULL << pimpl_->config.window_log;
+  pimpl_->history_capacity = window_size;
+
+  if (pimpl_->streaming_ctx.d_window_history) {
+    cudaFree(pimpl_->streaming_ctx.d_window_history);
+    pimpl_->streaming_ctx.d_window_history = nullptr;
+  }
+
+  if (cudaMalloc(&pimpl_->streaming_ctx.d_window_history, window_size) !=
+      cudaSuccess) {
+    return Status::ERROR_OUT_OF_MEMORY;
+  }
+
+  // Allocate persistent hash/chain state for true streaming
+  size_t hash_size = (1ULL << pimpl_->config.hash_log) * sizeof(u32);
+  size_t chain_size = (1ULL << pimpl_->config.chain_log) * sizeof(u32);
+
+  if (cudaMalloc(&pimpl_->streaming_ctx.d_hash_table_state, hash_size) != cudaSuccess)
+    return Status::ERROR_OUT_OF_MEMORY;
+  if (cudaMalloc(&pimpl_->streaming_ctx.d_chain_table_state, chain_size) != cudaSuccess)
+    return Status::ERROR_OUT_OF_MEMORY;
+
+  // Clear state
+  cudaMemsetAsync(pimpl_->streaming_ctx.d_window_history, 0, window_size, stream);
+  cudaMemsetAsync(pimpl_->streaming_ctx.d_hash_table_state, 0xFF, hash_size, stream);
+  cudaMemsetAsync(pimpl_->streaming_ctx.d_chain_table_state, 0xFF, chain_size, stream);
+
+  pimpl_->current_history_size = 0;
+  pimpl_->comp_initialized = true;
+
+  // Pre-allocate FSE tables
+  s = pimpl_->manager->preallocate_tables(stream);
+  return s;
 }
 
 Status ZstdStreamingManager::init_decompression(cudaStream_t stream) {
@@ -6761,7 +6783,7 @@ Status ZstdStreamingManager::compress_chunk(const void *input,
   Status status = pimpl_->manager->compress(
       input, input_size, output, &compressed_size, pimpl_->d_workspace,
       pimpl_->workspace_size, nullptr, 0, // No dictionary for now
-      stream);
+      stream, nullptr);
 
   if (status != Status::SUCCESS) {
     return status;
@@ -6778,20 +6800,97 @@ Status ZstdStreamingManager::compress_chunk(const void *input,
   return Status::SUCCESS;
 }
 
-Status ZstdStreamingManager::compress_chunk_with_history(const void *input,
-                                                         size_t input_size,
-                                                         void *output,
-                                                         size_t *output_size,
-                                                         bool is_last_chunk,
-                                                         cudaStream_t stream) {
-  // STUB: History-based compression not yet implemented
-  (void)input;
-  (void)input_size;
-  (void)output;
-  (void)output_size;
-  (void)is_last_chunk;
-  (void)stream;
-  return Status::ERROR_NOT_IMPLEMENTED;
+Status ZstdStreamingManager::compress_chunk_with_history(
+    const void *input, size_t input_size, void *output, size_t *output_size,
+    bool is_last_chunk, cudaStream_t stream) {
+
+  if (!input || !output || !output_size) {
+    return Status::ERROR_INVALID_PARAMETER;
+  }
+
+  // Initialize output size to 0
+  *output_size = 0;
+
+  // Auto-initialize if needed
+  if (!pimpl_->comp_initialized) {
+    Status s = init_compression_with_history(stream, input_size);
+    if (s != Status::SUCCESS)
+      return s;
+  }
+
+  // Ensure history buffer exists
+  if (!pimpl_->streaming_ctx.d_window_history) {
+    return Status::ERROR_NOT_INITIALIZED;
+  }
+
+  // Workspace management
+  size_t required_temp = pimpl_->manager->get_compress_temp_size(input_size);
+
+  // Allocate or reallocate workspace if needed
+  if (!pimpl_->d_workspace || pimpl_->workspace_size < required_temp) {
+    if (pimpl_->d_workspace) {
+      cudaFree(pimpl_->d_workspace);
+      pimpl_->d_workspace = nullptr;
+    }
+    pimpl_->workspace_size = required_temp;
+    if (cudaMalloc(&pimpl_->d_workspace, pimpl_->workspace_size) !=
+        cudaSuccess) {
+      return Status::ERROR_OUT_OF_MEMORY;
+    }
+  }
+
+  // Compress chunk using history and persistent state
+  size_t compressed_size = pimpl_->manager->get_max_compressed_size(input_size);
+  Status status = pimpl_->manager->compress(
+      input, input_size, output, &compressed_size, pimpl_->d_workspace,
+      pimpl_->workspace_size, pimpl_->streaming_ctx.d_window_history,
+      pimpl_->current_history_size, stream, &pimpl_->streaming_ctx);
+
+  if (status != Status::SUCCESS) {
+    return status;
+  }
+
+  *output_size = compressed_size;
+
+  // Update History (Sliding Window)
+  if (input_size >= pimpl_->history_capacity) {
+    // Input is larger than history capacity: keep only the last chunk
+    const char *src =
+        (const char *)input + input_size - pimpl_->history_capacity;
+    cudaMemcpyAsync(pimpl_->streaming_ctx.d_window_history, src,
+                    pimpl_->history_capacity, cudaMemcpyDeviceToDevice, stream);
+    pimpl_->current_history_size = pimpl_->history_capacity;
+  } else {
+    size_t remaining = pimpl_->history_capacity - pimpl_->current_history_size;
+
+    if (input_size <= remaining) {
+      // Append to history
+      char *dst = (char *)pimpl_->streaming_ctx.d_window_history +
+                  pimpl_->current_history_size;
+      cudaMemcpyAsync(dst, input, input_size, cudaMemcpyDeviceToDevice, stream);
+      pimpl_->current_history_size += input_size;
+    } else {
+      // Shift and append
+      size_t keep = pimpl_->history_capacity - input_size;
+      char *history_base = (char *)pimpl_->streaming_ctx.d_window_history;
+      char *src_move = history_base + (pimpl_->current_history_size - keep);
+
+      // Use workspace as scratch for safe shift (no overlap)
+      cudaMemcpyAsync(pimpl_->d_workspace, src_move, keep,
+                      cudaMemcpyDeviceToDevice, stream);
+      cudaMemcpyAsync(history_base, pimpl_->d_workspace, keep,
+                      cudaMemcpyDeviceToDevice, stream);
+
+      // Append new data
+      char *dst_append = history_base + keep;
+      cudaMemcpyAsync(dst_append, input, input_size, cudaMemcpyDeviceToDevice,
+                      stream);
+
+      pimpl_->current_history_size = pimpl_->history_capacity;
+    }
+  }
+
+  return Status::SUCCESS;
 }
 
 Status ZstdStreamingManager::decompress_chunk(const void *input,

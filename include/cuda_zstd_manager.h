@@ -66,7 +66,8 @@ public:
                           size_t uncompressed_size, void *compressed_data,
                           size_t *compressed_size, void *temp_workspace,
                           size_t temp_size, const void *dict_buffer,
-                          size_t dict_size, cudaStream_t stream) = 0;
+                          size_t dict_size, cudaStream_t stream,
+                          void *streaming_context = nullptr) = 0;
 
   virtual Status decompress(const void *compressed_data, size_t compressed_size,
                             void *uncompressed_data, size_t *uncompressed_size,
@@ -134,7 +135,7 @@ public:
                   void *compressed_data, size_t *compressed_size,
                   void *temp_workspace, size_t temp_size,
                   const void *dict_buffer, size_t dict_size,
-                  cudaStream_t stream = 0) override;
+                  cudaStream_t stream = 0, void *streaming_context = nullptr) override;
 
   Status decompress(const void *compressed_data, size_t compressed_size,
                     void *uncompressed_data, size_t *uncompressed_size,

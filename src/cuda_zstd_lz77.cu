@@ -639,12 +639,12 @@ __global__ void parallel_find_all_matches_kernel(
   }
 
   if (idx == 0)
-  if (idx == 104)
-  if (idx == 174)
+    if (idx == 104)
+      if (idx == 174)
 
-  if (idx >= input_size - config.min_match) {
-    return;
-  }
+        if (idx >= input_size - config.min_match) {
+          return;
+        }
 
   u32 max_dist = (1u << config.window_log);
   u32 dict_size = (dict && dict->d_buffer) ? dict->size : 0;
@@ -661,11 +661,12 @@ __global__ void parallel_find_all_matches_kernel(
 
   // 1. Find the best match at the current position `idx`
   if (idx == 0) {
-    const char *strat = "UNKNOWN";
-    if (config.strategy == Strategy::GREEDY)
-      strat = "GREEDY";
-    if (config.strategy == Strategy::LAZY)
-      strat = "LAZY";
+    // const char *strat = "UNKNOWN";
+    // if (config.strategy == Strategy::GREEDY)
+    //   strat = "GREEDY";
+    // if (config.strategy == Strategy::LAZY)
+    //   strat = "LAZY";
+    // (void)strat; // Suppress unused variable warning
   }
 
   // Find best match using parallel helper
@@ -766,62 +767,6 @@ __global__ void count_sequences_kernel(
  *
  * SAFETY: Staging buffer is pre-allocated in host code
  * OUTPUT: Sequences in reverse order to staging buffer
- */
-
-/* LEGACY_GPU_BACKTRACK - Commented out (uses old ParseCost format)
-// LEGACY_GPU_BACKTRACK: __global__ void backtrack_build_sequences_kernel(
-// LEGACY_GPU_BACKTRACK:     const unsigned char* input,
-// LEGACY_GPU_BACKTRACK:     u32 input_size,
-// LEGACY_GPU_BACKTRACK:     const ParseCost* d_costs,
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:     // Pre-allocated output buffers (from host)
-// LEGACY_GPU_BACKTRACK:     u32* d_literal_lengths_reverse,
-// LEGACY_GPU_BACKTRACK:     u32* d_match_lengths_reverse,
-// LEGACY_GPU_BACKTRACK:     u32* d_offsets_reverse,
-// LEGACY_GPU_BACKTRACK:     u32 max_sequences,         // Capacity of output
-arrays
-// LEGACY_GPU_BACKTRACK:     u32* d_num_sequences_out   // Output: actual count
-// LEGACY_GPU_BACKTRACK: ) {
-// LEGACY_GPU_BACKTRACK:     if (threadIdx.x != 0 || blockIdx.x != 0) return;
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:     u32 seq_idx = 0;
-// LEGACY_GPU_BACKTRACK:     u32 pos = input_size;
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:     // 1. Consume trailing literals (not part of any
-sequence)
-// LEGACY_GPU_BACKTRACK:     while (pos > 0 && !d_costs[pos].is_match) {
-// LEGACY_GPU_BACKTRACK:         pos--;
-// LEGACY_GPU_BACKTRACK:     }
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:     // 2. Backtrack matches
-// LEGACY_GPU_BACKTRACK:     while (pos > 0 && seq_idx < max_sequences) {
-// LEGACY_GPU_BACKTRACK:         const ParseCost& entry = d_costs[pos];
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:         // We expect a match here
-// LEGACY_GPU_BACKTRACK:         if (!entry.is_match) {
-// LEGACY_GPU_BACKTRACK:             // Should not happen if logic is correct,
-but safety check
-// LEGACY_GPU_BACKTRACK:             pos--;
-// LEGACY_GPU_BACKTRACK:             continue;
-// LEGACY_GPU_BACKTRACK:         }
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:         u32 ml = entry.len;
-// LEGACY_GPU_BACKTRACK:         u32 of = entry.offset;
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:         // Safety check
-// LEGACY_GPU_BACKTRACK:         if (ml == 0 || ml > pos) break;
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:         pos -= ml;
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:         // Count literals before this match
-// LEGACY_GPU_BACKTRACK:         u32 ll = 0;
-// LEGACY_GPU_BACKTRACK:         while (pos > 0 && !d_costs[pos].is_match) {
-// LEGACY_GPU_BACKTRACK:             ll++;
-// LEGACY_GPU_BACKTRACK:             pos--;
-// LEGACY_GPU_BACKTRACK:         }
-// LEGACY_GPU_BACKTRACK:
-// LEGACY_GPU_BACKTRACK:         // Emit sequence
-// LEGACY_GPU_BACKTRACK:         d_literal_lengths_reverse[seq_idx] = ll;
 // LEGACY_GPU_BACKTRACK:         d_match_lengths_reverse[seq_idx] = ml;
 // LEGACY_GPU_BACKTRACK:         d_offsets_reverse[seq_idx] = of;
 // LEGACY_GPU_BACKTRACK:         seq_idx++;
@@ -963,28 +908,29 @@ Status find_matches(LZ77Context &ctx, const unsigned char *d_input,
                     size_t input_size, const DictionaryContent *dict,
                     CompressionWorkspace *workspace,
                     const unsigned char *d_window, size_t window_size,
-                    cudaStream_t stream) {
+                    cudaStream_t stream,
+                    u32 *d_hash_table_persistent,
+                    u32 *d_chain_table_persistent) {
   if (!d_input || input_size == 0 || !workspace) {
     return Status::ERROR_INVALID_PARAMETER;
   }
 
   // Set workspace pointers in context
-  ctx.hash_table.table = workspace->d_hash_table;
-  ctx.chain_table.prev = workspace->d_chain_table;
+  ctx.hash_table.table = d_hash_table_persistent ? d_hash_table_persistent : workspace->d_hash_table;
+  ctx.chain_table.prev = d_chain_table_persistent ? d_chain_table_persistent : workspace->d_chain_table;
   ctx.d_matches = static_cast<Match *>(workspace->d_matches);
 
   // (FIX) Initialize table sizes to prevent OOB access in kernels
   ctx.hash_table.size = 1u << ctx.config.hash_log;
   ctx.chain_table.size = 1u << ctx.config.chain_log;
 
-  // (DEBUG) Skip kernels to isolate crash - REMOVED
-  // return Status::SUCCESS;
-
-  // Build hash and chain tables
-  u32 num_blocks = (input_size + 2047) / 2048;
-  build_hash_chains_kernel<<<num_blocks, 256, 0, stream>>>(
-      d_input, input_size, dict, ctx.hash_table, ctx.chain_table,
-      ctx.config.min_match, ctx.config.hash_log);
+  // Build hash and chain tables (only if not persistent)
+  if (!d_hash_table_persistent) {
+    u32 num_blocks = (input_size + 2047) / 2048;
+    build_hash_chains_kernel<<<num_blocks, 256, 0, stream>>>(
+        d_input, input_size, dict, ctx.hash_table, ctx.chain_table,
+        ctx.config.min_match, ctx.config.hash_log);
+  }
 
   cudaError_t hash_err = cudaGetLastError();
   if (hash_err != cudaSuccess) {

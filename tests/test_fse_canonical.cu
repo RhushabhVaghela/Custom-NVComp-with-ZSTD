@@ -26,8 +26,6 @@ const unsigned char canonical_stream[] = {
 int main(int argc, char **argv) {
   printf("Running FSE Canonical Test...\n");
 
-  size_t frame_size = sizeof(canonical_stream);
-
   // Offset 14: Starts at `f0`. (Skipping LitHeader 86 9e 31 and Size 07).
   // This points to the raw FSE stream.
   size_t fse_offset = 14;

@@ -152,40 +152,27 @@ void test_simple_weights() {
   }
 
   int size_format = (lit_header >> 2) & 3;
-  int regenerated_size = 0;
-  int compressed_literals_size = 0;
+  // int regenerated_size = 0;
   int header_bytes = 0;
 
   if (size_format == 0) { // Single stream?
-    // simple 1 byte
-    regenerated_size = (lit_header >> 3); // 5 bits
+    // regenerated_size = (lit_header >> 3); // 5 bits
     header_bytes = 1;
   } else if (size_format == 1) {
-    regenerated_size = (lit_header >> 4) + (compressed[offset + 1] << 4);
+    // regenerated_size = (lit_header >> 4) + (compressed[offset + 1] << 4);
     header_bytes = 2;
   } else if (size_format == 2) {
-    regenerated_size = (lit_header >> 4) + (compressed[offset + 1] << 4) +
-                       (compressed[offset + 2] << 12);
+    // regenerated_size = (lit_header >> 4) + (compressed[offset + 1] << 4) +
+    //                   (compressed[offset + 2] << 12);
     header_bytes = 3;
   } else { // size_format == 3
-    regenerated_size =
-        (lit_header >> 4) + (compressed[offset + 1] << 4) +
-        (compressed[offset + 2] << 12) +
-        (compressed[offset + 3] << 20); // 28 bits? broken logic here but approx
-    header_bytes = 3;                   // or 4 or 5
+    // regenerated_size =
+    //    (lit_header >> 4) + (compressed[offset + 1] << 4) +
+    //    (compressed[offset + 2] << 12) +
+    //    (compressed[offset + 3] << 20); // 28 bits? broken logic here but
+    //    approx
+    header_bytes = 3; // or 4 or 5
   }
-
-  // We assume standard usage logic.
-  // The Huffman Tree Description is AFTER the regenerated_size.
-  // Actually, for Compressed Block (Type 2):
-  // Header byte
-  // [Optional Extra Size Bytes]
-  // Huffman Tree Description (1 byte)
-  // This part is complex.
-
-  // Skip to what looks like the Huffman header byte
-  // It's the first byte AFTER the size definition.
-  // Let's heuristic: huff_weight_byte is the one with accuracy log <= 6.
 
   offset += header_bytes; // Points to Huffman Tree header?
 
@@ -235,16 +222,17 @@ void test_simple_weights() {
   // bound.
 
   // So we copy from `compressed[offset-1]` (the header byte) for
-  // `fse_stream_size + 1` bytes? Wait. The valid size is `fse_stream_size`. Is
-  // the header byte included in that count? RFC: "This is a single byte, Value
-  // 0-127... Value is the size of the FSE bitstream." Does "size of FSE
+  // `fse_stream_size + 1` bytes? Wait. The valid size is `fse_stream_size`.
+  // Is the header byte included in that count? RFC: "This is a single byte,
+  // Value 0-127... Value is the size of the FSE bitstream." Does "size of FSE
   // bitstream" include the header byte itself? Typically NO. The header byte
   // says "N bytes follow". So we need N+1 bytes buffer? Let's look at
-  // `decode_huffman_weights_fse` impl: `u32 accuracy_log = (h_input[0] & 0x0F)
+  // `decode_huffman_weights_fse` impl: `u32 accuracy_log = (h_input[0] &
+  // 0x0F)
   // + 5;` -> Reads first byte. `if (bitstream_start >= compressed_size)` ->
-  // Checks bounds. It treats `compressed_size` as the size of the buffer passed
-  // in. If the HeaderByte says "50", it means 50 bytes FOLLOW. So the total
-  // buffer size is 51. We must pass `fse_stream_size + 1`.
+  // Checks bounds. It treats `compressed_size` as the size of the buffer
+  // passed in. If the HeaderByte says "50", it means 50 bytes FOLLOW. So the
+  // total buffer size is 51. We must pass `fse_stream_size + 1`.
 
   size_t total_fse_buffer_size = fse_stream_size;
   std::vector<uint8_t> test_buffer(total_fse_buffer_size);
@@ -299,6 +287,7 @@ void test_simple_weights() {
       weight_sum += (1 << (weights[i] - 1));
   }
 
+  // (void)regenerated_size;
   printf("Weight Sum: %u (Expected 256 for Max_Bits 8, or power of 2)\n",
          weight_sum);
 

@@ -187,12 +187,109 @@ __host__ Status launch_fse_encoding_kernel_rfc(
     const u8 *d_ll_codes, const u32 *d_ll_extras, const u8 *d_ll_bits,
     const u8 *d_of_codes, const u32 *d_of_extras, const u8 *d_of_bits,
     const u8 *d_ml_codes, const u32 *d_ml_extras, const u8 *d_ml_bits,
-    u32 num_symbols, 
-    unsigned char *d_bitstream, 
+    u32 num_symbols,
+    unsigned char *d_bitstream,
     size_t *d_output_pos,
     size_t bitstream_capacity,
     const FSEEncodeTable *d_tables,
     cudaStream_t stream
+);
+
+/**
+ * @brief RFC-compliant FSE decoding wrapper
+ *
+ * Decodes bitstream produced by launch_fse_encoding_kernel_rfc.
+ * Use this to replace the old decoder that had bitstream reading bugs.
+ * 
+ * @param d_bitstream Device pointer to bitstream data
+ * @param bitstream_size Size of bitstream in bytes
+ * @param h_tables Host pointer to FSEDecodeTable (contains table data in host memory)
+ * @param num_symbols Number of sequences to decode
+ * @param d_ll_codes Output: LL symbol codes (device memory)
+ * @param d_of_codes Output: OF symbol codes (device memory)
+ * @param d_ml_codes Output: ML symbol codes (device memory)
+ * @param d_ll_extras Output: LL extra bits (device memory)
+ * @param d_of_extras Output: OF extra bits (device memory)
+ * @param d_ml_extras Output: ML extra bits (device memory)
+ * @param d_ll_bits Output: LL nbBits (device memory)
+ * @param d_of_bits Output: OF nbBits (device memory)
+ * @param d_ml_bits Output: ML nbBits (device memory)
+ * @param stream CUDA stream
+ * @return Status SUCCESS or error code
+ */
+__host__ Status launch_fse_decoding_kernel_rfc(
+    const u8 *d_bitstream,
+    size_t bitstream_size,
+    const FSEDecodeTable *h_tables,
+    u32 num_symbols,
+    u8 *d_ll_codes,
+    u8 *d_of_codes,
+    u8 *d_ml_codes,
+    u32 *d_ll_extras,
+    u32 *d_of_extras,
+    u32 *d_ml_extras,
+    u8 *d_ll_bits,
+    u8 *d_of_bits,
+    u8 *d_ml_bits,
+    cudaStream_t stream
+);
+
+/**
+ * @brief RFC-compliant interleaved FSE decoder
+ * 
+ * Replaces decode_sequences_interleaved with correct RFC decoding.
+ * Handles all three streams (LL, OF, ML) simultaneously with different modes.
+ * 
+ * @param d_input Device pointer to compressed bitstream
+ * @param input_size Size of input in bytes
+ * @param num_sequences Number of sequences to decode
+ * @param d_ll_out Output: literal lengths (device memory)
+ * @param d_of_out Output: offsets (device memory)
+ * @param d_ml_out Output: match lengths (device memory)
+ * @param ll_mode Literal length mode (0=Predefined, 1=RLE, 2=FSE)
+ * @param of_mode Offset mode (0=Predefined, 1=RLE, 2=FSE)
+ * @param ml_mode Match length mode (0=Predefined, 1=RLE, 2=FSE)
+ * @param ll_table Literal length decode table (for mode 0 or 2)
+ * @param of_table Offset decode table (for mode 0 or 2)
+ * @param ml_table Match length decode table (for mode 0 or 2)
+ * @param literals_limit Maximum literal length limit
+ * @param stream CUDA stream
+ * @return Status SUCCESS or error code
+ */
+__host__ Status decode_sequences_interleaved_rfc(
+    const unsigned char *d_input,
+    u32 input_size,
+    u32 num_sequences,
+    u32 *d_ll_out,
+    u32 *d_of_out,
+    u32 *d_ml_out,
+    u32 ll_mode,
+    u32 of_mode,
+    u32 ml_mode,
+    const FSEDecodeTable *ll_table,
+    const FSEDecodeTable *of_table,
+    const FSEDecodeTable *ml_table,
+    u32 literals_limit,
+    cudaStream_t stream
+);
+
+/**
+ * @brief Build RFC-compliant FSE decoder table from normalized frequencies
+ * 
+ * This function ensures encoder and decoder use consistent state transitions
+ * by building the decoder table from the same frequency data used by the encoder.
+ * 
+ * @param normFreqs Normalized frequencies (array of size maxSymbol+1)
+ * @param maxSymbol Maximum symbol value
+ * @param tableLog Table logarithm (table size = 2^tableLog)
+ * @param h_table Output table structure (arrays must be pre-allocated by caller)
+ * @return Status SUCCESS or error code
+ */
+__host__ Status FSE_buildDTable_rfc(
+    const u16 *normFreqs,
+    u32 maxSymbol,
+    u32 tableLog,
+    FSEDecodeTable &h_table
 );
 
 } // namespace fse

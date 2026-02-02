@@ -39,7 +39,9 @@ __device__ inline u32 match_length(const u8 *input, u32 p1, u32 p2, u32 max_len,
 
 Status find_matches_parallel(const u8 *d_input, u32 input_size,
                              CompressionWorkspace *workspace,
-                             const LZ77Config &config, cudaStream_t stream);
+                             const LZ77Config &config, cudaStream_t stream,
+                             u32 *d_hash_table_persistent = nullptr,
+                             u32 *d_chain_table_persistent = nullptr);
 
 Status compute_optimal_parse();
 

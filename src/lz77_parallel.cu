@@ -919,38 +919,38 @@ Status backtrack_sequences(u32 input_size, CompressionWorkspace &workspace,
 
 Status find_matches_parallel(const u8 *d_input, u32 input_size,
                              CompressionWorkspace *workspace,
-                             const LZ77Config &config, cudaStream_t stream) {
-  // 1. Initialize Hash Table
+                             const LZ77Config &config, cudaStream_t stream,
+                             u32 *d_hash_table_persistent,
+                             u32 *d_chain_table_persistent) {
+  // 1. Initialize Hash Table (only if not persistent)
   u32 hash_size = 1 << config.hash_log;
   u32 chain_size = 1 << config.chain_log;
 
-  // Use workspace sizes if available to safeguard?
-  // workspace->hash_table_size is u32
   if (workspace->hash_table_size < hash_size)
     return Status::ERROR_WORKSPACE_INVALID;
   if (workspace->chain_table_size < chain_size)
     return Status::ERROR_WORKSPACE_INVALID;
 
-  u32 block_size = 256;
-  u32 max_size = (hash_size > chain_size) ? hash_size : chain_size;
-  u32 grid_size = (max_size + block_size - 1) / block_size;
-  // Cap grid size to avoid launching too many blocks for huge tables?
-  if (grid_size > 256)
-    grid_size = 256;
-  // Wait, init needs to cover ALL entries. The kernel uses stride loop.
-  // Step 300: `u32 stride = blockDim.x * gridDim.x; for (u32 i = idx; i <
-  // hash_size; i += stride)` So any grid size is correct. 256 blocks * 256
-  // threads = 65536 threads.
+  u32 *d_hash = d_hash_table_persistent ? d_hash_table_persistent : workspace->d_hash_table;
+  u32 *d_chain = d_chain_table_persistent ? d_chain_table_persistent : workspace->d_chain_table;
 
-  init_hash_table_kernel<<<grid_size, block_size, 0, stream>>>(
-      workspace->d_hash_table, workspace->d_chain_table, hash_size, chain_size);
+  if (!d_hash_table_persistent) {
+    u32 block_size = 256;
+    u32 max_size = (hash_size > chain_size) ? hash_size : chain_size;
+    u32 grid_size = (max_size + block_size - 1) / block_size;
+    if (grid_size > 256)
+      grid_size = 256;
+
+    init_hash_table_kernel<<<grid_size, block_size, 0, stream>>>(
+        d_hash, d_chain, hash_size, chain_size);
+  }
 
   // 2. Find Matches
   u32 match_block_size = 128; // Tuning?
   u32 match_grid_size = (input_size + match_block_size - 1) / match_block_size;
 
   find_matches_kernel<<<match_grid_size, match_block_size, 0, stream>>>(
-      d_input, input_size, workspace->d_hash_table, workspace->d_chain_table,
+      d_input, input_size, d_hash, d_chain,
       (Match *)workspace->d_matches, // Cast void* to Match*
       config, config.hash_log);
 

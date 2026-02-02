@@ -146,7 +146,7 @@ Status PipelinedBatchManager::compress_stream_pipeline(
           slot.d_workspace, slot.workspace_capacity, nullptr, 0, streams_[1]);
 
       if (s != Status::SUCCESS) {
-        printf("Pipeline COMPUTE failed on slot %d\n", slot_idx);
+        // printf("Pipeline COMPUTE failed on slot %d\n", slot_idx);
         pipeline_error = true;
         final_status = s;
       }

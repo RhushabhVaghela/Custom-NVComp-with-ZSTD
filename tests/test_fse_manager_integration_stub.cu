@@ -7,7 +7,6 @@
 #include <random>
 #include <vector>
 
-
 using namespace cuda_zstd;
 
 void check(Status s) {
@@ -39,25 +38,9 @@ int main() {
     h_ml[i] = i % 52;
   }
 
-  u32 *d_ll, *d_of, *d_ml;
+  u32 *d_ll, *d_of;
   cudaMalloc(&d_ll, num_refs * 4);
   cudaMalloc(&d_of, num_refs * 4);
-  cudaMalloc(&d_ml, num_refs * 4);
-
-  cudaMemcpy(d_ll, h_ll.data(), num_refs * 4, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_of, h_of.data(), num_refs * 4, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_ml, h_ml.data(), num_refs * 4, cudaMemcpyHostToDevice);
-
-  sequence::SequenceContext seq_ctx;
-  seq_ctx.d_literal_lengths = d_ll;
-  seq_ctx.d_offsets = d_of;
-  seq_ctx.d_match_lengths = d_ml;
-
-  // 2. Prepare Output
-  byte_t *d_output;
-  cudaMalloc(&d_output, 1024 * 1024);
-  u32 output_size = 0;
-
   // 3. Create Manager instance?
   // encode_sequences_with_predefined_fse is a member of CUDAZstdManager.
   // It's private/protected?
@@ -83,4 +66,8 @@ int main() {
   // "CUDAZstdManager();"
 
   // Using `#define private public` before including manager is classic hack.
+
+  // Suppress unused variable warnings for stub implementation
+  // (void)seq_ctx;
+  // (void)output_size;
 }

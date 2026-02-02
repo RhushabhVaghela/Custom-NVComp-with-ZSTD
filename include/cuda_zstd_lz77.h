@@ -157,7 +157,9 @@ Status find_matches(
     CompressionWorkspace *workspace,  // (NEW) Workspace for temp allocations
     const unsigned char *d_window = nullptr, // History buffer
     size_t window_size = 0,           // Size of history
-    cudaStream_t stream = 0);
+    cudaStream_t stream = 0,
+    u32 *d_hash_table_persistent = nullptr,
+    u32 *d_chain_table_persistent = nullptr);
 
 // Get match results (used by dictionary trainer)
 Status get_matches(const LZ77Context &ctx, Match *matches, u32 *num_matches);

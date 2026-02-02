@@ -286,7 +286,6 @@ bool test_device_table_copy(TestResults &results) {
 
   // Copy to device
   FSEDecodeTable d_table = {};
-  cudaStream_t stream = 0;
 
   // Allocate device memory
   CHECK_CUDA(cudaMalloc(&d_table.newState, table_size * sizeof(u16)));
