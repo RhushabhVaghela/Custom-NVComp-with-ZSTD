@@ -46,26 +46,14 @@ Total time: 10 seconds            [███████████████
 void compress_huge_file(const std::string& filename) {
     // 1. Create a streaming manager
     auto stream_mgr = cuda_zstd::ZstdStreamingManager::create(5);
-    stream_mgr->init_compression();
+    // Use init_compression_with_history to enable optimal ratios across chunks
+    stream_mgr->init_compression_with_history();
     
     // 2. Process the file in 128KB chunks
-    const size_t CHUNK_SIZE = 128 * 1024;  // 128KB
-    
-    std::ifstream input(filename, std::ios::binary);
-    std::ofstream output(filename + ".zst", std::ios::binary);
-    
-    while (!input.eof()) {
-        // Read a chunk
-        std::vector<uint8_t> chunk(CHUNK_SIZE);
-        input.read((char*)chunk.data(), CHUNK_SIZE);
-        size_t bytes_read = input.gcount();
-        
-        // Is this the last piece?
-        bool is_last = input.eof();
-        
+...
         // Compress it (GPU does the heavy lifting!)
         size_t compressed_size;
-        stream_mgr->compress_chunk(
+        stream_mgr->compress_chunk_with_history(
             chunk.data(), bytes_read,
             output_buffer, &compressed_size,
             is_last
