@@ -204,7 +204,7 @@ if(CUDA_ZSTD_BUILD_TESTS)
             CUDA_SEPARABLE_COMPILATION ON
             CUDA_RESOLVE_DEVICE_SYMBOLS ON
         )
-        target_link_libraries(${test_name} cuda_zstd_static)
+        target_link_libraries(${test_name} cuda_zstd_shared)
         add_test(NAME ${test_name} COMMAND ${test_name})
         set_property(TEST ${test_name} PROPERTY LABELS "unittest")
 
@@ -218,7 +218,7 @@ if(CUDA_ZSTD_BUILD_TESTS)
     # C-API test
     add_executable(test_c_api tests/test_c_api.c)
     set_source_files_properties(tests/test_c_api.c PROPERTIES LANGUAGE CXX)
-    target_link_libraries(test_c_api cuda_zstd_static)
+    target_link_libraries(test_c_api cuda_zstd_shared)
     add_test(NAME test_c_api COMMAND test_c_api)
     set_property(TEST test_c_api PROPERTY LABELS "unittest")
     set_tests_properties(test_c_api PROPERTIES TIMEOUT 100)
@@ -245,7 +245,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(fixed_benchmark cuda_zstd_static)
+    target_link_libraries(fixed_benchmark cuda_zstd_shared)
     add_test(NAME fixed_benchmark COMMAND fixed_benchmark)
     set_property(TEST fixed_benchmark PROPERTY LABELS "benchmark")
     
@@ -256,7 +256,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(limited_benchmark cuda_zstd_static)
+    target_link_libraries(limited_benchmark cuda_zstd_shared)
     add_test(NAME limited_benchmark COMMAND limited_benchmark)
     set_property(TEST limited_benchmark PROPERTY LABELS "benchmark")
     
@@ -265,7 +265,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(comprehensive_benchmark cuda_zstd_static)
+    target_link_libraries(comprehensive_benchmark cuda_zstd_shared)
     # Export PROJECT_ROOT so CSV files go to project root, not build folder
     target_compile_definitions(comprehensive_benchmark PRIVATE PROJECT_ROOT="${CMAKE_SOURCE_DIR}")
     add_test(NAME comprehensive_benchmark COMMAND comprehensive_benchmark)
@@ -276,7 +276,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_lz77 cuda_zstd_static)
+    target_link_libraries(benchmark_lz77 cuda_zstd_shared)
     add_test(NAME benchmark_lz77 COMMAND benchmark_lz77)
     set_property(TEST benchmark_lz77 PROPERTY LABELS "benchmark")
 
@@ -286,7 +286,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_parallel_throughput cuda_zstd_static)
+    target_link_libraries(benchmark_parallel_throughput cuda_zstd_shared)
     add_test(NAME benchmark_parallel_throughput COMMAND benchmark_parallel_throughput)
     set_property(TEST benchmark_parallel_throughput PROPERTY LABELS "benchmark")
 
@@ -295,7 +295,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_memory_alloc cuda_zstd_static)
+    target_link_libraries(benchmark_memory_alloc cuda_zstd_shared)
     add_test(NAME benchmark_memory_alloc COMMAND benchmark_memory_alloc)
     set_property(TEST benchmark_memory_alloc PROPERTY LABELS "benchmark")
 
@@ -304,7 +304,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_pipeline cuda_zstd_static)
+    target_link_libraries(benchmark_pipeline cuda_zstd_shared)
     add_test(NAME benchmark_pipeline COMMAND benchmark_pipeline)
     set_property(TEST benchmark_pipeline PROPERTY LABELS "benchmark")
 
@@ -314,7 +314,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_fse_decode cuda_zstd_static)
+    target_link_libraries(benchmark_fse_decode cuda_zstd_shared)
     add_test(NAME benchmark_fse_decode COMMAND benchmark_fse_decode)
     set_property(TEST benchmark_fse_decode PROPERTY LABELS "benchmark")
 
@@ -323,7 +323,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_fse_parallel cuda_zstd_static)
+    target_link_libraries(benchmark_fse_parallel cuda_zstd_shared)
     add_test(NAME benchmark_fse_parallel COMMAND benchmark_fse_parallel)
     set_property(TEST benchmark_fse_parallel PROPERTY LABELS "benchmark")
 
@@ -333,7 +333,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_batch_fse cuda_zstd_static)
+    target_link_libraries(benchmark_batch_fse cuda_zstd_shared)
     add_test(NAME benchmark_batch_fse COMMAND benchmark_batch_fse)
     set_property(TEST benchmark_batch_fse PROPERTY LABELS "benchmark")
 
@@ -374,7 +374,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_fse_gpu cuda_zstd_static)
+    target_link_libraries(benchmark_fse_gpu cuda_zstd_shared)
     add_test(NAME benchmark_fse_gpu COMMAND benchmark_fse_gpu)
     set_property(TEST benchmark_fse_gpu PROPERTY LABELS "benchmark")
 
@@ -384,7 +384,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_fse_host_fallback cuda_zstd_static)
+    target_link_libraries(benchmark_fse_host_fallback cuda_zstd_shared)
     add_test(NAME benchmark_fse_host_fallback COMMAND benchmark_fse_host_fallback)
     set_property(TEST benchmark_fse_host_fallback PROPERTY LABELS "benchmark")
 
@@ -395,7 +395,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_dictionary_compression cuda_zstd_static)
+    target_link_libraries(benchmark_dictionary_compression cuda_zstd_shared)
     add_test(NAME benchmark_dictionary_compression COMMAND benchmark_dictionary_compression)
     set_property(TEST benchmark_dictionary_compression PROPERTY LABELS "benchmark")
 
@@ -405,7 +405,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_xxhash cuda_zstd_static)
+    target_link_libraries(benchmark_xxhash cuda_zstd_shared)
     add_test(NAME benchmark_xxhash COMMAND benchmark_xxhash)
     set_property(TEST benchmark_xxhash PROPERTY LABELS "benchmark")
 
@@ -415,7 +415,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_adaptive cuda_zstd_static)
+    target_link_libraries(benchmark_adaptive cuda_zstd_shared)
     add_test(NAME benchmark_adaptive COMMAND benchmark_adaptive)
     set_property(TEST benchmark_adaptive PROPERTY LABELS "benchmark")
 
@@ -425,7 +425,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_stream_pool cuda_zstd_static)
+    target_link_libraries(benchmark_stream_pool cuda_zstd_shared)
     add_test(NAME benchmark_stream_pool COMMAND benchmark_stream_pool)
     set_property(TEST benchmark_stream_pool PROPERTY LABELS "benchmark")
 
@@ -435,7 +435,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(run_performance_suite cuda_zstd_static)
+    target_link_libraries(run_performance_suite cuda_zstd_shared)
     add_test(NAME run_performance_suite COMMAND run_performance_suite)
     set_property(TEST run_performance_suite PROPERTY LABELS "benchmark")
 
@@ -445,7 +445,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_nvcomp_interface cuda_zstd_static)
+    target_link_libraries(benchmark_nvcomp_interface cuda_zstd_shared)
     add_test(NAME benchmark_nvcomp_interface COMMAND benchmark_nvcomp_interface)
     set_property(TEST benchmark_nvcomp_interface PROPERTY LABELS "benchmark")
 
@@ -455,7 +455,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_c_api cuda_zstd_static)
+    target_link_libraries(benchmark_c_api cuda_zstd_shared)
     add_test(NAME benchmark_c_api COMMAND benchmark_c_api)
     set_property(TEST benchmark_c_api PROPERTY LABELS "benchmark")
 
@@ -465,7 +465,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_streaming cuda_zstd_static)
+    target_link_libraries(benchmark_streaming cuda_zstd_shared)
     add_test(NAME benchmark_streaming COMMAND benchmark_streaming)
     set_property(TEST benchmark_streaming PROPERTY LABELS "benchmark")
 
@@ -475,7 +475,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_streaming_comparison cuda_zstd_static)
+    target_link_libraries(benchmark_streaming_comparison cuda_zstd_shared)
     add_test(NAME benchmark_streaming_comparison COMMAND benchmark_streaming_comparison)
     set_property(TEST benchmark_streaming_comparison PROPERTY LABELS "benchmark")
 
@@ -485,7 +485,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_pipeline_streaming cuda_zstd_static)
+    target_link_libraries(benchmark_pipeline_streaming cuda_zstd_shared)
     add_test(NAME benchmark_pipeline_streaming COMMAND benchmark_pipeline_streaming)
     set_property(TEST benchmark_pipeline_streaming PROPERTY LABELS "benchmark")
 
@@ -497,7 +497,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
     find_package(OpenMP REQUIRED)
-    target_link_libraries(benchmark_batch_throughput cuda_zstd_static OpenMP::OpenMP_CXX)
+    target_link_libraries(benchmark_batch_throughput cuda_zstd_shared OpenMP::OpenMP_CXX)
     add_test(NAME benchmark_batch_throughput COMMAND benchmark_batch_throughput)
     set_property(TEST benchmark_batch_throughput PROPERTY LABELS "benchmark")
 
@@ -507,7 +507,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_comprehensive_levels cuda_zstd_static)
+    target_link_libraries(benchmark_comprehensive_levels cuda_zstd_shared)
     add_test(NAME benchmark_comprehensive_levels COMMAND benchmark_comprehensive_levels)
     set_property(TEST benchmark_comprehensive_levels PROPERTY LABELS "benchmark")
 
@@ -517,7 +517,7 @@ if(CUDA_ZSTD_BUILD_BENCHMARKS)
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
-    target_link_libraries(benchmark_zstd_comparison cuda_zstd_static)
+    target_link_libraries(benchmark_zstd_comparison cuda_zstd_shared)
     add_test(NAME benchmark_zstd_comparison COMMAND benchmark_zstd_comparison)
     set_property(TEST benchmark_zstd_comparison PROPERTY LABELS "benchmark")
 
