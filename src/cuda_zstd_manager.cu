@@ -4257,8 +4257,11 @@ private:
       header[1] = (unsigned char)((num_literals >> 4) & 0xFF);
       header_len = 2;
     } else if (num_literals <= 1048575) {
-      // Format 2 (11): 3 bytes.
-      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) | 0x0C);
+      // Format 2 (10): 3 bytes for sizes up to 2^20-1 (per RFC 8878 Table 6)
+      // Bits 0-1: Block_Type (00 = Raw)
+      // Bits 2-3: Size_Format (10 = 0x08)
+      // Bits 4-7 + byte1 + byte2: 20-bit size
+      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) | 0x08);  // 0x08 = (10 << 2) for size_format=2
       header[1] = (unsigned char)((num_literals >> 4) & 0xFF);
       header[2] = (unsigned char)((num_literals >> 12) & 0xFF);
       header_len = 3;

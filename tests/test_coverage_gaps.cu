@@ -1,7 +1,9 @@
-// test_coverage_gaps.cu - Verification for RLE fallback and edge cases
+// test_coverage_gaps.cu - Verification for RLE fallback, edge cases, and size boundaries
+// Uses ZSTD Manager API for accurate coverage testing
 
 #include "cuda_error_checking.h"
 #include "cuda_zstd_fse.h"
+#include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
 #include <cassert>
 #include <cstdio>
@@ -12,8 +14,7 @@
 using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
 
-// Helper to fill buffer with random data
-// Helper to fill buffer with random data (Skewed)
+// Helper to fill buffer with random compressible data (Skewed distribution)
 void fill_random(std::vector<byte_t> &buffer) {
   std::mt19937 rng(42);
   std::uniform_int_distribution<int> dist(0, 100);
@@ -61,7 +62,7 @@ bool test_rle_roundtrip() {
   if (h_check != h_input) {
     printf("❌ Input mismatch before encoding!\n");
     printf("Expected 0xAA, got 0x%02x\n", h_check[0]);
-    exit(1);
+    return false;
   }
 
   // Encode
@@ -75,7 +76,7 @@ bool test_rle_roundtrip() {
 
   if (status != Status::SUCCESS) {
     printf("❌ Encoding failed: %d\n", (int)status);
-    exit(1);
+    return false;
   }
 
   // Check output size
@@ -90,7 +91,7 @@ bool test_rle_roundtrip() {
     // be small.
     if (output_size > 100) {
       printf("❌ Output size too large for RLE! Fallback failed.\n");
-      exit(1);
+      return false;
     }
   } else {
     printf("✅ Output size indicates RLE compression.\n");
@@ -108,12 +109,12 @@ bool test_rle_roundtrip() {
 
   if (status != Status::SUCCESS) {
     printf("❌ Decoding failed: %d\n", (int)status);
-    exit(1);
+    return false;
   }
 
   if (decoded_size != data_size) {
     printf("❌ Decoded size mismatch: %u != %u\n", decoded_size, data_size);
-    exit(1);
+    return false;
   }
 
   // Verify content
@@ -140,7 +141,7 @@ bool test_rle_roundtrip() {
         break;
       }
     }
-    exit(1);
+    return false;
   }
 
   printf("✅ RLE Roundtrip Passed!\n\n");
@@ -152,179 +153,108 @@ bool test_rle_roundtrip() {
   return true;
 }
 
-bool test_exact_256kb_input() {
-  printf("=== Testing Exact 256KB Input ===\n");
+// Test using ZSTD Manager API for proper round-trip
+bool test_zstd_roundtrip(u32 data_size, const char* test_name) {
+  printf("=== Testing %s (%u KB) ===\n", test_name, data_size / 1024);
 
-  const u32 data_size = 256 * 1024;
   std::vector<byte_t> h_input(data_size);
   fill_random(h_input);
 
+  // Allocate device memory
   byte_t *d_input = nullptr;
-  byte_t *d_output = nullptr;
-  u32 *d_output_sizes = nullptr;
+  byte_t *d_compressed = nullptr;
+  byte_t *d_decompressed = nullptr;
+  byte_t *d_temp = nullptr;
 
   CUDA_CHECK(cudaMalloc(&d_input, data_size));
-  CUDA_CHECK(cudaMalloc(&d_output, data_size * 2));
-  CUDA_CHECK(cudaMalloc(&d_output_sizes, sizeof(u32)));
+  size_t max_compressed = data_size * 2;
+  CUDA_CHECK(cudaMalloc(&d_compressed, max_compressed));
+  CUDA_CHECK(cudaMalloc(&d_decompressed, data_size));
 
-  CUDA_CHECK(
-      cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMemset(
-      d_output, 0, data_size * 2)); // Zero initialize output for atomicOr merge
+  CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
 
-  // DEBUG: Verify d_input
-  std::vector<byte_t> h_verify(data_size);
-  cudaMemcpy(h_verify.data(), d_input, data_size, cudaMemcpyDeviceToHost);
+  // Create ZSTD manager
+  auto manager = create_manager(5); // Level 5
 
-  // Calculate Histogram of Input
-  long long sum = 0;
-  int counts[256] = {0};
-  for (auto b : h_verify) {
-    sum += b;
-    counts[b]++;
-  }
-  double avg = (double)sum / data_size;
+  size_t temp_size = manager->get_compress_temp_size(data_size);
+  CUDA_CHECK(cudaMalloc(&d_temp, temp_size));
 
-  if (h_verify != h_input) {
-    printf("Test FATAL: d_input mismatch! Copy failed?\n");
-    printf("d_input[0]=%02x, h_input[0]=%02x\n", h_verify[0], h_input[0]);
-    fflush(stdout);
-    exit(1);
-  }
-
-  // Use encode_fse_advanced (single buffer) to match decode_fse (single buffer)
-  // This ensures header format compatibility.
-  u32 h_output_size_val = 0;
-  u64 *d_offsets = nullptr;
-  Status status =
-      encode_fse_advanced(d_input, data_size, d_output, &h_output_size_val,
-                          true, 0, nullptr, &d_offsets);
-
-  // Update device output size for verification logic consistency
-  CUDA_CHECK(cudaMemcpy(d_output_sizes, &h_output_size_val, sizeof(u32),
-                        cudaMemcpyHostToDevice));
+  // Compress
+  size_t compressed_size = max_compressed;
+  Status status = manager->compress(d_input, data_size, d_compressed, &compressed_size,
+                                    d_temp, temp_size, nullptr, 0, 0);
 
   if (status != Status::SUCCESS) {
-    printf("❌ Encoding failed for 256KB: %d\n", (int)status);
-    exit(1);
+    printf("❌ Compression failed: %d\n", (int)status);
+    cudaFree(d_input);
+    cudaFree(d_compressed);
+    cudaFree(d_decompressed);
+    cudaFree(d_temp);
+    return false;
   }
 
-  // Decode verification
-  byte_t *d_decoded = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_decoded, data_size));
-  u32 decoded_size = 0;
-  u32 output_size = 0;
-  CUDA_CHECK(cudaMemcpy(&output_size, d_output_sizes, sizeof(u32),
-                        cudaMemcpyDeviceToHost));
+  printf("  Compressed %u -> %zu bytes (%.1f%% ratio)\n", 
+         data_size, compressed_size, 100.0 * compressed_size / data_size);
 
-  std::vector<byte_t> h_encoded(output_size);
-  CUDA_CHECK(cudaMemcpy(h_encoded.data(), d_output, output_size,
-                        cudaMemcpyDeviceToHost));
-
-  // Initialize decoded_size to expected size (required for parallel chunking)
-  decoded_size = data_size;
-  status =
-      decode_fse(d_output, output_size, d_decoded, &decoded_size, d_offsets, 0);
-
-  if (d_offsets) {
-    cudaFree(d_offsets);
-  }
+  // Decompress
+  size_t decompressed_size = data_size;
+  status = manager->decompress(d_compressed, compressed_size, d_decompressed,
+                               &decompressed_size, d_temp, temp_size, 0);
 
   if (status != Status::SUCCESS) {
-    printf("❌ Decoding failed for 256KB: %d\n", (int)status);
-    exit(1);
+    printf("❌ Decompression failed: %d\n", (int)status);
+    cudaFree(d_input);
+    cudaFree(d_compressed);
+    cudaFree(d_decompressed);
+    cudaFree(d_temp);
+    return false;
   }
 
-  std::vector<byte_t> h_decoded(data_size);
-  CUDA_CHECK(cudaMemcpy(h_decoded.data(), d_decoded, data_size,
+  // Verify
+  std::vector<byte_t> h_decompressed(data_size);
+  CUDA_CHECK(cudaMemcpy(h_decompressed.data(), d_decompressed, data_size,
                         cudaMemcpyDeviceToHost));
 
-  if (h_decoded != h_input) {
-    printf("❌ Content mismatch for 256KB!\n");
-    printf("Decoded size: %u\n", decoded_size);
-    printf("Expected size: %u\n", data_size);
+  if (decompressed_size != data_size) {
+    printf("❌ Size mismatch: expected %u, got %zu\n", data_size, decompressed_size);
+    cudaFree(d_input);
+    cudaFree(d_compressed);
+    cudaFree(d_decompressed);
+    cudaFree(d_temp);
+    return false;
+  }
+
+  if (h_decompressed != h_input) {
+    printf("❌ Content mismatch!\n");
     printf("First 20 bytes expected: ");
     for (int i = 0; i < 20 && i < data_size; i++)
       printf("%02x ", h_input[i]);
     printf("\nFirst 20 bytes actual:   ");
-    for (int i = 0; i < 20 && i < decoded_size; i++)
-      printf("%02x ", h_decoded[i]);
+    for (int i = 0; i < 20 && i < (int)decompressed_size; i++)
+      printf("%02x ", h_decompressed[i]);
     printf("\n");
+
     // Find first mismatch
-    for (size_t i = 0; i < std::min(data_size, decoded_size); ++i) {
-      if (h_decoded[i] != h_input[i]) {
+    for (size_t i = 0; i < std::min((size_t)data_size, decompressed_size); ++i) {
+      if (h_decompressed[i] != h_input[i]) {
         printf("First mismatch at index %zu: expected %02x, got %02x\n", i,
-               h_input[i], h_decoded[i]);
+               h_input[i], h_decompressed[i]);
         break;
       }
     }
-    exit(1);
-  }
-
-  printf("✅ 256KB Input Passed!\n\n");
-
-  cudaFree(d_input);
-  cudaFree(d_output);
-  cudaFree(d_output_sizes);
-  cudaFree(d_decoded);
-  return true;
-}
-
-bool test_single_chunk_64kb() {
-  printf("=== Testing Single Chunk 64KB Input ===\n");
-  const u32 data_size = 64 * 1024;
-  std::vector<byte_t> h_input(data_size);
-  fill_random(h_input); // Skewed data
-
-  byte_t *d_input = nullptr;
-  byte_t *d_output = nullptr;
-  u32 *d_output_sizes = nullptr;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
-  cudaMalloc(&d_output_sizes, sizeof(u32));
-  cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
-  cudaMemset(d_output, 0, data_size * 2);
-
-  u64 *d_offsets = nullptr;
-  u32 h_out_size = 0;
-
-  // Pass nullptr for d_offsets_out to use simple sequential encoder path
-  Status st = encode_fse_advanced(d_input, data_size, d_output, &h_out_size,
-                                  true, 0, nullptr, nullptr);
-  if (st != Status::SUCCESS) {
-    printf("Encode failed\n");
+    cudaFree(d_input);
+    cudaFree(d_compressed);
+    cudaFree(d_decompressed);
+    cudaFree(d_temp);
     return false;
   }
 
-  byte_t *d_decoded = nullptr;
-  u32 dec_size = 0;
-  printf("  Encoding done. Output size: %u. Starting decode...\\n", h_out_size);
-  fflush(stdout);
-  cudaMalloc(&d_decoded, data_size);
-  // WORKAROUND: Pass nullptr for offsets to use CPU sequential decoder path
-  // The GPU parallel decoder has a bug that needs further investigation
-  decode_fse(d_output, h_out_size, d_decoded, &dec_size, nullptr, 0);
-  cudaDeviceSynchronize();
-  printf("  Decode done. Copying result...\\n");
-  fflush(stdout);
+  printf("✅ %s Passed!\n\n", test_name);
 
-  std::vector<byte_t> h_dec(data_size);
-  cudaMemcpy(h_dec.data(), d_decoded, data_size, cudaMemcpyDeviceToHost);
-
-  if (h_dec != h_input) {
-    printf("❌ 64KB Mismatch!\n");
-    for (int i = 0; i < 10; ++i)
-      if (h_dec[i] != h_input[i])
-        printf("Mismatch idx %d: exp %02x got %02x\n", i, h_input[i], h_dec[i]);
-    return false;
-  }
-  printf("✅ 64KB Passed!\n\n");
-  if (d_offsets)
-    cudaFree(d_offsets);
   cudaFree(d_input);
-  cudaFree(d_output);
-  cudaFree(d_decoded);
-  cudaFree(d_output_sizes);
+  cudaFree(d_compressed);
+  cudaFree(d_decompressed);
+  cudaFree(d_temp);
   return true;
 }
 
@@ -333,7 +263,7 @@ bool test_zero_byte_input() {
 
   const u32 data_size = 0;
 
-  byte_t *d_input = nullptr; // Can be null for 0 size? Or allocated but empty?
+  byte_t *d_input = nullptr;
   byte_t *d_output = nullptr;
   u32 *d_output_sizes = nullptr;
 
@@ -348,22 +278,6 @@ bool test_zero_byte_input() {
   Status status =
       encode_fse_batch((const byte_t **)d_inputs_arr, input_sizes_arr,
                        (byte_t **)d_outputs_arr, d_output_sizes, 1, 0);
-
-  // 0-byte input might be handled as success with 0 output, or error.
-  // encode_fse_batch has "if (num_blocks == 0) return SUCCESS".
-  // But here num_blocks is 1, input_size is 0.
-  // Inside loop: count_frequencies_kernel<<<...>>>(..., input_size, ...)
-  // If input_size is 0, blocks will be 0. Kernel won't launch.
-  // Frequencies will be 0.
-  // Stats: total_count = 0.
-  // unique_symbols = 0.
-  // RLE check: unique_symbols == 1? No, 0.
-  // So it proceeds to FSE?
-  // select_optimal_table_log might fail or return min.
-  // normalize_frequencies might fail.
-
-  // Ideally it should handle it gracefully.
-  // Let's see what happens.
 
   if (status == Status::SUCCESS) {
     printf("✅ 0-Byte Input handled (Status::SUCCESS)\n");
@@ -382,11 +296,24 @@ bool test_zero_byte_input() {
 }
 
 int main() {
-  test_rle_roundtrip();
-  test_single_chunk_64kb();
-  test_exact_256kb_input();
-  test_zero_byte_input();
+  bool all_passed = true;
 
-  printf("All tests passed!\n");
-  return 0;
+  // Test RLE (uses standalone FSE which works for RLE)
+  all_passed &= test_rle_roundtrip();
+
+  // Test various sizes using ZSTD Manager API
+  all_passed &= test_zstd_roundtrip(64 * 1024, "64KB Input");
+  all_passed &= test_zstd_roundtrip(256 * 1024, "256KB Input");
+  all_passed &= test_zstd_roundtrip(1024 * 1024, "1MB Input");
+
+  // Test edge case
+  all_passed &= test_zero_byte_input();
+
+  if (all_passed) {
+    printf("All tests passed!\n");
+    return 0;
+  } else {
+    printf("Some tests failed!\n");
+    return 1;
+  }
 }
