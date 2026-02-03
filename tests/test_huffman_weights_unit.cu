@@ -102,13 +102,16 @@ void test_simple_weights() {
   int fcs_flag = (fhd >> 6);
   if (fcs_flag == 0) {
     if (single_segment)
-      offset += 1;
-  } else if (fcs_flag == 1)
-    offset += 2;
-  else if (fcs_flag == 2)
-    offset += 4;
+      offset += 1; // RFC 8878: FCS_Flag 0 + SS 1 means 1 byte
+  } else if (fcs_flag == 1) {
+    if (single_segment)
+      offset += 2; // RFC 8878: Table 3 - FCS_Flag 1 + SS 1 means 2 bytes
+    else
+      offset += 2; // RFC 8878: Table 2 - FCS_Flag 1 + SS 0 means 2 bytes
+  } else if (fcs_flag == 2)
+    offset += 4; // 4 bytes
   else if (fcs_flag == 3)
-    offset += 8;
+    offset += 8; // 8 bytes
 
   printf("Estimated Frame Header End: %zu\n", offset);
 

@@ -346,14 +346,13 @@ __global__ void k_fse_encode_rfc_from_old_tables(
   auto write_bits = [&](u64 val, u32 nbBits) {
     if (nbBits == 0) return;
     val &= ((1ULL << nbBits) - 1);
-    bitContainer = (bitContainer << nbBits) | val;
+    bitContainer |= (val << bitCount);
     bitCount += nbBits;
     while (bitCount >= 8) {
       if (ptr > output_bitstream) {
-        *(--ptr) = (unsigned char)((bitContainer >> (bitCount - 8)) & 0xFF);
+        *(--ptr) = (unsigned char)(bitContainer >> (bitCount - 8));
       }
       bitCount -= 8;
-      bitContainer &= ((1ULL << bitCount) - 1);
     }
   };
 

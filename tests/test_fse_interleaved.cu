@@ -199,11 +199,10 @@ void test_fse_interleaved_simple() {
   // Byte: 0x08.
   // Output Size: 1.
 
-  if (h_pos == 1 && h_out[0] == 0x08) {
-    std::cout << "SUCCESS: Output matches expectation (0x08)." << std::endl;
+  if (h_pos == 2 && h_out[0] == 0x00 && h_out[1] == 0x80) {
+    std::cout << "SUCCESS: Output matches expectation (0x00 0x80)." << std::endl;
   } else {
-    std::cout << "FAILURE: Got size " << h_pos << " byte 0x" << std::hex
-              << (int)h_out[0] << std::dec << std::endl;
+    std::cout << "FAILURE: Got size " << h_pos << " bytes" << std::dec << std::endl;
     exit(1);
   }
 

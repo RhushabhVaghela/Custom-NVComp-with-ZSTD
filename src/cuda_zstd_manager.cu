@@ -1237,19 +1237,36 @@ public:
       return 0;
 
     size_t total = 0;
+    size_t alignment = 128;
 
-    // Estimate max decompressed size (4x typically for Zstd)
-    size_t max_decompressed = std::min(compressed_size * 4,
-                                       (size_t)1024 * 1024 * 1024 // 1GB max
-    );
+    // 1. Checksum (u64)
+    total += align_to_boundary(sizeof(u64), alignment);
+    
+    // 2. Header scratch (u32)
+    total += align_to_boundary(sizeof(u32), alignment);
+    
+    // 3. Temp buffer (ZSTD_BLOCKSIZE_MAX)
+    total += align_to_boundary(ZSTD_BLOCKSIZE_MAX, alignment);
+    
+    // 4. Sequences (Sequence array)
+    total += align_to_boundary(ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence), alignment);
+    
+    // 5. Literal Lengths (u32 array)
+    total += align_to_boundary(ZSTD_BLOCKSIZE_MAX * sizeof(u32), alignment);
+    
+    // 6. Match Lengths (u32 array)
+    total += align_to_boundary(ZSTD_BLOCKSIZE_MAX * sizeof(u32), alignment);
+    
+    // 7. Offsets (u32 array)
+    total += align_to_boundary(ZSTD_BLOCKSIZE_MAX * sizeof(u32), alignment);
+    
+    // 8. Rep Codes (3 * u32)
+    total += align_to_boundary(3 * sizeof(u32), alignment);
+    
+    // 9. Literals Buffer (ZSTD_BLOCKSIZE_MAX)
+    total += align_to_boundary(ZSTD_BLOCKSIZE_MAX, alignment);
 
-    // 1. Input (compressed) buffer
-    total += align_to_boundary(compressed_size, GPU_MEMORY_ALIGNMENT);
-    
-    // ...
-    // NOTE: decompress_sequences raw mode requires workspace buffers.
-    
-    return total + max_decompressed; // Placeholder for now
+    return total;
   }
   
   // Implementation of get_max_compressed_size
@@ -3858,10 +3875,8 @@ private:
         h_content_size = h_header[offset];
         offset += 1;
       } else if (csf == 1) {
-        u16 size_val;
-        memcpy(&size_val, h_header + offset, 2);
-        h_content_size = size_val + 256;
-        offset += 2;
+        h_content_size = (u32)h_header[offset] + 256;
+        offset += 1;
       } else if (csf == 2) {
         memcpy(&h_content_size, h_header + offset, 4);
         offset += 4;
@@ -4228,17 +4243,19 @@ private:
     u32 header_len = 0;
 
     if (num_sequences < 128) {
-      header_buffer[0] = (u8)num_sequences;
+      header_buffer[0] = (unsigned char)num_sequences;
       header_len = 1;
-    } else if (num_sequences < 0x7F00) {
-      // 2 bytes. Byte0 = (n>>8) + 128. Byte1=n&0xFF.
-      header_buffer[0] = (u8)((num_sequences >> 8) + 128);
-      header_buffer[1] = (u8)(num_sequences & 0xFF);
+    } else if (num_sequences < 32512) {
+      // 2 bytes. nSeq = ((byte0-128)<<8) + byte1.
+      // So byte0 = (nSeq >> 8) + 128, byte1 = nSeq & 0xFF.
+      header_buffer[0] = (unsigned char)((num_sequences >> 8) + 128);
+      header_buffer[1] = (unsigned char)(num_sequences & 0xFF);
       header_len = 2;
     } else {
+      // 3 bytes. nSeq = byte1 + (byte2<<8) + 0x7F00.
       header_buffer[0] = 255;
-      header_buffer[1] = (u8)(num_sequences - 0x7F00);
-      header_buffer[2] = (u8)((num_sequences - 0x7F00) >> 8);
+      header_buffer[1] = (unsigned char)((num_sequences - 0x7F00) & 0xFF);
+      header_buffer[2] = (unsigned char)((num_sequences - 0x7F00) >> 8);
       header_len = 3;
     }
 
@@ -4664,19 +4681,14 @@ private:
     // Num Sequences
     if (num_sequences < 128) {
       header.push_back((u8)num_sequences);
-    } else if (num_sequences < 255 + 128) {
-      header.push_back((u8)((num_sequences - 128) >> 8) |
-                       0x80); // Wait, variable length?
-      header.push_back((u8)(num_sequences - 128));
-      // RFC 8878: if val < 128: 1 byte: val
-      // if val < 255 + 128: 2 bytes: (val-128) | 0x80 ??
-      // Actually: "If the first byte is < 128, it is the value. If it is < 255,
-      // it is 128 + value? No." "Number_of_Sequences ... byte0: if < 128 ->
-      // value. if < 255 -> 2 bytes. val = ((byte0-128)<<8) + byte1. if == 255
-      // -> 3 bytes. val = byte1 + (byte2<<8) + 0x7F00.
+    } else if (num_sequences < 0x7F00) {
+      // 2 bytes. Byte0 = (n>>8) + 128. Byte1 = n & 0xFF.
+      header.push_back((u8)((num_sequences >> 8) + 128));
+      header.push_back((u8)(num_sequences & 0xFF));
     } else {
+      // 3 bytes. Byte0 = 255. n = Byte1 + (Byte2<<8) + 0x7F00.
       header.push_back(0xFF);
-      header.push_back((u8)((num_sequences - 0x7F00)));
+      header.push_back((u8)((num_sequences - 0x7F00) & 0xFF));
       header.push_back((u8)((num_sequences - 0x7F00) >> 8));
     }
     // Fixed: Previous logic was loose. Stick to <128, <Longer.
