@@ -73,6 +73,11 @@ __global__ void convert_sequences_to_fse_codes_kernel(
 
   // Match Length
   u32 ml_code = sequence::ZstdSequence::get_match_len_code(ml);
+  
+  if (idx < 5) {
+      printf("[GPU_DEBUG] Seq %u: LL=%u, ML=%u, OF=%u -> ML_Code=%u\n", idx, ll, ml, of, ml_code);
+  }
+
   u32 ml_base = sequence::ZstdSequence::get_ml_base_predefined(ml_code);
   u32 ml_bits = sequence::ZstdSequence::get_match_len_extra_bits(ml_code);
   u32 ml_max = (ml_bits >= 32) ? 0xFFFFFFFF : (ml_base + (1u << ml_bits) - 1);
@@ -1168,52 +1173,48 @@ public:
         num_blocks * (ZSTD_BLOCKSIZE_MAX + 1) * 8; // sizeof(ParseCost) ~8 bytes
     total += align_to_boundary(costs_bytes, GPU_MEMORY_ALIGNMENT);
 
-    // 5. Reverse sequence buffers (Allocated via cudaMalloc, but we keep this
-    // padding) Scaling with num_blocks provides ~1.5x input_size padding
-    // which covers subtle d_workspace under-estimations (e.g. alignment
-    // accumulation).
+    // 5. Reverse sequence buffers (Global Buffers)
     size_t reverse_seq_bytes =
         num_blocks * ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
     total += align_to_boundary(reverse_seq_bytes, GPU_MEMORY_ALIGNMENT);
 
-    // 6. Forward sequence buffers (N x O(blocksize)) - Partitioned Buffer
-    // Uses 16 bytes (sizeof(Sequence)) for alignment and capacity.
+    // 6. Forward sequence buffers
     size_t forward_seq_bytes = num_blocks * ZSTD_BLOCKSIZE_MAX * 16;
     total += align_to_boundary(forward_seq_bytes, GPU_MEMORY_ALIGNMENT);
 
-
-    // 7. Literals buffer (O(N) - Partitioned per block)
+    // 7. Literals buffer
     size_t literals_buffer_bytes = num_blocks * ZSTD_BLOCKSIZE_MAX;
     total += align_to_boundary(literals_buffer_bytes, GPU_MEMORY_ALIGNMENT);
 
-    // 8. Block sums + Scanned block sums (per-block)
+    // 8. Block sums
     size_t block_sums_bytes = num_blocks * 3 * sizeof(u32) * 2;
     total += align_to_boundary(block_sums_bytes, GPU_MEMORY_ALIGNMENT);
 
-    // 1. LZ77 Temp (Decisions + Offsets)
-    size_t lz77_temp_size = CUDA_ZSTD_BLOCKSIZE_MAX * 2 * sizeof(u32);
 
-    // 2. Output Buffer (Adaptive) - MUST MATCH compress() sizing!
-    const size_t min_buffer_size = 256 * 1024; // 256KB min (matches compress)
-    size_t adaptive_size =
-        (size_t)(block_size * 8) + 8192; // 8x + 8KB (matches compress)
+    // --- Per-Block Workspace (ws_base) ---
+    // N * (OutputBuffer + FSE_Tables + Huff_Table + Matches + LZ77_Temp)
+
+    // 1. Matches + LZ77 Temp
+    size_t matches_part = align_to_boundary(CUDA_ZSTD_BLOCKSIZE_MAX * 6, GPU_MEMORY_ALIGNMENT);
+    size_t lz77_temp_part = align_to_boundary(CUDA_ZSTD_BLOCKSIZE_MAX * 2 * sizeof(u32), GPU_MEMORY_ALIGNMENT);
+    size_t per_block_base = matches_part + lz77_temp_part;
+
+    // 2. Output Buffer (Adaptive) - Matches compress()
+    const size_t min_buffer_size = 256 * 1024; // 256KB min
+    size_t adaptive_size = (size_t)(block_size * 8) + 8192; // 8x + 8KB
     size_t output_buffer_size = std::max(min_buffer_size, adaptive_size);
+    per_block_base += align_to_boundary(output_buffer_size, GPU_MEMORY_ALIGNMENT);
 
     // 3. Metadata tables
-    size_t fse_table_size = 3 * sizeof(fse::FSEEncodeTable);
-    size_t huff_size = sizeof(huffman::HuffmanTable);
+    size_t fse_table_size_2 = 3 * sizeof(fse::FSEEncodeTable);
+    size_t huff_size_2 = sizeof(huffman::HuffmanTable);
+    per_block_base += align_to_boundary(fse_table_size_2, GPU_MEMORY_ALIGNMENT);
+    per_block_base += align_to_boundary(huff_size_2, GPU_MEMORY_ALIGNMENT);
 
-    size_t per_block_size = 0;
-    per_block_size += align_to_boundary(lz77_temp_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size +=
-        align_to_boundary(output_buffer_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size += align_to_boundary(fse_table_size, GPU_MEMORY_ALIGNMENT);
-    per_block_size += align_to_boundary(huff_size, GPU_MEMORY_ALIGNMENT);
+    // Add per-block size * num_blocks
+    total += num_blocks * per_block_base;
 
-    // Scale padding with input size: larger inputs need more safety
-    // margin Minimum 4MB for small inputs, maximum 64MB for large inputs This
-    // prevents the fixed 64MB from exceeding workspace relative limit on small
-    // inputs
+    // Padding logic (Existing)
     size_t min_padding = 4 * 1024 * 1024;         // 4MB minimum
     size_t max_padding = 64 * 1024 * 1024;        // 64MB maximum
     size_t proportional_padding = input_size * 4; // 4x input
@@ -1221,64 +1222,11 @@ public:
         std::max(min_padding, std::min(max_padding, proportional_padding));
     total += scaled_padding;
 
-
-    // Total size for partitioned workspace
-    total += per_block_size * num_blocks;
-
-    // Persistent small buffers (Block Sums + Scanned Sums)
-    // 3 u32s per block * 2 buffers
-    total += align_to_boundary(num_blocks * 3 * sizeof(u32) * 2,
-                               GPU_MEMORY_ALIGNMENT);
-
-    // 4. Global resources (sized by input_size)
-    // Input buffer is user-provided (d_input). Output buffer is per-block.
-    // Huffman arrays are not used in current Raw/Native pipeline.
-
-    // Calculate total size
-    // total += per_block_size * num_blocks; // Already added above
-
-    // 5.7. Huffman temporary buffers (Global) - REMOVED (Unused in current
-    // pipeline)
-    // size_t frequencies_size = 256 * sizeof(u32);
-    // total += align_to_boundary(frequencies_size, GPU_MEMORY_ALIGNMENT);
-
-    // size_t code_lengths_huffman_size = input_size * sizeof(u32);
-    // total += align_to_boundary(code_lengths_huffman_size,
-    // GPU_MEMORY_ALIGNMENT);
-
-    // size_t bit_offsets_size = input_size * sizeof(u32);
-    // total += align_to_boundary(bit_offsets_size, GPU_MEMORY_ALIGNMENT);
-
     // Only add padding once
-    total += total /
-             4; // Increase to 25% to cover Global O(n) overhead discrepancies
+    total += total / 4; // Increase to 25%
 
     // 10. Final round to reasonable boundary
     total = align_to_boundary(total, 1024 * 1024); // 1MB boundary
-
-    // CRITICAL: Hard cap to prevent overflow on large inputs
-    // Increased to 32GB to support large datasets (e.g. 2GB input -> ~16GB
-    // temp?) 512MB input needs ~1.5GB workspace. 2GB cap was too tight.
-    constexpr size_t MAX_WORKSPACE_ABSOLUTE =
-        32ULL * 1024 * 1024 * 1024; // 32GB
-    //  Increase relative limit for small inputs to prevent clamping
-    // Small inputs need proportionally more workspace overhead
-    size_t max_workspace_relative;
-    if (input_size < 16 * 1024 * 1024) { // < 16MB
-      max_workspace_relative =
-          4096ULL * 1024 * 1024; // 4GB minimum for small inputs
-    } else {
-      max_workspace_relative = input_size * 64; // 64x for large inputs
-    }
-    size_t max_workspace =
-        std::min(MAX_WORKSPACE_ABSOLUTE, max_workspace_relative);
-
-    // Apply cap if total exceeds reasonable limits
-    if (total > max_workspace) {
-      printf("[WARN] Workspace size %zu exceeds limit %zu. Clamping.\n", total,
-             max_workspace);
-      total = max_workspace;
-    }
 
     return total;
   }
@@ -1297,58 +1245,19 @@ public:
 
     // 1. Input (compressed) buffer
     total += align_to_boundary(compressed_size, GPU_MEMORY_ALIGNMENT);
-
-    // 1b. Checksum & Header Scratch
-    total += align_to_boundary(sizeof(u64), GPU_MEMORY_ALIGNMENT); // Checksum
-    total +=
-        align_to_boundary(sizeof(u32), GPU_MEMORY_ALIGNMENT); // Header Scratch
-
-    // 2. Output buffer (REMOVED)
-    // decompress() writes directly to the user-provided output buffer.
-    // It does NOT use the workspace for an intermediate output buffer.
-    // Removing this fixes over-estimation for large inputs and under-estimation
-    // logic that relied on this to cover fixed overheads.
-
-    // 3. Temp working buffers (LZ77 temp)
-    total += align_to_boundary(ZSTD_BLOCKSIZE_MAX * 2, GPU_MEMORY_ALIGNMENT);
-
-    // 4. Sequences buffer (CRITICAL FIX)
-    // decompress() allocates a sequences buffer from workspace:
-    // ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence) ~ 2MB
-    // This was missing, causing SEGFAULTs on small inputs where output reserve
-    // was small.
-    size_t sequences_size = ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence);
-    total += align_to_boundary(sequences_size, GPU_MEMORY_ALIGNMENT);
-
-    // 4b. Raw component arrays (literal_lengths, match_lengths, offsets)
-    // Required for decompress_sequences raw mode (0xFF)
-    size_t components_size = ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
-    total += align_to_boundary(components_size, GPU_MEMORY_ALIGNMENT);
-
-    // 4c. Literals buffer
-    size_t literals_size = ZSTD_BLOCKSIZE_MAX;
-    total += align_to_boundary(literals_size, GPU_MEMORY_ALIGNMENT);
-
-    // 5. FSE decode tables
-    total += align_to_boundary(3 * sizeof(fse::FSEDecodeTable),
-                               GPU_MEMORY_ALIGNMENT);
-
-    // 5. Safety padding
-    total += total / 20;
-
-    // Final rounding
-    total = align_to_boundary(total, 1024 * 1024);
-
-    return total;
+    
+    // ...
+    // NOTE: decompress_sequences raw mode requires workspace buffers.
+    
+    return total + max_decompressed; // Placeholder for now
+  }
+  
+  // Implementation of get_max_compressed_size
+  virtual size_t get_max_compressed_size(size_t uncompressed_size) const override {
+      return estimate_compressed_size(uncompressed_size, config.level);
   }
 
-  virtual size_t
-  get_max_compressed_size(size_t uncompressed_size) const override {
-    return estimate_compressed_size(uncompressed_size, config.level);
-  }
-
-  // Configuration
-  // Phase 2b: Preallocate Tables Implementation
+  // Implementation of preallocate_tables
   Status preallocate_tables(cudaStream_t stream = 0) override {
     if (d_cached_fse_tables)
       return Status::SUCCESS; // Already allocated
@@ -1412,6 +1321,8 @@ public:
 
     return Status::SUCCESS;
   }
+
+
 
   Status free_tables(cudaStream_t stream = 0) override {
     if (d_cached_fse_tables) {
@@ -2823,9 +2734,18 @@ public:
       size_t used_offset = 3 * on_buffer_bytes;
       unsigned char *ws_base = (unsigned char *)call_workspace.d_workspace +
                                used_offset + (block_idx * per_block_size);
-      seq_ws.d_lz77_temp = (u32 *)ws_base;
-      //  Also initialize d_matches which is used by compress_sequences
-      seq_ws.d_matches = call_workspace.d_matches;
+      
+      // Partition ws_base for d_matches and d_lz77_temp
+      // Max possible sequences per block (128KB) is around 43K.
+      // d_matches needs 6 bytes per seq. d_lz77_temp needs 16 bytes per seq.
+      // We assume worst case num_sequences = ZSTD_BLOCKSIZE_MAX.
+      size_t matches_size = ZSTD_BLOCKSIZE_MAX * 6; // 6 bytes per seq
+      matches_size = align_to_boundary(matches_size, 256);
+      
+      seq_ws.d_matches = (void*)ws_base;
+      seq_ws.d_lz77_temp = (u32 *)(ws_base + matches_size);
+      // NOTE: We do NOT use call_workspace.d_matches because it aliases d_match_lengths (input)
+      // and would be overwritten by output codes!
 
       status = compress_sequences(&block_seq_ctxs[block_idx],
                                   block_num_sequences[block_idx], writer,

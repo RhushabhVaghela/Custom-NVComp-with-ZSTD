@@ -390,18 +390,20 @@ __global__ void k_fse_encode_rfc_from_old_tables(
 
   // 3. Sequences (N-1 down to 0) - Matches decoder order (N-1 down to 0)
   for (int i = (int)num_symbols - 1; i >= 0; i--) {
-      // Extra bits
-      write_bits(d_of_extras[i], d_of_bits[i]);
-      write_bits(d_ml_extras[i], d_ml_bits[i]);
+      // Extra bits (Order: LL, ML, OF) - FIFO writer means Push in Read Order
       write_bits(d_ll_extras[i], d_ll_bits[i]);
+      write_bits(d_ml_extras[i], d_ml_bits[i]);
+      write_bits(d_of_extras[i], d_of_bits[i]);
 
       if (i > 0) {
           // Transition bits (State[i-1] -> State[i])
-          // OF (Pushed first -> Read last)
-          u32 prevOF = state_storage_of[i-1];
-          u8 codeOF = d_of_codes[i];
-          u32 nbOF = (prevOF + tables[1].d_symbol_table[codeOF].deltaNbBits) >> 16;
-          write_bits(prevOF & ((1u << nbOF) - 1), nbOF);
+          // Order: LL, ML, OF - FIFO writer means Push in Read Order
+
+          // LL
+          u32 prevLL = state_storage_ll[i-1];
+          u8 codeLL = d_ll_codes[i];
+          u32 nbLL = (prevLL + tables[0].d_symbol_table[codeLL].deltaNbBits) >> 16;
+          write_bits(prevLL & ((1u << nbLL) - 1), nbLL);
 
           // ML
           u32 prevML = state_storage_ml[i-1];
@@ -409,11 +411,11 @@ __global__ void k_fse_encode_rfc_from_old_tables(
           u32 nbML = (prevML + tables[2].d_symbol_table[codeML].deltaNbBits) >> 16;
           write_bits(prevML & ((1u << nbML) - 1), nbML);
 
-          // LL (Pushed last -> Read first)
-          u32 prevLL = state_storage_ll[i-1];
-          u8 codeLL = d_ll_codes[i];
-          u32 nbLL = (prevLL + tables[0].d_symbol_table[codeLL].deltaNbBits) >> 16;
-          write_bits(prevLL & ((1u << nbLL) - 1), nbLL);
+          // OF
+          u32 prevOF = state_storage_of[i-1];
+          u8 codeOF = d_of_codes[i];
+          u32 nbOF = (prevOF + tables[1].d_symbol_table[codeOF].deltaNbBits) >> 16;
+          write_bits(prevOF & ((1u << nbOF) - 1), nbOF);
       }
   }
 
