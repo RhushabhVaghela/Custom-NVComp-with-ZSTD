@@ -1339,6 +1339,10 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
       printf("[BUILD_WRITE] state=1: wrote newState=%u, read back=%u\n",
              newState, h_table.newState[1]);
     }
+    // DEBUG: Trace Max Symbol
+    if (symbol == max_symbol) {
+        printf("[BUILD_DEBUG] State %u maps to MaxSymbol %u\n", state, max_symbol);
+    }
   }
   
   printf("[BUILD] Table complete: newState[0]=%u, newState[1]=%u, newState[%u]=%u\n",
@@ -4040,132 +4044,97 @@ __global__ void k_decode_sequences_interleaved(
 
     // Decode Symbols
     u32 ll_sym = 0, of_sym = 0, ml_sym = 0;
-
-    if (decode_ll)
-      ll_sym = ll_table.symbol[stateLL];
-    if (decode_of)
-      of_sym = of_table.symbol[stateOF];
-    if (decode_ml)
-      ml_sym = ml_table.symbol[stateML];
-
-    printf("[GPU] Seq %d: LL_sym=%u, OF_sym=%u, ML_sym=%u\n", i, ll_sym, of_sym,
-           ml_sym);
-
-    // Read Extra Bits in CORRECT ORDER per Zstd spec: LL -> OF -> ML
-    u32 ll_extra =
-        (decode_ll) ? sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader)
-                    : 0;
-    u32 of_extra = (decode_of)
-                       ? sequence::ZstdSequence::get_offset_bits(of_sym, reader)
-                       : 0;
-    u32 ml_extra =
-        (decode_ml) ? sequence::ZstdSequence::get_match_len_bits(ml_sym, reader)
-                    : 0;
-
-    // Calculate Literal Length Value
-    u32 val_ll = 0;
-    if (ll_mode == 0)
-      val_ll = sequence::ZstdSequence::get_ll_base_predefined(ll_sym);
-    else
-      val_ll = sequence::ZstdSequence::get_lit_len(ll_sym);
-    val_ll += ll_extra;
-
-    // Calculate Match Length Value
-    u32 val_ml = 0;
-    if (ml_mode == 0 && ml_sym == 51)
-      val_ml = 65365;
-
-    else {
-      if (ml_mode == 0)
-        val_ml = sequence::ZstdSequence::get_ml_base_predefined(ml_sym);
-      else
-        val_ml = sequence::ZstdSequence::get_match_len(ml_sym);
-    }
-    val_ml += ml_extra;
-
-    if (i < 5) { // Limit debug output
-      printf("[GPU] Seq %d: ML Base=%u, Extra=%u, Val=%u\n", i,
-             val_ml - ml_extra, ml_extra, val_ml);
-    }
-
-    // Calculate Offset Value with proper repeat code handling
-    u32 val_of = 0;
-    if (decode_of) {
-      if (of_sym <= 2) {
-        // Repeat offset codes 1, 2, 3 map to repeat offsets 1, 2, 3
-        val_of = of_sym + 1;
-      } else {
-        val_of = sequence::ZstdSequence::get_offset(of_sym);
-        val_of += of_extra;
-      }
-    }
-
-    // Update States with bounds checking and normalization
+    
+    if (decode_ll) ll_sym = ll_table.symbol[stateLL];
+    if (decode_of) of_sym = of_table.symbol[stateOF];
+    if (decode_ml) ml_sym = ml_table.symbol[stateML];
+    
+    // Process Fields: Split Extras and State Updates to match Interleaved Stream
+    // Encoder: [LL State][ML State][OF State] ... [OF Extra][ML Extra][LL Extra]
+    // Decoder (Reverse): [LL Extra][ML Extra][OF Extra] ... [OF State][ML State][LL State]
+    
+    u32 of_extra = 0;
+    u32 ml_extra = 0;
+    u32 ll_extra = 0;
+    
+    // 1. Read Extras: LL -> ML -> OF
     if (decode_ll) {
-      u32 oldState = stateLL; // Save old state BEFORE update
-      u8 nb = ll_table.nbBits[stateLL];
-      u32 bits_before = reader.bit_pos;
-      u32 newBits = reader.read(nb);
-      u32 baseState = ll_table.newState[stateLL];
-      // DEBUG: Trace state transition BEFORE update
-      if (i < 3) {
-        printf("[GPU] LL State update: old=%u, bit_pos=%u, nb=%u, newBits=%u (read %u bits), baseState=%u\n",
-               oldState, bits_before, nb, newBits, nb, baseState);
-      }
-      stateLL = baseState + newBits;
-      // Normalize state to table bounds
-      stateLL &= (ll_table_size - 1);
-      // DEBUG: Show result
-      if (i < 3) {
-        printf("[GPU] LL State result: newState=%u, remaining_bits=%u\n", stateLL, reader.bit_pos);
-      }
-    }
-    if (decode_of) {
-      u8 nb = of_table.nbBits[stateOF];
-      u32 newBits = reader.read(nb);
-      u32 baseState = of_table.newState[stateOF];
-      stateOF = baseState + newBits;
-      // Normalize state to table bounds
-      stateOF &= (of_table_size - 1);
+        ll_extra = sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader);
     }
     if (decode_ml) {
-      u32 old_state_ml = stateML;
-      u8 nb = ml_table.nbBits[stateML];
-      u32 newBits = reader.read(nb);
-      u32 baseState = ml_table.newState[stateML];
-      stateML = baseState + newBits;
-      // Normalize state to table bounds
-      stateML &= (ml_table_size - 1);
-      if (i < 3) {
-        printf("[GPU] ML State Trans: old=%u, nb=%u, newBits=%u, base=%u, new=%u\n",
-               old_state_ml, nb, newBits, baseState, stateML);
-      }
+        ml_extra = sequence::ZstdSequence::get_match_len_bits(ml_sym, reader);
+    }
+    if (decode_of) {
+        of_extra = sequence::ZstdSequence::get_offset_bits(of_sym, reader);
     }
 
-    if (i < 5) { // Limit debug output
-      printf("[GPU] Seq %d: LL_extra=%u, ML_extra=%u, OF_extra=%u\n", i,
-             ll_extra, ml_extra, of_extra);
-      printf("[GPU] Seq %d: NextStates: LL=%u, OF=%u, ML=%u\n", i, stateLL,
-             stateOF, stateML);
+    // 2. Update States: OF -> ML -> LL
+    if (decode_of) {
+        u8 nb = of_table.nbBits[stateOF];
+        u32 newBits = reader.read(nb);
+        u32 baseState = of_table.newState[stateOF];
+        stateOF = baseState + newBits;
+        stateOF &= (of_table_size - 1);
     }
-
-    // Write Outputs with Limit Check
+    if (decode_ml) {
+        u8 nb = ml_table.nbBits[stateML];
+        u32 newBits = reader.read(nb);
+        u32 baseState = ml_table.newState[stateML];
+        stateML = baseState + newBits;
+        stateML &= (ml_table_size - 1);
+    }
     if (decode_ll) {
-      if (total_lit_len + val_ll > literals_limit)
-        val_ll = literals_limit - total_lit_len;
-      d_ll_out[i] = val_ll;
-      total_lit_len += val_ll;
+        u8 nb = ll_table.nbBits[stateLL];
+        u32 newBits = reader.read(nb);
+        u32 baseState = ll_table.newState[stateLL];
+        stateLL = baseState + newBits;
+        stateLL &= (ll_table_size - 1);
     }
-    if (decode_of)
-      d_of_out[i] = val_of;
-    if (decode_ml)
-      d_ml_out[i] = val_ml;
-
-    if (i < 5) { // Limit debug output
-      printf("GPU Decoded Seq %d: LL=%u, OF=%u, ML=%u\n", i, val_ll, val_of,
-             val_ml);
+    
+    // Calculate Values
+    
+    // LL Value
+    u32 val_ll = 0;
+    if (decode_ll) {
+        if (ll_mode == 0) val_ll = sequence::ZstdSequence::get_ll_base_predefined(ll_sym);
+        else val_ll = sequence::ZstdSequence::get_lit_len(ll_sym);
+        val_ll += ll_extra;
+        
+        if (total_lit_len + val_ll > literals_limit)
+            val_ll = literals_limit - total_lit_len;
+        d_ll_out[i] = val_ll;
+        total_lit_len += val_ll;
+    }
+    
+    // ML Value
+    u32 val_ml = 0;
+    if (decode_ml) {
+        if (ml_mode == 0 && ml_sym == 51) val_ml = 65365;
+        else if (ml_mode == 0) val_ml = sequence::ZstdSequence::get_ml_base_predefined(ml_sym);
+        else val_ml = sequence::ZstdSequence::get_match_len(ml_sym);
+        val_ml += ml_extra;
+        d_ml_out[i] = val_ml;
+    }
+    
+    // OF Value
+    u32 val_of = 0;
+    if (decode_of) {
+        if (of_sym <= 2) {
+             val_of = of_sym + 1;
+        } else {
+             // Add 3 to bias the offset for get_actual_offset decoding
+             // (Values 1-3 are Reps, Values >= 4 are New Offsets)
+             val_of = sequence::ZstdSequence::get_offset(of_sym) + of_extra + 3;
+        }
+        
+        // Offset Logic Adjustment for LL=0
+        if (val_ll == 0 && val_of >= 3) {
+            val_of++;
+        }
+        d_of_out[i] = val_of;
     }
   }
+
 
   // DEBUG: Print completion summary
   printf("[GPU] k_decode_sequences_interleaved COMPLETE: Loop ran %d times (num_sequences=%u)\n",
