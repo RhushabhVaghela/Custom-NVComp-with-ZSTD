@@ -162,26 +162,30 @@ struct FSEBitStreamReader {
     if (bit_pos < num_bits)
       return 0; // Should not happen in valid stream
 
+    // Encoder uses MSB-first bit packing within a big-endian byte stream.
+    // bit_pos is the position of the NEXT bit to read (counting from bit 0 = LSB of byte 0).
+    // We read `num_bits` bits starting just BELOW bit_pos.
+    // 
+    // Example: bit_pos=18, num_bits=6
+    //   We read bits 17,16,15,14,13,12 (MSB to LSB of the value)
+    //   These are at positions 12-17 in the stream
+    
     bit_pos -= num_bits;
-
-    // RFC 8878: Bits are read backwards from the END of the stream
-    // bit_pos counts down from sentinel position towards 0
-    // We need to convert bit_pos to actual byte/bit offsets from stream start
-
-    // bit_pos is the bit index from the START of the stream
-    // But we need to read bytes in little-endian order from that position
-    u32 byte_offset = bit_pos / 8;
-    u32 bit_offset = bit_pos % 8;
-
+    
+    // Now bit_pos points to the LSB of the value we want to read.
+    // The value spans bits [bit_pos, bit_pos + num_bits - 1]
+    
+    u32 byte_start = bit_pos / 8;
+    u32 bit_start = bit_pos % 8;
+    
+    // Load up to 8 bytes to cover all bits we need
     u64 data = 0;
-    // Load up to 8 bytes starting at byte_offset (forward from stream start)
-    for (int i = 0; i < 8; ++i) {
-      if (byte_offset + i < stream_size) {
-        data |= ((u64)stream_start[byte_offset + i] << (i * 8));
-      }
+    for (int i = 0; i < 8 && (byte_start + i) < stream_size; ++i) {
+      data |= ((u64)stream_start[byte_start + i] << (i * 8));
     }
-
-    u32 val = (u32)((data >> bit_offset) & ((1ULL << num_bits) - 1));
+    
+    // Extract bits starting at bit_start
+    u32 val = (u32)((data >> bit_start) & ((1ULL << num_bits) - 1));
     return val;
   }
 
@@ -191,19 +195,17 @@ struct FSEBitStreamReader {
     if (bit_pos < num_bits)
       return 0;
 
-    // Peek uses the position that read() WOULD move to
+    // Peek at bits without modifying bit_pos
     u32 temp_pos = bit_pos - num_bits;
-    u32 byte_offset = temp_pos / 8;
-    u32 bit_offset = temp_pos % 8;
+    u32 byte_start = temp_pos / 8;
+    u32 bit_start = temp_pos % 8;
 
     u64 data = 0;
-    for (int i = 0; i < 8; ++i) {
-      if (byte_offset + i < stream_size) {
-        data |= ((u64)stream_start[byte_offset + i] << (i * 8));
-      }
+    for (int i = 0; i < 8 && (byte_start + i) < stream_size; ++i) {
+      data |= ((u64)stream_start[byte_start + i] << (i * 8));
     }
 
-    u32 val = (u32)((data >> bit_offset) & ((1ULL << num_bits) - 1));
+    u32 val = (u32)((data >> bit_start) & ((1ULL << num_bits) - 1));
     return val;
   }
 };
@@ -318,22 +320,16 @@ struct ZstdSequence {
   }
 
   __device__ __host__ static __forceinline__ u32 get_offset_code(u32 offset) {
-    if (offset <= 1)
-      return 0; // Not quite right for RepCodes, but standard offset mapping
-    // ...
-    // Note: Zstd doesn't define get_offset_code simple formula, it uses
-    // high-bit log.
-    if (offset <= 1)
-      return 3; // Offset 1 -> Code 3? No.
-    // Use clz-based log
-    // ...
-    // Placeholder (Assuming this function is not used by our current pipeline,
-    // which uses raw offsets? Wait, LZ77 uses it?) LZ77 uses
-    // sequence::ZstdSequence::get_offset_code(of)
-    //
-    // Implementation:
-    // Code = MSB + 3?
-    return 0; // TODO: Implement if needed. Currently using Raw Offsets?
+    // Zstandard Offset Codes (Raw Offsets, no RepCodes support in this simple function)
+    // Offset 1 -> Code 3
+    // Offset O -> Code = MSB(O) + 3
+    if (offset == 0) return 0; // Should not happen
+    
+    // Calculate MSB (0-based index of highest set bit)
+    // For offset=1 (1), MSB=0 -> Code=3
+    // For offset=256 (100000000), MSB=8 -> Code=11
+    u32 msb = 31 - clz_impl(offset);
+    return msb + 3;
   }
 
   // --- Base Values (RFC 8878 Tables 9, 11, 13) ---

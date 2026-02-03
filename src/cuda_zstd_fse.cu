@@ -3903,14 +3903,16 @@ __global__ void k_decode_sequences_interleaved(
   
   // Find sentinel bit (1) starting from the last byte
   // The sentinel marks the end of the bitstream
-  // CRITICAL: Must search from LSB to MSB to match encoder bit ordering
+  // CRITICAL: Encoder uses MSB-first bit packing, so sentinel is the HIGHEST set bit
+  // in the last non-zero byte. Search from MSB to LSB.
   u32 sentinel_pos = 0;
   bool found_sentinel = false;
   
   for (int byte_idx = (int)bitstream_size - 1; byte_idx >= 0 && !found_sentinel; --byte_idx) {
     u8 byte = bitstream[byte_idx];
-    // Search from LSB (bit 0) to MSB (bit 7) - encoder writes sentinel as LSB
-    for (int bit = 0; bit < 8; ++bit) {
+    if (byte == 0) continue;  // Skip zero bytes
+    // Search from MSB (bit 7) to LSB (bit 0) - encoder writes sentinel as MSB-first
+    for (int bit = 7; bit >= 0; --bit) {
       if ((byte >> bit) & 1) {
         sentinel_pos = byte_idx * 8 + bit;
         found_sentinel = true;
@@ -4049,46 +4051,57 @@ __global__ void k_decode_sequences_interleaved(
     if (decode_of) of_sym = of_table.symbol[stateOF];
     if (decode_ml) ml_sym = ml_table.symbol[stateML];
     
+    // DEBUG: Print symbol lookup details
+    if (i == (int)num_sequences - 1 || num_sequences <= 3) {
+      printf("[GPU_SYM] Seq %d: stateLL=%u->sym=%u, stateOF=%u->sym=%u, stateML=%u->sym=%u\n",
+             i, stateLL, ll_sym, stateOF, of_sym, stateML, ml_sym);
+    }
+    
     // Process Fields: Split Extras and State Updates to match Interleaved Stream
-    // Encoder: [LL State][ML State][OF State] ... [OF Extra][ML Extra][LL Extra]
-    // Decoder (Reverse): [LL Extra][ML Extra][OF Extra] ... [OF State][ML State][LL State]
+    // Encoder pushes (backward, LIFO): sentinel -> final_states -> [for i=N-1 to 0: extras -> transitions]
+    // Decoder pops (forward, stack read): initial_states -> [for i=N-1 to 0: extras -> transitions]
+    // Read order within each group is reversed: encoder LL,ML,OF -> decoder OF,ML,LL
     
     u32 of_extra = 0;
     u32 ml_extra = 0;
     u32 ll_extra = 0;
     
-    // 1. Read Extras: LL -> ML -> OF
-    if (decode_ll) {
-        ll_extra = sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader);
+    // 1. Read Extras FIRST: OF -> ML -> LL (reverse of encoder LL,ML,OF push)
+    if (decode_of) {
+        of_extra = sequence::ZstdSequence::get_offset_bits(of_sym, reader);
     }
     if (decode_ml) {
         ml_extra = sequence::ZstdSequence::get_match_len_bits(ml_sym, reader);
     }
-    if (decode_of) {
-        of_extra = sequence::ZstdSequence::get_offset_bits(of_sym, reader);
-    }
-
-    // 2. Update States: OF -> ML -> LL
-    if (decode_of) {
-        u8 nb = of_table.nbBits[stateOF];
-        u32 newBits = reader.read(nb);
-        u32 baseState = of_table.newState[stateOF];
-        stateOF = baseState + newBits;
-        stateOF &= (of_table_size - 1);
-    }
-    if (decode_ml) {
-        u8 nb = ml_table.nbBits[stateML];
-        u32 newBits = reader.read(nb);
-        u32 baseState = ml_table.newState[stateML];
-        stateML = baseState + newBits;
-        stateML &= (ml_table_size - 1);
-    }
     if (decode_ll) {
-        u8 nb = ll_table.nbBits[stateLL];
-        u32 newBits = reader.read(nb);
-        u32 baseState = ll_table.newState[stateLL];
-        stateLL = baseState + newBits;
-        stateLL &= (ll_table_size - 1);
+        ll_extra = sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader);
+    }
+    
+    // 2. Update States SECOND (only if not last sequence - i.e., i > 0): OF -> ML -> LL
+    // Note: State transitions were written for sequences 1..N-1, not sequence 0
+    // When decoding sequence i, we read the transition bits that update states for sequence i-1
+    if (i > 0) {
+        if (decode_of) {
+            u8 nb = of_table.nbBits[stateOF];
+            u32 newBits = reader.read(nb);
+            u32 baseState = of_table.newState[stateOF];
+            stateOF = baseState + newBits;
+            stateOF &= (of_table_size - 1);
+        }
+        if (decode_ml) {
+            u8 nb = ml_table.nbBits[stateML];
+            u32 newBits = reader.read(nb);
+            u32 baseState = ml_table.newState[stateML];
+            stateML = baseState + newBits;
+            stateML &= (ml_table_size - 1);
+        }
+        if (decode_ll) {
+            u8 nb = ll_table.nbBits[stateLL];
+            u32 newBits = reader.read(nb);
+            u32 baseState = ll_table.newState[stateLL];
+            stateLL = baseState + newBits;
+            stateLL &= (ll_table_size - 1);
+        }
     }
     
     // Calculate Values
@@ -4133,6 +4146,10 @@ __global__ void k_decode_sequences_interleaved(
         }
         d_of_out[i] = val_of;
     }
+    
+    // DEBUG: Print decoded values for each sequence
+    printf("[GPU_DECODE] Seq %d: LL=%u, ML=%u, OF=%u (sym: ll=%u, of=%u, ml=%u)\n",
+           i, val_ll, val_ml, val_of, ll_sym, of_sym, ml_sym);
   }
 
 

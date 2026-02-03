@@ -63,6 +63,7 @@ __global__ void k_fse_build_table(const u16 *__restrict__ normFreqs,
       if ((i16)normFreqs[s] == -1) {
         symbolFirstState[s] = highPos;
         s_occupied[highPos] = 1;
+        entries[highPos].symbol = (u8)s; // KEEP THIS FIX
         highPos--;
       }
     }
@@ -101,6 +102,7 @@ __global__ void k_fse_build_table(const u16 *__restrict__ normFreqs,
       if (freq == 1) {
         nbBits = highestBit(tableSize);
       } else {
+        // Restore original (constant nbBits) logic to maintain compatibility with k_fse_encode
         nbBits = highestBit(tableSize) - highestBit(freq - 1);
       }
       entries[state].nbBits = (u8)nbBits;
