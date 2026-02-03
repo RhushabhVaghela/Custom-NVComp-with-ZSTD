@@ -1,5 +1,0 @@
-
-// Helper kernel for async value setting
-__global__ void k_record_size(u32* ptr, u32 val) {
-    if (ptr) *ptr = val;
-}

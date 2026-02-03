@@ -168,7 +168,7 @@ std::string format_bytes(size_t bytes) {
 
 // Compute XXH64 checksum for data integrity verification
 uint64_t compute_checksum(const void *data, size_t size) {
-  return XXH64(data, size, 0);
+  return cuda_zstd::xxhash::xxhash_64_cpu((const unsigned char*)data, size, 0);
 }
 
 // Load file into memory

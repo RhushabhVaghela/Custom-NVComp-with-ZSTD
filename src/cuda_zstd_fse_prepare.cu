@@ -2,6 +2,7 @@
 // Preparation Kernel: Calculate codes and extra bits from raw values
 // ============================================================================
 
+#include "cuda_zstd_internal.h"
 #include "cuda_zstd_sequence.h"
 #include "cuda_zstd_types.h"
 #include <stdio.h>

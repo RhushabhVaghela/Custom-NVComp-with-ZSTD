@@ -65,6 +65,15 @@ const int COMPRESSION_LEVELS[] = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11,
                                   12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22};
 const int NUM_LEVELS = 22;
 
+// Test data generation patterns
+enum class DataPattern {
+  RANDOM,      // Fully random data (hard to compress)
+  REPETITIVE,  // Highly repetitive (best compression)
+  SEMI_RANDOM, // Semi-random with patterns
+  INCREMENTAL, // Incrementing values
+  COMPRESSIBLE // Text-like data with common patterns
+};
+
 // Benchmark result structure
 struct BenchmarkResult {
   int level;
@@ -86,7 +95,8 @@ struct BenchmarkResult {
   int iterations;
 };
 
-// Test data generation patterns
+// Test data generation patterns (Moved up)
+/*
 enum class DataPattern {
   RANDOM,      // Fully random data (hard to compress)
   REPETITIVE,  // Highly repetitive (best compression)
@@ -94,6 +104,7 @@ enum class DataPattern {
   INCREMENTAL, // Incrementing values
   COMPRESSIBLE // Text-like data with common patterns
 };
+*/
 
 const char *pattern_to_string(DataPattern pattern) {
   switch (pattern) {

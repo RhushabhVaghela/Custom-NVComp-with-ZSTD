@@ -2818,8 +2818,11 @@ public:
       // Re-construct needed workspace part for sequences
       CompressionWorkspace seq_ws;
       // Use the same base as phase 2a (it's safe to reuse now)
+      size_t on_buffer_bytes = num_blocks * ZSTD_BLOCKSIZE_MAX * sizeof(u32);
+      on_buffer_bytes = align_to_boundary(on_buffer_bytes, 256);
+      size_t used_offset = 3 * on_buffer_bytes;
       unsigned char *ws_base = (unsigned char *)call_workspace.d_workspace +
-                               (block_idx * per_block_size);
+                               used_offset + (block_idx * per_block_size);
       seq_ws.d_lz77_temp = (u32 *)ws_base;
       //  Also initialize d_matches which is used by compress_sequences
       seq_ws.d_matches = call_workspace.d_matches;

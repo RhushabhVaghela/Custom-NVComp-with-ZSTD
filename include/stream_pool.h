@@ -59,14 +59,6 @@ private:
     std::condition_variable cv_;
 };
 
-struct BatchItem {
-    void* input_ptr = nullptr;
-    void* output_ptr = nullptr;
-    size_t input_size = 0;
-    size_t output_size = 0;
-    Status status = Status::SUCCESS;
-};
-
 } // namespace cuda_zstd
 
 #endif // STREAM_POOL_H

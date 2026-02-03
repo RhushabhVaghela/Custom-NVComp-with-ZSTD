@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <queue>
 #include <memory>
+#include <functional> // Added for std::function
 
 namespace cuda_zstd {
 namespace memory {
@@ -121,7 +122,7 @@ struct AdvancedRollbackContext {
         void* target_ptr;
         size_t size;
         std::string description;
-        std::function<Status()> execute;
+        std::function<cuda_zstd::Status()> execute;
         std::chrono::steady_clock::time_point scheduled_time;
     };
     

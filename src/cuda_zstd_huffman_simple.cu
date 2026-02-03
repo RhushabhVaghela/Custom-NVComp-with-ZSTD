@@ -39,6 +39,16 @@ __device__ inline u32 reverse_bits(u32 val, u32 bits) {
   return __brev(val) >> (32 - bits);
 }
 
+/**
+ * @brief Atomic OR on byte address (emulated via 32-bit atomicOr)
+ */
+__device__ inline void atomicOrByte(unsigned char *address, unsigned char val) {
+  unsigned int *base_addr = (unsigned int *)((size_t)address & ~3);
+  unsigned int offset = (size_t)address & 3;
+  unsigned int shift = offset * 8;
+  atomicOr(base_addr, (unsigned int)val << shift);
+}
+
 // ============================================================================
 // CPU Huffman Tree Builder (Canonical Codes)
 // ============================================================================
@@ -274,7 +284,7 @@ __global__ void huffman_encode_kernel(const unsigned char *input, u32 input_size
     if (c.code & (1U << b)) {
       u32 target_byte = byte_pos + (bit_offset + b) / 8;
       u32 target_bit = (bit_offset + b) % 8;
-      atomicOr(&output[target_byte], (unsigned char)(1 << target_bit));
+      atomicOrByte(&output[target_byte], (unsigned char)(1 << target_bit));
     }
   }
 }

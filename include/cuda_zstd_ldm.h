@@ -7,6 +7,8 @@
 namespace cuda_zstd {
 namespace ldm {
 
+constexpr u32 LDM_MIN_MATCH_LENGTH = 64;
+
 struct LDMHashEntry {
     u32 position;
     u32 hash_value;

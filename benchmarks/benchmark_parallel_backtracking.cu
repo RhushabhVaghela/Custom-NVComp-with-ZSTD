@@ -6,7 +6,6 @@
  * algorithm compared to a CPU reference implementation.
  */
 
-#include "cuda_error_checking.h"
 #include "cuda_zstd_lz77.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
@@ -20,6 +19,16 @@
 
 using namespace cuda_zstd;
 using namespace cuda_zstd::lz77;
+
+#define CHECK_CUDA(call)                                                       \
+  do {                                                                         \
+    cudaError_t err = call;                                                    \
+    if (err != cudaSuccess) {                                                  \
+      std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at "         \
+                << __FILE__ << ":" << __LINE__ << std::endl;                   \
+      exit(1);                                                                 \
+    }                                                                          \
+  } while (0)
 
 // =============================================================================
 // Benchmark Configuration
@@ -112,15 +121,15 @@ BenchmarkResult run_gpu_backtracking_benchmark(
   void *d_output = nullptr;
   void *d_temp = nullptr;
   
-  CUDA_CHECK(cudaMalloc(&d_input, input_data.size()));
-  CUDA_CHECK(cudaMemcpy(d_input, input_data.data(), input_data.size(), 
+  CHECK_CUDA(cudaMalloc(&d_input, input_data.size()));
+  CHECK_CUDA(cudaMemcpy(d_input, input_data.data(), input_data.size(), 
                         cudaMemcpyHostToDevice));
-  CUDA_CHECK(cudaMalloc(&d_output, input_data.size() * 2));
+  CHECK_CUDA(cudaMalloc(&d_output, input_data.size() * 2));
   
   // Create manager
   auto manager = create_manager(compression_level);
   size_t temp_size = manager->get_compress_temp_size(input_data.size());
-  CUDA_CHECK(cudaMalloc(&d_temp, temp_size));
+  CHECK_CUDA(cudaMalloc(&d_temp, temp_size));
   
   // Warmup
   size_t compressed_size = 0;
@@ -134,9 +143,9 @@ BenchmarkResult run_gpu_backtracking_benchmark(
   
   if (status != Status::SUCCESS) {
     result.success = false;
-    CUDA_CHECK(cudaFree(d_input));
-    CUDA_CHECK(cudaFree(d_output));
-    CUDA_CHECK(cudaFree(d_temp));
+    CHECK_CUDA(cudaFree(d_input));
+    CHECK_CUDA(cudaFree(d_output));
+    CHECK_CUDA(cudaFree(d_temp));
     return result;
   }
   
@@ -170,9 +179,9 @@ BenchmarkResult run_gpu_backtracking_benchmark(
   result.success = true;
   
   // Cleanup
-  CUDA_CHECK(cudaFree(d_input));
-  CUDA_CHECK(cudaFree(d_output));
-  CUDA_CHECK(cudaFree(d_temp));
+  CHECK_CUDA(cudaFree(d_input));
+  CHECK_CUDA(cudaFree(d_output));
+  CHECK_CUDA(cudaFree(d_temp));
   
   return result;
 }
@@ -281,7 +290,7 @@ int main(int argc, char **argv) {
   
   // Get device info
   cudaDeviceProp prop;
-  CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
+  CHECK_CUDA(cudaGetDeviceProperties(&prop, 0));
   std::cout << "Device: " << prop.name << std::endl;
   std::cout << "Compute Capability: " << prop.major << "." << prop.minor << std::endl;
   std::cout << "Memory: " << (prop.totalGlobalMem / (1024 * 1024)) << " MB" << std::endl;
