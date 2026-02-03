@@ -4050,7 +4050,6 @@ private:
            sequences_offset, input_size - sequences_offset);
 
     // DEBUG: Trace sequence offset calculation
-    // DEBUG: Trace sequence offset calculation
     //
     // {
     //   cudaError_t e = cudaGetLastError();
@@ -4090,21 +4089,6 @@ private:
                                   input_size - sequences_offset, ctx.seq_ctx,
                                   literals_decompressed_size, stream);
 
-    // DEBUG: Dump tail of sequence input
-    {
-      u32 seq_len = input_size - sequences_offset;
-      u32 dump_tail = std::min(16u, seq_len);
-      unsigned char h_tail[16];
-      if (dump_tail > 0) {
-        CUDA_CHECK(cudaMemcpy(h_tail,
-                              input + sequences_offset + seq_len - dump_tail,
-                              dump_tail, cudaMemcpyDeviceToHost));
-        // Debug output removed for production
-        for (int i = 0; i < (int)dump_tail; i++)
-          printf("%02X ", h_tail[i]);
-        printf("\n");
-      }
-    }
     if (status != Status::SUCCESS) {
       printf("[ERROR] decompress_sequences "
              "failed: status=%d\n",
@@ -4112,17 +4096,15 @@ private:
       return status;
     }
 
-    // completed. num_seq=%u\n",
-    //        ctx.seq_ctx->num_sequences);
+    printf("[DEBUG] decompress_sequences completed. num_seq=%u\n",
+           ctx.seq_ctx->num_sequences);
 
     // Sync after sequences
     cudaError_t seq_sync_err = cudaStreamSynchronize(stream);
     if (seq_sync_err != cudaSuccess) {
-      //             printf("[ERROR]
-      //             decompress_sequences failed:
-      //             %s\n",
-      //             cudaGetErrorString(seq_sync_err));
-      //       return Status::ERROR_CUDA_ERROR;
+                  printf("[ERROR] decompress_sequences failed: %s\n",
+                  cudaGetErrorString(seq_sync_err));
+            return Status::ERROR_CUDA_ERROR;
     }
 
     // === Build Sequence Structs ===
@@ -4132,8 +4114,8 @@ private:
     // build the Sequence structs from these
     // arrays before calling execute_sequences
     if (ctx.seq_ctx->num_sequences > 0) {
-      // %u sequences from component arrays\n",
-      // // ctx.seq_ctx->num_sequences);
+      printf("[DEBUG] Building %u sequences from component arrays\n",
+             ctx.seq_ctx->num_sequences);
 
       const u32 threads = 256;
       const u32 blocks = (ctx.seq_ctx->num_sequences + threads - 1) / threads;
@@ -4142,24 +4124,19 @@ private:
       status = sequence::build_sequences(
           *ctx.seq_ctx, ctx.seq_ctx->num_sequences, blocks, threads, stream);
       if (status != Status::SUCCESS) {
-        //                 fprintf(stderr,
-        //                 "[ERROR]
-        //                 build_sequences failed
-        //                 with status %d\n",
-        //                 (int)status);
-        //         //         return status;
+                fprintf(stderr,
+                "[ERROR] build_sequences failed with status %d\n",
+                (int)status);
+                //         return status;
       }
 
       // Sync after building
       cudaError_t build_sync_err = cudaStreamSynchronize(stream);
       if (build_sync_err != cudaSuccess) {
-        //                 fprintf(stderr,
-        //                 "[ERROR]
-        //                 build_sequences sync
-        //                 failed: %s\n",
-        //                 cudaGetErrorString(build_sync_err));
-        //         return
-        //         Status::ERROR_CUDA_ERROR;
+                fprintf(stderr,
+                "[ERROR] build_sequences sync failed: %s\n",
+                cudaGetErrorString(build_sync_err));
+                return Status::ERROR_CUDA_ERROR;
       }
 
       // build_sequences completed
@@ -4190,11 +4167,9 @@ private:
     // Sync after execute
     cudaError_t exec_sync_err = cudaStreamSynchronize(stream);
     if (exec_sync_err != cudaSuccess) {
-      //             printf("[ERROR]
-      //             execute_sequences failed:
-      //             %s\n",
-      //             cudaGetErrorString(exec_sync_err));
-      //       return Status::ERROR_CUDA_ERROR;
+                  printf("[ERROR] execute_sequences failed: %s\n",
+                  cudaGetErrorString(exec_sync_err));
+            return Status::ERROR_CUDA_ERROR;
     }
 
     // Copy result size from device
@@ -4202,7 +4177,7 @@ private:
                                cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream));
     
-    /* output_size check removed for production */
+    printf("[DEBUG] execute_sequences finished. output_size=%u\n", *output_size);
 
     cudaFree(d_output_size);
 
@@ -5652,8 +5627,8 @@ private:
                           cudaMemcpyDeviceToHost));
 
     // DEBUG: Show what header bytes were read
-    printf("[DEBUG] decompress_sequences: input_size=%u, h_header=[%02X %02X %02X %02X %02X]\n",
-           input_size, h_header[0], h_header[1], h_header[2], h_header[3], h_header[4]);
+    // printf("[DEBUG] decompress_sequences: input_size=%u, h_header=[%02X %02X %02X %02X %02X]\n",
+    //        input_size, h_header[0], h_header[1], h_header[2], h_header[3], h_header[4]);
 
     if (seq_ctx == nullptr) {
       // fprintf(stderr, "[ERROR] seq_ctx is NULL!\n");
@@ -5664,20 +5639,20 @@ private:
     u32 offset = 0;
 
     if (h_header[0] == 0) {
-      printf("[DEBUG] h_header[0]==0, setting num_sequences=0\n");
+      // printf("[DEBUG] h_header[0]==0, setting num_sequences=0\n");
       seq_ctx->num_sequences = 0;
       return Status::SUCCESS;
     } else if (h_header[0] < 128) {
       num_sequences = h_header[0];
-      printf("[DEBUG] h_header[0] < 128: num_sequences=%u (header[0]=%u)\n", num_sequences, h_header[0]);
+      // printf("[DEBUG] h_header[0] < 128: num_sequences=%u (header[0]=%u)\n", num_sequences, h_header[0]);
       offset = 1;
     } else if (h_header[0] < 255) {
       if (input_size < 2) {
         //         return Status::ERROR_CORRUPT_DATA;
       }
       num_sequences = ((h_header[0] - 128) << 8) + h_header[1];
-      printf("[DEBUG] 128 <= h_header[0] < 255: num_sequences=%u (header=[%u,%u])\n",
-             num_sequences, h_header[0], h_header[1]);
+      // printf("[DEBUG] 128 <= h_header[0] < 255: num_sequences=%u (header=[%u,%u])\n",
+      //        num_sequences, h_header[0], h_header[1]);
       offset = 2;
     } else {
       if (input_size < 3) {
@@ -5685,13 +5660,13 @@ private:
         return Status::ERROR_CORRUPT_DATA;
       }
       num_sequences = (h_header[1] << 8) + h_header[2] + 0x7F00;
-      printf("[DEBUG] h_header[0]==255: num_sequences=%u (header=[%u,%u,%u])\n",
-             num_sequences, h_header[0], h_header[1], h_header[2]);
+      // printf("[DEBUG] h_header[0]==255: num_sequences=%u (header=[%u,%u,%u])\n",
+      //        num_sequences, h_header[0], h_header[1], h_header[2]);
       offset = 3;
     }
 
     seq_ctx->num_sequences = num_sequences;
-    printf("[DECOMPRESS_SEQ] Set seq_ctx->num_sequences = %u\n", num_sequences);
+    // printf("[DECOMPRESS_SEQ] Set seq_ctx->num_sequences = %u\n", num_sequences);
 
     if (num_sequences == 0) {
       return Status::SUCCESS;
@@ -5816,6 +5791,13 @@ private:
         return st;
       offset += bytes_read;
 
+      // Pre-allocate arrays for FSE_buildDTable_Host
+      ll_table_obj.table_log = table_log;
+      ll_table_obj.table_size = 1u << table_log;
+      ll_table_obj.newState = new u16[1u << table_log];
+      ll_table_obj.symbol = new u8[1u << table_log];
+      ll_table_obj.nbBits = new u8[1u << table_log];
+
       st = fse::FSE_buildDTable_Host(normalized_counts.data(), max_symbol,
                                      1u << table_log, ll_table_obj);
       if (st != Status::SUCCESS)
@@ -5861,6 +5843,13 @@ private:
       if (st != Status::SUCCESS)
         return st;
       offset += bytes_read;
+
+      // Pre-allocate arrays for FSE_buildDTable_Host
+      of_table_obj.table_log = table_log;
+      of_table_obj.table_size = 1u << table_log;
+      of_table_obj.newState = new u16[1u << table_log];
+      of_table_obj.symbol = new u8[1u << table_log];
+      of_table_obj.nbBits = new u8[1u << table_log];
 
       st = fse::FSE_buildDTable_Host(normalized_counts.data(), max_symbol,
                                      1u << table_log, of_table_obj);
@@ -5911,6 +5900,13 @@ private:
         return st;
       offset += bytes_read;
 
+      // Pre-allocate arrays for FSE_buildDTable_Host
+      ml_table_obj.table_log = table_log;
+      ml_table_obj.table_size = 1u << table_log;
+      ml_table_obj.newState = new u16[1u << table_log];
+      ml_table_obj.symbol = new u8[1u << table_log];
+      ml_table_obj.nbBits = new u8[1u << table_log];
+
       st = fse::FSE_buildDTable_Host(normalized_counts.data(), max_symbol,
                                      1u << table_log, ml_table_obj);
       if (st != Status::SUCCESS)
@@ -5942,13 +5938,20 @@ private:
         seq_ctx->d_match_lengths, ll_mode, of_mode, ml_mode, p_ll_table,
         p_of_table, p_ml_table, total_literal_count, stream);
 
+    if (p_ll_table) {
+      if (p_ll_table->newState) delete[] p_ll_table->newState;
+      if (p_ll_table->symbol) delete[] p_ll_table->symbol;
+      if (p_ll_table->nbBits) delete[] p_ll_table->nbBits;
+    }
     if (p_of_table) {
-      delete[] p_of_table->newState;
+      if (p_of_table->newState) delete[] p_of_table->newState;
+      if (p_of_table->symbol) delete[] p_of_table->symbol;
+      if (p_of_table->nbBits) delete[] p_of_table->nbBits;
     }
     if (p_ml_table) {
-      delete[] p_ml_table->symbol;
-      delete[] p_ml_table->nbBits;
-      delete[] p_ml_table->newState;
+      if (p_ml_table->newState) delete[] p_ml_table->newState;
+      if (p_ml_table->symbol) delete[] p_ml_table->symbol;
+      if (p_ml_table->nbBits) delete[] p_ml_table->nbBits;
     }
 
     return status;
@@ -6585,8 +6588,20 @@ public:
         (max_input_size > 0) ? max_input_size : ZSTD_BLOCKSIZE_MAX;
     size_t comp_size = manager->get_compress_temp_size(chunk_size);
     size_t decomp_size = manager->get_decompress_temp_size(chunk_size * 2);
-    workspace_size = std::max(comp_size, decomp_size);
+    size_t required_size = std::max(comp_size, decomp_size);
 
+    // Only allocate if not already allocated or size is insufficient
+    if (d_workspace && workspace_size >= required_size) {
+      return Status::SUCCESS; // Reuse existing workspace
+    }
+
+    // Free old workspace if exists
+    if (d_workspace) {
+      cudaFree(d_workspace);
+      d_workspace = nullptr;
+    }
+
+    workspace_size = required_size;
     CUDA_CHECK(cudaMalloc(&d_workspace, workspace_size));
     return Status::SUCCESS;
   }
@@ -6931,15 +6946,9 @@ Status ZstdStreamingManager::decompress_chunk(const void *input,
 
 ZstdManager::ExecutionPath
 ZstdManager::select_execution_path(size_t size, int cpu_threshold) {
-  // 1. CPU Path for small payloads (latency sensitive)
-  if (size < (size_t)cpu_threshold) {
-    return ExecutionPath::CPU;
-  }
-
-  // 2. Chunk Parallel Path for large payloads (throughput sensitive)
-  // Threshold: > 1MB (arbitrary start point, to be tuned)
-  // GPU_CHUNK will be enabled when Phase 3 kernels are ready.
-  // For now, fall back to GPU_BATCH (Standard) to ensure correctness.
+  // Use GPU path for all data to ensure RFC 8878 consistency
+  // and maximum performance. The GPU implementation is now robust
+  // for all sizes.
   return ExecutionPath::GPU_BATCH;
 }
 

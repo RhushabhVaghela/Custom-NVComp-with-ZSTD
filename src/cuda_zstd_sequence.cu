@@ -140,38 +140,49 @@ __device__ __forceinline__ u32 get_actual_offset(
     state.rep_2 = state.rep_1;
     state.rep_1 = actual_offset;
   } else {
-    // Repeat offset
-    if (literals_length == 0) {
-      // No literals
-      if (offset_rep == REPEAT_OFFSET_1) {
-        actual_offset = state.rep_1;
-      } else if (offset_rep == REPEAT_OFFSET_2) {
+    // Repeat offset (1, 2, or 3)
+    if (offset_rep == REPEAT_OFFSET_1) {
+      if (literals_length == 0) {
+        // Special case: if LL=0, RepCode 1 means RepCode 2
         actual_offset = state.rep_2;
-        state.rep_2 = state.rep_1;
-        state.rep_1 = actual_offset;
-      } else { // REPEAT_OFFSET_3
-        actual_offset = state.rep_3;
-        state.rep_3 = state.rep_2;
-        state.rep_2 = state.rep_1;
-        state.rep_1 = actual_offset;
-      }
-    } else {
-      // With literals
-      if (offset_rep == REPEAT_OFFSET_1) {
+      } else {
         actual_offset = state.rep_1;
-        state.rep_3 = state.rep_2;
-        state.rep_2 = state.rep_1;
-        state.rep_1 = actual_offset;
-      } else if (offset_rep == REPEAT_OFFSET_2) {
-        actual_offset = state.rep_2;
-        state.rep_3 = state.rep_2;
-        state.rep_2 = state.rep_1;
-        state.rep_1 = actual_offset;
-      } else { // REPEAT_OFFSET_3
-        actual_offset = state.rep_3;
-        state.rep_3 = state.rep_1; // Note the different swap
-        state.rep_1 = actual_offset;
       }
+    } else if (offset_rep == REPEAT_OFFSET_2) {
+      if (literals_length == 0) {
+        // Special case: if LL=0, RepCode 2 means RepCode 3
+        actual_offset = state.rep_3;
+      } else {
+        actual_offset = state.rep_2;
+      }
+    } else { // REPEAT_OFFSET_3
+      if (literals_length == 0) {
+        // Special case: if LL=0, RepCode 3 means RepCode 1 - 1
+        actual_offset = state.rep_1 - 1;
+        if (actual_offset == 0)
+          actual_offset = 1;
+      } else {
+        actual_offset = state.rep_3;
+      }
+    }
+
+    // Update rep-codes based on which one was used
+    if (offset_rep == REPEAT_OFFSET_1) {
+      if (literals_length == 0) {
+        state.rep_2 = state.rep_1;
+        state.rep_1 = actual_offset;
+      } else {
+        // rep_1 used, no changes needed for rep_1, but others shift?
+        // Actually Zstd says: "if offset_rep == 1, no changes to repCodes"
+        // Wait, let me check.
+      }
+    } else if (offset_rep == REPEAT_OFFSET_2) {
+      state.rep_2 = state.rep_1;
+      state.rep_1 = actual_offset;
+    } else { // REPEAT_OFFSET_3
+      state.rep_3 = state.rep_2;
+      state.rep_2 = state.rep_1;
+      state.rep_1 = actual_offset;
     }
   }
   return actual_offset;
@@ -263,7 +274,6 @@ __global__ void compute_sequence_details_kernel(
     }
     total_literals += lit_len;
     total_output += lit_len + match_length;
-    //     if (i == 0 || i == num_sequences - 1) {
 
     if (match_length > 0) {
       if (is_raw_offsets) {

@@ -220,6 +220,9 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
       literal_run++;
       pos++;
     } else {
+      if (num_seqs < 5) {
+          printf("[LZ77_DEBUG] Seq %u: pos=%u, LL=%u, ML=%u, OF=%u\n", num_seqs, pos-literal_run, literal_run, decision, offsets_in[pos]);
+      }
       ll_out[num_seqs] = literal_run;
       ml_out[num_seqs] = decision;
       of_out[num_seqs] = offsets_in[pos];

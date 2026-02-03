@@ -3963,38 +3963,18 @@ __global__ void k_decode_sequences_interleaved(
   // Read initial states and validate bounds
   printf("[GPU] Before reading initial states: bit_pos=%u\n", reader.bit_pos);
   
-  if (decode_ll) {
-    u32 bits_before = reader.bit_pos;
-    stateLL = reader.read(ll_table.table_log);
-    printf("[GPU] Read LL state: bits_before=%u, read %u bits, state=%u, remaining=%u\n", 
-           bits_before, ll_table.table_log, stateLL, reader.bit_pos);
-    if (stateLL >= ll_table_size) {
-      printf("[GPU ERROR] Initial LL state %u exceeds table size %u\n", stateLL,
-             ll_table_size);
-      stateLL = 0; // Clamp to safe value
-    }
+  // Read initial states in RFC 8878 order: ML, Offset, LL
+  if (decode_ml) {
+    stateML = reader.read(ml_table.table_log);
+    if (stateML >= ml_table_size) stateML = 0;
   }
   if (decode_of) {
-    u32 bits_before = reader.bit_pos;
     stateOF = reader.read(of_table.table_log);
-    printf("[GPU] Read OF state: bits_before=%u, read %u bits, state=%u\n", 
-           bits_before, of_table.table_log, stateOF);
-    if (stateOF >= of_table_size) {
-      printf("[GPU ERROR] Initial OF state %u exceeds table size %u\n", stateOF,
-             of_table_size);
-      stateOF = 0; // Clamp to safe value
-    }
+    if (stateOF >= of_table_size) stateOF = 0;
   }
-  if (decode_ml) {
-    u32 bits_before = reader.bit_pos;
-    stateML = reader.read(ml_table.table_log);
-    printf("[GPU] Read ML state: bits_before=%u, read %u bits, state=%u\n", 
-           bits_before, ml_table.table_log, stateML);
-    if (stateML >= ml_table_size) {
-      printf("[GPU ERROR] Initial ML state %u exceeds table size %u\n", stateML,
-             ml_table_size);
-      stateML = 0; // Clamp to safe value
-    }
+  if (decode_ll) {
+    stateLL = reader.read(ll_table.table_log);
+    if (stateLL >= ll_table_size) stateLL = 0;
   }
 
   printf("[GPU] Sentinel: pos=%u, Byte0=%02X\n", sentinel_pos, bitstream[0]);
@@ -4122,8 +4102,7 @@ __global__ void k_decode_sequences_interleaved(
     // ML Value
     u32 val_ml = 0;
     if (decode_ml) {
-        if (ml_mode == 0 && ml_sym == 51) val_ml = 65365;
-        else if (ml_mode == 0) val_ml = sequence::ZstdSequence::get_ml_base_predefined(ml_sym);
+        if (ml_mode == 0) val_ml = sequence::ZstdSequence::get_ml_base_predefined(ml_sym);
         else val_ml = sequence::ZstdSequence::get_match_len(ml_sym);
         val_ml += ml_extra;
         d_ml_out[i] = val_ml;
@@ -4133,16 +4112,11 @@ __global__ void k_decode_sequences_interleaved(
     u32 val_of = 0;
     if (decode_of) {
         if (of_sym <= 2) {
-             val_of = of_sym + 1;
+             val_of = of_sym + 1; // 1, 2, or 3
         } else {
              // Add 3 to bias the offset for get_actual_offset decoding
              // (Values 1-3 are Reps, Values >= 4 are New Offsets)
              val_of = sequence::ZstdSequence::get_offset(of_sym) + of_extra + 3;
-        }
-        
-        // Offset Logic Adjustment for LL=0
-        if (val_ll == 0 && val_of >= 3) {
-            val_of++;
         }
         d_of_out[i] = val_of;
     }
@@ -4918,8 +4892,7 @@ __host__ Status read_fse_header(const unsigned char *input, u32 input_size,
 
     if (nCount == -1) {
       prob = 1;
-      //  remaining == 1 is VALID (one slot for implicit last symbol)
-      // Only error if remaining < 1 (underflow)
+      // RFC 8878: nCount == -1 means probability of 1 (uses 1 slot)
       if (remaining < 1) {
         fprintf(stderr,
                 "[FSE_READ_ERR] remaining(%u) < 1 at sym %u (nCount=-1, "
@@ -4927,10 +4900,8 @@ __host__ Status read_fse_header(const unsigned char *input, u32 input_size,
                 remaining, symbol);
         return Status::ERROR_CORRUPT_DATA;
       }
-      remaining -= 2; // count=-1 consumes 2 slots
-      normalized_counts.push_back((u16)-1);
-      fprintf(stderr, "[FSE_READ] sym=%u val=0 prob=-1 rem=%u\n", symbol,
-              remaining);
+      remaining -= 1; // prob=1 consumes 1 slot per RFC 8878
+      normalized_counts.push_back((u16)-1); // -1 marks "less than 1" probability
       symbol++;
     } else if (nCount == 0) { // val == 1 -> Count 0 (Repeat)
       // Repeat loop
