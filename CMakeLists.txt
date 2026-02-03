@@ -211,7 +211,7 @@ if(CUDA_ZSTD_BUILD_TESTS)
             CUDA_SEPARABLE_COMPILATION ON
             CUDA_RESOLVE_DEVICE_SYMBOLS ON
         )
-        target_link_libraries(${test_name} cuda_zstd_shared)
+        target_link_libraries(${test_name} cuda_zstd_static)
         add_test(NAME ${test_name} COMMAND ${test_name})
         set_property(TEST ${test_name} PROPERTY LABELS "unittest")
 

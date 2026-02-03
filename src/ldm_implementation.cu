@@ -4,6 +4,7 @@
  * COMPLETE Implementation for High-Performance Long-Distance Matching.
  */
 
+#include "cuda_zstd_ldm.h"
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_lz77.h"
 #include "cuda_zstd_utils.h"
@@ -13,7 +14,7 @@ namespace cuda_zstd {
 namespace ldm {
 
 // ============================================================================
-// LDM Configuration and Constants
+// LDM Constants
 // ============================================================================
 
 constexpr u32 LDM_MIN_WINDOW_LOG = 20;  // 1MB minimum
@@ -21,32 +22,6 @@ constexpr u32 LDM_MAX_WINDOW_LOG = 27;  // 128MB maximum
 constexpr u32 LDM_HASH_LOG = 20;        
 constexpr u32 LDM_HASH_SIZE = (1u << LDM_HASH_LOG);
 constexpr u32 LDM_BUCKET_SIZE = 4;      
-constexpr u32 LDM_MIN_MATCH_LENGTH = 8; // LDM usually targets longer matches
-
-struct LDMHashEntry {
-    u32 position;      // Position in the input stream (absolute)
-    u32 hash_value;    // Rolling hash value
-};
-
-struct LDMMatch {
-    u32 offset;        
-    u32 length;        
-    bool valid;        
-};
-
-struct LDMContext {
-    LDMHashEntry* d_hash_table;      
-    u32 window_start;                
-    u32 window_size;                 
-    u32 matches_found;
-    u32 min_match_length;
-    u32 max_distance;
-    u64 rolling_hash_state; // Added for test compatibility
-    
-    LDMContext() : d_hash_table(nullptr), window_start(0), window_size(0), 
-                   matches_found(0), min_match_length(LDM_MIN_MATCH_LENGTH), 
-                   max_distance(0), rolling_hash_state(0) {}
-};
 
 // ============================================================================
 // GPU Kernels

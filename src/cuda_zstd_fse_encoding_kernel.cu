@@ -418,63 +418,61 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
       continue;
     
     // The encoder transitions: state = (state >> nbBits) + deltaFindState
-    // For direct addition, use cum (not cum - 1)
-    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s];
-    
-    if (s < 5 && tid == 0) {
-      printf("[CTABLE] Symbol %u: freq=%u, cum=%u, deltaFind=%d\n",
-             s, freq, s_cum_freq[s], (i32)s_cum_freq[s]);
-    }
+    // Zstd formula: deltaFindState = cumul[s] - 1
+    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s] - 1;
   }
 
   __syncthreads();
 
-  // Phase 4: Init CTable for Encoder using SPREADING (Critical for Correctness)
-  // The Encoder InitState must match a valid slot in the Decoder's Spread
-  // Table.
-  if (tid == 0) {
-    u32 tableSize = 1 << table_log;
-    u32 step = (tableSize >> 1) + (tableSize >> 3) + 3;
-    u32 mask = tableSize - 1;
-    u32 pos = 0;
+    // Phase 4: Init CTable for Encoder using SPREADING
+    if (tid == 0) {
+      u32 tableSize = 1 << table_log;
+      u32 step = (tableSize >> 1) + (tableSize >> 3) + 3;
+      u32 mask = tableSize - 1;
+      u32 pos = 0;
 
-    // Reset first states
-    for (u32 s = 0; s <= max_symbol; s++) {
-      table->d_symbol_first_state[s] = 0;
-    }
-
-    // 2a. High Threshold: Place -1 symbols at the end
-    // Per RFC 8878: low-probability symbols get 1 slot at high positions
-    u32 high_threshold = tableSize - 1;
-    for (u32 s = 0; s <= max_symbol; s++) {
-      if ((i16)normalized_counters[s] == -1) {
-        // State value must match decoder: just the position, not tableSize + pos
-        table->d_symbol_first_state[s] = (u16)high_threshold;
-        high_threshold--;
+      u32 symbolNext[256];
+      for (u32 i = 0; i <= max_symbol; i++) {
+        symbolNext[i] = normalized_counters[i];
+        table->d_symbol_first_state[i] = 0;
       }
-    }
+      
+      // Init occupied map (using d_state_to_symbol as scratch)
+      for (u32 i = 0; i < tableSize; ++i) table->d_state_to_symbol[i] = 0;
 
-    // 2b. Spread positive symbols
-    for (u32 s = 0; s <= max_symbol; s++) {
-      int n = (int)normalized_counters[s];
-      if (n <= 0) // Skip 0 and -1 (already handled)
-        continue;
+      u32 high_threshold = tableSize - 1;
+      // 2a. Low-prob symbols (-1)
+      for (u32 s = 0; s <= max_symbol; s++) {
+        if ((i16)normalized_counters[s] == -1) {
+          u16 state_val = (u16)(high_threshold + tableSize);
+          table->d_next_state[s_cum_freq[s]] = state_val;
+          table->d_symbol_first_state[s] = state_val;
+          
+          table->d_state_to_symbol[high_threshold] = 1;
+          high_threshold--;
+        }
+      }
 
-      for (int i = 0; i < n; i++) {
-        // Skip positions occupied by high threshold symbols
-        while (pos > high_threshold) {
+      // 2b. Positive symbols
+      for (u32 s = 0; s <= max_symbol; s++) {
+        int n = (int)(i16)normalized_counters[s]; // Correctly handle -1 as negative
+        if (n <= 0) continue;
+        for (int i = 0; i < n; i++) {
+          while (pos > high_threshold || table->d_state_to_symbol[pos] != 0) {
+              pos = (pos + step) & mask;
+          }
+          table->d_state_to_symbol[pos] = 1;
+          
+          u32 nextState = symbolNext[s]++;
+          u32 cumul_idx = s_cum_freq[s] + (nextState - n);
+          u16 state_val = (u16)(pos + tableSize);
+          table->d_next_state[cumul_idx] = state_val;
+          if (i == 0) table->d_symbol_first_state[s] = state_val;
+          
           pos = (pos + step) & mask;
         }
-
-        // Only record the first state for this symbol (matches decoder's first slot)
-        if (table->d_symbol_first_state[s] == 0) {
-          // State value must match decoder: just the position
-          table->d_symbol_first_state[s] = (u16)pos;
-        }
-        pos = (pos + step) & mask;
       }
     }
-  }
 }
 
 // =================================================================================================

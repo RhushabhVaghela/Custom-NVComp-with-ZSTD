@@ -224,10 +224,11 @@ __global__ void k_fse_decode_interleaved_rfc(
     };
     
     // Find sentinel bit (marks end of bitstream)
+    // RFC 8878: The stop bit is the first bit with a value of 1, starting from the end.
     bool found_sentinel = false;
     for (int byte_idx = (int)bitstream_size - 1; byte_idx >= 0 && !found_sentinel; --byte_idx) {
         u8 byte = bitstream[byte_idx];
-        for (int bit = 0; bit < 8; ++bit) {
+        for (int bit = 7; bit >= 0; --bit) {
             if ((byte >> bit) & 1) {
                 current_byte = byte_idx;
                 current_bit = bit;

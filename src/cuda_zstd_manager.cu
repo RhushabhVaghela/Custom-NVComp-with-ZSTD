@@ -2,6 +2,7 @@
 // cuda_zstd_manager.cpp - COMPLETE Manager Implementation with Full Pipeline
 // =============================================================================
 
+#include "cuda_zstd_ldm.h"
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_fse_encoding_kernel.h"
@@ -580,7 +581,8 @@ __global__ void
 copy_block_literals_kernel(const unsigned char *input,
                            const u32 *literal_lengths, const u32 *match_lengths,
                            u32 num_sequences, unsigned char *literals_buffer,
-                           u32 block_idx, u32 capacity, u32 input_size) {
+                           u32 block_idx, u32 capacity, u32 input_size,
+                           u32 *d_extracted_size) {
   // Simple sequential copy per block (launched with 1 thread)
   // Optimization: Could be parallelized with prefix sums, but this is
   // functional
@@ -596,6 +598,7 @@ copy_block_literals_kernel(const unsigned char *input,
       printf("[FATAL GPU] Block %u: Literals Buffer OOB! Seq %u, LL %u, Out "
              "%u, Cap %u\n",
              block_idx, i, ll, out_pos, capacity);
+      if (d_extracted_size) *d_extracted_size = out_pos;
       return; // Prevent crash
     }
     // Note: in_pos check is harder without knowing input size, but we assume
@@ -605,6 +608,7 @@ copy_block_literals_kernel(const unsigned char *input,
     if (in_pos + ll > input_size) {
       printf("[FATAL GPU] Block %u: Input OOB! Seq %u, LL %u, In %u, Size %u\n",
              block_idx, i, ll, in_pos, input_size);
+      if (d_extracted_size) *d_extracted_size = out_pos;
       return;
     }
 
@@ -617,16 +621,33 @@ copy_block_literals_kernel(const unsigned char *input,
     in_pos += ll + ml;
     out_pos += ll;
   }
+
+  // Copy trailing literals
+  if (in_pos < input_size) {
+      u32 trailing = input_size - in_pos;
+      if (out_pos + trailing <= capacity) {
+          for(u32 k=0; k<trailing; ++k) {
+              literals_buffer[out_pos + k] = input[in_pos + k];
+          }
+          out_pos += trailing;
+      } else {
+          printf("[FATAL GPU] Block %u: Literals Buffer OOB (Trailing)! Need %u, Cap %u\n",
+                 block_idx, out_pos + trailing, capacity);
+      }
+  }
+
+  if (d_extracted_size) *d_extracted_size = out_pos;
 }
 
 // Helper to launch the kernel
 void launch_copy_literals(const unsigned char *input, u32 input_size,
                           const u32 *literal_lengths, const u32 *match_lengths,
                           u32 num_sequences, unsigned char *literals_buffer,
-                          cudaStream_t stream, u32 block_idx) {
+                          cudaStream_t stream, u32 block_idx,
+                          u32 *d_extracted_size) {
   copy_block_literals_kernel<<<1, 1, 0, stream>>>(
       input, literal_lengths, match_lengths, num_sequences, literals_buffer,
-      block_idx, 131072, input_size);
+      block_idx, 131072, input_size, d_extracted_size);
   cudaError_t err = cudaDeviceSynchronize();
   if (err != cudaSuccess) {
     // Log synchronization error silently
@@ -698,6 +719,10 @@ struct StreamingContext {
 
   // Streaming xxHash state
   xxhash::XXH64_State *d_xxhash_state;
+
+  // Long Distance Matching state
+  ldm::LDMContext ldm_ctx;
+  bool ldm_initialized;
 };
 
 // ==============================================================================
@@ -2243,8 +2268,11 @@ public:
 
       // Setup per-block workspace
       //  Reuse workspace base for all blocks (O(1))
+      size_t on_buffer_bytes = num_blocks * ZSTD_BLOCKSIZE_MAX * sizeof(u32);
+      on_buffer_bytes = align_to_boundary(on_buffer_bytes, 256);
+      size_t used_offset = 3 * on_buffer_bytes;
       unsigned char *ws_base = (unsigned char *)call_workspace.d_workspace +
-                               (block_idx * per_block_size);
+                               used_offset + (block_idx * per_block_size);
       size_t ws_offset = 0;
 
       CompressionWorkspace block_ws;
@@ -2502,6 +2530,14 @@ public:
                 &thread_block_ws),
             lz77_config, block_stream, d_hash_p, d_chain_p));
 
+        // Integrated Long Distance Matching (LDM)
+        if (s_ctx && s_ctx->ldm_initialized) {
+            ldm::ldm_process_block(s_ctx->ldm_ctx, block_input, current_block_size_val, 
+                                 (lz77::Match*)thread_block_ws.d_matches, 
+                                 (u32)s_ctx->total_bytes_processed, block_stream);
+            s_ctx->total_bytes_processed += current_block_size_val;
+        }
+
         // GRANULAR ERROR CHECK: Sync stream first to catch async errors
         // (OPTIMIZATION) Removed per-block sync to allow pipelining
         // cudaStreamSynchronize(block_stream);
@@ -2585,8 +2621,11 @@ public:
       // fflush(stdout); // stderr is unbuffered
 
       // Re-setup workspace pointers for this block
+      size_t on_buffer_bytes = num_blocks * ZSTD_BLOCKSIZE_MAX * sizeof(u32);
+      on_buffer_bytes = align_to_boundary(on_buffer_bytes, 256);
+      size_t used_offset = 3 * on_buffer_bytes;
       unsigned char *ws_base = (unsigned char *)call_workspace.d_workspace +
-                               (block_idx * per_block_size);
+                               used_offset + (block_idx * per_block_size);
 
       CompressionWorkspace block_ws;
       block_ws.d_lz77_temp = (u32 *)ws_base;
@@ -2690,17 +2729,28 @@ public:
             d_all_match_lengths_reverse + (block_idx * block_size);
 
         // Extract literals using valid sequence data (including dummy)
+        u32 *d_extracted_size;
+        CUDA_CHECK(cudaMallocAsync(&d_extracted_size, sizeof(u32), stream));
+
         launch_copy_literals(block_input, current_block_size_val, d_lit_len_ptr,
-                             d_match_len_ptr, copy_count,
+                             d_match_len_ptr, num_seq,
                              block_seq_ctxs[block_idx].d_literals_buffer,
-                             stream, block_idx);
+                             stream, block_idx, d_extracted_size);
 
         if (num_seq == 0) {
           // No sequences (literals only)
           CUDA_CHECK(cudaMemcpyAsync(block_seq_ctxs[block_idx].d_literals_buffer,
                                      block_input, current_block_size_val,
                                      cudaMemcpyDeviceToDevice, stream));
+          block_literals_sizes[block_idx] = current_block_size_val;
+        } else {
+           u32 h_extracted_size = 0;
+           CUDA_CHECK(cudaMemcpyAsync(&h_extracted_size, d_extracted_size, sizeof(u32),
+                                      cudaMemcpyDeviceToHost, stream));
+           CUDA_CHECK(cudaStreamSynchronize(stream));
+           block_literals_sizes[block_idx] = h_extracted_size;
         }
+        CUDA_CHECK(cudaFreeAsync(d_extracted_size, stream));
       }
 
       // Compress Literals
@@ -6594,6 +6644,10 @@ public:
       cudaFree(streaming_ctx.d_xxhash_state);
       streaming_ctx.d_xxhash_state = nullptr;
     }
+    if (streaming_ctx.ldm_initialized) {
+      ldm::ldm_cleanup_context(streaming_ctx.ldm_ctx);
+      streaming_ctx.ldm_initialized = false;
+    }
   }
 
   Status alloc_workspace(cudaStream_t s, size_t max_input_size = 0) {
@@ -6694,11 +6748,19 @@ Status ZstdStreamingManager::init_compression_with_history(cudaStream_t stream,
   cudaMemsetAsync(pimpl_->streaming_ctx.d_hash_table_state, 0xFF, hash_size, stream);
   cudaMemsetAsync(pimpl_->streaming_ctx.d_chain_table_state, 0xFF, chain_size, stream);
 
-  pimpl_->current_history_size = 0;
-  pimpl_->comp_initialized = true;
+    pimpl_->current_history_size = 0;
+    pimpl_->comp_initialized = true;
 
-  // Pre-allocate FSE tables
-  s = pimpl_->manager->preallocate_tables(stream);
+    // Initialize LDM if enabled
+    if (pimpl_->config.enable_ldm) {
+        ldm::ldm_init_context(pimpl_->streaming_ctx.ldm_ctx, pimpl_->config.ldm_hash_log);
+        pimpl_->streaming_ctx.ldm_initialized = true;
+    } else {
+        pimpl_->streaming_ctx.ldm_initialized = false;
+    }
+
+    // Pre-allocate FSE tables
+    s = pimpl_->manager->preallocate_tables(stream);
   return s;
 }
 
