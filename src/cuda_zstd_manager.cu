@@ -4184,7 +4184,7 @@ private:
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
-        d_output_size, false, // is_raw_offsets
+        d_output_size, ctx.seq_ctx->is_raw_offsets, // Pass correct tier flag
         stream, output_base, output_max_size, d_rep_codes);
 
     // Sync after execute
@@ -5431,7 +5431,10 @@ private:
                       cudaMemcpyDeviceToHost, stream);
       cudaStreamSynchronize(stream); // Sync required to decide branch
 
-      if (h_incompatible == 0) {
+      // WORKAROUND: Predefined Mode Encoder (k_fse_encode) is currently broken for sequences.
+      // See src/cuda_zstd_fse_rfc.cu comments.
+      // Force fallback to Raw mode until fixed.
+      if (h_incompatible == 0 && false) {
         // Compatible! Use Predefined Mode.
         sequence::SequenceContext code_ctx = *seq_ctx;
         code_ctx.d_ll_codes = d_ll_codes;
