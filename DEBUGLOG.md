@@ -52,12 +52,30 @@ This document tracks all critical bugs and architectural issues identified and r
 *   **Issue:** `test_fse_manager_integration_stub.cu` was an empty/incomplete file that caused build confusion.
 *   **Solution:** Removed the file and its references in CMake.
 
+### 3.4 Missing Struct Member Allocations in Unit Tests
+*   **Issue:** Low-level FSE unit tests (`test_fse_integration.cu`, `test_fse_interleaved.cu`) were failing with illegal memory access or hanging.
+*   **Root Cause:** The library's `FSEEncodeTable` struct was expanded with new members (`d_state_to_symbol`, `d_symbol_first_state`, `d_next_state_vals`) required by the GPU kernels, but the unit tests were not updated to allocate memory for these members.
+*   **Solution:** Added the missing `cudaMalloc` calls to the unit tests to match the library's struct requirements.
+*   **Files:** `tests/test_fse_integration.cu`, `tests/test_fse_interleaved.cu`
+
+### 3.5 FSE Table Spreading Infinite Loop
+*   **Issue:** `test_fse_interleaved.cu` was hanging on certain hardware/configurations.
+*   **Root Cause:** For very small FSE tables (`table_log = 1`), the spreading formula `step = (tableSize >> 1) + (tableSize >> 3) + 3` could result in a `step` that is not relatively prime to the table size, causing an infinite loop when looking for empty slots.
+*   **Solution:** Updated the test to use `table_log = 5` (standard minimum for ZSTD FSE) and improved robustness.
+*   **Files:** `tests/test_fse_interleaved.cu`, `src/cuda_zstd_fse_encoding_kernel.cu`
+
 ## 4. Architectural Improvements
 
 ### 4.1 GPU Path Prioritization
 *   **Issue:** The "Smart Path Selector" was falling back to the CPU (libzstd) for chunks smaller than 1MB. However, minor incompatibilities in the decompressor (e.g., Huffman treeless block support) caused failures on libzstd-produced frames.
 *   **Solution:** Forced the GPU path by default (threshold set to 0). This ensures 100% internal consistency and maximum performance for all data sizes.
 *   **Files:** `src/cuda_zstd_manager.cu`
+
+### 4.2 NVCOMP Batch Manager Output Pointer Bug
+*   **Issue:** The NVCOMP compatibility layer failed to compress in batch mode.
+*   **Root Cause:** `NvcompV5BatchManager::compress_async` was not assigning the `output_ptr` member of the `BatchItem` objects, causing the underlying batch manager to receive null output pointers.
+*   **Solution:** Fixed the loop to correctly assign `items[i].output_ptr`.
+*   **Files:** `src/cuda_zstd_nvcomp.cpp`
 
 ## Summary of Fixed Tests
 *   `test_correctness`: PASS
@@ -66,4 +84,9 @@ This document tracks all critical bugs and architectural issues identified and r
 *   `test_dictionary_memory`: PASS
 *   `test_error_handling`: PASS (14/14 subtests)
 *   `test_streaming`: PASS (8/8 subtests)
+*   `test_nvcomp_interface`: PASS (5/5 subtests)
+*   `test_nvcomp_batch`: PASS
+*   `test_fse_integration`: PASS
+*   `test_fse_sequence_decode`: PASS
+*   `test_huffman`: PASS
 *   `test_roundtrip`: PASS
