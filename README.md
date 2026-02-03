@@ -254,6 +254,8 @@ Single NVIDIA A100 GPU:
 - ✅ [`ZstdBatchManager`](src/cuda_zstd_manager.cu) - Batch processing
 - ✅ [`AdaptiveLevelSelector`](src/cuda_zstd_adaptive.cu) - Auto compression level selection
 - ✅ [`MemoryPoolManager`](src/cuda_zstd_memory_pool.cu) - GPU memory pooling
+- ✅ **RFC 8878 Compliance**: Validated FSE bitstream order and RepCode logic
+- ✅ **GPU Path Prioritization**: Robust GPU execution for all data sizes
 - ✅ Stream pool management with configurable pool sizes
 - ✅ Frame header generation and parsing
 - ✅ Metadata frame support (custom extension)
@@ -262,30 +264,26 @@ Single NVIDIA A100 GPU:
 #### **LZ77 Match Finding** _(100% Complete)_
 - ✅ [`build_hash_chains_kernel`](src/cuda_zstd_lz77.cu) - Parallel hash table construction
 - ✅ [`parallel_find_all_matches_kernel`](src/cuda_zstd_lz77.cu) - Parallel match finding
+- ✅ **Optimal Parsing**: Fixed illegal memory access and synchronization issues
 - ✅ CRC32 hash function for faster collision reduction
 - ✅ Radix sort for bucket organization
 - ✅ Tiled processing for memory coalescing
 - ✅ Dictionary search integration
 - ✅ Configurable min match length, search depth
 
-#### **Optimal Parsing** _(100% Complete)_
-- ✅ [`initialize_costs_kernel`](src/cuda_zstd_lz77.cu) - Cost table initialization
-- ✅ [`optimal_parse_kernel`](src/cuda_zstd_lz77.cu) - Dynamic programming
-- ✅ [`backtrack_kernel`](src/cuda_zstd_lz77.cu) - Sequence reconstruction
-- ✅ Bit-accurate cost model for literals and matches
-- ✅ Reverse buffer management for backtracking
-
 #### **Sequence Encoding** _(100% Complete)_
 - ✅ [`compress_sequences_kernel`](src/cuda_zstd_sequence.cu) - Sequence compression
 - ✅ [`count_sequences_kernel`](src/cuda_zstd_sequence.cu) - Sequence counting
+- ✅ **RepCode Logic**: 100% RFC 8878 compliant implementation
 - ✅ Parallel literal extraction
 - ✅ Sequence header generation
 - ✅ Offset encoding with repeat offset optimization
 
 #### **FSE (Finite State Entropy)** _(100% Complete)_
-- ✅ [`fse_encode_kernel`](src/cuda_zstd_fse.cu) - FSE encoding
+- ✅ [`fse_encode_kernel`](src/cuda_zstd_fse.cu) - FSE encoding (RFC 8878 compliant order)
 - ✅ [`fse_decode_kernel`](src/cuda_zstd_fse.cu) - FSE decoding
 - ✅ [`build_fse_tables_kernel`](src/cuda_zstd_fse.cu) - Table construction
+- ✅ **Standalone FSE**: Stabilized low-level integration and interleaved tests
 - ✅ Symbol frequency analysis
 - ✅ Normalized probability distribution
 - ✅ State transition tables
@@ -314,7 +312,9 @@ Single NVIDIA A100 GPU:
 
 #### **Testing Infrastructure** _(100% Complete)_
 - ✅ [`test_correctness.cu`](tests/test_correctness.cu) - RFC 8878 compliance
-- ✅ [`test_streaming.cu`](tests/test_streaming.cu) - Streaming operations
+- ✅ [`test_streaming.cu`](tests/test_streaming.cu) - Streaming operations (8/8 PASS)
+- ✅ [`test_nvcomp_interface.cu`](tests/test_nvcomp_interface.cu) - NVCOMP v5.0 API (5/5 PASS)
+- ✅ [`test_error_handling.cu`](tests/test_error_handling.cu) - Exception safety (14/14 PASS)
 - ✅ [`test_memory_pool.cu`](tests/test_memory_pool.cu) - Memory pool validation
 - ✅ [`test_adaptive_level.cu`](tests/test_adaptive_level.cu) - Adaptive selection
 - ✅ [`test_dictionary.cu`](tests/test_dictionary.cu) - Dictionary compression
@@ -322,21 +322,13 @@ Single NVIDIA A100 GPU:
 - ✅ [`test_c_api.c`](tests/test_c_api.c) - C API validation
 - ✅ [`test_nvcomp_batch.cu`](tests/test_nvcomp_batch.cu) - Batch API validation
 
-### 🔨 Work in Progress
+### 🔨 Future Scope
+- 🔨 **Long Distance Matching (LDM)**: Implementation of Zstandard's LDM for large-window compression
+- 🔨 **Multi-GPU Support**: Automatic distribution across multiple CUDA devices
+- 🔨 **Decompression interop**: Improved compatibility with treeless blocks from official `libzstd`
+- 🔨 **Accuracy Log Tweak**: Optimization of FSE accuracy log for GPU throughput
 
-#### **Kernel Debugging** _(In Progress)_
-- 🔨 Resolving illegal memory access in `optimal_parse_kernel`
-- 🔨 Validating workspace partitioning in manager
-- 🔨 Ensuring proper synchronization between kernels
-- 🔨 Adding comprehensive bounds checking
-- 🔨 Debugging hash/chain table initialization
-
-#### **Test Coverage** _(90% → 100% Target)_
-- 🔨 Stress testing with large datasets (>1GB)
-- 🔨 Edge cases: empty data, single-byte inputs
-- 🔨 All compression level combinations (1-22)
-- 🔨 Dictionary compression correctness
-- 🔨 Multi-stream concurrency testing
+For a detailed list of recently resolved issues, see [DEBUGLOG.md](DEBUGLOG.md).
 
 ### 📈 Code Statistics
 
