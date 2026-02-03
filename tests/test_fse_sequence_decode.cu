@@ -122,8 +122,9 @@ bool test_state_normalization(TestResults &results) {
   const u32 table_size = 1u << table_log;
 
   // Create predefined offset table distribution
+  u32 max_sym, log;
   const u16 *of_norm =
-      get_predefined_norm(TableType::OFFSETS, nullptr, nullptr);
+      get_predefined_norm(TableType::OFFSETS, &max_sym, &log);
 
   FSEDecodeTable h_table;
   h_table.newState = new u16[table_size];
@@ -259,8 +260,9 @@ bool test_device_table_copy(TestResults &results) {
   const u32 table_size = 1u << table_log;
 
   // Build host table
+  u32 max_sym, log;
   const u16 *of_norm =
-      get_predefined_norm(TableType::OFFSETS, nullptr, nullptr);
+      get_predefined_norm(TableType::OFFSETS, &max_sym, &log);
 
   FSEDecodeTable h_table;
   h_table.newState = new u16[table_size];

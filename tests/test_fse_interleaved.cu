@@ -24,12 +24,12 @@ void test_fse_interleaved_simple() {
 
   // 1. Setup Table
   u32 max_symbol = 1;
-  u32 table_log = 1;
-  u32 table_size = 1 << table_log; // 2
+  u32 table_log = 5;
+  u32 table_size = 1 << table_log; 
 
-  // Counts: Sym0=1, Sym1=1. Prob 50% each.
-  // Normalized: 1, 1.
-  std::vector<u32> h_counts = {1, 1};
+  // Counts: Sym0=16, Sym1=16. Prob 50% each.
+  // Normalized: 16, 16.
+  std::vector<u32> h_counts = {16, 16};
 
   u32 *d_counts;
   cudaMalloc(&d_counts, h_counts.size() * sizeof(u32));
@@ -49,6 +49,8 @@ void test_fse_interleaved_simple() {
   cudaMalloc(&h_table_desc.d_symbol_first_state,
              (max_symbol + 1) * sizeof(u16));
   cudaMalloc(&h_table_desc.d_state_to_symbol, table_size * sizeof(u8));
+  cudaMalloc(&h_table_desc.d_next_state_vals, table_size * sizeof(u16));
+  cudaMalloc(&h_table_desc.d_next_state_vals, table_size * sizeof(u16));
 
   // We need 3 tables: LL, OF, ML. For simplicity, use same table for all.
   FSEEncodeTable *d_table_ptr;

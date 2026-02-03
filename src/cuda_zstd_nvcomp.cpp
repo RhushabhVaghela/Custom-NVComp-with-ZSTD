@@ -435,6 +435,7 @@ Status NvcompV5BatchManager::compress_async(
   for (size_t i = 0; i < num_chunks; ++i) {
     items[i].input_ptr = const_cast<void *>(h_uncompressed_ptrs[i]);
     items[i].input_size = h_uncompressed_sizes[i];
+    items[i].output_ptr = h_compressed_ptrs[i];
     items[i].output_size = h_compressed_sizes[i]; // Set capacity
   }
 

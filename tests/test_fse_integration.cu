@@ -70,6 +70,9 @@ int main() {
                    (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol)));
     CHECK_CUDA(cudaMalloc(&h_desc.d_next_state, table_size * sizeof(u16)));
     CHECK_CUDA(cudaMalloc(&h_desc.d_nbBits_table, table_size * sizeof(u8)));
+    CHECK_CUDA(cudaMalloc(&h_desc.d_state_to_symbol, table_size * sizeof(u8)));
+    CHECK_CUDA(cudaMalloc(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16)));
+    CHECK_CUDA(cudaMalloc(&h_desc.d_next_state_vals, table_size * sizeof(u16)));
 
     // Copy descriptor to array
     CHECK_CUDA(cudaMemcpy(&d_tables[idx], &h_desc, sizeof(fse::FSEEncodeTable),

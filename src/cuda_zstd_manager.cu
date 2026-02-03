@@ -4040,49 +4040,14 @@ private:
     //   if (e)
     //         // }
     
-    // DEBUG: Trace sequences offset calculation
-    printf("[DEBUG] Before sequences_offset: literals_header_size=%u, literals_compressed_size=%u, input_size=%u\n",
-           literals_header_size, literals_compressed_size, input_size);
-    
     u32 sequences_offset = literals_header_size + literals_compressed_size;
     
-    printf("[DEBUG] sequences_offset=%u, remaining=%u\n", 
-           sequences_offset, input_size - sequences_offset);
-
-    // DEBUG: Trace sequence offset calculation
-    //
-    // {
-    //   cudaError_t e = cudaGetLastError();
-    //   if (e)
-    //         // }
     if (sequences_offset == input_size) {
       *output_size = literals_decompressed_size;
       return Status::SUCCESS;
     }
     if (sequences_offset > input_size) {
-      printf("[ERROR] sequences_offset(%u) > input_size(%u). LitHdr=%u, "
-             "LitComp=%u. No space for Sequence Header!\n",
-             sequences_offset, input_size, literals_header_size,
-             literals_compressed_size);
       return Status::ERROR_CORRUPT_DATA;
-    }
-
-    // DEBUG: Dump sequence section header bytes
-    {
-      unsigned char seq_hdr[8];
-      u32 seq_remaining = input_size - sequences_offset;
-      u32 to_copy = std::min(8u, seq_remaining);
-      if (to_copy > 0) {
-        CUDA_CHECK(cudaMemcpy(seq_hdr, input + sequences_offset, to_copy,
-                              cudaMemcpyDeviceToHost));
-        printf("[DEBUG] sequences_offset=%u, input_size=%u, remaining=%u\n",
-               sequences_offset, input_size, seq_remaining);
-        printf("[DEBUG] Sequence header bytes at offset: ");
-        for (u32 i = 0; i < to_copy; i++) {
-          printf("%02X ", seq_hdr[i]);
-        }
-        printf("\n");
-      }
     }
 
     status = decompress_sequences(input + sequences_offset,
@@ -4114,40 +4079,19 @@ private:
     // build the Sequence structs from these
     // arrays before calling execute_sequences
     if (ctx.seq_ctx->num_sequences > 0) {
-      printf("[DEBUG] Building %u sequences from component arrays\n",
-             ctx.seq_ctx->num_sequences);
-
       const u32 threads = 256;
       const u32 blocks = (ctx.seq_ctx->num_sequences + threads - 1) / threads;
 
-      // Debug output removed for production
       status = sequence::build_sequences(
           *ctx.seq_ctx, ctx.seq_ctx->num_sequences, blocks, threads, stream);
       if (status != Status::SUCCESS) {
-                fprintf(stderr,
-                "[ERROR] build_sequences failed with status %d\n",
-                (int)status);
-                //         return status;
+        return status;
       }
 
-      // Sync after building
       cudaError_t build_sync_err = cudaStreamSynchronize(stream);
       if (build_sync_err != cudaSuccess) {
-                fprintf(stderr,
-                "[ERROR] build_sequences sync failed: %s\n",
-                cudaGetErrorString(build_sync_err));
-                return Status::ERROR_CUDA_ERROR;
+        return Status::ERROR_CUDA_ERROR;
       }
-
-      // build_sequences completed
-      // successfully\n");
-
-      // Debug: Print first sequence values
-      // (disabled) sequence::Sequence h_seq;
-      // cudaMemcpy(&h_seq,
-      // ctx.seq_ctx->d_sequences,
-      // sizeof(sequence::Sequence),
-      //            cudaMemcpyDeviceToHost);
     }
 
     // === Execute Sequences ===
@@ -4155,9 +4099,6 @@ private:
     CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(u32)));
     CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
 
-    printf("[MANAGER] Calling execute_sequences: num_sequences=%u, literals_size=%u\n",
-           ctx.seq_ctx->num_sequences, literals_decompressed_size);
-    
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
@@ -4167,17 +4108,13 @@ private:
     // Sync after execute
     cudaError_t exec_sync_err = cudaStreamSynchronize(stream);
     if (exec_sync_err != cudaSuccess) {
-                  printf("[ERROR] execute_sequences failed: %s\n",
-                  cudaGetErrorString(exec_sync_err));
-            return Status::ERROR_CUDA_ERROR;
+      return Status::ERROR_CUDA_ERROR;
     }
 
     // Copy result size from device
     CUDA_CHECK(cudaMemcpyAsync(output_size, d_output_size, sizeof(u32),
                                cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream));
-    
-    printf("[DEBUG] execute_sequences finished. output_size=%u\n", *output_size);
 
     cudaFree(d_output_size);
 
