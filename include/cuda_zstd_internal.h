@@ -181,9 +181,6 @@ struct FSEBitStreamReader {
       out++;
     }
 
-    if (end_pos / 8 == stream_size - 1 && sentinel_bit != 0 && end_pos >= 8) {
-      val >>= (8 - sentinel_bit);
-    }
     return val;
   }
 
@@ -207,9 +204,6 @@ struct FSEBitStreamReader {
       out++;
     }
 
-    if (end_pos / 8 == stream_size - 1 && sentinel_bit != 0 && end_pos >= 8) {
-      val >>= (8 - sentinel_bit);
-    }
     return val;
   }
 };
