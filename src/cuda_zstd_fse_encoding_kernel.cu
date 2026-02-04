@@ -62,93 +62,49 @@ __global__ void k_encode_fse_interleaved(
     }
   };
 
-  // 1. Initialize States with SEQUENCE 0 (Start of Chain)
-  u32 start_idx = 0;
-
-  // Validate table pointers
-  if (!table[0].d_symbol_first_state || !table[1].d_symbol_first_state ||
-      !table[2].d_symbol_first_state) {
-    *output_pos = 0;
-    return;
-  }
-
-  u8 ll_code0 = d_ll_codes[start_idx];
-  u8 of_code0 = d_of_codes[start_idx];
-  u8 ml_code0 = d_ml_codes[start_idx];
-
-  if (ll_code0 > table[0].max_symbol || of_code0 > table[1].max_symbol ||
-      ml_code0 > table[2].max_symbol) {
-    *output_pos = 0;
-    return;
-  }
-
-  u32 stateLL = table[0].d_symbol_first_state[ll_code0];
-  u32 stateOF = table[1].d_symbol_first_state[of_code0];
-  u32 stateML = table[2].d_symbol_first_state[ml_code0];
-
-  // 2. Write Extra Bits for SEQUENCE 0
+  // 1. Seq 0 Extras
+  write_bits(d_ll_extras[0], d_ll_bits[0]);
   write_bits(d_ml_extras[0], d_ml_bits[0]);
   write_bits(d_of_extras[0], d_of_bits[0]);
-  write_bits(d_ll_extras[0], d_ll_bits[0]);
 
-  // 3. Loop 0 to N-2 (Transition states)
-  if (num_symbols > 1) {
-    for (u32 i = 0; i < num_symbols - 1; i++) {
-      u32 next_idx = i + 1;
+  // 2. Initial States from Seq 0
+  u32 stateLL = table[0].d_symbol_first_state[d_ll_codes[0]];
+  u32 stateOF = table[1].d_symbol_first_state[d_of_codes[0]];
+  u32 stateML = table[2].d_symbol_first_state[d_ml_codes[0]];
 
-      // Literal Length (Table 0)
-      {
-        u8 code = d_ll_codes[next_idx];
-        if (code > table[0].max_symbol) {
-          *output_pos = 0;
-          return;
-        }
-        auto sym = table[0].d_symbol_table[code];
-        u32 nbBitsOut = (stateLL + sym.deltaNbBits) >> 16;
-        if (nbBitsOut > 0) {
-          write_bits(stateLL & ((1ULL << nbBitsOut) - 1), nbBitsOut);
-        }
-        stateLL = (stateLL >> nbBitsOut) + sym.deltaFindState;
-      }
-
-      // Match Length (Table 2)
-      {
-        u8 code = d_ml_codes[next_idx];
-        if (code > table[2].max_symbol) {
-          *output_pos = 0;
-          return;
-        }
+  // 3. Loop Transitions Seq 1..N-1
+  for (u32 i = 1; i < num_symbols; i++) {
+    // FSE transition order must match decoder backward read order: ML, OF, LL
+    // Wait! Decoder backward update order: LL_FSE, OF_FSE, ML_FSE.
+    // So Encoder forward order: ML_FSE, OF_FSE, LL_FSE.
+    {
+        u8 code = d_ml_codes[i];
         auto sym = table[2].d_symbol_table[code];
         u32 nbBitsOut = (stateML + sym.deltaNbBits) >> 16;
-        if (nbBitsOut > 0) {
-          write_bits(stateML & ((1ULL << nbBitsOut) - 1), nbBitsOut);
-        }
+        write_bits(stateML & ((1ULL << nbBitsOut) - 1), nbBitsOut);
         stateML = (stateML >> nbBitsOut) + sym.deltaFindState;
-      }
-
-      // Offset (Table 1)
-      {
-        u8 code = d_of_codes[next_idx];
-        if (code > table[1].max_symbol) {
-          *output_pos = 0;
-          return;
-        }
+    }
+    {
+        u8 code = d_of_codes[i];
         auto sym = table[1].d_symbol_table[code];
         u32 nbBitsOut = (stateOF + sym.deltaNbBits) >> 16;
-        if (nbBitsOut > 0) {
-          write_bits(stateOF & ((1ULL << nbBitsOut) - 1), nbBitsOut);
-        }
+        write_bits(stateOF & ((1ULL << nbBitsOut) - 1), nbBitsOut);
         stateOF = (stateOF >> nbBitsOut) + sym.deltaFindState;
-      }
-
-      // Extras for next sequence
-      write_bits(d_of_extras[next_idx], d_of_bits[next_idx]);
-      write_bits(d_ml_extras[next_idx], d_ml_bits[next_idx]);
-      write_bits(d_ll_extras[next_idx], d_ll_bits[next_idx]);
     }
+    {
+        u8 code = d_ll_codes[i];
+        auto sym = table[0].d_symbol_table[code];
+        u32 nbBitsOut = (stateLL + sym.deltaNbBits) >> 16;
+        write_bits(stateLL & ((1ULL << nbBitsOut) - 1), nbBitsOut);
+        stateLL = (stateLL >> nbBitsOut) + sym.deltaFindState;
+    }
+    // Extras for Seq i: LL_Ex, ML_Ex, OF_Ex
+    write_bits(d_ll_extras[i], d_ll_bits[i]);
+    write_bits(d_ml_extras[i], d_ml_bits[i]);
+    write_bits(d_of_extras[i], d_of_bits[i]);
   }
 
-  // 4. Write Final States (Header) - Order: ML, OF, LL
+  // 4. Final States (Init for Decoder): ML, OF, LL
   write_bits(stateML, table[2].table_log);
   write_bits(stateOF, table[1].table_log);
   write_bits(stateLL, table[0].table_log);
@@ -214,7 +170,7 @@ __global__ void k_build_ctable(const u32 *__restrict__ normalized_counters,
     i32 freq = (i32)normalized_counters[s];
     if (freq == 0)
       continue;
-    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s] - 1;
+    table->d_symbol_table[s].deltaFindState = (i32)s_cum_freq[s];
   }
 
   __syncthreads();

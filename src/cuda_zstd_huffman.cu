@@ -294,8 +294,6 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
   i16 norm_counts[MAX_HUF_ALPHABET] = {0};
   i32 remaining = table_size;
   u32 symbol = 0;
-  i32 remaining = table_size;
-  u32 symbol = 0;
 
   auto read_bits_header = [&](u32 nbits) -> u32 {
     u32 result = 0;

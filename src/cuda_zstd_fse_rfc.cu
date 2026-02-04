@@ -401,44 +401,58 @@ __global__ void k_fse_encode_rfc_from_old_tables(
     state_storage_of[i] = (u16)stateOF;
   }
 
-  // Step 2: Backward Push
-  // 1. Sentinel
+  // Step 2: Push bits (RFC 8878 ZSTD Compliant Order)
+  // Discovery Order: Sentinel -> States -> [Transitions(i+1) -> Extras(i)]
+  // Push Order = Discovery Order for this backward bitstack writer.
+  
+  // 1. Sentinel Bit
   write_bits(1, 1);
 
-  // 2. Final States (from last symbol) - Decoder starts here
-  write_bits(stateML, ml_table_log);
-  write_bits(stateOF, of_table_log);
+  // 2. Initial States for Decoder (Discovery Order: LL, OF, ML)
   write_bits(stateLL, ll_table_log);
+  write_bits(stateOF, of_table_log);
+  write_bits(stateML, ml_table_log);
 
-  // 3. Sequences (N-1 down to 0) - Matches decoder order (N-1 down to 0)
-  for (int i = (int)num_symbols - 1; i >= 0; i--) {
-      // Extra bits (Order: LL, ML, OF) - FIFO writer means Push in Read Order
-      write_bits(d_ll_extras[i], d_ll_bits[i]);
-      write_bits(d_ml_extras[i], d_ml_bits[i]);
-      write_bits(d_of_extras[i], d_of_bits[i]);
+  // 3. Sequence Loop (0 up to N-1) - Discovery Order: Seq 0, Seq 1, ...
+  for (u32 i = 0; i < num_symbols; i++) {
+    if (i < num_symbols - 1) {
+      const u32 next_idx = i + 1;
 
-      if (i > 0) {
-          // Transition bits (State[i-1] -> State[i])
-          // Order: LL, ML, OF - FIFO writer means Push in Read Order
-
-          // LL
-          u32 prevLL = state_storage_ll[i-1];
-          u8 codeLL = d_ll_codes[i];
-          u32 nbLL = (prevLL + tables[0].d_symbol_table[codeLL].deltaNbBits) >> 16;
-          write_bits(prevLL & ((1u << nbLL) - 1), nbLL);
-
-          // ML
-          u32 prevML = state_storage_ml[i-1];
-          u8 codeML = d_ml_codes[i];
-          u32 nbML = (prevML + tables[2].d_symbol_table[codeML].deltaNbBits) >> 16;
-          write_bits(prevML & ((1u << nbML) - 1), nbML);
-
-          // OF
-          u32 prevOF = state_storage_of[i-1];
-          u8 codeOF = d_of_codes[i];
-          u32 nbOF = (prevOF + tables[1].d_symbol_table[codeOF].deltaNbBits) >> 16;
-          write_bits(prevOF & ((1u << nbOF) - 1), nbOF);
+      // OF transition for sequence next_idx (push order: OF -> ML -> LL)
+      {
+        u32 next_state = state_storage_of[next_idx];
+        u8 next_code = d_of_codes[next_idx];
+        const auto sym = tables[1].d_symbol_table[next_code];
+        u32 nb = (next_state + sym.deltaNbBits) >> 16;
+        if (nb)
+          write_bits(next_state & ((1u << nb) - 1), nb);
       }
+
+      // ML transition
+      {
+        u32 next_state = state_storage_ml[next_idx];
+        u8 next_code = d_ml_codes[next_idx];
+        const auto sym = tables[2].d_symbol_table[next_code];
+        u32 nb = (next_state + sym.deltaNbBits) >> 16;
+        if (nb)
+          write_bits(next_state & ((1u << nb) - 1), nb);
+      }
+
+      // LL transition
+      {
+        u32 next_state = state_storage_ll[next_idx];
+        u8 next_code = d_ll_codes[next_idx];
+        const auto sym = tables[0].d_symbol_table[next_code];
+        u32 nb = (next_state + sym.deltaNbBits) >> 16;
+        if (nb)
+          write_bits(next_state & ((1u << nb) - 1), nb);
+      }
+    }
+
+    // Extra bits for current sequence (OF -> ML -> LL order)
+    write_bits(d_of_extras[i], d_of_bits[i]);
+    write_bits(d_ml_extras[i], d_ml_bits[i]);
+    write_bits(d_ll_extras[i], d_ll_bits[i]);
   }
 
   // Final flush

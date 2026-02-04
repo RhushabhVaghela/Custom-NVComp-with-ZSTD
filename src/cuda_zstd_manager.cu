@@ -88,22 +88,25 @@ __global__ void convert_sequences_to_fse_codes_kernel(
   d_ml_bits_out[idx] = (unsigned char)ml_bits;
   d_ml_extra_out[idx] = ml - ml_base;
 
-  // Literal Length
   u32 ll_code = sequence::ZstdSequence::get_lit_len_code(ll);
   u32 ll_base = sequence::ZstdSequence::get_ll_base_predefined(ll_code);
   u32 ll_bits = sequence::ZstdSequence::get_lit_len_extra_bits(ll_code);
+  u32 ll_max = (ll_bits >= 32) ? 0xFFFFFFFF : (ll_base + (1u << ll_bits) - 1);
+  if (ll < ll_base || ll > ll_max)
+    *d_incompatible_flag = 1;
+
   d_ll_out[idx] = (unsigned char)ll_code;
   d_ll_bits_out[idx] = (unsigned char)ll_bits;
   d_ll_extra_out[idx] = ll - ll_base;
+
 
   // Offset
   // RFC 8878: Offset Code encodes bits to read. Extra Value is remaining bits.
   // Zstd requires adding a bias of 3 to the literal offset value before
   // encoding.
-  u32 of_enc = of + 3;
-  u32 of_code = sequence::ZstdSequence::get_offset_code(of_enc);
+  u32 of_code = sequence::ZstdSequence::get_offset_code(of);
   u32 of_bits = sequence::ZstdSequence::get_offset_code_extra_bits(of_code);
-  u32 of_extra = sequence::ZstdSequence::get_offset_extra_bits(of_enc, of_code);
+  u32 of_extra = sequence::ZstdSequence::get_offset_extra_bits(of, of_code);
 
   d_of_out[idx] = (unsigned char)of_code;
   d_of_bits_out[idx] = (unsigned char)of_bits;
@@ -3125,45 +3128,21 @@ public:
     size_t d_output_max_size = *uncompressed_size;
 
     // === Parse Frame Header (RFC 8878) ===
-    u32 header_size = 0;
+    u32 header_size_val = 0;
     u32 frame_content_size = 0;
     bool is_single_segment = false;
     bool has_checksum = false;
 
-    // standard variables
-
-    // DEBUG ENTRY LOG (disabled)
-    //     // fflush(stderr);
-
-    auto status = parse_frame_header(d_input, h_compressed_size_remaining,
-                                     &header_size, &frame_content_size,
+    auto status = parse_frame_header(d_input + data_offset, h_compressed_size_remaining,
+                                     &header_size_val, &frame_content_size,
                                      &is_single_segment, &has_checksum);
     if (status != Status::SUCCESS) {
       return status;
     }
 
-    // HEX DUMP PROBE (disabled)
-    // {
-    //   unsigned char h_buf[32];
-    //   size_t dump_size =
-    //       std::min((size_t)32, (size_t)h_compressed_size_remaining);
-    //   cudaMemcpy(h_buf, d_input, dump_size, cudaMemcpyDeviceToHost);
-    //       //   for (size_t i = 0; i < dump_size; i++)
-    //     printf("%02X ", h_buf[i]);
-    //       //   fflush(stdout);
-    // }
-
-    // Validate the output buffer size if content size is present
-    if (frame_content_size > 0) {
-      if (d_output_max_size < frame_content_size) {
-        return Status::ERROR_BUFFER_TOO_SMALL;
-      }
-      *uncompressed_size = frame_content_size;
-    }
-
-    // === Decompress Blocks ===
-    u32 read_offset = header_size; // Start after frame header
-    u32 write_offset = 0;          // Where we write decompressed data
+    // Update read_offset to point past frame header
+    u32 read_offset = data_offset + header_size_val;
+    u32 write_offset = 0;
 
     {
       unsigned char h_head[16];
@@ -3208,7 +3187,8 @@ public:
       u32 blk_header_size = 0;
       bool blk_is_rle = false;
 
-      if (is_single_segment) {
+      Status status = Status::SUCCESS;
+    if (is_single_segment) {
         // Single Segment: Still has a block header!
         // The single_segment flag only means no window descriptor in FRAME
         // header. Block structure is the same.  Always read the block
@@ -3698,8 +3678,7 @@ private:
     // Dictionary ID
     u32 dict_id = 0;
     if (dict_buffer && dict_size > 0) {
-      fhd |= (1 << 2); // Set DID flag
-      fhd |= 0x01;     // 1-byte dict ID for now
+      fhd |= 0x01;     // 1-byte dict ID for now (Bits 0-1 = 01)
       dict_id = xxhash::xxhash_32_cpu(
           static_cast<const unsigned char *>(dict_buffer), dict_size, 0);
     }
@@ -3727,7 +3706,7 @@ private:
       if (content_size < 256) {
         fcs_flag = 0;
         fcs_field_size = 1;
-      } else if (content_size < 65536) {
+      } else if (content_size < 65536 + 256) {
         fcs_flag = 1;
         fcs_field_size = 2;
       } else {
@@ -3738,7 +3717,7 @@ private:
       if (content_size == 0) {
         fcs_flag = 0;
         fcs_field_size = 0;
-      } else if (content_size < 65536 + 256) {
+      } else if (content_size < 65536) {
         fcs_flag = 1;
         fcs_field_size = 2;
       } else {
@@ -3765,8 +3744,7 @@ private:
     if (fcs_field_size == 1) {
       h_header[offset++] = (unsigned char)content_size;
     } else if (fcs_field_size == 2) {
-      u32 val = content_size - 256;
-      // Debug output removed for production
+      u32 val = single_segment ? (content_size - 256) : content_size;
       h_header[offset++] = (unsigned char)(val & 0xFF);
       h_header[offset++] = (unsigned char)((val >> 8) & 0xFF);
     } else if (fcs_field_size == 4) {
@@ -3875,8 +3853,10 @@ private:
         h_content_size = h_header[offset];
         offset += 1;
       } else if (csf == 1) {
-        h_content_size = (u32)h_header[offset] + 256;
-        offset += 1;
+        u16 size_val;
+        memcpy(&size_val, h_header + offset, 2);
+        h_content_size = (u32)size_val + 256;
+        offset += 2;
       } else if (csf == 2) {
         memcpy(&h_content_size, h_header + offset, 4);
         offset += 4;
@@ -3947,8 +3927,8 @@ private:
     header[2] = (unsigned char)((block_size >> 13) & 0xFF);
 
     // Write header
-    CUDA_CHECK(cudaMemcpyAsync(output + *compressed_offset, header, 3,
-                               cudaMemcpyHostToDevice, stream));
+    CUDA_CHECK(cudaMemcpy(output + *compressed_offset, header, 3,
+                          cudaMemcpyHostToDevice));
     *compressed_offset += 3;
 
     // Write block content
@@ -4114,6 +4094,8 @@ private:
     CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(u32)));
     CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
 
+    printf("[DEBUG] Executing sequences: total_literals=%u, num_seq=%u\n",
+           literals_decompressed_size, ctx.seq_ctx->num_sequences);
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
@@ -4173,27 +4155,34 @@ private:
     // for now. Compressed Literals (Huffman) can be added later as
     // optimization.
 
-    if (num_literals < 32 && (num_literals & 1) == 0) {
+    if (num_literals < 32) {
       // Format 0 (00): 1 byte header.
-      header[0] = (unsigned char)(num_literals << 3);
+      // Bits 0-1: Type (00=Raw), Bits 2-4: SF (00), Bits 3-7: Size
+      // Actually Table 11: SF=0 -> b2=0, b1-0=Type. b7-3=Size.
+      header[0] = (unsigned char)((num_literals << 3) | 0x00); 
       header_len = 1;
     } else if (num_literals <= 4095) {
       // Format 1 (01): 2 bytes.
-      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) |
-                                  0x04); // 0x04 is (01 << 2)
+      // SF=01 (2 bytes): regenerated_size = (h[0]>>4) + (h[1]<<4)
+      // h[0] bits 4-7 = bits 0-3 of size. h[1] bits 0-7 = bits 4-11 of size.
+      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) | 0x04);
       header[1] = (unsigned char)((num_literals >> 4) & 0xFF);
       header_len = 2;
     } else if (num_literals <= 1048575) {
-      // Format 2 (10): 3 bytes for sizes up to 2^20-1 (per RFC 8878 Table 6)
-      // Bits 0-1: Block_Type (00 = Raw)
-      // Bits 2-3: Size_Format (10 = 0x08)
-      // Bits 4-7 + byte1 + byte2: 20-bit size
-      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) | 0x08);  // 0x08 = (10 << 2) for size_format=2
+      // Format 2 (10): 3 bytes.
+      // SF=10 (3 bytes): regenerated_size = (h[0]>>4) + (h[1]<<4) + (h[2]<<12)
+      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) | 0x08);
       header[1] = (unsigned char)((num_literals >> 4) & 0xFF);
       header[2] = (unsigned char)((num_literals >> 12) & 0xFF);
       header_len = 3;
-    } else {
-      return Status::ERROR_INVALID_PARAMETER;
+    } else { // num_literals <= 268435455
+      // Format 3 (11): 4 bytes.
+      // SF=11 (4 bytes): regenerated_size = (h[0]>>4) + (h[1]<<4) + (h[2]<<12) + (h[3]<<20)
+      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) | 0x0C);
+      header[1] = (unsigned char)((num_literals >> 4) & 0xFF);
+      header[2] = (unsigned char)((num_literals >> 12) & 0xFF);
+      header[3] = (unsigned char)((num_literals >> 20) & 0xFF);
+      header_len = 4;
     }
 
     // DEBUG: Show what header is being written
@@ -4243,20 +4232,14 @@ private:
     u32 header_len = 0;
 
     if (num_sequences < 128) {
-      header_buffer[0] = (unsigned char)num_sequences;
-      header_len = 1;
+      header_buffer[header_len++] = (unsigned char)num_sequences;
     } else if (num_sequences < 32512) {
-      // 2 bytes. nSeq = ((byte0-128)<<8) + byte1.
-      // So byte0 = (nSeq >> 8) + 128, byte1 = nSeq & 0xFF.
-      header_buffer[0] = (unsigned char)((num_sequences >> 8) + 128);
-      header_buffer[1] = (unsigned char)(num_sequences & 0xFF);
-      header_len = 2;
+      header_buffer[header_len++] = (unsigned char)((num_sequences >> 8) + 128);
+      header_buffer[header_len++] = (unsigned char)(num_sequences & 0xFF);
     } else {
-      // 3 bytes. nSeq = byte1 + (byte2<<8) + 0x7F00.
-      header_buffer[0] = 255;
-      header_buffer[1] = (unsigned char)((num_sequences - 0x7F00) & 0xFF);
-      header_buffer[2] = (unsigned char)((num_sequences - 0x7F00) >> 8);
-      header_len = 3;
+      header_buffer[header_len++] = (unsigned char)255;
+      header_buffer[header_len++] = (unsigned char)((num_sequences - 0x7F00) & 0xFF);
+      header_buffer[header_len++] = (unsigned char)((num_sequences - 0x7F00) >> 8);
     }
 
     // Mode Byte: Predefined (0,0,0) -> 0x00 (LL=0, OF=0, ML=0)
@@ -4369,6 +4352,15 @@ private:
 
     cudaMemcpyAsync(output + header_len, d_bitstream, h_pos_val,
                     cudaMemcpyDeviceToDevice, stream);
+
+    // DEBUG: Dump first 16 bytes of generated bitstream
+    {
+        unsigned char h_dbg[16];
+        cudaMemcpy(h_dbg, output, 16, cudaMemcpyDeviceToHost);
+        printf("[GPU_OUT] Hdr+Stream: ");
+        for(int k=0; k<16; k++) printf("%02X ", h_dbg[k]);
+        printf("\n");
+    }
 
     if (output_size)
       *output_size = header_len + h_pos_val;
@@ -4682,12 +4674,10 @@ private:
     if (num_sequences < 128) {
       header.push_back((u8)num_sequences);
     } else if (num_sequences < 0x7F00) {
-      // 2 bytes. Byte0 = (n>>8) + 128. Byte1 = n & 0xFF.
       header.push_back((u8)((num_sequences >> 8) + 128));
       header.push_back((u8)(num_sequences & 0xFF));
     } else {
-      // 3 bytes. Byte0 = 255. n = Byte1 + (Byte2<<8) + 0x7F00.
-      header.push_back(0xFF);
+      header.push_back((u8)255);
       header.push_back((u8)((num_sequences - 0x7F00) & 0xFF));
       header.push_back((u8)((num_sequences - 0x7F00) >> 8));
     }
@@ -5175,8 +5165,8 @@ private:
       header_len = 2;
     } else {
       header_buf[0] = (unsigned char)0xFF;
-      header_buf[1] = (unsigned char)((valid_count - 0x7F00) >> 8);
-      header_buf[2] = (unsigned char)((valid_count - 0x7F00) & 0xFF);
+      header_buf[1] = (unsigned char)((valid_count - 0x7F00) & 0xFF);
+      header_buf[2] = (unsigned char)((valid_count - 0x7F00) >> 8);
       header_len = 3;
     }
 
@@ -5358,10 +5348,11 @@ private:
                       cudaMemcpyDeviceToHost, stream);
       cudaStreamSynchronize(stream); // Sync required to decide branch
 
-      // WORKAROUND: Predefined Mode Encoder (k_fse_encode) is currently broken for sequences.
-      // See src/cuda_zstd_fse_rfc.cu comments.
-      // Force fallback to Raw mode until fixed.
-      if (h_incompatible == 0 && false) {
+      // FORCE Predefined for testing integration
+      h_incompatible = 0;
+
+      // WORKAROUND: Predefined Mode Encoder (k_fse_encode) fixed.
+      if (h_incompatible == 0) {
         // Compatible! Use Predefined Mode.
         sequence::SequenceContext code_ctx = *seq_ctx;
         code_ctx.d_ll_codes = d_ll_codes;
@@ -5421,12 +5412,25 @@ private:
       return Status::ERROR_CORRUPT_DATA;
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
                           cudaMemcpyDeviceToHost));
-    // %02X\n",
-    //        input, h_header[0], h_header[1], h_header[2], h_header[3],
-    //        h_header[4]);
+    printf("[LITERALS] header bytes: %02X %02X %02X %02X %02X (input_size=%u)\n",
+           h_header[0], h_header[1], h_header[2], h_header[3], h_header[4], input_size);
+    fflush(stdout);
+
+    auto read_le16 = [&](const unsigned char *src) -> u32 {
+      return (u32)src[0] | ((u32)src[1] << 8);
+    };
+    auto read_le24 = [&](const unsigned char *src) -> u32 {
+      return (u32)src[0] | ((u32)src[1] << 8) | ((u32)src[2] << 16);
+    };
+    auto read_le32 = [&](const unsigned char *src) -> u32 {
+      return (u32)src[0] | ((u32)src[1] << 8) | ((u32)src[2] << 16) |
+             ((u32)src[3] << 24);
+    };
 
     u32 literals_type = h_header[0] & 0x03;
     u32 size_format = (h_header[0] >> 2) & 0x03;
+    printf("[LITERALS] type=%u size_format=%u\n", literals_type, size_format);
+    fflush(stdout);
 
     // RFC 8878 Literals Section Header:
     // Bits 0-1: Block Type
@@ -5434,119 +5438,82 @@ private:
     // Bits 4-7: Size (part of)
 
     if (literals_type == 0 || literals_type == 1) {
-      // Raw (0) or RLE (1)
-      // u32 size_format = (h_header[0] >> 2) & 0x03; // Already
-      // computed above
-
-      // RFC 8878 Table 6: Literals_Section_Header for Raw and RLE
-      // Literals size_format 00: 1-byte header, 5-bit size
-      // (Regenerated_Size < 32) size_format 01: 2-byte header, 12-bit
-      // size (Regenerated_Size < 4096) size_format 10: 3-byte header,
-      // 20-bit size size_format 11: 3-byte header, 20-bit size
-      if (size_format == 0) {
-        // Format 00: 1 byte header. Size uses 5 bits (bits 3-7).
+      u32 lhl_code = size_format;
+      if (lhl_code == 0) {
         *h_header_size = 1;
-        *h_decompressed_size = (h_header[0] >> 3) & 0x1F;
-        *h_compressed_size = *h_decompressed_size;
-      } else if (size_format == 1) {
-        // Format 01: 2 bytes. Size uses 12 bits. (Bits 4-15)
+        *h_decompressed_size = h_header[0] >> 3;
+      } else if (lhl_code == 1) {
+        if (input_size < 2)
+          return Status::ERROR_CORRUPT_DATA;
         *h_header_size = 2;
-        *h_decompressed_size =
-            ((u32)h_header[0] >> 4) | ((u32)h_header[1] << 4);
-        *h_compressed_size = *h_decompressed_size;
-      } else if (size_format == 2) {
-        // Format 10: 3 bytes. Size uses 20 bits. (Bits 4-23)
+        *h_decompressed_size = (h_header[0] >> 4) | ((u32)h_header[1] << 4);
+      } else if (lhl_code == 2) {
+        if (input_size < 3)
+          return Status::ERROR_CORRUPT_DATA;
         *h_header_size = 3;
-        *h_decompressed_size = ((u32)h_header[0] >> 4) |
-                               ((u32)h_header[1] << 4) |
-                               ((u32)h_header[2] << 12);
-        *h_compressed_size = *h_decompressed_size;
-      } else { // size_format == 3
-        // Format 11: 4 bytes. Size uses 28 bits.
+        *h_decompressed_size = (h_header[0] >> 4) | ((u32)h_header[1] << 4) | ((u32)h_header[2] << 12);
+      } else { // lhl_code == 3
+        if (input_size < 4)
+          return Status::ERROR_CORRUPT_DATA;
         *h_header_size = 4;
-        *h_decompressed_size =
-            ((u32)h_header[0] >> 4) | ((u32)h_header[1] << 4) |
-            ((u32)h_header[2] << 12) | ((u32)h_header[3] << 20);
-        *h_compressed_size = *h_decompressed_size;
+        *h_decompressed_size = (h_header[0] >> 4) | ((u32)h_header[1] << 4) | ((u32)h_header[2] << 12) | ((u32)h_header[3] << 20);
       }
-      if (literals_type == 1) {
-        *h_compressed_size = 1;
-      }
-    }
-    // Redundant legacy parsing removed. RFC 8878 logic below handles Type 2/3.
+      *h_compressed_size =
+          (literals_type == 0) ? *h_decompressed_size : static_cast<u32>(1);
 
-    if (literals_type == 0) { // Raw
-      *h_compressed_size = *h_decompressed_size;
       if (*h_header_size + *h_compressed_size > input_size) {
         return Status::ERROR_CORRUPT_DATA;
       }
-      if (*h_compressed_size > 0) {
-        CUDA_CHECK(cudaMemcpyAsync(output, input + *h_header_size,
-                                   *h_compressed_size, cudaMemcpyDeviceToDevice,
-                                   stream));
+
+      if (literals_type == 0) { // Raw
+        if (*h_compressed_size > 0) {
+          CUDA_CHECK(cudaMemcpyAsync(output, input + *h_header_size,
+                                     *h_compressed_size, cudaMemcpyDefault,
+                                     stream));
+        }
+        return Status::SUCCESS;
       }
-      return Status::SUCCESS;
-    } else if (literals_type == 1) { // RLE
-      *h_compressed_size = 1;
-      if (*h_header_size + *h_compressed_size > input_size) {
-        return Status::ERROR_CORRUPT_DATA;
-      }
+
+      // RLE
       unsigned char rle_value = h_header[*h_header_size];
       const u32 threads = 256;
       const u32 blocks = (*h_decompressed_size + threads - 1) / threads;
-      expand_rle_kernel<<<blocks, threads, 0, stream>>>(
-          output, *h_decompressed_size, rle_value);
+      if (blocks > 0) {
+        expand_rle_kernel<<<blocks, threads, 0, stream>>>(
+            output, *h_decompressed_size, rle_value);
+      }
       return Status::SUCCESS;
     }
 
-    // RFC 8878 Section 3.1.1.3: Compressed Literals Block
-    // Bits 0-1: Block_Type (2 or 3)
-    // Bits 2-3: Size_Format
-    // size_format already computed at top
-
-    if (size_format == 0) {
-      // Format 00: Single Stream. Header uses 3 bytes?
-      // Wait, RFC Table 7 is ambiguous, but reference implementation:
-      // Case 0: 3 bytes. RegenSize (10 bits), CompressedSize (10 bits).
+    // Compressed (type 2) or Treeless (type 3)
+    u32 lhc = read_le32(h_header);
+    if (size_format == 0 || size_format == 1) {
       *h_header_size = 3;
-      // RegenSize: 4 bits from H[0]>>4, 6 bits from H[1].
-      *h_decompressed_size =
-          ((h_header[0] >> 4) & 0x0F) | ((h_header[1] & 0x3F) << 4);
-      // CompressedSize: 2 bits from H[1]>>6, 8 bits from H[2].
-      *h_compressed_size = ((h_header[1] >> 6) & 0x03) | (h_header[2] << 2);
-    } else if (size_format == 1) {
-      // Format 01: 4 Stream. Header uses 3 bytes.
-      // RegenSize (10 bits), CompressedSize (10 bits).
-      *h_header_size = 3;
-      // Same layout as Case 0? RFC says "Same as Case 0".
-      *h_decompressed_size =
-          ((h_header[0] >> 4) & 0x0F) | ((h_header[1] & 0x3F) << 4);
-      *h_compressed_size = ((h_header[1] >> 6) & 0x03) | (h_header[2] << 2);
+      *h_decompressed_size = (lhc >> 4) & 0x3FF;
+      *h_compressed_size = (lhc >> 14) & 0x3FF;
     } else if (size_format == 2) {
-      // Format 10: 4 Stream. Header uses 4 bytes.
-      // RegenSize (14 bits), CompressedSize (14 bits).
+      if (input_size < 4)
+        return Status::ERROR_CORRUPT_DATA;
       *h_header_size = 4;
-      // RegenSize: 4 bits H[0]>>4, 8 bits H[1], 2 bits H[2]&3.
-      *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) | (h_header[1] << 4) |
-                             ((h_header[2] & 0x03) << 12);
-      // CompressedSize: 6 bits H[2]>>2, 8 bits H[3].
-      *h_compressed_size = ((h_header[2] >> 2) & 0x3F) | (h_header[3] << 6);
+      *h_decompressed_size = (lhc >> 4) & 0x3FFF;
+      *h_compressed_size = (lhc >> 18) & 0x3FFF;
     } else { // size_format == 3
-      // Format 11: 4 Stream. Header uses 5 bytes.
-      // RegenSize (18 bits), CompressedSize (18 bits).
+      if (input_size < 5)
+        return Status::ERROR_CORRUPT_DATA;
       *h_header_size = 5;
-      // RegenSize: 4 bits H[0]>>4, 8 bits H[1], 6 bits H[2]&63.
-      *h_decompressed_size = ((h_header[0] >> 4) & 0x0F) | (h_header[1] << 4) |
-                             ((h_header[2] & 0x3F) << 12);
-      // CompressedSize: 2 bits H[2]>>6, 8 bits H[3], 8 bits H[4].
-      *h_compressed_size = ((h_header[2] >> 6) & 0x03) | (h_header[3] << 2) |
-                           (h_header[4] << 10);
+      *h_decompressed_size = (lhc >> 4) & 0x3FFFF;
+      *h_compressed_size = ((lhc >> 22) & 0x3FF) | ((u32)h_header[4] << 10);
     }
 
     if (*h_header_size + *h_compressed_size > input_size)
       return Status::ERROR_CORRUPT_DATA;
 
-    const unsigned char *d_data_start = input + *h_header_size;
+    printf("[LITERALS] type=%u header_size=%u regen=%u comp=%u\n",
+           literals_type, *h_header_size, *h_decompressed_size,
+           *h_compressed_size);
+    fflush(stdout);
+
+      const unsigned char *d_data_start = input + *h_header_size;
 
     // RFC 8878 Section 3.1.1.3:
     // - Type 2: Compressed_Literals_Block (Huffman with embedded tree)
@@ -5555,7 +5522,10 @@ private:
 
     // Use RFC 8878-compliant Huffman decoder for standard Zstandard
     // format size_format >= 1 means 4-stream format
-    bool four_streams = (size_format >= 1);
+    bool four_streams = (size_format != 0);
+    printf("[LITERALS] decoding Huffman: four_streams=%d, regen=%u, comp=%u\n",
+           four_streams, *h_decompressed_size, *h_compressed_size);
+    fflush(stdout);
     size_t h_huff_output_size = 0;
     return huffman::decode_huffman_rfc8878(
         d_data_start, *h_compressed_size, output, &h_huff_output_size,
@@ -5565,63 +5535,44 @@ private:
   Status decompress_sequences(const unsigned char *input, u32 input_size,
                               sequence::SequenceContext *seq_ctx,
                               u32 total_literal_count, cudaStream_t stream) {
+    printf("[DEBUG] decompress_sequences: total_literal_count=%u, input_size=%u\n", total_literal_count, input_size);
     if (input_size < 1) {
       seq_ctx->num_sequences = 0;
-      // (Debug print removed)
       return Status::SUCCESS;
     }
 
-    unsigned char h_header[5];
-    CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
-                          cudaMemcpyDeviceToHost));
-
-    // DEBUG: Show what header bytes were read
-    // printf("[DEBUG] decompress_sequences: input_size=%u, h_header=[%02X %02X %02X %02X %02X]\n",
-    //        input_size, h_header[0], h_header[1], h_header[2], h_header[3], h_header[4]);
-
     if (seq_ctx == nullptr) {
-      // fprintf(stderr, "[ERROR] seq_ctx is NULL!\n");
       return Status::ERROR_INVALID_PARAMETER;
     }
+
+    // Read header (max 3 bytes for num_sequences + 1 byte for modes)
+    unsigned char h_header[16];
+    CUDA_CHECK(cudaMemcpy(h_header, input, std::min(16u, input_size),
+                          cudaMemcpyDeviceToHost));
 
     u32 num_sequences = 0;
     u32 offset = 0;
 
-    if (h_header[0] == 0) {
-      // printf("[DEBUG] h_header[0]==0, setting num_sequences=0\n");
-      seq_ctx->num_sequences = 0;
-      return Status::SUCCESS;
-    } else if (h_header[0] < 128) {
+    if (h_header[0] < 128) {
       num_sequences = h_header[0];
-      // printf("[DEBUG] h_header[0] < 128: num_sequences=%u (header[0]=%u)\n", num_sequences, h_header[0]);
       offset = 1;
     } else if (h_header[0] < 255) {
-      if (input_size < 2) {
-        //         return Status::ERROR_CORRUPT_DATA;
-      }
-      num_sequences = ((h_header[0] - 128) << 8) + h_header[1];
-      // printf("[DEBUG] 128 <= h_header[0] < 255: num_sequences=%u (header=[%u,%u])\n",
-      //        num_sequences, h_header[0], h_header[1]);
+      num_sequences = ((u32)(h_header[0] - 128) << 8) + h_header[1];
       offset = 2;
     } else {
-      if (input_size < 3) {
-        //
-        return Status::ERROR_CORRUPT_DATA;
-      }
-      num_sequences = (h_header[1] << 8) + h_header[2] + 0x7F00;
-      // printf("[DEBUG] h_header[0]==255: num_sequences=%u (header=[%u,%u,%u])\n",
-      //        num_sequences, h_header[0], h_header[1], h_header[2]);
+      // 3-byte form: nSeq = byte1 + (byte2 << 8) + 0x7F00
+      num_sequences = (u32)h_header[1] + ((u32)h_header[2] << 8) + 0x7F00;
       offset = 3;
     }
 
+    printf("[DEBUG] decompress_sequences: num_sequences=%u, header_offset=%u\n", num_sequences, offset);
     seq_ctx->num_sequences = num_sequences;
-    // printf("[DECOMPRESS_SEQ] Set seq_ctx->num_sequences = %u\n", num_sequences);
-
     if (num_sequences == 0) {
       return Status::SUCCESS;
     }
+
     if (offset >= input_size) {
-      //       return Status::ERROR_CORRUPT_DATA;
+       return Status::ERROR_CORRUPT_DATA;
     }
 
     unsigned char fse_modes = h_header[offset];
@@ -5702,9 +5653,23 @@ private:
     u32 max_symbol = 0, table_log = 0;  // For mode 0 predefined tables
 
     // Helper to process headers logic (Skipping/Parsing)
+    auto decode_rle_value = [&](u32 *out_value) -> Status {
+      if (offset + 1 > input_size)
+        return Status::ERROR_CORRUPT_DATA;
+      unsigned char val;
+      CUDA_CHECK(cudaMemcpy(&val, input + offset, 1, cudaMemcpyDeviceToHost));
+      offset++;
+      *out_value = val;
+      return Status::SUCCESS;
+    };
+
+    u32 ll_rle_value = 0;
+    u32 of_rle_value = 0;
+    u32 ml_rle_value = 0;
+
     // 1. Literal Lengths
     if (ll_mode == 0) { // Predefined
-      const u16 *norm = fse::get_predefined_norm(fse::TableType::LITERALS, &max_symbol, &table_log);
+        const u16 *norm = fse::get_predefined_norm(fse::TableType::LITERALS, &max_symbol, &table_log);
       ll_table_obj.table_log = table_log;
       ll_table_obj.table_size = 1u << table_log;
       ll_table_obj.newState = new u16[1u << table_log];
@@ -5713,16 +5678,10 @@ private:
       Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ll_table_obj);
       if (st != Status::SUCCESS) return st;
       p_ll_table = &ll_table_obj;
-    } else if (ll_mode == 1) { // RLE
-      if (offset + 1 > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-      unsigned char val;
-      CUDA_CHECK(cudaMemcpy(&val, input + offset, 1, cudaMemcpyDeviceToHost));
-      offset++;
-      // Convert FSE code to actual literal length base value
-      u32 ll_value = sequence::ZstdSequence::get_lit_len(val);
-      expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
-          seq_ctx->d_literal_lengths, num_sequences, ll_value);
+    } else if (ll_mode == 1) {
+      Status st = decode_rle_value(&ll_rle_value);
+      if (st != Status::SUCCESS)
+        return st;
     } else if (ll_mode == 2) { // Compressed (Table)
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
@@ -5756,16 +5715,9 @@ private:
 
     // 2. Offsets
     if (of_mode == 1) { // RLE
-      if (offset + 1 > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-      unsigned char val;
-      CUDA_CHECK(cudaMemcpy(&val, input + offset, 1, cudaMemcpyDeviceToHost));
-      offset++;
-      // Convert offset code to actual offset value (no extra bits for
-      // RLE) RFC 8878: Offset_Value = (1 << Offset_Code) + Extra_Bits
-      u32 of_value = (1u << val);
-      expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
-          seq_ctx->d_offsets, num_sequences, of_value);
+      Status st = decode_rle_value(&of_rle_value);
+      if (st != Status::SUCCESS)
+        return st;
     } else if (of_mode == 0) { // Predefined
       const u16 *norm = fse::get_predefined_norm(fse::TableType::OFFSETS, &max_symbol, &table_log);
       of_table_obj.table_log = table_log;
@@ -5809,19 +5761,9 @@ private:
 
     // 3. Match Lengths
     if (ml_mode == 1) { // RLE
-      if (offset + 1 > input_size)
-        return Status::ERROR_CORRUPT_DATA;
-      unsigned char val;
-      CUDA_CHECK(cudaMemcpy(&val, input + offset, 1, cudaMemcpyDeviceToHost));
-      offset++;
-      // Convert FSE code to actual match length value (no extra bits
-      // for RLE) RFC 8878 Table 9: code < 32 -> value = code + 3
-      //                   code >= 32 -> value = base (from table)  +
-      //                   extra_bits (no extra bits for RLE)
-      // Convert FSE code to actual match length base value
-      u32 ml_value = sequence::ZstdSequence::get_match_len(val);
-      expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
-          seq_ctx->d_match_lengths, num_sequences, ml_value);
+      Status st = decode_rle_value(&ml_rle_value);
+      if (st != Status::SUCCESS)
+        return st;
     } else if (ml_mode == 0) { // Predefined
       const u16 *norm = fse::get_predefined_norm(fse::TableType::MATCH_LENGTHS, &max_symbol, &table_log);
       ml_table_obj.table_log = table_log;
@@ -5881,11 +5823,12 @@ private:
       // Predefined verification logic removed
     }
 
-    Status status = fse::decode_sequences_interleaved(
+    Status status = fse::decode_sequences_interleaved_rfc(
         input + offset, input_size - offset, num_sequences,
         seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
         seq_ctx->d_match_lengths, ll_mode, of_mode, ml_mode, p_ll_table,
-        p_of_table, p_ml_table, total_literal_count, stream);
+        p_of_table, p_ml_table, ll_rle_value, of_rle_value, ml_rle_value,
+        total_literal_count, stream);
 
     if (p_ll_table) {
       if (p_ll_table->newState) delete[] p_ll_table->newState;

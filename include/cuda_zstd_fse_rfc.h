@@ -269,6 +269,9 @@ __host__ Status decode_sequences_interleaved_rfc(
     const FSEDecodeTable *ll_table,
     const FSEDecodeTable *of_table,
     const FSEDecodeTable *ml_table,
+    u32 ll_rle_value,
+    u32 of_rle_value,
+    u32 ml_rle_value,
     u32 literals_limit,
     cudaStream_t stream
 );

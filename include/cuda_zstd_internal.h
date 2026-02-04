@@ -276,63 +276,38 @@ struct ZstdSequence {
       return (length - 3);
 
     // RFC 8878 Table 17 mapping
-    if (length <= 36)
-      return 32;
-    if (length <= 38)
-      return 33;
-    if (length <= 40)
-      return 34;
-    if (length <= 42)
-      return 35;
-    if (length <= 46)
-      return 36;
-    if (length <= 50)
-      return 37;
-    if (length <= 58)
-      return 38;
-    if (length <= 66)
-      return 39;
-    if (length <= 82)
-      return 40;
-    if (length <= 98)
-      return 41;
-    if (length <= 130)
-      return 42;
-    if (length <= 162)
-      return 43;
-    if (length <= 226)
-      return 44;
-    if (length <= 290)
-      return 45;
-    if (length <= 418)
-      return 46;
-    if (length <= 546)
-      return 47;
-    if (length <= 802)
-      return 48;
-    if (length <= 1058)
-      return 49;
-    if (length <= 1570)
-      return 50;
-    if (length <= 2082)
-      return 51;
+    if (length <= 36) return 32;
+    if (length <= 38) return 33;
+    if (length <= 40) return 34;
+    if (length <= 42) return 35;
+    if (length <= 46) return 36;
+    if (length <= 50) return 37;
+    if (length <= 58) return 38;
+    if (length <= 66) return 39;
+    if (length <= 82) return 40;
+    if (length <= 98) return 41;
+    if (length <= 130) return 42;
+    if (length <= 162) return 43;
+    if (length <= 226) return 44;
+    if (length <= 290) return 45;
+    if (length <= 418) return 46;
+    if (length <= 546) return 47;
+    if (length <= 802) return 48;
+    if (length <= 1058) return 49;
+    if (length <= 1570) return 50;
+    if (length <= 2082) return 51;
     return 52;
   }
 
   __device__ __host__ static __forceinline__ u32 get_offset_code(u32 offset) {
-    // Zstandard Offset Codes (Raw Offsets, no RepCodes support in this simple function)
-    // Offset 1 -> Code 3
-    // Offset O -> Code = MSB(O) + 3
-    if (offset == 0) return 0; // Should not happen
-    
-    // Calculate MSB (0-based index of highest set bit)
-    // For offset=1 (1), MSB=0 -> Code=3
-    // For offset=256 (100000000), MSB=8 -> Code=11
-    u32 msb = 31 - clz_impl(offset);
-    return msb + 3;
+    // RFC 8878 Section 3.1.1.1.3: Offset_Value = Offset + 3
+    // Offset_Code = floor(log2(Offset_Value))
+    u32 offset_val = offset + 3;
+    if (offset_val == 0) return 0;
+    return 31 - clz_impl(offset_val);
   }
 
-  // --- Base Values (RFC 8878 Tables 9, 11, 13) ---
+  // --- Base Values (RFC 8878 Tables 16, 17, 18) ---
 
   __device__ __host__ static __forceinline__ u32 get_lit_len(u32 code) {
     if (code < 16)
@@ -348,12 +323,7 @@ struct ZstdSequence {
 
   __device__ __host__ static __forceinline__ u32
   get_ll_base_predefined(u32 code) {
-    // RFC 8878 Appendix A.1
-    static const u32 LL_base_predefined[36] = {
-        0,  1,  2,   3,   4,   5,    6,    7,    8,    9,     10,    11,
-        12, 13, 14,  15,  16,  18,   20,   22,   24,   28,    32,    40,
-        48, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
-    return (code < 36) ? LL_base_predefined[code] : 0;
+    return get_lit_len(code);
   }
 
   __device__ __host__ static __forceinline__ u32 get_match_len(u32 code) {
@@ -363,22 +333,17 @@ struct ZstdSequence {
     static const u32 ML_base[53] = {
         3,  4,   5,   6,   7,   8,   9,   10,  11,   12,   13,  14, 15, 16,
         17, 18,  19,  20,  21,  22,  23,  24,  25,   26,   27,  28, 29, 30,
-        31, 32,  33,  34,  35,  37,  39,  41,  43,   47,   51,  59, 67, 83,
-        93, 125, 157, 221, 349, 605, 1117, 2141, 4189, 8285, 16477};
+        31, 32,  33,  34,  // 0-31
+        35, 37,  39,  41,  // 32-35
+        43, 47,  // 36-37
+        51, 59,  // 38-39
+        67, 83,  99,  131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
     return (code < 53) ? ML_base[code] : 0;
   }
 
   __device__ __host__ static __forceinline__ u32
   get_ml_base_predefined(u32 code) {
-    if (code < 32)
-      return code + 3;
-    // RFC 8878 Appendix A.2
-    static const u32 ML_base_predefined[53] = {
-        3,  4,   5,   6,   7,   8,   9,   10,  11,   12,   13,  14, 15, 16,
-        17, 18,  19,  20,  21,  22,  23,  24,  25,   26,   27,  28, 29, 30,
-        31, 32,  33,  34,  35,  37,  39,  41,  43,   47,   51,  59, 67, 83,
-        93, 125, 157, 221, 349, 605, 1117, 2141, 4189, 8285, 16477};
-    return (code < 53) ? ML_base_predefined[code] : 0;
+    return get_match_len(code);
   }
 
   // --- Extra Bits (RFC 8878 Tables 10, 12, 14) ---
@@ -423,26 +388,18 @@ struct ZstdSequence {
 
   __device__ __host__ static __forceinline__ u32
   get_offset_code_extra_bits(u32 code) {
-    // Table 14: Code 3->0, 4->1, 5->2... => Code - 3
-    if (code < 3)
-      return 0;
-    return code - 3;
+    return code; // Extra bits = Offset_Code
   }
 
   __device__ __host__ static __forceinline__ u32
   get_offset_extra_bits(u32 offset, u32 code) {
-    // encoding: extra = offset - base
-    // base = 1 << (code - 3)
-    if (code < 3)
-      return 0;
-    return offset - (1u << (code - 3));
+    u32 offset_val = offset + 3;
+    return offset_val - (1u << code);
   }
 
   __device__ __host__ static __forceinline__ u32 get_offset(u32 code) {
-    if (code < 3)
-      return 1;
-    // For OF_Code >= 3: baseline = 1 << (code - 3)
-    return 1u << (code - 3);
+    // Returns Offset_Value baseline (1 << code)
+    return 1u << code;
   }
 
   __device__ __host__ static __forceinline__ u32

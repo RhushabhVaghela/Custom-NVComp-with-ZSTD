@@ -39,6 +39,7 @@ bool test_gpu_compress_cpu_decompress(size_t input_size, int level) {
   for (size_t i = 0; i < input_size; i++)
     h_input[i] = (uint8_t)(i % 256);
 
+
   uint8_t *d_input, *d_output;
   CUDA_CHECK_INT(cudaMalloc(&d_input, input_size));
   CUDA_CHECK_INT(cudaMalloc(&d_output, input_size * 2));
@@ -106,6 +107,7 @@ bool test_cpu_compress_gpu_decompress(size_t input_size, int level) {
   for (size_t i = 0; i < input_size; i++)
     h_input[i] = (uint8_t)(i % 256);
 
+
   size_t max_comp = ZSTD_compressBound(input_size);
   std::vector<uint8_t> h_compressed(max_comp);
   size_t compressed_size = ZSTD_compress(h_compressed.data(), max_comp,
@@ -137,13 +139,14 @@ bool test_cpu_compress_gpu_decompress(size_t input_size, int level) {
   CUDA_CHECK_INT(cudaMalloc(&d_input, compressed_size));
   CUDA_CHECK_INT(cudaMalloc(&d_output, input_size));
   // Write compressed data to file for debugging
-  if (input_size == 1048576) {
-    FILE *f = fopen("debug_1mb_cpu.zst", "wb");
+  {
+    FILE *f = fopen("debug_1024_cpu.zst", "wb");
     if (f) {
       fwrite(h_compressed.data(), 1, compressed_size, f);
       fclose(f);
     }
   }
+
   CUDA_CHECK_INT(cudaMemcpy(d_input, h_compressed.data(), compressed_size,
                             cudaMemcpyHostToDevice));
 

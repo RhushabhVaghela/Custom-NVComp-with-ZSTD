@@ -174,9 +174,9 @@ __device__ __forceinline__ u32 get_actual_offset(
       } else {
         // rep_1 used, no changes needed for rep_1, but others shift?
         // Actually Zstd says: "if offset_rep == 1, no changes to repCodes"
-        // Wait, let me check.
       }
     } else if (offset_rep == REPEAT_OFFSET_2) {
+      state.rep_3 = state.rep_2; // Added
       state.rep_2 = state.rep_1;
       state.rep_1 = actual_offset;
     } else { // REPEAT_OFFSET_3
