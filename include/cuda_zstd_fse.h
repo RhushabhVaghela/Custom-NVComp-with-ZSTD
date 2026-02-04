@@ -80,6 +80,8 @@ struct alignas(16) FSEDecodeTable {
   u16 *newState;
   u8 *symbol;
   u8 *nbBits;
+  u8 *nbAdditionalBits;
+  u32 *baseValue;
   u32 table_log;
   u32 table_size;
 };
@@ -147,6 +149,8 @@ struct FSEDecodeContext {
   void *d_newState = nullptr;
   void *d_symbol = nullptr;
   void *d_nbBits = nullptr;
+  void *d_nbAdditionalBits = nullptr;
+  void *d_baseValue = nullptr;
   size_t table_capacity = 0; // Number of elements (max symbol/table size)
 
   // Chunk Data
@@ -165,6 +169,10 @@ struct FSEDecodeContext {
       cudaFree(d_symbol);
     if (d_nbBits)
       cudaFree(d_nbBits);
+    if (d_nbAdditionalBits)
+      cudaFree(d_nbAdditionalBits);
+    if (d_baseValue)
+      cudaFree(d_baseValue);
     if (d_chunk_counts)
       cudaFree(d_chunk_counts);
     if (d_chunk_offsets)
@@ -174,6 +182,8 @@ struct FSEDecodeContext {
     d_newState = nullptr;
     d_symbol = nullptr;
     d_nbBits = nullptr;
+    d_nbAdditionalBits = nullptr;
+    d_baseValue = nullptr;
     d_chunk_counts = nullptr;
     d_chunk_offsets = nullptr;
     d_normalized = nullptr;

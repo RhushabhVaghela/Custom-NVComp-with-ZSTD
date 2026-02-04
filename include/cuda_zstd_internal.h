@@ -88,6 +88,7 @@ struct FSEBitStreamReader {
   i32 bits_remaining;
   u32 bit_pos;     // For tracking total bits read
   u32 stream_size; // TRACKING BOUNDS
+  u8 sentinel_bit;
 
   __device__ __host__ static __forceinline__ u32 bswap32(u32 x) {
 #ifdef __CUDA_ARCH__
@@ -104,13 +105,15 @@ struct FSEBitStreamReader {
 
   __device__ __host__ FSEBitStreamReader()
       : stream_start(nullptr), stream_ptr(nullptr), bit_container(0),
-        bits_remaining(0), bit_pos(0), stream_size(0) {}
+        bits_remaining(0), bit_pos(0), stream_size(0), sentinel_bit(0) {}
 
   __device__ __host__ FSEBitStreamReader(const unsigned char *input,
-                                         u32 start_bit_pos, u32 size) {
+                                         u32 start_bit_pos, u32 size,
+                                         u8 sentinel_bit_pos = 0) {
     bit_pos = start_bit_pos;
     stream_start = input;
     stream_size = size;
+    sentinel_bit = sentinel_bit_pos;
     // Align to byte boundary
     // Align to byte boundary
     // u32 byte_off = bit_pos / 8; // Unused
@@ -124,9 +127,11 @@ struct FSEBitStreamReader {
   }
 
   __device__ __host__ void init_at_bit(const unsigned char *input,
-                                       u32 start_bit_pos) {
+                                       u32 start_bit_pos,
+                                       u8 sentinel_bit_pos = 0) {
     bit_pos = start_bit_pos;
     stream_start = input;
+    sentinel_bit = sentinel_bit_pos;
   }
 
   __device__ __host__ void set_stream_size(u32 size) { stream_size = size; }
@@ -162,30 +167,23 @@ struct FSEBitStreamReader {
     if (bit_pos < num_bits)
       return 0; // Should not happen in valid stream
 
-    // Encoder uses MSB-first bit packing within a big-endian byte stream.
-    // bit_pos is the position of the NEXT bit to read (counting from bit 0 = LSB of byte 0).
-    // We read `num_bits` bits starting just BELOW bit_pos.
-    // 
-    // Example: bit_pos=18, num_bits=6
-    //   We read bits 17,16,15,14,13,12 (MSB to LSB of the value)
-    //   These are at positions 12-17 in the stream
-    
+    u32 end_pos = bit_pos;
     bit_pos -= num_bits;
-    
-    // Now bit_pos points to the LSB of the value we want to read.
-    // The value spans bits [bit_pos, bit_pos + num_bits - 1]
-    
-    u32 byte_start = bit_pos / 8;
-    u32 bit_start = bit_pos % 8;
-    
-    // Load up to 8 bytes to cover all bits we need
-    u64 data = 0;
-    for (int i = 0; i < 8 && (byte_start + i) < stream_size; ++i) {
-      data |= ((u64)stream_start[byte_start + i] << (i * 8));
+    u32 val = 0;
+    u32 out = 0;
+    for (u32 pos = end_pos; pos-- > bit_pos;) {
+      u32 byte_idx = pos / 8;
+      u32 bit_idx = pos % 8;
+      if (byte_idx >= stream_size)
+        break;
+      u32 bit = (stream_start[byte_idx] >> bit_idx) & 1u;
+      val = (val << 1) | bit;
+      out++;
     }
-    
-    // Extract bits starting at bit_start
-    u32 val = (u32)((data >> bit_start) & ((1ULL << num_bits) - 1));
+
+    if (end_pos / 8 == stream_size - 1 && sentinel_bit != 0 && end_pos >= 8) {
+      val >>= (8 - sentinel_bit);
+    }
     return val;
   }
 
@@ -195,17 +193,23 @@ struct FSEBitStreamReader {
     if (bit_pos < num_bits)
       return 0;
 
-    // Peek at bits without modifying bit_pos
-    u32 temp_pos = bit_pos - num_bits;
-    u32 byte_start = temp_pos / 8;
-    u32 bit_start = temp_pos % 8;
-
-    u64 data = 0;
-    for (int i = 0; i < 8 && (byte_start + i) < stream_size; ++i) {
-      data |= ((u64)stream_start[byte_start + i] << (i * 8));
+    u32 end_pos = bit_pos;
+    u32 start_pos = bit_pos - num_bits;
+    u32 val = 0;
+    u32 out = 0;
+    for (u32 pos = end_pos; pos-- > start_pos;) {
+      u32 byte_idx = pos / 8;
+      u32 bit_idx = pos % 8;
+      if (byte_idx >= stream_size)
+        break;
+      u32 bit = (stream_start[byte_idx] >> bit_idx) & 1u;
+      val = (val << 1) | bit;
+      out++;
     }
 
-    u32 val = (u32)((data >> bit_start) & ((1ULL << num_bits) - 1));
+    if (end_pos / 8 == stream_size - 1 && sentinel_bit != 0 && end_pos >= 8) {
+      val >>= (8 - sentinel_bit);
+    }
     return val;
   }
 };
@@ -321,6 +325,12 @@ struct ZstdSequence {
     return (code < 36) ? LL_base[code] : 0;
   }
 
+  static constexpr u32 LL_base_table[36] = {
+      0,   1,   2,   3,    4,    5,    6,    7,     8,     9,
+      10,  11,  12,  13,   14,   15, // 0-15
+      16,  18,  20,  22,   24,   28,   32,   40,    48,    64,
+      128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
+
   __device__ __host__ static __forceinline__ u32
   get_ll_base_predefined(u32 code) {
     return get_lit_len(code);
@@ -340,6 +350,15 @@ struct ZstdSequence {
         67, 83,  99,  131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
     return (code < 53) ? ML_base[code] : 0;
   }
+
+  static constexpr u32 ML_base_table[53] = {
+      3,  4,   5,   6,   7,   8,   9,   10,  11,   12,   13,  14, 15, 16,
+      17, 18,  19,  20,  21,  22,  23,  24,  25,   26,   27,  28, 29, 30,
+      31, 32,  33,  34,
+      35, 37,  39,  41,
+      43, 47,
+      51, 59,
+      67, 83,  99,  131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
 
   __device__ __host__ static __forceinline__ u32
   get_ml_base_predefined(u32 code) {
@@ -364,6 +383,14 @@ struct ZstdSequence {
     return (code < 36) ? LL_bits[code] : 0;
   }
 
+  static constexpr u8 LL_bits_table[36] = {
+      0, 0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,
+      1, 1, 1, 1,
+      2, 2,
+      3, 3,
+      4, 6,
+      7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+
   __device__ __host__ static __forceinline__ u32
   get_match_len_extra_bits(u32 code) {
     if (code < 32)
@@ -376,20 +403,41 @@ struct ZstdSequence {
         2, 2,                                           // 36-37
         3, 3,                                           // 38-39
         4, 4,                                           // 40-41
-        5, 5,                                           // 42-43
-        6, 6,                                           // 44-45
-        7, 7,                                           // 46-47
-        8, 8,                                           // 48-49
-        9, 9,                                           // 50-51
+        5, 7,                                           // 42-43
+        8, 9,                                           // 44-45
+        10, 11,                                         // 46-47
+        12, 13,                                         // 48-49
+        14, 15,                                         // 50-51
         16                                              // 52
     };
     return (code < 53) ? ML_bits[code] : 0;
   }
 
+  static constexpr u8 ML_bits_table[53] = {
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      1, 1, 1, 1, 2, 2, 3, 3,
+      4, 4, 5, 7, 8, 9, 10, 11,
+      12, 13, 14, 15, 16};
+
   __device__ __host__ static __forceinline__ u32
   get_offset_code_extra_bits(u32 code) {
     return code; // Extra bits = Offset_Code
   }
+
+  static constexpr u32 OF_base_table[29] = {
+      0,        1,       1,       5,     0xD,     0x1D,     0x3D,     0x7D,
+      0xFD,   0x1FD,   0x3FD,   0x7FD,   0xFFD,   0x1FFD,   0x3FFD,   0x7FFD,
+      0xFFFD, 0x1FFFD, 0x3FFFD, 0x7FFFD, 0xFFFFD, 0x1FFFFD, 0x3FFFFD, 0x7FFFFD,
+      0xFFFFFD, 0x1FFFFFD, 0x3FFFFFD, 0x7FFFFFD, 0xFFFFFFD};
+
+  static constexpr u8 OF_bits_table[29] = {
+      0,  1,  2,  3,  4,  5,  6,  7,
+      8,  9, 10, 11, 12, 13, 14, 15,
+      16, 17, 18, 19, 20, 21, 22, 23,
+      24, 25, 26, 27, 28};
 
   __device__ __host__ static __forceinline__ u32
   get_offset_extra_bits(u32 offset, u32 code) {

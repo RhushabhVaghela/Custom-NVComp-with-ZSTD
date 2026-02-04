@@ -418,11 +418,16 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   h_dtable.symbol = new u8[table_size];
   h_dtable.nbBits = new u8[table_size];
   h_dtable.newState = new u16[table_size];
+  h_dtable.nbAdditionalBits = new u8[table_size];
+  h_dtable.baseValue = new u32[table_size];
 
-  if (!h_dtable.symbol || !h_dtable.nbBits || !h_dtable.newState) {
+  if (!h_dtable.symbol || !h_dtable.nbBits || !h_dtable.newState ||
+      !h_dtable.nbAdditionalBits || !h_dtable.baseValue) {
     delete[] h_dtable.symbol;
     delete[] h_dtable.nbBits;
     delete[] h_dtable.newState;
+    delete[] h_dtable.nbAdditionalBits;
+    delete[] h_dtable.baseValue;
     return Status::ERROR_OUT_OF_MEMORY;
   }
 
@@ -433,6 +438,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
     delete[] h_dtable.symbol;
     delete[] h_dtable.nbBits;
     delete[] h_dtable.newState;
+    delete[] h_dtable.nbAdditionalBits;
+    delete[] h_dtable.baseValue;
     return status;
   }
 
@@ -452,6 +459,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
       delete[] h_dtable.symbol;
       delete[] h_dtable.nbBits;
       delete[] h_dtable.newState;
+      delete[] h_dtable.nbAdditionalBits;
+      delete[] h_dtable.baseValue;
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -487,6 +496,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   delete[] h_dtable.symbol;
   delete[] h_dtable.nbBits;
   delete[] h_dtable.newState;
+  delete[] h_dtable.nbAdditionalBits;
+  delete[] h_dtable.baseValue;
 
   if (mismatch) {
     return Status::ERROR_CORRUPT_DATA;
@@ -1267,7 +1278,8 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
 
   // CRITICAL: Caller MUST pre-allocate these arrays before calling this function
   // We do NOT allocate here to avoid pointer replacement issues
-  if (!h_table.symbol || !h_table.nbBits || !h_table.newState) {
+  if (!h_table.symbol || !h_table.nbBits || !h_table.newState ||
+      !h_table.nbAdditionalBits || !h_table.baseValue) {
     printf("[ERROR] FSE_buildDTable_Host: Arrays not pre-allocated!\n");
     return Status::ERROR_INVALID_PARAMETER;
   }
@@ -1302,6 +1314,25 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
   // Build DTable using official Zstd formula
   printf("[BUILD] Building table: size=%u, log=%u, max_sym=%u\n", 
          table_size, table_log, max_symbol);
+
+  const u32 *base_table = nullptr;
+  const u8 *bits_table = nullptr;
+  switch (max_symbol) {
+  case 35:
+    base_table = sequence::ZstdSequence::LL_base_table;
+    bits_table = sequence::ZstdSequence::LL_bits_table;
+    break;
+  case 52:
+    base_table = sequence::ZstdSequence::ML_base_table;
+    bits_table = sequence::ZstdSequence::ML_bits_table;
+    break;
+  case 28:
+    base_table = sequence::ZstdSequence::OF_base_table;
+    bits_table = sequence::ZstdSequence::OF_bits_table;
+    break;
+  default:
+    break;
+  }
   
   for (u32 state = 0; state < table_size; state++) {
     u8 symbol = spread_symbol[state];
@@ -1333,6 +1364,13 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
     h_table.symbol[state] = symbol;
     h_table.nbBits[state] = (u8)nbBits;
     h_table.newState[state] = newState;
+    if (base_table && bits_table && symbol <= max_symbol) {
+      h_table.nbAdditionalBits[state] = bits_table[symbol];
+      h_table.baseValue[state] = base_table[symbol];
+    } else {
+      h_table.nbAdditionalBits[state] = 0;
+      h_table.baseValue[state] = 0;
+    }
     
     // DEBUG: Verify write worked
     if (state == 1) {
@@ -2489,11 +2527,13 @@ extern const i16 default_of_norm[29] = {1, 1, 1, 1, 1,  1,  2,  2,  2, 1,
 // ML Distribution (Total 53) - RFC 8878
 // Table 3: Default FSE distribution for Match Lengths (ML)
 extern const i16 default_ml_norm[53] = {
-    1,  4,  3,  2,  2,  2,  2,  2,  2, // 0-8
-    1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-    1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, // 9-31
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1 // 32-52
+    1, 4, 3, 2, 2, 2, 2, 2,
+    2, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, -1, -1,
+    -1, -1, -1, -1, -1
 };
 
 } // namespace predefined
@@ -3568,13 +3608,17 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     h_table.newState = new u16[table_size];
     h_table.symbol = new u8[table_size];
     h_table.nbBits = new u8[table_size];
+    h_table.nbAdditionalBits = new u8[table_size];
+    h_table.baseValue = new u32[table_size];
 
     Status status =
-        FSE_buildDTable_Internal(h_normalized, max_symbol, table_size, h_table);
+        FSE_buildDTable_Host(h_normalized, max_symbol, table_size, h_table);
     if (status != Status::SUCCESS) {
       delete[] h_table.newState;
       delete[] h_table.symbol;
       delete[] h_table.nbBits;
+      delete[] h_table.nbAdditionalBits;
+      delete[] h_table.baseValue;
       return status;
     }
 
@@ -3665,6 +3709,8 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
   } else {
     // === GPU PARALLEL PATH ===
     u32 table_size = 1u << table_log;
@@ -3692,10 +3738,17 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     h_table.newState = new u16[table_size];
     h_table.symbol = new u8[table_size];
     h_table.nbBits = new u8[table_size];
+    h_table.nbAdditionalBits = new u8[table_size];
+    h_table.baseValue = new u32[table_size];
 
-    Status build_status = FSE_buildDTable_Internal(
+    Status build_status = FSE_buildDTable_Host(
         h_normalized.data(), max_symbol, table_size, h_table);
     if (build_status != Status::SUCCESS) {
+      delete[] h_table.newState;
+      delete[] h_table.symbol;
+      delete[] h_table.nbBits;
+      delete[] h_table.nbAdditionalBits;
+      delete[] h_table.baseValue;
       return build_status;
     }
 
@@ -3713,18 +3766,28 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
           cudaFree(ctx->d_symbol);
         if (ctx->d_nbBits)
           cudaFree(ctx->d_nbBits);
+        if (ctx->d_nbAdditionalBits)
+          cudaFree(ctx->d_nbAdditionalBits);
+        if (ctx->d_baseValue)
+          cudaFree(ctx->d_baseValue);
         CUDA_CHECK(cudaMalloc(&ctx->d_newState, new_cap * sizeof(u16)));
         CUDA_CHECK(cudaMalloc(&ctx->d_symbol, new_cap * sizeof(u8)));
         CUDA_CHECK(cudaMalloc(&ctx->d_nbBits, new_cap * sizeof(u8)));
+        CUDA_CHECK(cudaMalloc(&ctx->d_nbAdditionalBits, new_cap * sizeof(u8)));
+        CUDA_CHECK(cudaMalloc(&ctx->d_baseValue, new_cap * sizeof(u32)));
         ctx->table_capacity = new_cap;
       }
       d_table.newState = (u16 *)ctx->d_newState;
       d_table.symbol = (u8 *)ctx->d_symbol;
       d_table.nbBits = (u8 *)ctx->d_nbBits;
+      d_table.nbAdditionalBits = (u8 *)ctx->d_nbAdditionalBits;
+      d_table.baseValue = (u32 *)ctx->d_baseValue;
     } else {
       CUDA_CHECK(cudaMalloc(&d_table.newState, table_size * sizeof(u16)));
       CUDA_CHECK(cudaMalloc(&d_table.symbol, table_size * sizeof(u8)));
       CUDA_CHECK(cudaMalloc(&d_table.nbBits, table_size * sizeof(u8)));
+      CUDA_CHECK(cudaMalloc(&d_table.nbAdditionalBits, table_size * sizeof(u8)));
+      CUDA_CHECK(cudaMalloc(&d_table.baseValue, table_size * sizeof(u32)));
     }
 
     // 4. Copy Host Table -> Device
@@ -3737,11 +3800,19 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     CUDA_CHECK(cudaMemcpyAsync(d_table.nbBits, h_table.nbBits,
                                table_size * sizeof(u8), cudaMemcpyHostToDevice,
                                stream));
+    CUDA_CHECK(cudaMemcpyAsync(d_table.nbAdditionalBits, h_table.nbAdditionalBits,
+                               table_size * sizeof(u8), cudaMemcpyHostToDevice,
+                               stream));
+    CUDA_CHECK(cudaMemcpyAsync(d_table.baseValue, h_table.baseValue,
+                               table_size * sizeof(u32), cudaMemcpyHostToDevice,
+                               stream));
 
     // Free host temporary table
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
 
     const unsigned char *d_bitstream = d_input + header_size;
     u32 bitstream_size_bytes = input_size - header_size;
@@ -3902,51 +3973,42 @@ __global__ void k_decode_sequences_interleaved(
     return;
   
   // Find sentinel bit (1) starting from the last byte
-  // The sentinel marks the end of the bitstream
-  // CRITICAL: Encoder uses MSB-first bit packing, so sentinel is the HIGHEST set bit
-  // in the last non-zero byte. Search from MSB to LSB.
-  u32 sentinel_pos = 0;
-  bool found_sentinel = false;
-  
-  for (int byte_idx = (int)bitstream_size - 1; byte_idx >= 0 && !found_sentinel; --byte_idx) {
-    u8 byte = bitstream[byte_idx];
-    if (byte == 0) continue;  // Skip zero bytes
-    // Search from MSB (bit 7) to LSB (bit 0) - encoder writes sentinel as MSB-first
-    for (int bit = 7; bit >= 0; --bit) {
-      if ((byte >> bit) & 1) {
-        sentinel_pos = byte_idx * 8 + bit;
-        found_sentinel = true;
-        break;
-      }
+  // The sentinel marks the end of the bitstream (highest set bit in last byte)
+  u8 last_byte = bitstream[bitstream_size - 1];
+  if (last_byte == 0) {
+    printf("[GPU ERROR] No sentinel bit found in bitstream of size %u\n", bitstream_size);
+    return;
+  }
+  u32 sentinel_bit = 0;
+  for (u32 bit = 7; bit > 0; --bit) {
+    if (last_byte & (1u << bit)) {
+      sentinel_bit = bit;
+      break;
     }
   }
-  
-  if (!found_sentinel) {
-    printf("[GPU ERROR] No sentinel bit found in bitstream of size %u\n", bitstream_size);
-    return; // Error: no sentinel bit found in stream
-  }
+  u32 sentinel_pos = (bitstream_size - 1) * 8u + sentinel_bit;
 
   // DEBUG: Dump bits around sentinel
-  printf("[GPU] Sentinel found at bit position %u (byte %u, bit %u)\n", 
+  printf("[GPU] Sentinel found at bit position %u (byte %u, bit %u)\n",
          sentinel_pos, sentinel_pos / 8, sentinel_pos % 8);
   printf("[GPU] Bitstream size: %u bytes (%u bits), num_sequences: %u\n",
          bitstream_size, bitstream_size * 8, num_sequences);
-  
+
   // Validate we have enough bits
   u32 total_bits_available = sentinel_pos;  // Bits from start to sentinel
   u32 min_bits_needed = num_sequences * 3;  // Minimum 3 bits per sequence (very conservative)
   if (total_bits_available < min_bits_needed) {
     printf("[GPU ERROR] Not enough bits! Available: %u, Need: %u (for %u sequences)\n",
            total_bits_available, min_bits_needed, num_sequences);
-    // Continue anyway to see what happens
   }
-  
+
   printf("[GPU] Dumping bytes around sentinel:\n");
   for (int i = (int)bitstream_size - 1; i >= 0 && i >= (int)bitstream_size - 8; --i) {
     printf("  Byte[%d] = %02X\n", i, bitstream[i]);
   }
 
-  sequence::FSEBitStreamReader reader(bitstream, sentinel_pos, bitstream_size);
+  sequence::FSEBitStreamReader reader(bitstream, sentinel_pos, bitstream_size,
+                                      (u8)sentinel_bit);
 
   // Calculate table sizes for bounds checking
   u32 ll_table_size = 1u << ll_table.table_log;
@@ -3978,15 +4040,15 @@ __global__ void k_decode_sequences_interleaved(
 
   printf("[GPU] Before reading initial states: bit_pos=%u\n", reader.bit_pos);
 
-  // Initial states were pushed LL -> OF -> ML, so we pop ML -> OF -> LL
-  if (decode_ml) {
-    stateML = reader.read(ml_table.table_log);
+  // Initial states were pushed ML -> OF -> LL, so we pop LL -> OF -> ML
+  if (decode_ll) {
+    stateLL = reader.read(ll_table.table_log);
   }
   if (decode_of) {
     stateOF = reader.read(of_table.table_log);
   }
-  if (decode_ll) {
-    stateLL = reader.read(ll_table.table_log);
+  if (decode_ml) {
+    stateML = reader.read(ml_table.table_log);
   }
 
   printf("[GPU] Sentinel: pos=%u, Byte0=%02X\n", sentinel_pos, bitstream[0]);
@@ -4065,13 +4127,16 @@ __global__ void k_decode_sequences_interleaved(
     u32 ll_extra = 0;
 
     if (decode_of) {
-      of_extra = sequence::ZstdSequence::get_offset_bits(of_sym, reader);
+      u8 nb = of_table.nbAdditionalBits[stateOF];
+      of_extra = nb ? reader.read(nb) : 0;
     }
     if (decode_ml) {
-      ml_extra = sequence::ZstdSequence::get_match_len_bits(ml_sym, reader);
+      u8 nb = ml_table.nbAdditionalBits[stateML];
+      ml_extra = nb ? reader.read(nb) : 0;
     }
     if (decode_ll) {
-      ll_extra = sequence::ZstdSequence::get_lit_len_bits(ll_sym, reader);
+      u8 nb = ll_table.nbAdditionalBits[stateLL];
+      ll_extra = nb ? reader.read(nb) : 0;
     }
 
     if (i > 0) {
@@ -4097,7 +4162,7 @@ __global__ void k_decode_sequences_interleaved(
     // LL Value
     u32 val_ll = 0;
     if (decode_ll || rle_ll) {
-        if (ll_mode == 0) val_ll = sequence::ZstdSequence::get_ll_base_predefined(ll_sym);
+        if (ll_mode == 0 && decode_ll) val_ll = ll_table.baseValue[stateLL];
         else val_ll = sequence::ZstdSequence::get_lit_len(ll_sym);
         val_ll += ll_extra;
         
@@ -4110,7 +4175,7 @@ __global__ void k_decode_sequences_interleaved(
     // ML Value
     u32 val_ml = 0;
     if (decode_ml || rle_ml) {
-        if (ml_mode == 0) val_ml = sequence::ZstdSequence::get_ml_base_predefined(ml_sym);
+        if (ml_mode == 0 && decode_ml) val_ml = ml_table.baseValue[stateML];
         else val_ml = sequence::ZstdSequence::get_match_len(ml_sym);
         val_ml += ml_extra;
         d_ml_out[i] = val_ml;
@@ -4119,11 +4184,11 @@ __global__ void k_decode_sequences_interleaved(
     // OF Value
     u32 val_of = 0;
     if (decode_of || rle_of) {
-        if (of_sym <= 2) {
+        if (decode_of) {
+             val_of = of_table.baseValue[stateOF] + of_extra;
+        } else if (of_sym <= 2) {
              val_of = of_sym + 1; // 1, 2, or 3
         } else {
-             // Add 3 to bias the offset for get_actual_offset decoding
-             // (Values 1-3 are Reps, Values >= 4 are New Offsets)
              val_of = sequence::ZstdSequence::get_offset(of_sym) + of_extra + 3;
         }
         d_of_out[i] = val_of;
@@ -4164,6 +4229,8 @@ Status copy_table_to_device(const FSEDecodeTable &h_table,
   CUDA_CHECK(cudaMalloc(&d_table.symbol, size * sizeof(u8)));
   CUDA_CHECK(cudaMalloc(&d_table.nbBits, size * sizeof(u8)));
   CUDA_CHECK(cudaMalloc(&d_table.newState, size * sizeof(u16)));
+  CUDA_CHECK(cudaMalloc(&d_table.nbAdditionalBits, size * sizeof(u8)));
+  CUDA_CHECK(cudaMalloc(&d_table.baseValue, size * sizeof(u32)));
 
   CUDA_CHECK(cudaMemcpyAsync(d_table.symbol, h_table.symbol, size * sizeof(u8),
                              cudaMemcpyHostToDevice, stream));
@@ -4172,6 +4239,10 @@ Status copy_table_to_device(const FSEDecodeTable &h_table,
   CUDA_CHECK(cudaMemcpyAsync(d_table.newState, h_table.newState,
                              size * sizeof(u16), cudaMemcpyHostToDevice,
                              stream));
+  CUDA_CHECK(cudaMemcpyAsync(d_table.nbAdditionalBits, h_table.nbAdditionalBits,
+                             size * sizeof(u8), cudaMemcpyHostToDevice, stream));
+  CUDA_CHECK(cudaMemcpyAsync(d_table.baseValue, h_table.baseValue,
+                             size * sizeof(u32), cudaMemcpyHostToDevice, stream));
 
   // CRITICAL: Synchronize to ensure copy completes before kernel launch
   cudaStreamSynchronize(stream);
@@ -4199,6 +4270,10 @@ void free_device_table(FSEDecodeTable &d_table) {
     cudaFree(d_table.nbBits);
   if (d_table.newState)
     cudaFree(d_table.newState);
+  if (d_table.nbAdditionalBits)
+    cudaFree(d_table.nbAdditionalBits);
+  if (d_table.baseValue)
+    cudaFree(d_table.baseValue);
 }
 
 __host__ Status decode_sequences_interleaved(
@@ -4222,16 +4297,22 @@ __host__ Status decode_sequences_interleaved(
       delete[] h_ll_local.newState;
       delete[] h_ll_local.symbol;
       delete[] h_ll_local.nbBits;
+      delete[] h_ll_local.nbAdditionalBits;
+      delete[] h_ll_local.baseValue;
     }
     if (of_mode == 0 && h_of_local.newState) {
       delete[] h_of_local.newState;
       delete[] h_of_local.symbol;
       delete[] h_of_local.nbBits;
+      delete[] h_of_local.nbAdditionalBits;
+      delete[] h_of_local.baseValue;
     }
     if (ml_mode == 0 && h_ml_local.newState) {
       delete[] h_ml_local.newState;
       delete[] h_ml_local.symbol;
       delete[] h_ml_local.nbBits;
+      delete[] h_ml_local.nbAdditionalBits;
+      delete[] h_ml_local.baseValue;
     }
   };
 
@@ -4245,6 +4326,8 @@ __host__ Status decode_sequences_interleaved(
     h_ll_local.newState = new u16[1u << log];
     h_ll_local.symbol = new u8[1u << log];
     h_ll_local.nbBits = new u8[1u << log];
+    h_ll_local.nbAdditionalBits = new u8[1u << log];
+    h_ll_local.baseValue = new u32[1u << log];
     if (FSE_buildDTable_Host(norm, max_sym, 1u << log, h_ll_local) !=
         Status::SUCCESS) {
       cleanup_host();
@@ -4261,6 +4344,8 @@ __host__ Status decode_sequences_interleaved(
     h_of_local.newState = new u16[1u << log];
     h_of_local.symbol = new u8[1u << log];
     h_of_local.nbBits = new u8[1u << log];
+    h_of_local.nbAdditionalBits = new u8[1u << log];
+    h_of_local.baseValue = new u32[1u << log];
     if (FSE_buildDTable_Host(norm, max_sym, 1u << log, h_of_local) !=
         Status::SUCCESS) {
       cleanup_host();
@@ -4278,6 +4363,8 @@ __host__ Status decode_sequences_interleaved(
     h_ml_local.newState = new u16[1u << log];
     h_ml_local.symbol = new u8[1u << log];
     h_ml_local.nbBits = new u8[1u << log];
+    h_ml_local.nbAdditionalBits = new u8[1u << log];
+    h_ml_local.baseValue = new u32[1u << log];
     if (FSE_buildDTable_Host(norm, max_sym, 1u << log, h_ml_local) !=
         Status::SUCCESS) {
       cleanup_host();
@@ -4431,12 +4518,16 @@ __host__ Status decode_fse_predefined(const unsigned char *d_input,
   h_table.newState = new u16[table_size];
   h_table.symbol = new u8[table_size];
   h_table.nbBits = new u8[table_size];
+  h_table.nbAdditionalBits = new u8[table_size];
+  h_table.baseValue = new u32[table_size];
 
   Status status = FSE_buildDTable_Host(h_norm, max_symbol, table_size, h_table);
   if (status != Status::SUCCESS) {
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
     return status;
   }
 
@@ -4488,6 +4579,8 @@ __host__ Status decode_fse_predefined(const unsigned char *d_input,
   delete[] h_table.newState;
   delete[] h_table.symbol;
   delete[] h_table.nbBits;
+  delete[] h_table.nbAdditionalBits;
+  delete[] h_table.baseValue;
 
   return Status::SUCCESS;
 }

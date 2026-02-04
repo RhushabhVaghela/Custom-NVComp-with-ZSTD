@@ -18,6 +18,8 @@ struct FSEDecodeTableDevice {
     u16 *newState;
     u8 *symbol;
     u8 *nbBits;
+    u8 *nbAdditionalBits;
+    u32 *baseValue;
     u32 table_log;
     u32 table_size;
 };
@@ -67,33 +69,30 @@ __global__ void k_fse_decode_interleaved_rfc(
             return;
         }
 
-        u32 sentinel_pos = 0;
-        bool found_sentinel = false;
-        for (int byte_idx = (int)bitstream_size - 1; byte_idx >= 0 && !found_sentinel; --byte_idx) {
-            u8 byte = bitstream[byte_idx];
-            if (byte == 0) continue;
-            for (int bit = 7; bit >= 0; --bit) {
-                if ((byte >> bit) & 1) {
-                    sentinel_pos = (u32)byte_idx * 8u + (u32)bit;
-                    found_sentinel = true;
-                    break;
-                }
-            }
-        }
-
-        if (!found_sentinel) {
+        u8 last_byte = bitstream[bitstream_size - 1];
+        if (last_byte == 0) {
             if (d_error_flag) *d_error_flag = ERROR_SENTINEL_MISSING;
             return;
         }
+        u32 sentinel_bit = 0;
+        for (u32 bit = 7; bit > 0; --bit) {
+            if (last_byte & (1u << bit)) {
+                sentinel_bit = bit;
+                break;
+            }
+        }
+        u32 sentinel_pos = (bitstream_size - 1) * 8u + sentinel_bit;
 
-        reader = sequence::FSEBitStreamReader(bitstream, sentinel_pos, (u32)bitstream_size);
+        reader = sequence::FSEBitStreamReader(bitstream, sentinel_pos,
+                                              (u32)bitstream_size,
+                                              (u8)sentinel_bit);
     }
 
     u32 stateLL = 0;
     u32 stateOF = 0;
     u32 stateML = 0;
 
-    // --- INITIALIZATION ORDER (matching libzstd) ---
+    // Initial states were pushed ML -> OF -> LL, so we pop LL -> OF -> ML
     if (decode_ll) {
         stateLL = reader.read(ll_table.table_log);
         stateLL %= ll_table.table_size;
@@ -129,22 +128,27 @@ __global__ void k_fse_decode_interleaved_rfc(
         // --- ORDER OF READS (matching libzstd) ---
         // 1. OF Extra bits
         if (decode_of) {
-            u32 nb = sequence::ZstdSequence::get_offset_code_extra_bits(of_sym);
+            u32 nb = of_table.nbAdditionalBits[stateOF];
             of_extra = (nb > 0) ? reader.read(nb) : 0;
         }
         // 2. ML Extra bits
         if (decode_ml) {
-            u32 nb = sequence::ZstdSequence::get_match_len_extra_bits(ml_sym);
+            u32 nb = ml_table.nbAdditionalBits[stateML];
             ml_extra = (nb > 0) ? reader.read(nb) : 0;
         }
         // 3. LL Extra bits
         if (decode_ll) {
-            u32 nb = sequence::ZstdSequence::get_lit_len_extra_bits(ll_sym);
+            u32 nb = ll_table.nbAdditionalBits[stateLL];
             ll_extra = (nb > 0) ? reader.read(nb) : 0;
         }
 
-        // 4. Update States (Order: ML, then OF, then LL)
+        // 4. Update States (Order: LL, then ML, then OF)
         if (seq > 0) {
+            if (decode_ll) {
+                u8 nb = ll_table.nbBits[stateLL];
+                u32 bits = nb ? reader.read(nb) : 0u;
+                stateLL = ll_table.newState[stateLL] + bits;
+            }
             if (decode_ml) {
                 u8 nb = ml_table.nbBits[stateML];
                 u32 bits = nb ? reader.read(nb) : 0u;
@@ -155,29 +159,27 @@ __global__ void k_fse_decode_interleaved_rfc(
                 u32 bits = nb ? reader.read(nb) : 0u;
                 stateOF = of_table.newState[stateOF] + bits;
             }
-            if (decode_ll) {
-                u8 nb = ll_table.nbBits[stateLL];
-                u32 bits = nb ? reader.read(nb) : 0u;
-                stateLL = ll_table.newState[stateLL] + bits;
-            }
         }
 
         // --- Value Calculation & Output ---
         if (emit_of) {
-            // Offset_Value = (1 << of_sym) + of_extra. Manager subtracts bias later.
-            d_of_out[seq] = (of_sym <= 2) ? (of_sym + 1) : ((1u << of_sym) + of_extra);
+            if (decode_of) {
+                d_of_out[seq] = of_table.baseValue[stateOF] + of_extra;
+            } else {
+                d_of_out[seq] = (of_sym <= 2) ? (of_sym + 1) : ((1u << of_sym) + of_extra);
+            }
         }
 
         if (emit_ml) {
-            u32 base = (ml_mode == MODE_PREDEFINED)
-                           ? sequence::ZstdSequence::get_ml_base_predefined(ml_sym)
+            u32 base = (ml_mode == MODE_PREDEFINED && decode_ml)
+                           ? ml_table.baseValue[stateML]
                            : sequence::ZstdSequence::get_match_len(ml_sym);
             d_ml_out[seq] = base + ml_extra;
         }
 
         if (emit_ll) {
-            u32 base = (ll_mode == MODE_PREDEFINED)
-                               ? sequence::ZstdSequence::get_ll_base_predefined(ll_sym)
+            u32 base = (ll_mode == MODE_PREDEFINED && decode_ll)
+                               ? ll_table.baseValue[stateLL]
                                : sequence::ZstdSequence::get_lit_len(ll_sym);
             u32 val_ll = base + ll_extra;
             
@@ -229,9 +231,13 @@ __host__ Status decode_sequences_interleaved_rfc(
         cudaMallocAsync(&dst.newState, src->table_size * sizeof(u16), stream);
         cudaMallocAsync(&dst.symbol, src->table_size * sizeof(u8), stream);
         cudaMallocAsync(&dst.nbBits, src->table_size * sizeof(u8), stream);
+        cudaMallocAsync(&dst.nbAdditionalBits, src->table_size * sizeof(u8), stream);
+        cudaMallocAsync(&dst.baseValue, src->table_size * sizeof(u32), stream);
         cudaMemcpyAsync(dst.newState, src->newState, src->table_size * sizeof(u16), cudaMemcpyHostToDevice, stream);
         cudaMemcpyAsync(dst.symbol, src->symbol, src->table_size * sizeof(u8), cudaMemcpyHostToDevice, stream);
         cudaMemcpyAsync(dst.nbBits, src->nbBits, src->table_size * sizeof(u8), cudaMemcpyHostToDevice, stream);
+        cudaMemcpyAsync(dst.nbAdditionalBits, src->nbAdditionalBits, src->table_size * sizeof(u8), cudaMemcpyHostToDevice, stream);
+        cudaMemcpyAsync(dst.baseValue, src->baseValue, src->table_size * sizeof(u32), cudaMemcpyHostToDevice, stream);
     };
 
     if (ll_mode == MODE_FSE || ll_mode == MODE_PREDEFINED) copy_table(ll_table, d_ll_table);
@@ -261,6 +267,8 @@ __host__ Status decode_sequences_interleaved_rfc(
         if (t.newState) cudaFreeAsync(t.newState, stream);
         if (t.symbol) cudaFreeAsync(t.symbol, stream);
         if (t.nbBits) cudaFreeAsync(t.nbBits, stream);
+        if (t.nbAdditionalBits) cudaFreeAsync(t.nbAdditionalBits, stream);
+        if (t.baseValue) cudaFreeAsync(t.baseValue, stream);
     };
     free_table(d_ll_table);
     free_table(d_of_table);

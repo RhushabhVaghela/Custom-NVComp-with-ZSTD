@@ -4094,8 +4094,6 @@ private:
     CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(u32)));
     CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
 
-    printf("[DEBUG] Executing sequences: total_literals=%u, num_seq=%u\n",
-           literals_decompressed_size, ctx.seq_ctx->num_sequences);
     status = sequence::execute_sequences(
         d_decompressed_literals, literals_decompressed_size,
         ctx.seq_ctx->d_sequences, ctx.seq_ctx->num_sequences, output,
@@ -5348,9 +5346,6 @@ private:
                       cudaMemcpyDeviceToHost, stream);
       cudaStreamSynchronize(stream); // Sync required to decide branch
 
-      // FORCE Predefined for testing integration
-      h_incompatible = 0;
-
       // WORKAROUND: Predefined Mode Encoder (k_fse_encode) fixed.
       if (h_incompatible == 0) {
         // Compatible! Use Predefined Mode.
@@ -5675,6 +5670,8 @@ private:
       ll_table_obj.newState = new u16[1u << table_log];
       ll_table_obj.symbol = new u8[1u << table_log];
       ll_table_obj.nbBits = new u8[1u << table_log];
+      ll_table_obj.nbAdditionalBits = new u8[1u << table_log];
+      ll_table_obj.baseValue = new u32[1u << table_log];
       Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ll_table_obj);
       if (st != Status::SUCCESS) return st;
       p_ll_table = &ll_table_obj;
@@ -5702,9 +5699,11 @@ private:
       // Pre-allocate arrays for FSE_buildDTable_Host
       ll_table_obj.table_log = table_log;
       ll_table_obj.table_size = 1u << table_log;
-      ll_table_obj.newState = new u16[1u << table_log];
-      ll_table_obj.symbol = new u8[1u << table_log];
-      ll_table_obj.nbBits = new u8[1u << table_log];
+       ll_table_obj.newState = new u16[1u << table_log];
+       ll_table_obj.symbol = new u8[1u << table_log];
+       ll_table_obj.nbBits = new u8[1u << table_log];
+       ll_table_obj.nbAdditionalBits = new u8[1u << table_log];
+       ll_table_obj.baseValue = new u32[1u << table_log];
 
       st = fse::FSE_buildDTable_Host(normalized_counts.data(), max_symbol,
                                      1u << table_log, ll_table_obj);
@@ -5725,6 +5724,8 @@ private:
       of_table_obj.newState = new u16[1u << table_log];
       of_table_obj.symbol = new u8[1u << table_log];
       of_table_obj.nbBits = new u8[1u << table_log];
+      of_table_obj.nbAdditionalBits = new u8[1u << table_log];
+      of_table_obj.baseValue = new u32[1u << table_log];
       Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, of_table_obj);
       if (st != Status::SUCCESS) return st;
       p_of_table = &of_table_obj;
@@ -5751,6 +5752,8 @@ private:
       of_table_obj.newState = new u16[1u << table_log];
       of_table_obj.symbol = new u8[1u << table_log];
       of_table_obj.nbBits = new u8[1u << table_log];
+      of_table_obj.nbAdditionalBits = new u8[1u << table_log];
+      of_table_obj.baseValue = new u32[1u << table_log];
 
       st = fse::FSE_buildDTable_Host(normalized_counts.data(), max_symbol,
                                      1u << table_log, of_table_obj);
@@ -5771,6 +5774,8 @@ private:
       ml_table_obj.newState = new u16[1u << table_log];
       ml_table_obj.symbol = new u8[1u << table_log];
       ml_table_obj.nbBits = new u8[1u << table_log];
+      ml_table_obj.nbAdditionalBits = new u8[1u << table_log];
+      ml_table_obj.baseValue = new u32[1u << table_log];
       Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ml_table_obj);
       if (st != Status::SUCCESS) return st;
       p_ml_table = &ml_table_obj;
@@ -5797,6 +5802,8 @@ private:
       ml_table_obj.newState = new u16[1u << table_log];
       ml_table_obj.symbol = new u8[1u << table_log];
       ml_table_obj.nbBits = new u8[1u << table_log];
+      ml_table_obj.nbAdditionalBits = new u8[1u << table_log];
+      ml_table_obj.baseValue = new u32[1u << table_log];
 
       st = fse::FSE_buildDTable_Host(normalized_counts.data(), max_symbol,
                                      1u << table_log, ml_table_obj);
@@ -5834,16 +5841,22 @@ private:
       if (p_ll_table->newState) delete[] p_ll_table->newState;
       if (p_ll_table->symbol) delete[] p_ll_table->symbol;
       if (p_ll_table->nbBits) delete[] p_ll_table->nbBits;
+      if (p_ll_table->nbAdditionalBits) delete[] p_ll_table->nbAdditionalBits;
+      if (p_ll_table->baseValue) delete[] p_ll_table->baseValue;
     }
     if (p_of_table) {
       if (p_of_table->newState) delete[] p_of_table->newState;
       if (p_of_table->symbol) delete[] p_of_table->symbol;
       if (p_of_table->nbBits) delete[] p_of_table->nbBits;
+      if (p_of_table->nbAdditionalBits) delete[] p_of_table->nbAdditionalBits;
+      if (p_of_table->baseValue) delete[] p_of_table->baseValue;
     }
     if (p_ml_table) {
       if (p_ml_table->newState) delete[] p_ml_table->newState;
       if (p_ml_table->symbol) delete[] p_ml_table->symbol;
       if (p_ml_table->nbBits) delete[] p_ml_table->nbBits;
+      if (p_ml_table->nbAdditionalBits) delete[] p_ml_table->nbAdditionalBits;
+      if (p_ml_table->baseValue) delete[] p_ml_table->baseValue;
     }
 
     return status;
