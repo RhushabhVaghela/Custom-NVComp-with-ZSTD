@@ -25,12 +25,15 @@ int main() {
   // 2. Prepare data
   size_t data_size = 128 * 1024;
   void *h_data = malloc(data_size); // Not strictly needed, but good practice
-  void *d_input, *d_output, *d_temp;
+  void *d_input, *d_output, *d_temp, *d_decompressed;
 
   cudaMalloc(&d_input, data_size);
   cudaMalloc(&d_output, data_size * 2);
-  cudaMemset(d_input, 0, data_size);
+  for (size_t i = 0; i < data_size; ++i) {
+    ((unsigned char *)h_data)[i] = (unsigned char)(i & 0xFF);
+  }
   cudaMemcpy(d_input, h_data, data_size, cudaMemcpyHostToDevice);
+  cudaMalloc(&d_decompressed, data_size);
 
   size_t temp_size = nvcomp_zstd_get_compress_temp_size_v5(manager, data_size);
   cudaMalloc(&d_temp, temp_size);
@@ -53,6 +56,33 @@ int main() {
   printf("  ✓ nvcomp_zstd_compress_async_v5 passed. Size: %zu\n",
          compressed_size);
 
+  // 3b. Decompress
+  size_t decompressed_size = data_size;
+  err = nvcomp_zstd_decompress_async_v5(manager, d_output, compressed_size,
+                                       d_decompressed, &decompressed_size,
+                                       d_temp, temp_size, 0);
+  cudaDeviceSynchronize();
+  if (err != 0) {
+    printf("  ✗ FAILED: nvcomp_zstd_decompress_async_v5 returned error %d\n",
+           err);
+    return 1;
+  }
+  if (decompressed_size != data_size) {
+    printf("  ✗ FAILED: decompressed_size mismatch (%zu != %zu)\n",
+           decompressed_size, data_size);
+    return 1;
+  }
+
+  void *h_roundtrip = malloc(data_size);
+  cudaMemcpy(h_roundtrip, d_decompressed, data_size, cudaMemcpyDeviceToHost);
+  if (memcmp(h_roundtrip, h_data, data_size) != 0) {
+    printf("  ✗ FAILED: roundtrip data mismatch\n");
+    return 1;
+  }
+  free(h_roundtrip);
+  printf("  ✓ nvcomp_zstd_decompress_async_v5 passed. Size: %zu\n",
+         decompressed_size);
+
   // 4. Destroy Manager
   nvcomp_zstd_destroy_manager_v5(manager);
   printf("  ✓ nvcomp_zstd_destroy_manager_v5 passed.\n");
@@ -62,6 +92,7 @@ int main() {
   cudaFree(d_input);
   cudaFree(d_output);
   cudaFree(d_temp);
+  cudaFree(d_decompressed);
 
   printf("\nTest complete. Result: PASSED ✓\n");
   return 0;

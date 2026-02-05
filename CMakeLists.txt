@@ -33,6 +33,8 @@ file(GLOB_RECURSE CUDA_ZSTD_SOURCES
     "src/*.cu" 
     "src/*.cpp"
 )
+# Avoid compiling legacy stream pool implementation
+list(REMOVE_ITEM CUDA_ZSTD_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/stream_pool.cu")
 # Exclude temporary or backup files if any remain
 list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*\\.new$")
 list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*\\.bak$")

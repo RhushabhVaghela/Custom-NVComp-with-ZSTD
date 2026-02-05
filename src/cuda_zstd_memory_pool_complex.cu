@@ -1756,8 +1756,7 @@ FallbackAllocation MemoryPoolManager::allocate_with_strategy(
     break;
 
   case AllocationStrategy::PERFORMANCE_FIRST:
-    // Aggressive GPU allocation, maybe even evicting others (not implemented
-    // yet)
+    // Prefer GPU allocation without fallback to preserve performance intent
     result.ptr = allocate_from_cuda(size);
     if (result.ptr) {
       result.status = Status::SUCCESS;

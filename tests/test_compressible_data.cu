@@ -385,36 +385,44 @@ int main() {
     // all_passed &= test_periodic_pattern();
 
     printf("--- Running Zeros ---\n");
-    // all_passed &= test_zeros(); // DISABLED: Regression
-    /*
+    all_passed &= test_zeros();
     cudaDeviceSynchronize();
     {
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) printf("FATAL: Zeros failed with %s\n",
-    cudaGetErrorString(err));
+      cudaError_t err = cudaGetLastError();
+      if (err != cudaSuccess) {
+        printf("FATAL: Zeros failed with %s\n", cudaGetErrorString(err));
+        return 1;
+      }
     }
-    */
 
     printf("--- Running All Ones ---\n");
-    // all_passed &= test_all_ones(); // DISABLED: Regression (Illegal Address
-    // on 0xFF pattern) cudaDeviceSynchronize();
-    /*
+    all_passed &= test_all_ones();
+    cudaDeviceSynchronize();
     {
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) printf("FATAL: All Ones failed with %s\n",
-    cudaGetErrorString(err));
+      cudaError_t err = cudaGetLastError();
+      if (err != cudaSuccess) {
+        printf("FATAL: All Ones failed with %s\n", cudaGetErrorString(err));
+        return 1;
+      }
     }
-    */
     if (full_suite) {
-      // test_comparison_all_patterns(); // DISABLED due to Illegal Address
-      // instability on large parallel inputs
+      all_passed &= test_comparison_all_patterns();
+      cudaDeviceSynchronize();
+      {
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) {
+          printf("FATAL: Comparison patterns failed with %s\n",
+                 cudaGetErrorString(err));
+          return 1;
+        }
+      }
     }
     printf("   • The 'zero sequences' issue in benchmark_lz77 was due to "
            "random test data\n");
     printf("   • Random data (high entropy) compresses poorly as expected\n");
     printf("\n✅ Phase 1 COMPLETE: Validation with Compressible Data\n\n");
 
-    return 0;
+    return all_passed ? 0 : 1;
   } catch (const std::exception &e) {
     printf("❌ Test failed with exception: %s\n", e.what());
     return 1;

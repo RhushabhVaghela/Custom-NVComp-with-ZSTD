@@ -30,7 +30,8 @@ enum DeviceError {
     ERROR_EMPTY_BITSTREAM = 1,
     ERROR_SENTINEL_MISSING = 2,
     ERROR_INVALID_TABLE_STATE = 3,
-    ERROR_LITERAL_OVERFLOW = 4
+    ERROR_LITERAL_OVERFLOW = 4,
+    ERROR_BITSTREAM_UNDERFLOW = 5
 };
 
 // =============================================================================
@@ -53,9 +54,9 @@ __global__ void k_fse_decode_interleaved_rfc(
 ) {
     if (threadIdx.x != 0 || blockIdx.x != 0) return;
 
-    bool decode_ll = (ll_mode == MODE_FSE || ll_mode == MODE_PREDEFINED);
-    bool decode_of = (of_mode == MODE_FSE || of_mode == MODE_PREDEFINED);
-    bool decode_ml = (ml_mode == MODE_FSE || ml_mode == MODE_PREDEFINED);
+    bool decode_ll = (ll_mode == MODE_FSE || ll_mode == MODE_PREDEFINED || ll_mode == MODE_REPEAT);
+    bool decode_of = (of_mode == MODE_FSE || of_mode == MODE_PREDEFINED || of_mode == MODE_REPEAT);
+    bool decode_ml = (ml_mode == MODE_FSE || ml_mode == MODE_PREDEFINED || ml_mode == MODE_REPEAT);
     
     bool rle_ll = (ll_mode == MODE_RLE);
     bool rle_of = (of_mode == MODE_RLE);
@@ -109,9 +110,18 @@ __global__ void k_fse_decode_interleaved_rfc(
     u64 total_lit_len = 0;
 
     for (int seq = (int)num_sequences - 1; seq >= 0; --seq) {
-        if (decode_ll && stateLL >= ll_table.table_size) stateLL = 0;
-        if (decode_of && stateOF >= of_table.table_size) stateOF = 0;
-        if (decode_ml && stateML >= ml_table.table_size) stateML = 0;
+        if (decode_ll && stateLL >= ll_table.table_size) {
+            if (d_error_flag) *d_error_flag = ERROR_INVALID_TABLE_STATE;
+            return;
+        }
+        if (decode_of && stateOF >= of_table.table_size) {
+            if (d_error_flag) *d_error_flag = ERROR_INVALID_TABLE_STATE;
+            return;
+        }
+        if (decode_ml && stateML >= ml_table.table_size) {
+            if (d_error_flag) *d_error_flag = ERROR_INVALID_TABLE_STATE;
+            return;
+        }
 
         const bool emit_ll = decode_ll || rle_ll;
         const bool emit_of = decode_of || rle_of;
@@ -142,6 +152,11 @@ __global__ void k_fse_decode_interleaved_rfc(
             ll_extra = (nb > 0) ? reader.read(nb) : 0;
         }
 
+        if (reader.underflow) {
+            if (d_error_flag) *d_error_flag = ERROR_BITSTREAM_UNDERFLOW;
+            return;
+        }
+
         // 4. Update States (Order: LL, then ML, then OF)
         if (seq > 0) {
             if (decode_ll) {
@@ -161,12 +176,19 @@ __global__ void k_fse_decode_interleaved_rfc(
             }
         }
 
+        if (reader.underflow) {
+            if (d_error_flag) *d_error_flag = ERROR_BITSTREAM_UNDERFLOW;
+            return;
+        }
+
         // --- Value Calculation & Output ---
         if (emit_of) {
-            if (decode_of) {
-                d_of_out[seq] = of_table.baseValue[stateOF] + of_extra;
+            if (of_sym <= 2) {
+                d_of_out[seq] = of_sym + 1;
             } else {
-                d_of_out[seq] = (of_sym <= 2) ? (of_sym + 1) : ((1u << of_sym) + of_extra);
+                u32 base = decode_of ? of_table.baseValue[stateOF]
+                                     : (1u << of_sym);
+                d_of_out[seq] = base + of_extra + 3;
             }
         }
 
@@ -185,8 +207,8 @@ __global__ void k_fse_decode_interleaved_rfc(
             
             // Validation: Allow slight overflow for debug, but enforce limit if requested
             if (literals_limit > 0 && (total_lit_len + val_ll > literals_limit)) {
-                // For now, cap to limit to prevent out-of-bounds reads in executor
-                val_ll = (u32)(literals_limit - total_lit_len);
+                if (d_error_flag) *d_error_flag = ERROR_LITERAL_OVERFLOW;
+                return;
             }
             
             d_ll_out[seq] = val_ll;
@@ -240,9 +262,9 @@ __host__ Status decode_sequences_interleaved_rfc(
         cudaMemcpyAsync(dst.baseValue, src->baseValue, src->table_size * sizeof(u32), cudaMemcpyHostToDevice, stream);
     };
 
-    if (ll_mode == MODE_FSE || ll_mode == MODE_PREDEFINED) copy_table(ll_table, d_ll_table);
-    if (of_mode == MODE_FSE || of_mode == MODE_PREDEFINED) copy_table(of_table, d_of_table);
-    if (ml_mode == MODE_FSE || ml_mode == MODE_PREDEFINED) copy_table(ml_table, d_ml_table);
+    if (ll_mode == MODE_FSE || ll_mode == MODE_PREDEFINED || ll_mode == MODE_REPEAT) copy_table(ll_table, d_ll_table);
+    if (of_mode == MODE_FSE || of_mode == MODE_PREDEFINED || of_mode == MODE_REPEAT) copy_table(of_table, d_of_table);
+    if (ml_mode == MODE_FSE || ml_mode == MODE_PREDEFINED || ml_mode == MODE_REPEAT) copy_table(ml_table, d_ml_table);
     
     u32 *d_error_flag;
     cudaMallocAsync(&d_error_flag, sizeof(u32), stream);

@@ -74,9 +74,7 @@ __global__ void convert_sequences_to_fse_codes_kernel(
   // Match Length
   u32 ml_code = sequence::ZstdSequence::get_match_len_code(ml);
   
-  if (idx < 5) {
-      printf("[GPU_DEBUG] Seq %u: LL=%u, ML=%u, OF=%u -> ML_Code=%u\n", idx, ll, ml, of, ml_code);
-  }
+  
 
   u32 ml_base = sequence::ZstdSequence::get_ml_base_predefined(ml_code);
   u32 ml_bits = sequence::ZstdSequence::get_match_len_extra_bits(ml_code);
@@ -512,9 +510,7 @@ public:
       _overflow = true;
       return false;
     }
-    // [DEBUG DISABLED] This print was causing excessive output
-    // if (value == 0xFF) {
-    //       // }
+    
     // Use synchronous copy for single byte to ensure safety of stack variable
     // address
     if (cudaMemcpy(_base + _offset, &value, 1, cudaMemcpyHostToDevice) !=
@@ -981,6 +977,56 @@ private:
   std::unique_ptr<StreamPool> stream_pool_;
   mutable std::mutex api_mutex;
 
+  struct PrevFseState {
+    fse::FSEDecodeTable table{};
+    bool has_table = false;
+    u32 mode = 0;
+    u8 rle_value = 0;
+  };
+
+  PrevFseState prev_ll_{};
+  PrevFseState prev_of_{};
+  PrevFseState prev_ml_{};
+
+  static void free_fse_decode_table(fse::FSEDecodeTable &table) {
+    delete[] table.newState;
+    delete[] table.symbol;
+    delete[] table.nbBits;
+    delete[] table.nbAdditionalBits;
+    delete[] table.baseValue;
+    table = {};
+  }
+
+  static Status copy_fse_decode_table(const fse::FSEDecodeTable &src,
+                                      fse::FSEDecodeTable &dst) {
+    if (!src.newState || !src.symbol || !src.nbBits || !src.nbAdditionalBits ||
+        !src.baseValue) {
+      return Status::ERROR_INVALID_PARAMETER;
+    }
+
+    if (dst.newState || dst.symbol || dst.nbBits || dst.nbAdditionalBits ||
+        dst.baseValue) {
+      free_fse_decode_table(dst);
+    }
+
+    dst.table_log = src.table_log;
+    dst.table_size = src.table_size;
+    dst.newState = new u16[src.table_size];
+    dst.symbol = new u8[src.table_size];
+    dst.nbBits = new u8[src.table_size];
+    dst.nbAdditionalBits = new u8[src.table_size];
+    dst.baseValue = new u32[src.table_size];
+
+    std::copy(src.newState, src.newState + src.table_size, dst.newState);
+    std::copy(src.symbol, src.symbol + src.table_size, dst.symbol);
+    std::copy(src.nbBits, src.nbBits + src.table_size, dst.nbBits);
+    std::copy(src.nbAdditionalBits, src.nbAdditionalBits + src.table_size,
+              dst.nbAdditionalBits);
+    std::copy(src.baseValue, src.baseValue + src.table_size, dst.baseValue);
+
+    return Status::SUCCESS;
+  }
+
 public:
   DefaultZstdManager(int compression_level = 3)
       : config(CompressionConfig::from_level(compression_level)),
@@ -1106,6 +1152,18 @@ public:
       d_checksum_buffer = nullptr;
     }
     cleanup_context();
+    if (prev_ll_.has_table) {
+      free_fse_decode_table(prev_ll_.table);
+      prev_ll_.has_table = false;
+    }
+    if (prev_of_.has_table) {
+      free_fse_decode_table(prev_of_.table);
+      prev_of_.has_table = false;
+    }
+    if (prev_ml_.has_table) {
+      free_fse_decode_table(prev_ml_.table);
+      prev_ml_.has_table = false;
+    }
   }
 
   // ==========================================================================
@@ -1403,7 +1461,7 @@ public:
     // cudaEvent_t memset_done_event = 0; // REMOVED (Unused and causing
     // crashes)
     Status status = Status::SUCCESS;
-    // (DEBUG REMOVED) stream = 0 was forcing Stream 0 which serializes ops
+    
     // stream = 0;
 
     // === CRITICAL: Parameter Validation ===
@@ -1543,8 +1601,7 @@ public:
       // void *device_workspace = nullptr; // Moved up
       cudaError_t alloc_err = cudaMalloc(&device_workspace, temp_size);
       if (alloc_err != cudaSuccess) {
-        printf("[ERROR] compress: cudaMalloc failed: %s\n",
-               cudaGetErrorString(alloc_err));
+      
         return Status::ERROR_CUDA_ERROR; // Early return OK here
                                          // (nothing allocated yet)
       }
@@ -1648,7 +1705,7 @@ public:
     bool input_is_device = (input_attr_err == cudaSuccess &&
                             input_attrs.type == cudaMemoryTypeDevice);
 
-    // DEBUG: print input type
+    
     //
     unsigned char *d_input = nullptr;
     if (input_is_device) {
@@ -1656,7 +1713,7 @@ public:
       d_input = const_cast<unsigned char *>(
           static_cast<const unsigned char *>(uncompressed_data));
 
-      // DEBUG: Verify Content
+      
       if (uncompressed_size >= 129) {
         unsigned char check[130];
         cudaMemcpy(check, d_input, 129, cudaMemcpyDeviceToHost);
@@ -1889,21 +1946,20 @@ public:
     if (intermediate_used > temp_size) {
       if (device_workspace)
         cudaFree(device_workspace);
-      printf("[ERROR] Global Alloc Overhead: Used %zu > Total %zu\n",
-             intermediate_used, temp_size);
+      
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
     // ...
 
     if (call_workspace.d_hash_table == nullptr) {
-      printf("[ERROR] compress: d_hash_table is NULL!\n");
+      
       return Status::ERROR_INVALID_PARAMETER;
       if (device_workspace)
         cudaFree(device_workspace);
     }
     if (call_workspace.d_chain_table == nullptr) {
-      printf("[ERROR] compress: d_chain_table is NULL!\n");
+      
       return Status::ERROR_INVALID_PARAMETER;
       if (device_workspace)
         cudaFree(device_workspace);
@@ -1920,9 +1976,6 @@ public:
     /*
     cudaError_t pre_compress_err = cudaDeviceSynchronize();
     if (pre_compress_err != cudaSuccess) {
-      printf("[ERROR] compress: CUDA error BEFORE compression "
-             "pipeline: %s\n",
-             cudaGetErrorString(pre_compress_err));
       if (device_workspace)
         cudaFree(device_workspace);
       return Status::ERROR_CUDA_ERROR;
@@ -1942,9 +1995,6 @@ public:
     /*
     cudaError_t probe_err = cudaMemset(d_output, 0, 1);
     if (probe_err != cudaSuccess) {
-      printf("[ERROR] compress: d_output probe (memset) failed: %s\n",
-             cudaGetErrorString(probe_err));
-    } else {
     }
     */
 
@@ -2100,8 +2150,6 @@ public:
     size_t final_used =
         (unsigned char *)workspace_ptr - (unsigned char *)workspace_start;
     if (final_used > temp_size) {
-      printf("[ERROR] Workspace overflow in dynamic allocation! %zu > %zu\n",
-             final_used, temp_size);
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
@@ -2122,8 +2170,6 @@ public:
                                              (unsigned char *)temp_workspace);
 
     if (total_needed > call_workspace.total_size) {
-      printf("[ERROR] Workspace Overflow! Needed %zu > Available %zu\n",
-             total_needed, call_workspace.total_size);
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
@@ -2149,13 +2195,11 @@ public:
     //  Use locally allocated buffer
     unsigned char *d_lit_buf_reuse = d_all_literals_buffer;
 
-    // (DEBUG REMOVED) cudaDeviceSynchronize was killing streaming perf
+    
     // event usage removed - causing invalid argument errors
 
     cudaError_t post_sync_err = cudaGetLastError();
     if (post_sync_err != cudaSuccess) {
-      printf("[ERROR] compress: Pre-phase1 error: %s\n",
-             cudaGetErrorString(post_sync_err));
       status = Status::ERROR_CUDA_ERROR;
       goto cleanup;
     }
@@ -2176,13 +2220,14 @@ public:
 
     for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
       cudaError_t loop_start_err = cudaGetLastError();
-      if (loop_start_err != cudaSuccess)
-        printf("[ERROR] compress: Loop start error (Block %u): %s\n", block_idx,
-               cudaGetErrorString(loop_start_err));
+      if (loop_start_err != cudaSuccess) {
+        status = Status::ERROR_CUDA_ERROR;
+        goto cleanup;
+      }
 
       // TDR Prevention: Sync every 16 blocks to prevent watchdog
       // timeout/queue overflow
-      // (DEBUG REMOVED) This triggers on block_idx=0 which is every chunk!
+      
       // if (block_idx % 16 == 0) {
       //   cudaStreamSynchronize(stream);
       // }
@@ -2474,8 +2519,6 @@ public:
         // cudaStreamSynchronize(block_stream);
         cudaError_t find_err = cudaGetLastError();
         if (find_err != cudaSuccess) {
-          printf("[ERROR] Block %u: find_matches_parallel launch error: %s\n",
-                 block_idx, cudaGetErrorString(find_err));
           status = Status::ERROR_CUDA_ERROR;
           goto cleanup;
         }
@@ -2506,7 +2549,7 @@ public:
           goto cleanup;
         }
 
-        // DEBUG: Verify Phase 1 output
+        
         u32 ph1_num_seq = 0;
         cudaMemcpyAsync(&ph1_num_seq, &d_block_num_sequences[block_idx],
                         sizeof(u32), cudaMemcpyDeviceToHost, block_stream);
@@ -2687,10 +2730,10 @@ public:
       // Compress Literals
       block_seq_ctxs[block_idx].num_literals = block_literals_sizes[block_idx];
 
-      // DEBUG: Verify bounds
+      
       if (block_literals_sizes[block_idx] > 131072) { // 128KB
-        fprintf(stderr, "[FATAL] Block %u: Invalid literals size %u > 128KB!\n",
-                block_idx, block_literals_sizes[block_idx]);
+        status = Status::ERROR_CORRUPT_DATA;
+        goto cleanup;
       }
 
       // Status initialized to SUCCESS
@@ -2703,21 +2746,11 @@ public:
       // cudaStreamSynchronize(stream);
       cudaError_t lit_err = cudaDeviceSynchronize();
       if (lit_err != cudaSuccess) {
-        printf("[FATAL] Block %u: compress_literals Sync Failed: %s\n",
-               block_idx, cudaGetErrorString(lit_err));
-        status = Status::ERROR_CUDA_ERROR;
-        goto cleanup;
-      }
-      if (lit_err != cudaSuccess) {
-        printf("[ERROR] Block %u: compress_literals launch error: %s\n",
-               block_idx, cudaGetErrorString(lit_err));
         status = Status::ERROR_CUDA_ERROR;
         goto cleanup;
       }
 
       if (status != Status::SUCCESS) {
-        printf("[ERROR] Block %d: compress_literals failed with status %d\n",
-               block_idx, (int)status);
         goto cleanup;
       }
 
@@ -2732,8 +2765,6 @@ public:
 
         cudaError_t seq_err = cudaDeviceSynchronize();
         if (seq_err != cudaSuccess) {
-          printf("[FATAL] Block %u: build_sequences Sync Failed: %s\n",
-                 block_idx, cudaGetErrorString(seq_err));
           status = Status::ERROR_CUDA_ERROR;
           goto cleanup;
         }
@@ -2744,8 +2775,7 @@ public:
 
       // Compress Sequences
       //  writer.align4(); // Ensure
-      // 4-byte alignment for raw mode?  [DEBUG
-      // DISABLED] Suppress per-block debug output for performance
+      
       // Re-construct needed workspace part for sequences
       CompressionWorkspace seq_ws;
       // Use the same base as phase 2a (it's safe to reuse now)
@@ -2773,16 +2803,11 @@ public:
 
       cudaError_t comp_seq_err = cudaDeviceSynchronize();
       if (comp_seq_err != cudaSuccess) {
-        printf("[FATAL] Block %u: compress_sequences Sync Failed: %s\n",
-               block_idx, cudaGetErrorString(comp_seq_err));
         status = Status::ERROR_CUDA_ERROR;
         goto cleanup;
       }
 
       if (status != Status::SUCCESS) {
-        printf("[ERROR] Block %d: compress_sequences failed with "
-               "status %d\n",
-               block_idx, (int)status);
         goto cleanup;
       }
 
@@ -2860,8 +2885,6 @@ public:
       cudaError_t chk_sync_err = cudaSuccess;
       // cudaStreamSynchronize(stream); // REMOVED for Graph
       if (chk_sync_err != cudaSuccess) {
-        printf("[ERROR] checksum failed: %s\n",
-               cudaGetErrorString(chk_sync_err));
         status = Status::ERROR_CUDA_ERROR;
         goto cleanup;
       }
@@ -3140,17 +3163,15 @@ public:
       return status;
     }
 
+    if (frame_content_size > 0 && frame_content_size > d_output_max_size) {
+      return Status::ERROR_BUFFER_TOO_SMALL;
+    }
+
     // Update read_offset to point past frame header
     u32 read_offset = data_offset + header_size_val;
     u32 write_offset = 0;
 
-    {
-      unsigned char h_head[16];
-      CUDA_CHECK(cudaMemcpy(h_head, d_input, 16, cudaMemcpyDeviceToHost));
-      for (int k = 0; k < 16; k++)
-        printf("%02X ", h_head[k]);
-      printf("\n");
-    }
+    // Debug output removed for production
 
     // Unified Block Loop (Handles both Single Segment and Multi-Block frames)
     while (read_offset < h_compressed_size_remaining) {
@@ -3170,16 +3191,7 @@ public:
 
       // Debug output removed for production
 
-      if (read_offset >= 250 && read_offset <= 300) {
-        unsigned char h_area[128];
-        u32 actual_area = std::min(
-            (u32)128, (u32)(h_compressed_size_remaining - read_offset));
-        CUDA_CHECK(cudaMemcpy(h_area, d_input + read_offset, actual_area,
-                              cudaMemcpyDeviceToHost));
-        for (u32 k = 0; k < actual_area; k++)
-          printf("%02X ", h_area[k]);
-        printf("\n");
-      }
+      // Debug output removed for production
 
       bool blk_is_last = false;
       u32 blk_size = 0;
@@ -3303,8 +3315,6 @@ public:
 
         // Compare checksums (Lower 32 bits)
         if (stored_checksum != (u32)computed_checksum) {
-          printf("[ERROR] Checksum Failed! Expected %08X, Got %08X\n",
-                 stored_checksum, (u32)computed_checksum);
           return Status::ERROR_CHECKSUM_FAILED;
         }
       } else {
@@ -3518,8 +3528,6 @@ private:
     // Check for pre-existing errors to avoid confusing debugging
     cudaError_t pre_err = cudaGetLastError();
     if (pre_err != cudaSuccess) {
-      printf("[WARNING] initialize_context: Pre-existing CUDA error: %s\n",
-             cudaGetErrorString(pre_err));
     }
 
     // Initialize LZ77 context
@@ -3547,53 +3555,35 @@ private:
           cudaMalloc(&ctx.seq_ctx->d_literals_buffer, ZSTD_BLOCKSIZE_MAX));
       {
         cudaError_t e = cudaGetLastError();
-        if (e != cudaSuccess)
-          printf("[CRITICAL] Alloc literals failed: %s\n",
-                 cudaGetErrorString(e));
       }
 
       CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_literal_lengths,
                             ZSTD_BLOCKSIZE_MAX * sizeof(u32)));
       {
         cudaError_t e = cudaGetLastError();
-        if (e != cudaSuccess)
-          printf("[CRITICAL] Alloc lit_len failed: %s\n",
-                 cudaGetErrorString(e));
       }
 
       CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_match_lengths,
                             ZSTD_BLOCKSIZE_MAX * sizeof(u32)));
       {
         cudaError_t e = cudaGetLastError();
-        if (e != cudaSuccess)
-          printf("[CRITICAL] Alloc match_len failed: %s\n",
-                 cudaGetErrorString(e));
       }
 
       CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_offsets,
                             ZSTD_BLOCKSIZE_MAX * sizeof(u32)));
       {
         cudaError_t e = cudaGetLastError();
-        if (e != cudaSuccess)
-          printf("[CRITICAL] Alloc offsets failed: %s\n",
-                 cudaGetErrorString(e));
       }
 
       CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_num_sequences, sizeof(u32)));
       {
         cudaError_t e = cudaGetLastError();
-        if (e != cudaSuccess)
-          printf("[CRITICAL] Alloc num_seq failed: %s\n",
-                 cudaGetErrorString(e));
       }
 
       CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_sequences,
                             ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence)));
       {
         cudaError_t e = cudaGetLastError();
-        if (e != cudaSuccess)
-          printf("[CRITICAL] Alloc sequences failed: %s\n",
-                 cudaGetErrorString(e));
       }
     }
 
@@ -3615,9 +3605,6 @@ private:
           cudaMalloc(&ctx.huff_ctx->codes, 256 * sizeof(huffman::HuffmanCode)));
       {
         cudaError_t e = cudaGetLastError();
-        if (e != cudaSuccess)
-          printf("[CRITICAL] Alloc huff_codes failed: %s\n",
-                 cudaGetErrorString(e));
       }
       //             // std::cerr << "initialize_context: initialized
       //             huff_ctx"
@@ -3633,9 +3620,6 @@ private:
     // Final check
     cudaError_t post_err = cudaGetLastError();
     if (post_err != cudaSuccess) {
-      printf("[ERROR-POST] initialize_context: Failed with error: %s\n",
-             cudaGetErrorString(post_err));
-      fflush(stdout);
       return Status::ERROR_CUDA_ERROR;
     }
 
@@ -3782,7 +3766,7 @@ private:
     unsigned char h_header[18];
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(18u, input_size),
                           cudaMemcpyDeviceToHost));
-    // printf("[DEBUG_LIT] Hdr Bytes: %02X %02X %02X %02X %02X\n", h_header[0],
+    
     //        h_header[1], h_header[2], h_header[3], h_header[4]);
 
     // RFC 8878 Literals Section Header:
@@ -3971,24 +3955,7 @@ private:
     // Use temp buffer for literals
     unsigned char *d_decompressed_literals = ctx.d_temp_buffer;
 
-    // DEBUG: Dump first 512 bytes of the block
-    {
-      const int DUMP_SIZE = 512;
-      unsigned char h_dump[DUMP_SIZE];
-      u32 actual_dump = std::min((u32)DUMP_SIZE, input_size);
-      CUDA_CHECK(
-          cudaMemcpy(h_dump, input, actual_dump, cudaMemcpyDeviceToHost));
-      // Debug output removed for production
-      for (int i = 0; i < actual_dump; i++) {
-        printf("%02x ", h_dump[i]);
-        if ((i + 1) % 16 == 0)
-          printf("\n");
-      }
-      printf("\n");
-      // fflush(stdout);
-      (void)h_dump;
-      (void)actual_dump; // Suppress unused warnings
-    }
+    
     u32 literals_header_size = 0;
     u32 literals_compressed_size = 0;
     u32 literals_decompressed_size = 0;
@@ -4011,23 +3978,7 @@ private:
     //        literals_header_size, literals_compressed_size,
     //        literals_decompressed_size);
 
-    // DEBUG: Dump first 64 bytes of decoded literals
-    {
-      const int DUMP_SIZE = 64;
-      unsigned char h_dump[DUMP_SIZE];
-      u32 actual_dump = std::min((u32)DUMP_SIZE, literals_decompressed_size);
-      CUDA_CHECK(cudaMemcpy(h_dump, d_decompressed_literals, actual_dump,
-                            cudaMemcpyDeviceToHost));
-      // for (int i = 0; i < actual_dump; i++) {
-      //   printf("%02x ", h_dump[i]);
-      //   if ((i + 1) % 16 == 0)
-      //     printf("\n");
-      // }
-      // printf("\n");
-      // fflush(stdout);
-      (void)h_dump;
-      (void)actual_dump; // Suppress unused warnings
-    }
+    
 
     // === Decompress Sequences ===
     // {
@@ -4050,21 +4001,13 @@ private:
                                   literals_decompressed_size, stream);
 
     if (status != Status::SUCCESS) {
-      printf("[ERROR] decompress_sequences "
-             "failed: status=%d\n",
-             (int)status);
       return status;
     }
-
-    printf("[DEBUG] decompress_sequences completed. num_seq=%u\n",
-           ctx.seq_ctx->num_sequences);
 
     // Sync after sequences
     cudaError_t seq_sync_err = cudaStreamSynchronize(stream);
     if (seq_sync_err != cudaSuccess) {
-                  printf("[ERROR] decompress_sequences failed: %s\n",
-                  cudaGetErrorString(seq_sync_err));
-            return Status::ERROR_CUDA_ERROR;
+      return Status::ERROR_CUDA_ERROR;
     }
 
     // === Build Sequence Structs ===
@@ -4124,16 +4067,10 @@ private:
     // ZSTD Literals Section
     // Elements: [Literals Header] [Literals Content]
 
-    // DEBUG: Trace bad blocks
-    // if (num_literals > 100000 && num_literals < 200000) {
-
-    if (num_literals > 0 && literals == nullptr) {
-      printf("[ERROR] compress_literals: num_literals=%u but literals "
-             "ptr is "
-             "NULL!\n",
-             num_literals);
-      return Status::ERROR_INVALID_PARAMETER;
-    }
+    
+     if (num_literals > 0 && literals == nullptr) {
+       return Status::ERROR_INVALID_PARAMETER;
+     }
 
     // Case 1: No literals (Still need a header saying so, usually)
     // Actually, empty block doesn't seem to have literals section?
@@ -4144,7 +4081,7 @@ private:
     // Literals Block (formatted): Header byte: (Block_Type=00) |
     // (Size_Format=00) | (Size << 3) If Size=0, Header = 0x00.
 
-    // DEBUG: Trace num_literals being encoded
+    
 
     unsigned char header[3];
     u32 header_len = 0;
@@ -4183,7 +4120,7 @@ private:
       header_len = 4;
     }
 
-    // DEBUG: Show what header is being written
+    
     printf("[COMPRESS] Writing Raw literals header: num_literals=%u, header_len=%u, header=[",
            num_literals, header_len);
     for (u32 i = 0; i < header_len; i++) {
@@ -4351,7 +4288,7 @@ private:
     cudaMemcpyAsync(output + header_len, d_bitstream, h_pos_val,
                     cudaMemcpyDeviceToDevice, stream);
 
-    // DEBUG: Dump first 16 bytes of generated bitstream
+    
     {
         unsigned char h_dbg[16];
         cudaMemcpy(h_dbg, output, 16, cudaMemcpyDeviceToHost);
@@ -4563,7 +4500,7 @@ private:
 
     // Flush Bits Implementation (Reverse)
     auto flushBits = [&]() {
-      // DEBUG: Confirm Execution
+      
       
       // Local bit buffer for packing
       u64 localContainer = bitContainer; // preserve existing? (usually 0)
@@ -4627,7 +4564,7 @@ private:
       // Pack ML (Low).
       // Pack OF.
       // Pack LL (High).
-      // DEBUG:
+      
       printf("[FSE_PACK] InitStates: LL=%u (%u bits), OF=%u (%u bits), ML=%u (%u bits)\n",
              stateLL, ctLL.tableLog, stateOF, ctOF.tableLog, stateML, ctML.tableLog);
 
@@ -5390,7 +5327,7 @@ private:
       // Fallback: Encode Raw
       return encode_sequences_raw(seq_ctx, num_sequences, writer, stream);
     }
-    return Status::ERROR_NOT_IMPLEMENTED;
+    return encode_sequences_raw(seq_ctx, num_sequences, writer, stream);
   }
 
   /* TIER 2 & 3 - Not yet implemented
@@ -5407,9 +5344,7 @@ private:
       return Status::ERROR_CORRUPT_DATA;
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(5u, input_size),
                           cudaMemcpyDeviceToHost));
-    printf("[LITERALS] header bytes: %02X %02X %02X %02X %02X (input_size=%u)\n",
-           h_header[0], h_header[1], h_header[2], h_header[3], h_header[4], input_size);
-    fflush(stdout);
+    
 
     auto read_le16 = [&](const unsigned char *src) -> u32 {
       return (u32)src[0] | ((u32)src[1] << 8);
@@ -5424,8 +5359,7 @@ private:
 
     u32 literals_type = h_header[0] & 0x03;
     u32 size_format = (h_header[0] >> 2) & 0x03;
-    printf("[LITERALS] type=%u size_format=%u\n", literals_type, size_format);
-    fflush(stdout);
+    
 
     // RFC 8878 Literals Section Header:
     // Bits 0-1: Block Type
@@ -5503,10 +5437,7 @@ private:
     if (*h_header_size + *h_compressed_size > input_size)
       return Status::ERROR_CORRUPT_DATA;
 
-    printf("[LITERALS] type=%u header_size=%u regen=%u comp=%u\n",
-           literals_type, *h_header_size, *h_decompressed_size,
-           *h_compressed_size);
-    fflush(stdout);
+    
 
       const unsigned char *d_data_start = input + *h_header_size;
 
@@ -5518,9 +5449,7 @@ private:
     // Use RFC 8878-compliant Huffman decoder for standard Zstandard
     // format size_format >= 1 means 4-stream format
     bool four_streams = (size_format != 0);
-    printf("[LITERALS] decoding Huffman: four_streams=%d, regen=%u, comp=%u\n",
-           four_streams, *h_decompressed_size, *h_compressed_size);
-    fflush(stdout);
+    
     size_t h_huff_output_size = 0;
     return huffman::decode_huffman_rfc8878(
         d_data_start, *h_compressed_size, output, &h_huff_output_size,
@@ -5530,7 +5459,7 @@ private:
   Status decompress_sequences(const unsigned char *input, u32 input_size,
                               sequence::SequenceContext *seq_ctx,
                               u32 total_literal_count, cudaStream_t stream) {
-    printf("[DEBUG] decompress_sequences: total_literal_count=%u, input_size=%u\n", total_literal_count, input_size);
+    
     if (input_size < 1) {
       seq_ctx->num_sequences = 0;
       return Status::SUCCESS;
@@ -5560,7 +5489,7 @@ private:
       offset = 3;
     }
 
-    printf("[DEBUG] decompress_sequences: num_sequences=%u, header_offset=%u\n", num_sequences, offset);
+    
     seq_ctx->num_sequences = num_sequences;
     if (num_sequences == 0) {
       return Status::SUCCESS;
@@ -5581,10 +5510,7 @@ private:
       // Bounds check: seq_ctx buffers are allocated for
       // ZSTD_BLOCKSIZE_MAX elements
       if (num_sequences > ZSTD_BLOCKSIZE_MAX) {
-        // printf("[ERROR] decompress_sequences: num_sequences (%u)
-        // exceeds "
-        //        "buffer capacity (%u)\n",
-        //        num_sequences, ZSTD_BLOCKSIZE_MAX);
+        
         return Status::ERROR_BUFFER_TOO_SMALL;
       }
 
@@ -5614,11 +5540,13 @@ private:
     }
 
     // Standard ZSTD modes (0-3) - offsets are FSE-encoded with +3 bias
-    // Standard ZSTD modes (0-3) - offsets are FSE-encoded with +3 bias
     seq_ctx->is_raw_offsets = false;
     u32 ll_mode = (fse_modes >> 6) & 0x03;
     u32 of_mode = (fse_modes >> 4) & 0x03;
     u32 ml_mode = (fse_modes >> 2) & 0x03;
+    const u32 orig_ll_mode = ll_mode;
+    const u32 orig_of_mode = of_mode;
+    const u32 orig_ml_mode = ml_mode;
 
     // Kernel config for RLE
     const u32 threads = 256;
@@ -5661,25 +5589,77 @@ private:
     u32 ll_rle_value = 0;
     u32 of_rle_value = 0;
     u32 ml_rle_value = 0;
+    bool used_prev_tables = false;
+    bool use_prev_ll = false;
+    bool use_prev_of = false;
+    bool use_prev_ml = false;
+
+    // Handle repeat mode using previous tables (RFC 8878)
+    if (ll_mode == 3) {
+      if (!prev_ll_.has_table) {
+        return Status::ERROR_NOT_INITIALIZED;
+      }
+      ll_mode = prev_ll_.mode;
+      if (ll_mode == 1) {
+        ll_rle_value = prev_ll_.rle_value;
+      } else {
+        p_ll_table = &prev_ll_.table;
+        use_prev_ll = true;
+      }
+      used_prev_tables = true;
+    }
+    if (of_mode == 3) {
+      if (!prev_of_.has_table) {
+        return Status::ERROR_NOT_INITIALIZED;
+      }
+      of_mode = prev_of_.mode;
+      if (of_mode == 1) {
+        of_rle_value = prev_of_.rle_value;
+      } else {
+        p_of_table = &prev_of_.table;
+        use_prev_of = true;
+      }
+      used_prev_tables = true;
+    }
+    if (ml_mode == 3) {
+      if (!prev_ml_.has_table) {
+        return Status::ERROR_NOT_INITIALIZED;
+      }
+      ml_mode = prev_ml_.mode;
+      if (ml_mode == 1) {
+        ml_rle_value = prev_ml_.rle_value;
+      } else {
+        p_ml_table = &prev_ml_.table;
+        use_prev_ml = true;
+      }
+      used_prev_tables = true;
+    }
 
     // 1. Literal Lengths
     if (ll_mode == 0) { // Predefined
+      if (use_prev_ll) {
+        p_ll_table = &prev_ll_.table;
+      } else {
         const u16 *norm = fse::get_predefined_norm(fse::TableType::LITERALS, &max_symbol, &table_log);
-      ll_table_obj.table_log = table_log;
-      ll_table_obj.table_size = 1u << table_log;
-      ll_table_obj.newState = new u16[1u << table_log];
-      ll_table_obj.symbol = new u8[1u << table_log];
-      ll_table_obj.nbBits = new u8[1u << table_log];
-      ll_table_obj.nbAdditionalBits = new u8[1u << table_log];
-      ll_table_obj.baseValue = new u32[1u << table_log];
-      Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ll_table_obj);
-      if (st != Status::SUCCESS) return st;
-      p_ll_table = &ll_table_obj;
+        ll_table_obj.table_log = table_log;
+        ll_table_obj.table_size = 1u << table_log;
+        ll_table_obj.newState = new u16[1u << table_log];
+        ll_table_obj.symbol = new u8[1u << table_log];
+        ll_table_obj.nbBits = new u8[1u << table_log];
+        ll_table_obj.nbAdditionalBits = new u8[1u << table_log];
+        ll_table_obj.baseValue = new u32[1u << table_log];
+        Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ll_table_obj);
+        if (st != Status::SUCCESS) return st;
+        p_ll_table = &ll_table_obj;
+      }
     } else if (ll_mode == 1) {
-      Status st = decode_rle_value(&ll_rle_value);
-      if (st != Status::SUCCESS)
-        return st;
+      if (!use_prev_ll) {
+        Status st = decode_rle_value(&ll_rle_value);
+        if (st != Status::SUCCESS)
+          return st;
+      }
     } else if (ll_mode == 2) { // Compressed (Table)
+      if (!use_prev_ll) {
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
 
@@ -5710,26 +5690,34 @@ private:
       if (st != Status::SUCCESS)
         return st;
       p_ll_table = &ll_table_obj;
+      }
     }
 
     // 2. Offsets
     if (of_mode == 1) { // RLE
-      Status st = decode_rle_value(&of_rle_value);
-      if (st != Status::SUCCESS)
-        return st;
+      if (!use_prev_of) {
+        Status st = decode_rle_value(&of_rle_value);
+        if (st != Status::SUCCESS)
+          return st;
+      }
     } else if (of_mode == 0) { // Predefined
-      const u16 *norm = fse::get_predefined_norm(fse::TableType::OFFSETS, &max_symbol, &table_log);
-      of_table_obj.table_log = table_log;
-      of_table_obj.table_size = 1u << table_log;
-      of_table_obj.newState = new u16[1u << table_log];
-      of_table_obj.symbol = new u8[1u << table_log];
-      of_table_obj.nbBits = new u8[1u << table_log];
-      of_table_obj.nbAdditionalBits = new u8[1u << table_log];
-      of_table_obj.baseValue = new u32[1u << table_log];
-      Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, of_table_obj);
-      if (st != Status::SUCCESS) return st;
-      p_of_table = &of_table_obj;
+      if (use_prev_of) {
+        p_of_table = &prev_of_.table;
+      } else {
+        const u16 *norm = fse::get_predefined_norm(fse::TableType::OFFSETS, &max_symbol, &table_log);
+        of_table_obj.table_log = table_log;
+        of_table_obj.table_size = 1u << table_log;
+        of_table_obj.newState = new u16[1u << table_log];
+        of_table_obj.symbol = new u8[1u << table_log];
+        of_table_obj.nbBits = new u8[1u << table_log];
+        of_table_obj.nbAdditionalBits = new u8[1u << table_log];
+        of_table_obj.baseValue = new u32[1u << table_log];
+        Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, of_table_obj);
+        if (st != Status::SUCCESS) return st;
+        p_of_table = &of_table_obj;
+      }
     } else if (of_mode == 2) { // Compressed
+      if (!use_prev_of) {
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
 
@@ -5760,26 +5748,34 @@ private:
       if (st != Status::SUCCESS)
         return st;
       p_of_table = &of_table_obj;
+      }
     }
 
     // 3. Match Lengths
     if (ml_mode == 1) { // RLE
-      Status st = decode_rle_value(&ml_rle_value);
-      if (st != Status::SUCCESS)
-        return st;
+      if (!use_prev_ml) {
+        Status st = decode_rle_value(&ml_rle_value);
+        if (st != Status::SUCCESS)
+          return st;
+      }
     } else if (ml_mode == 0) { // Predefined
-      const u16 *norm = fse::get_predefined_norm(fse::TableType::MATCH_LENGTHS, &max_symbol, &table_log);
-      ml_table_obj.table_log = table_log;
-      ml_table_obj.table_size = 1u << table_log;
-      ml_table_obj.newState = new u16[1u << table_log];
-      ml_table_obj.symbol = new u8[1u << table_log];
-      ml_table_obj.nbBits = new u8[1u << table_log];
-      ml_table_obj.nbAdditionalBits = new u8[1u << table_log];
-      ml_table_obj.baseValue = new u32[1u << table_log];
-      Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ml_table_obj);
-      if (st != Status::SUCCESS) return st;
-      p_ml_table = &ml_table_obj;
+      if (use_prev_ml) {
+        p_ml_table = &prev_ml_.table;
+      } else {
+        const u16 *norm = fse::get_predefined_norm(fse::TableType::MATCH_LENGTHS, &max_symbol, &table_log);
+        ml_table_obj.table_log = table_log;
+        ml_table_obj.table_size = 1u << table_log;
+        ml_table_obj.newState = new u16[1u << table_log];
+        ml_table_obj.symbol = new u8[1u << table_log];
+        ml_table_obj.nbBits = new u8[1u << table_log];
+        ml_table_obj.nbAdditionalBits = new u8[1u << table_log];
+        ml_table_obj.baseValue = new u32[1u << table_log];
+        Status st = fse::FSE_buildDTable_Host(norm, max_symbol, 1u << table_log, ml_table_obj);
+        if (st != Status::SUCCESS) return st;
+        p_ml_table = &ml_table_obj;
+      }
     } else if (ml_mode == 2) { // Compressed
+      if (!use_prev_ml) {
       std::vector<u16> normalized_counts;
       u32 max_symbol, table_log, bytes_read;
 
@@ -5810,6 +5806,7 @@ private:
       if (st != Status::SUCCESS)
         return st;
       p_ml_table = &ml_table_obj;
+      }
     }
 
     // Bounds check
@@ -5833,95 +5830,79 @@ private:
     Status status = fse::decode_sequences_interleaved_rfc(
         input + offset, input_size - offset, num_sequences,
         seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
-        seq_ctx->d_match_lengths, ll_mode, of_mode, ml_mode, p_ll_table,
+        seq_ctx->d_match_lengths, orig_ll_mode, orig_of_mode, orig_ml_mode, p_ll_table,
         p_of_table, p_ml_table, ll_rle_value, of_rle_value, ml_rle_value,
         total_literal_count, stream);
 
-    if (p_ll_table) {
-      if (p_ll_table->newState) delete[] p_ll_table->newState;
-      if (p_ll_table->symbol) delete[] p_ll_table->symbol;
-      if (p_ll_table->nbBits) delete[] p_ll_table->nbBits;
-      if (p_ll_table->nbAdditionalBits) delete[] p_ll_table->nbAdditionalBits;
-      if (p_ll_table->baseValue) delete[] p_ll_table->baseValue;
+    if (!used_prev_tables) {
+      if (ll_mode == 1) {
+        prev_ll_.rle_value = static_cast<u8>(ll_rle_value);
+        prev_ll_.mode = ll_mode;
+        prev_ll_.has_table = true;
+      } else if (ll_mode == 0 || ll_mode == 2) {
+        Status st = copy_fse_decode_table(ll_table_obj, prev_ll_.table);
+        if (st == Status::SUCCESS) {
+          prev_ll_.rle_value = 0;
+          prev_ll_.mode = ll_mode;
+          prev_ll_.has_table = true;
+        }
+      }
+
+      if (of_mode == 1) {
+        prev_of_.rle_value = static_cast<u8>(of_rle_value);
+        prev_of_.mode = of_mode;
+        prev_of_.has_table = true;
+      } else if (of_mode == 0 || of_mode == 2) {
+        Status st = copy_fse_decode_table(of_table_obj, prev_of_.table);
+        if (st == Status::SUCCESS) {
+          prev_of_.rle_value = 0;
+          prev_of_.mode = of_mode;
+          prev_of_.has_table = true;
+        }
+      }
+
+      if (ml_mode == 1) {
+        prev_ml_.rle_value = static_cast<u8>(ml_rle_value);
+        prev_ml_.mode = ml_mode;
+        prev_ml_.has_table = true;
+      } else if (ml_mode == 0 || ml_mode == 2) {
+        Status st = copy_fse_decode_table(ml_table_obj, prev_ml_.table);
+        if (st == Status::SUCCESS) {
+          prev_ml_.rle_value = 0;
+          prev_ml_.mode = ml_mode;
+          prev_ml_.has_table = true;
+        }
+      }
     }
-    if (p_of_table) {
-      if (p_of_table->newState) delete[] p_of_table->newState;
-      if (p_of_table->symbol) delete[] p_of_table->symbol;
-      if (p_of_table->nbBits) delete[] p_of_table->nbBits;
-      if (p_of_table->nbAdditionalBits) delete[] p_of_table->nbAdditionalBits;
-      if (p_of_table->baseValue) delete[] p_of_table->baseValue;
-    }
-    if (p_ml_table) {
-      if (p_ml_table->newState) delete[] p_ml_table->newState;
-      if (p_ml_table->symbol) delete[] p_ml_table->symbol;
-      if (p_ml_table->nbBits) delete[] p_ml_table->nbBits;
-      if (p_ml_table->nbAdditionalBits) delete[] p_ml_table->nbAdditionalBits;
-      if (p_ml_table->baseValue) delete[] p_ml_table->baseValue;
+
+    if (!used_prev_tables) {
+      if (p_ll_table) {
+        if (p_ll_table->newState) delete[] p_ll_table->newState;
+        if (p_ll_table->symbol) delete[] p_ll_table->symbol;
+        if (p_ll_table->nbBits) delete[] p_ll_table->nbBits;
+        if (p_ll_table->nbAdditionalBits) delete[] p_ll_table->nbAdditionalBits;
+        if (p_ll_table->baseValue) delete[] p_ll_table->baseValue;
+      }
+      if (p_of_table) {
+        if (p_of_table->newState) delete[] p_of_table->newState;
+        if (p_of_table->symbol) delete[] p_of_table->symbol;
+        if (p_of_table->nbBits) delete[] p_of_table->nbBits;
+        if (p_of_table->nbAdditionalBits) delete[] p_of_table->nbAdditionalBits;
+        if (p_of_table->baseValue) delete[] p_of_table->baseValue;
+      }
+      if (p_ml_table) {
+        if (p_ml_table->newState) delete[] p_ml_table->newState;
+        if (p_ml_table->symbol) delete[] p_ml_table->symbol;
+        if (p_ml_table->nbBits) delete[] p_ml_table->nbBits;
+        if (p_ml_table->nbAdditionalBits) delete[] p_ml_table->nbAdditionalBits;
+        if (p_ml_table->baseValue) delete[] p_ml_table->baseValue;
+      }
     }
 
     return status;
   }
 
-  Status decompress_sequence_stream(const unsigned char *input, u32 input_size,
-                                    u32 *offset, u32 mode, u32 num_sequences,
-                                    u32 stream_size, fse::TableType table_type,
-                                    u32 *d_out_buffer, cudaStream_t stream) {
-    const u32 threads = 256;
-    const u32 blocks = (num_sequences + threads - 1) / threads;
-    u32 h_decoded_count = 0;
-
-    // [DEBUG DISABLED] Suppress per-call debug output for performance
-    //
-    switch (mode) {
-    case 0: { // Predefined (ZSTD Spec)
-      // Was incorrectly "Raw" byte copy before.
-      Status status = fse::decode_fse_predefined(
-          input + *offset, input_size - *offset, (unsigned char *)d_out_buffer,
-          num_sequences, &h_decoded_count, table_type, stream);
-      *offset = input_size; // Predefined consumes rest of stream? or fixed?
-                            // Usually FSE bitstream is backwards.
-                            // Predefined means tables are implicit.
-                            // The bitstream is still there?
-                            // Yes, Predefined uses default tables to decode
-                            // the BITSTREAM. decode_fse_predefined seems to
-                            // assume it consumes everything? Checked
-                            // decode_fse_predefined: it takes input buffer.
-                            // We assume it consumes up to end of block or
-                            // necessary bits.
-      return status;
-    }
-    case 1: { // RLE
-      if (*offset + 1 > input_size) {
-        //         return Status::ERROR_CORRUPT_DATA;
-      }
-      unsigned char rle_value;
-      CUDA_CHECK(
-          cudaMemcpy(&rle_value, input + *offset, 1, cudaMemcpyDeviceToHost));
-
-      expand_rle_u32_kernel<<<blocks, threads, 0, stream>>>(
-          d_out_buffer, num_sequences, (u32)rle_value);
-      *offset += 1;
-      return Status::SUCCESS;
-    }
-    case 2: { // FSE Compressed
-      if (*offset + stream_size > input_size) {
-        //         return Status::ERROR_CORRUPT_DATA;
-      }
-
-      Status status = fse::decode_fse(input + *offset, stream_size,
-                                      (unsigned char *)d_out_buffer,
-                                      &h_decoded_count, nullptr, stream);
-      *offset += stream_size;
-      return status;
-    }
-    case 3: { // Repeat Mode
-      // Not implemented yet
-      return Status::ERROR_NOT_IMPLEMENTED;
-    }
-    default:
-      return Status::ERROR_CORRUPT_DATA;
-    }
-  }
+  
 };
 
 // ==============================================================================

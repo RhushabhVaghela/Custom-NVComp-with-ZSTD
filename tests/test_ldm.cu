@@ -1,9 +1,8 @@
 /**
  * test_ldm.cu - Unit tests for Long Distance Matching (LDM)
  * 
- * Tests LDM infrastructure and documents current limitations.
- * Note: Full LDM implementation is NOT SUPPORTED - these tests
- * verify the stub implementations return appropriate error codes.
+ * Tests LDM infrastructure and basic functionality.
+ * LDM is supported when enabled; these tests validate core behavior.
  */
 
 #include "cuda_zstd_types.h"
@@ -142,7 +141,6 @@ bool test_ldm_reset() {
         status = ldm_reset(ctx);
         
         // Reset should succeed on initialized context
-        // (though the stub may return NOT_INITIALIZED or SUCCESS)
         
         // Verify stats are reset
         TEST_ASSERT_EQ(ctx.rolling_hash_state, 0u, "Hash state should be reset");
@@ -161,7 +159,7 @@ bool test_ldm_reset() {
 }
 
 // ============================================================================
-// LDM FUNCTIONALITY TESTS (STUB VERIFICATION)
+// LDM FUNCTIONALITY TESTS
 // ============================================================================
 
 // Test 6: ldm_is_supported() returns true

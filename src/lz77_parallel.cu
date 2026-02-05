@@ -30,7 +30,7 @@ __global__ void find_matches_kernel(const u8 *input, u32 input_size,
   if (pos >= input_size - config.min_match)
     return;
 
-  // DEBUG PROBES removed for production
+  
 
   u32 hash = compute_hash(input, pos, hash_log);
   u32 hash_idx = hash % (1 << hash_log);
@@ -221,7 +221,7 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
       pos++;
     } else {
       if (num_seqs < 5) {
-          printf("[LZ77_DEBUG] Seq %u: pos=%u, LL=%u, ML=%u, OF=%u\n", num_seqs, pos-literal_run, literal_run, decision, offsets_in[pos]);
+          
       }
       ll_out[num_seqs] = literal_run;
       ml_out[num_seqs] = decision;

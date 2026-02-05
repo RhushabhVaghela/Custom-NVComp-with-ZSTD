@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-// Test Stub
+// Test
 void test_build_ctable_simple() {
   using namespace cuda_zstd;
   using namespace cuda_zstd::fse;
@@ -19,10 +19,7 @@ void test_build_ctable_simple() {
   FSEEncodeTable table;
   // Mock device pointers with host pointers for testing (assuming BuildCTable
   // supports it or we mock copy) Wait, FSE_buildCTable_Host calls cudaMemcpy.
-  // We can't verify logic purely on Host unless we use Unified Memory or stub
-  // cudaMemcpy. Actually, for a pure logical check, we might need a version
-  // that writes to host. My implementation COPIES to device. So this test needs
-  // a GPU.
+  // This test uses Unified Memory and requires a GPU.
 
   // Allocate Unified Memory or Device Memory
   cudaMallocManaged(&table.d_symbol_table,

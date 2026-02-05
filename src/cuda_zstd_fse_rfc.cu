@@ -409,9 +409,10 @@ __global__ void k_fse_encode_rfc_from_old_tables(
   write_bits(1, 1);
 
   // 2. Initial States for Decoder (Discovery Order: LL, OF, ML)
-  write_bits(stateLL, ll_table_log);
-  write_bits(stateOF, of_table_log);
+  // Writer must push in reverse order: ML, OF, LL.
   write_bits(stateML, ml_table_log);
+  write_bits(stateOF, of_table_log);
+  write_bits(stateLL, ll_table_log);
 
   // 3. Sequence Loop (0 up to N-1) - Discovery Order: Seq 0, Seq 1, ...
   for (u32 i = 0; i < num_symbols; i++) {
@@ -449,10 +450,11 @@ __global__ void k_fse_encode_rfc_from_old_tables(
       }
     }
 
-    // Extra bits for current sequence (OF -> ML -> LL order)
-    write_bits(d_of_extras[i], d_of_bits[i]);
-    write_bits(d_ml_extras[i], d_ml_bits[i]);
+    // Extra bits for current sequence (Reader consumes OF -> ML -> LL)
+    // Writer must push in reverse order: LL -> ML -> OF.
     write_bits(d_ll_extras[i], d_ll_bits[i]);
+    write_bits(d_ml_extras[i], d_ml_bits[i]);
+    write_bits(d_of_extras[i], d_of_bits[i]);
   }
 
   // Final flush

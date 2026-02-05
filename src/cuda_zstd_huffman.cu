@@ -345,7 +345,7 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
 
   u32 num_fse_symbols = symbol;
 
-  // DEBUG: Verify normalization parsing
+  
   fprintf(stderr,
           "[HUF_FSE] Parsed %u symbols, remaining=%d, expected=0, bit_pos=%u\n",
           num_fse_symbols, remaining, bit_pos_header);
@@ -1406,7 +1406,7 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
     return status;
   }
 
-  // DEBUG: Print first 10 offsets and lengths
+  
   // debug_print_kernel<<<1, 1, 0, stream>>>(d_code_lengths, d_bit_offsets,
   // d_input, table.codes, input_size); cudaStreamSynchronize(stream);
 

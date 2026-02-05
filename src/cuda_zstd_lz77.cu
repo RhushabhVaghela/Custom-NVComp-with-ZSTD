@@ -458,7 +458,7 @@ find_best_match_parallel(const unsigned char *input, u32 current_pos,
         ++len;
     }
 
-    // DEBUG: Catch invalid match
+  
     if (len > 0) {
       // Check if it really matches
       if (input[current_pos] != match_ptr[0]) {
@@ -606,7 +606,7 @@ find_best_match_parallel(const unsigned char *input, u32 current_pos,
     best_off = 0;
   }
 
-  // DEBUG: Verify the match before returning
+  
   if (best_len > 0) {
     if (input[current_pos] != input[current_pos - best_off]) {
       printf("[GPU ERROR] Match Validation Failed! Pos=%u, Off=%u, Len=%u. "
@@ -934,8 +934,7 @@ Status find_matches(LZ77Context &ctx, const unsigned char *d_input,
 
   cudaError_t hash_err = cudaGetLastError();
   if (hash_err != cudaSuccess) {
-    printf("[ERROR] find_matches: build_hash_chains_kernel failed: %s\n",
-           cudaGetErrorString(hash_err));
+    return Status::ERROR_CUDA_ERROR;
   }
 
   // Find all matches in parallel
@@ -947,9 +946,7 @@ Status find_matches(LZ77Context &ctx, const unsigned char *d_input,
 
   cudaError_t match_err = cudaGetLastError();
   if (match_err != cudaSuccess) {
-    printf(
-        "[ERROR] find_matches: parallel_find_all_matches_kernel failed: %s\n",
-        cudaGetErrorString(match_err));
+    return Status::ERROR_CUDA_ERROR;
   }
 
   return Status::SUCCESS;
@@ -1069,7 +1066,7 @@ Status get_matches(const LZ77Context &ctx,
 // lz77_ctx.d_offsets_reverse = workspace->d_offsets_reverse; LEGACY_CPU_PARSE:
 // lz77_ctx.max_sequences_capacity = workspace->max_sequences; LEGACY_CPU_PARSE:
 // LEGACY_CPU_PARSE:     lz77_ctx.max_sequences_capacity =
-// workspace->max_sequences; LEGACY_CPU_PARSE:     // (DEBUG) Skip kernels to
+// workspace->max_sequences; LEGACY_CPU_PARSE:
 // isolate hang LEGACY_CPU_PARSE:     // return Status::SUCCESS;
 // LEGACY_CPU_PARSE:
 // LEGACY_CPU_PARSE:     // Phase 1: Compute optimal parse costs

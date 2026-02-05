@@ -558,26 +558,8 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   compute_output_offsets_kernel<<<blocks, threads, 0, stream>>>(
       d_literal_offsets, d_match_offsets, d_output_offsets, num_sequences);
 
-  // DEBUG: Verify first sequence offsets on host
-  {
-    u32 h_lit_off = 0, h_match_off = 0, h_out_off = 0;
-    u32 h_lit_len = 0, h_match_len = 0, h_actual_off = 0;
-
-    CUDA_CHECK(cudaMemcpyAsync(&h_lit_off, d_literal_offsets, sizeof(u32),
-                               cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaMemcpyAsync(&h_match_off, d_match_offsets, sizeof(u32),
-                               cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaMemcpyAsync(&h_out_off, d_output_offsets, sizeof(u32),
-                               cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaMemcpyAsync(&h_lit_len, d_literals_lengths, sizeof(u32),
-                               cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaMemcpyAsync(&h_match_len, d_match_lengths, sizeof(u32),
-                               cudaMemcpyDeviceToHost, stream));
-    CUDA_CHECK(cudaMemcpyAsync(&h_actual_off, d_actual_offsets, sizeof(u32),
-                               cudaMemcpyDeviceToHost, stream));
-
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-  }
+  
+  
 
   // --- Pass 3: Execute Sequences (Sequential per block for dependencies) ---
   // We use a single block to process all sequences in order, ensuring that

@@ -7,7 +7,8 @@
 #ifndef CUDA_ZSTD_FSE_CHUNK_KERNEL_CUH
 #define CUDA_ZSTD_FSE_CHUNK_KERNEL_CUH
 
-#include "cuda_zstd_fse_zstd_encoder.cuh" // For GPU_FSE_SymbolTransform, GPU_BitStream
+#include "gpu_bitstream.cuh"
+#include "gpu_fse_state.cuh"
 #include "cuda_zstd_types.h"
 #include <cuda_runtime.h>
 
@@ -565,7 +566,7 @@ static __global__ void fse_encode_chunk_kernel(
     // Calculate from bitC state (approximated) - Debug disabled
     // u32 bytes = (u32)(bitC.ptr - bitC.startPtr);
     // u32 bits = bytes * 8 + bitC.bitPos;
-    // printf("[DEBUG ENC] Chunk 0 bits written = %u\n", bits);
+    
   }
 
   // FLUSH PARTIAL BYTE (Critical Step missing in flush_bits)
@@ -626,15 +627,7 @@ static __global__ void fse_merge_bitstreams_kernel(
   for (u32 i = 0; i < num_bytes; i++) {
     byte_t val = src_ptr[i];
 
-    // Debug End of Chunk 0 and Start of Chunk 1 (Disabled for production)
-    // if (chunk_idx == 0 && i >= num_bytes - 2) {
-    //   printf("[MERGE DEBUG] Chunk 0 Byte %u: %02x (offset=%llu)\n", i, val,
-    //          global_start_bit);
-    // }
-    // if (chunk_idx == 1 && i < 2) {
-    //   printf("[MERGE DEBUG] Chunk 1 Byte %u: %02x (offset=%llu)\n", i, val,
-    //          global_start_bit);
-    // }
+  
 
     // Mask garbage bits for last byte
     if (i == num_bytes - 1) {

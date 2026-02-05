@@ -89,6 +89,7 @@ struct FSEBitStreamReader {
   u32 bit_pos;     // For tracking total bits read
   u32 stream_size; // TRACKING BOUNDS
   u8 sentinel_bit;
+  bool underflow;
 
   __device__ __host__ static __forceinline__ u32 bswap32(u32 x) {
 #ifdef __CUDA_ARCH__
@@ -105,7 +106,8 @@ struct FSEBitStreamReader {
 
   __device__ __host__ FSEBitStreamReader()
       : stream_start(nullptr), stream_ptr(nullptr), bit_container(0),
-        bits_remaining(0), bit_pos(0), stream_size(0), sentinel_bit(0) {}
+        bits_remaining(0), bit_pos(0), stream_size(0), sentinel_bit(0),
+        underflow(false) {}
 
   __device__ __host__ FSEBitStreamReader(const unsigned char *input,
                                          u32 start_bit_pos, u32 size,
@@ -114,6 +116,7 @@ struct FSEBitStreamReader {
     stream_start = input;
     stream_size = size;
     sentinel_bit = sentinel_bit_pos;
+    underflow = false;
     // Align to byte boundary
     // Align to byte boundary
     // u32 byte_off = bit_pos / 8; // Unused
@@ -132,6 +135,7 @@ struct FSEBitStreamReader {
     bit_pos = start_bit_pos;
     stream_start = input;
     sentinel_bit = sentinel_bit_pos;
+    underflow = false;
   }
 
   __device__ __host__ void set_stream_size(u32 size) { stream_size = size; }
@@ -164,8 +168,10 @@ struct FSEBitStreamReader {
   __device__ __host__ u32 read(u8 num_bits) {
     if (num_bits == 0)
       return 0;
-    if (bit_pos < num_bits)
-      return 0; // Should not happen in valid stream
+    if (bit_pos < num_bits) {
+      underflow = true;
+      return 0;
+    }
 
     u32 end_pos = bit_pos;
     bit_pos -= num_bits;
@@ -174,8 +180,10 @@ struct FSEBitStreamReader {
     for (u32 pos = end_pos; pos-- > bit_pos;) {
       u32 byte_idx = pos / 8;
       u32 bit_idx = pos % 8;
-      if (byte_idx >= stream_size)
+      if (byte_idx >= stream_size) {
+        underflow = true;
         break;
+      }
       u32 bit = (stream_start[byte_idx] >> bit_idx) & 1u;
       val = (val << 1) | bit;
       out++;
@@ -187,8 +195,10 @@ struct FSEBitStreamReader {
   __device__ __host__ u32 peek(u8 num_bits) {
     if (num_bits == 0)
       return 0;
-    if (bit_pos < num_bits)
+    if (bit_pos < num_bits) {
+      underflow = true;
       return 0;
+    }
 
     u32 end_pos = bit_pos;
     u32 start_pos = bit_pos - num_bits;
@@ -197,8 +207,10 @@ struct FSEBitStreamReader {
     for (u32 pos = end_pos; pos-- > start_pos;) {
       u32 byte_idx = pos / 8;
       u32 bit_idx = pos % 8;
-      if (byte_idx >= stream_size)
+      if (byte_idx >= stream_size) {
+        underflow = true;
         break;
+      }
       u32 bit = (stream_start[byte_idx] >> bit_idx) & 1u;
       val = (val << 1) | bit;
       out++;
