@@ -257,6 +257,121 @@ bool test_output_size_null() {
 }
 
 // ==============================================================================
+// Test: C API Dictionary Round-trip
+// ==============================================================================
+
+bool test_c_api_dictionary_roundtrip() {
+  printf("=== Test: C API Dictionary Round-trip ===\n");
+
+  std::vector<unsigned char> sample1(16 * 1024);
+  std::vector<unsigned char> sample2(16 * 1024);
+  for (size_t i = 0; i < sample1.size(); ++i) {
+    sample1[i] = (unsigned char)((i * 7) & 0xFF);
+    sample2[i] = (unsigned char)((i * 13) & 0xFF);
+  }
+
+  const void *samples[] = {sample1.data(), sample2.data()};
+  size_t sample_sizes[] = {sample1.size(), sample2.size()};
+
+  cuda_zstd_dict_t *dict =
+      cuda_zstd_train_dictionary(samples, sample_sizes, 2, 32 * 1024);
+  if (!dict) {
+    record_test("C API Dictionary Round-trip", false);
+    return false;
+  }
+
+  cuda_zstd_manager_t *manager = cuda_zstd_create_manager(3);
+  if (!manager) {
+    cuda_zstd_destroy_dictionary(dict);
+    record_test("C API Dictionary Round-trip", false);
+    return false;
+  }
+
+  int set_result = cuda_zstd_set_dictionary(manager, dict);
+  if (cuda_zstd_is_error(set_result)) {
+    cuda_zstd_destroy_manager(manager);
+    cuda_zstd_destroy_dictionary(dict);
+    record_test("C API Dictionary Round-trip", false);
+    return false;
+  }
+
+  const size_t data_size = 64 * 1024;
+  std::vector<unsigned char> h_input(data_size);
+  for (size_t i = 0; i < data_size; ++i) {
+    h_input[i] = (unsigned char)((i * 31) & 0xFF);
+  }
+
+  unsigned char *d_input = nullptr;
+  unsigned char *d_compressed = nullptr;
+  unsigned char *d_decompressed = nullptr;
+
+  cudaMalloc(&d_input, data_size);
+  cudaMalloc(&d_compressed, data_size * 2);
+  cudaMalloc(&d_decompressed, data_size);
+  cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
+
+  size_t workspace_size =
+      cuda_zstd_get_compress_workspace_size(manager, data_size);
+  void *d_workspace = nullptr;
+  cudaMalloc(&d_workspace, workspace_size);
+
+  size_t compressed_size = data_size * 2;
+  int comp_status = cuda_zstd_compress(manager, d_input, data_size,
+                                       d_compressed, &compressed_size,
+                                       d_workspace, workspace_size, 0);
+  if (cuda_zstd_is_error(comp_status)) {
+    cudaFree(d_input);
+    cudaFree(d_compressed);
+    cudaFree(d_decompressed);
+    cudaFree(d_workspace);
+    cuda_zstd_destroy_manager(manager);
+    cuda_zstd_destroy_dictionary(dict);
+    record_test("C API Dictionary Round-trip", false);
+    return false;
+  }
+
+  size_t decomp_workspace_size =
+      cuda_zstd_get_decompress_workspace_size(manager, compressed_size);
+  if (decomp_workspace_size > workspace_size) {
+    cudaFree(d_workspace);
+    cudaMalloc(&d_workspace, decomp_workspace_size);
+    workspace_size = decomp_workspace_size;
+  }
+
+  size_t decompressed_size = data_size;
+  int decomp_status = cuda_zstd_decompress(
+      manager, d_compressed, compressed_size, d_decompressed,
+      &decompressed_size, d_workspace, workspace_size, 0);
+  if (cuda_zstd_is_error(decomp_status)) {
+    cudaFree(d_input);
+    cudaFree(d_compressed);
+    cudaFree(d_decompressed);
+    cudaFree(d_workspace);
+    cuda_zstd_destroy_manager(manager);
+    cuda_zstd_destroy_dictionary(dict);
+    record_test("C API Dictionary Round-trip", false);
+    return false;
+  }
+
+  std::vector<unsigned char> h_output(data_size);
+  cudaMemcpy(h_output.data(), d_decompressed, data_size,
+             cudaMemcpyDeviceToHost);
+
+  bool match = (decompressed_size == data_size) &&
+               (memcmp(h_output.data(), h_input.data(), data_size) == 0);
+
+  cudaFree(d_input);
+  cudaFree(d_compressed);
+  cudaFree(d_decompressed);
+  cudaFree(d_workspace);
+  cuda_zstd_destroy_manager(manager);
+  cuda_zstd_destroy_dictionary(dict);
+
+  record_test("C API Dictionary Round-trip", match);
+  return match;
+}
+
+// ==============================================================================
 // Main
 // ==============================================================================
 
@@ -275,6 +390,7 @@ int main() {
   test_manager_destruction();
   test_multiple_managers();
   test_output_size_null();
+  test_c_api_dictionary_roundtrip();
 
   printf("\n========================================\n");
   printf("Summary\n");

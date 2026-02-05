@@ -525,6 +525,158 @@ bool test_error_handling() {
 }
 
 // ============================================================================
+// Test 6: Metadata and Format Helpers
+// ============================================================================
+
+bool test_metadata_and_format_helpers() {
+    printf("\n=== Test 6: Metadata & Format Helpers ===\n");
+
+    const size_t data_size = 64 * 1024;
+    std::vector<byte_t> h_input;
+    generate_test_data(h_input, data_size);
+
+    void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
+    size_t temp_size = 0;
+    size_t compressed_size = data_size * 2;
+    size_t decompressed_size = data_size;
+
+    if (!safe_cuda_malloc(&d_input, data_size) ||
+        !safe_cuda_malloc(&d_compressed, data_size * 2) ||
+        !safe_cuda_malloc(&d_output, data_size)) {
+        printf("❌ Memory allocation failed\n");
+        return false;
+    }
+
+    if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
+        printf("❌ Failed to copy input\n");
+        goto cleanup_meta;
+    }
+
+    // Create manager and compress
+    NvcompV5Options opts;
+    auto manager = create_nvcomp_v5_manager(opts);
+    temp_size = manager->get_compress_temp_size(data_size);
+    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        printf("❌ Failed to allocate temp buffer\n");
+        goto cleanup_meta;
+    }
+
+    Status st = manager->compress(d_input, data_size, d_compressed, &compressed_size,
+                                  d_temp, temp_size, nullptr, 0, 0);
+    if (st != Status::SUCCESS) {
+        printf("❌ Compression failed\n");
+        goto cleanup_meta;
+    }
+
+    // Format check
+    if (!is_nvcomp_v5_zstd_format(d_compressed, compressed_size)) {
+        printf("❌ is_nvcomp_v5_zstd_format returned false for valid data\n");
+        goto cleanup_meta;
+    }
+
+    // Metadata retrieval
+    NvcompV5Metadata metadata;
+    int err = nvcomp_zstd_get_metadata_v5(d_compressed, compressed_size, &metadata, 0);
+    if (err != 0) {
+        printf("❌ nvcomp_zstd_get_metadata_v5 failed: %d\n", err);
+        goto cleanup_meta;
+    }
+
+    if (metadata.uncompressed_size != data_size) {
+        printf("❌ Metadata uncompressed_size mismatch\n");
+        goto cleanup_meta;
+    }
+
+    // Chunk size helpers
+    size_t num_chunks = 0;
+    err = nvcomp_zstd_get_num_chunks_v5(d_compressed, compressed_size, &num_chunks);
+    if (err != 0 || num_chunks == 0) {
+        printf("❌ nvcomp_zstd_get_num_chunks_v5 failed\n");
+        goto cleanup_meta;
+    }
+
+    std::vector<size_t> chunk_sizes(num_chunks);
+    err = nvcomp_zstd_get_chunk_sizes_v5(d_compressed, compressed_size, chunk_sizes.data(), num_chunks);
+    if (err != 0) {
+        printf("❌ nvcomp_zstd_get_chunk_sizes_v5 failed\n");
+        goto cleanup_meta;
+    }
+
+    // Roundtrip for sanity
+    decompressed_size = data_size;
+    st = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
+                             d_temp, temp_size, 0);
+    if (st != Status::SUCCESS || decompressed_size != data_size) {
+        printf("❌ Decompression failed\n");
+        goto cleanup_meta;
+    }
+
+    printf("✅ Metadata and format helpers passed\n");
+
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    return true;
+
+cleanup_meta:
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    return false;
+}
+
+// ============================================================================
+// Test 7: Error Mapping and Invalid Format Handling
+// ============================================================================
+
+bool test_error_mapping_and_invalid_format() {
+    printf("\n=== Test 7: Error Mapping & Invalid Format ===\n");
+
+    struct MappingCase {
+        Status status;
+        int nvcomp_error;
+    } cases[] = {
+        {Status::SUCCESS, 0},
+        {Status::ERROR_INVALID_PARAMETER, 2},
+        {Status::ERROR_OUT_OF_MEMORY, 3},
+        {Status::ERROR_CUDA_ERROR, 4},
+        {Status::ERROR_CORRUPT_DATA, 6},
+        {Status::ERROR_BUFFER_TOO_SMALL, 7},
+        {Status::ERROR_CHECKSUM_FAILED, 10},
+        {Status::ERROR_COMPRESSION, 12}
+    };
+
+    for (const auto &entry : cases) {
+        int mapped = status_to_nvcomp_error(entry.status);
+        if (mapped != entry.nvcomp_error) {
+            printf("❌ status_to_nvcomp_error mismatch for %d\n", (int)entry.status);
+            return false;
+        }
+        Status roundtrip = nvcomp_error_to_status(entry.nvcomp_error);
+        if (roundtrip != entry.status) {
+            printf("❌ nvcomp_error_to_status mismatch for %d\n", entry.nvcomp_error);
+            return false;
+        }
+    }
+
+    if (nvcomp_error_to_status(999) != Status::ERROR_GENERIC) {
+        printf("❌ nvcomp_error_to_status should map unknown codes to ERROR_GENERIC\n");
+        return false;
+    }
+
+    const unsigned char bad_magic[8] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+    if (is_nvcomp_v5_zstd_format(bad_magic, sizeof(bad_magic))) {
+        printf("❌ is_nvcomp_v5_zstd_format should be false for invalid magic\n");
+        return false;
+    }
+
+    printf("✅ Error mapping and invalid format checks passed\n");
+    return true;
+}
+
+// ============================================================================
 // Main Test Entry Point
 // ============================================================================
 
@@ -535,13 +687,15 @@ int main() {
     printf("\nObjective: Validate NV COMP compatibility layer works correctly\n\n");
     
     int passed = 0;
-    int total = 5;
+    int total = 7;
     
     if (test_manager_creation()) passed++;
     if (test_single_block_roundtrip()) passed++;
     if (test_batch_operations()) passed++;
     if (test_c_api()) passed++;
     if (test_error_handling()) passed++;
+    if (test_metadata_and_format_helpers()) passed++;
+    if (test_error_mapping_and_invalid_format()) passed++;
     
     printf("\n========================================\n");
     printf("Results: %d/%d tests passed\n", passed, total);
