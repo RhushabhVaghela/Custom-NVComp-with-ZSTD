@@ -35,30 +35,34 @@ using namespace cuda_zstd;
     }                                                                          \
   } while (0)
 
-// Hardware-safe constants for Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
+// Hardware-safe constants (cap per benchmark to avoid OOM)
 #define MAX_VRAM_PER_BENCHMARK                                                 \
-  (4ULL * 1024 * 1024 * 1024) // 4GB max per benchmark
+  (10ULL * 1024 * 1024 * 1024) // 10GB max per benchmark
 #define MAX_OUTPUT_MULTIPLIER 1.5f
-#define MAX_SAFE_DATA_SIZE (256ULL * 1024 * 1024) // 256MB max per test
+#define MAX_SAFE_DATA_SIZE (10ULL * 1024 * 1024 * 1024) // 10GB max per test
 
 // Number of iterations for averaging results
 #define NUM_ITERATIONS 3
 
-// Data sizes to test (1KB to 256MB)
+// Data sizes to test (1MB to 10GB, filtered at runtime by available VRAM)
 const size_t DATA_SIZES[] = {
-    1ULL * 1024,          // 1 KB
-    4ULL * 1024,          // 4 KB
-    16ULL * 1024,         // 16 KB
-    64ULL * 1024,         // 64 KB
-    256ULL * 1024,        // 256 KB
     1ULL * 1024 * 1024,   // 1 MB
+    2ULL * 1024 * 1024,   // 2 MB
     4ULL * 1024 * 1024,   // 4 MB
+    8ULL * 1024 * 1024,   // 8 MB
     16ULL * 1024 * 1024,  // 16 MB
+    32ULL * 1024 * 1024,  // 32 MB
     64ULL * 1024 * 1024,  // 64 MB
     128ULL * 1024 * 1024, // 128 MB
-    256ULL * 1024 * 1024  // 256 MB (max for hardware safety)
+    256ULL * 1024 * 1024, // 256 MB
+    512ULL * 1024 * 1024, // 512 MB
+    1ULL * 1024 * 1024 * 1024,  // 1 GB
+    2ULL * 1024 * 1024 * 1024,  // 2 GB
+    4ULL * 1024 * 1024 * 1024,  // 4 GB
+    8ULL * 1024 * 1024 * 1024,  // 8 GB
+    10ULL * 1024 * 1024 * 1024  // 10 GB
 };
-const int NUM_DATA_SIZES = 11;
+const int NUM_DATA_SIZES = 15;
 
 // Compression levels to test (1-22)
 const int COMPRESSION_LEVELS[] = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11,
@@ -194,6 +198,20 @@ void generate_test_data(void *ptr, size_t size, DataPattern pattern) {
     }
     break;
   }
+}
+
+size_t compute_max_data_size() {
+  size_t free_bytes = 0;
+  size_t total_bytes = 0;
+  if (cudaMemGetInfo(&free_bytes, &total_bytes) != cudaSuccess) {
+    return MAX_SAFE_DATA_SIZE;
+  }
+
+  size_t vram_budget = std::min(free_bytes, (size_t)MAX_VRAM_PER_BENCHMARK);
+  size_t per_test_budget = (size_t)(vram_budget * 0.6);
+  size_t max_by_budget = per_test_budget / 3;
+
+  return std::min(max_by_budget, (size_t)MAX_SAFE_DATA_SIZE);
 }
 
 // Compute XXH64 checksum
@@ -911,13 +929,27 @@ int main(int argc, char **argv) {
     std::cout << pattern_to_string(pattern) << "\n";
   }
 
+  size_t max_data_size = compute_max_data_size();
+  std::vector<size_t> data_sizes;
+  data_sizes.reserve(NUM_DATA_SIZES);
+  for (int i = 0; i < NUM_DATA_SIZES; ++i) {
+    if (DATA_SIZES[i] <= max_data_size) {
+      data_sizes.push_back(DATA_SIZES[i]);
+    }
+  }
+
+  if (data_sizes.empty()) {
+    data_sizes.push_back(DATA_SIZES[0]);
+  }
+
   std::cout << "Running tests for " << NUM_LEVELS
             << " compression levels (1-22)\n";
-  std::cout << "Data sizes (" << NUM_DATA_SIZES << "): ";
-  for (int i = 0; i < NUM_DATA_SIZES; ++i) {
-    std::cout << format_bytes(DATA_SIZES[i]) << " ";
+  std::cout << "Data sizes (" << data_sizes.size() << "): ";
+  for (size_t size : data_sizes) {
+    std::cout << format_bytes(size) << " ";
   }
-  std::cout << "\n\n";
+  std::cout << "\n";
+  std::cout << "VRAM-limited max size: " << format_bytes(max_data_size) << "\n\n";
 
   std::vector<BenchmarkResult> all_results;
   std::vector<BenchmarkResult> encoding_results;
@@ -926,7 +958,7 @@ int main(int argc, char **argv) {
 
   // Calculate total tests for progress tracking
   int total_patterns = patterns_to_test.size();
-  int tests_per_pattern = NUM_LEVELS * NUM_DATA_SIZES;
+  int tests_per_pattern = NUM_LEVELS * static_cast<int>(data_sizes.size());
   int total_tests = tests_per_pattern * total_patterns;
   int tests_completed = 0;
 
@@ -942,8 +974,7 @@ int main(int argc, char **argv) {
       std::cout << "\n--- ENCODING-ONLY BENCHMARKS ---\n";
       print_result_table_header();
 
-      for (int s = 0; s < NUM_DATA_SIZES; ++s) {
-        size_t data_size = DATA_SIZES[s];
+      for (size_t data_size : data_sizes) {
 
         for (int l = 0; l < NUM_LEVELS; ++l) {
           int level = COMPRESSION_LEVELS[l];
@@ -970,8 +1001,7 @@ int main(int argc, char **argv) {
       std::cout << "\n--- DECODING-ONLY BENCHMARKS ---\n";
       print_result_table_header();
 
-      for (int s = 0; s < NUM_DATA_SIZES; ++s) {
-        size_t data_size = DATA_SIZES[s];
+      for (size_t data_size : data_sizes) {
 
         for (int l = 0; l < NUM_LEVELS; ++l) {
           int level = COMPRESSION_LEVELS[l];
@@ -994,8 +1024,7 @@ int main(int argc, char **argv) {
       std::cout << "\n--- FULL PIPELINE BENCHMARKS ---\n";
       print_result_table_header();
 
-      for (int s = 0; s < NUM_DATA_SIZES; ++s) {
-        size_t data_size = DATA_SIZES[s];
+      for (size_t data_size : data_sizes) {
 
         for (int l = 0; l < NUM_LEVELS; ++l) {
           int level = COMPRESSION_LEVELS[l];
