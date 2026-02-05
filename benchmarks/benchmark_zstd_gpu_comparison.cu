@@ -74,19 +74,33 @@ using namespace cuda_zstd;
 // Hardware-safe constants
 #define MAX_OUTPUT_MULTIPLIER 1.5f
 #define NUM_ITERATIONS 3 // Number of iterations for averaging
+#define MAX_VRAM_PER_BENCHMARK (10ULL * 1024 * 1024 * 1024)
+#define MAX_SAFE_DATA_SIZE (10ULL * 1024 * 1024 * 1024)
 
 // Compression levels to test
-const int COMPRESSION_LEVELS[] = {1, 3, 6, 12, 19, 22};
-const int NUM_COMPRESSION_LEVELS = 6;
+const int COMPRESSION_LEVELS[] = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11,
+                                  12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22};
+const int NUM_COMPRESSION_LEVELS = 22;
 
 // File sizes to test (in bytes)
 const size_t FILE_SIZES[] = {
     1ULL * 1024 * 1024,   // 1 MB
-    10ULL * 1024 * 1024,  // 10 MB
-    100ULL * 1024 * 1024, // 100 MB
-    256ULL * 1024 * 1024  // 256 MB
+    2ULL * 1024 * 1024,   // 2 MB
+    4ULL * 1024 * 1024,   // 4 MB
+    8ULL * 1024 * 1024,   // 8 MB
+    16ULL * 1024 * 1024,  // 16 MB
+    32ULL * 1024 * 1024,  // 32 MB
+    64ULL * 1024 * 1024,  // 64 MB
+    128ULL * 1024 * 1024, // 128 MB
+    256ULL * 1024 * 1024, // 256 MB
+    512ULL * 1024 * 1024, // 512 MB
+    1ULL * 1024 * 1024 * 1024,  // 1 GB
+    2ULL * 1024 * 1024 * 1024,  // 2 GB
+    4ULL * 1024 * 1024 * 1024,  // 4 GB
+    8ULL * 1024 * 1024 * 1024,  // 8 GB
+    10ULL * 1024 * 1024 * 1024  // 10 GB
 };
-const int NUM_FILE_SIZES = 4;
+const int NUM_FILE_SIZES = 15;
 
 // ============================================================================
 // DATA STRUCTURES
@@ -169,6 +183,20 @@ std::string format_bytes(size_t bytes) {
 // Compute XXH64 checksum for data integrity verification
 uint64_t compute_checksum(const void *data, size_t size) {
   return cuda_zstd::xxhash::xxhash_64_cpu((const unsigned char*)data, size, 0);
+}
+
+size_t compute_max_data_size() {
+  size_t free_bytes = 0;
+  size_t total_bytes = 0;
+  if (cudaMemGetInfo(&free_bytes, &total_bytes) != cudaSuccess) {
+    return MAX_SAFE_DATA_SIZE;
+  }
+
+  size_t vram_budget = std::min(free_bytes, (size_t)MAX_VRAM_PER_BENCHMARK);
+  size_t per_test_budget = (size_t)(vram_budget * 0.6);
+  size_t max_by_budget = per_test_budget / 3;
+
+  return std::min(max_by_budget, (size_t)MAX_SAFE_DATA_SIZE);
 }
 
 // Load file into memory
@@ -1113,6 +1141,18 @@ int main(int argc, char **argv) {
     }
   }
 
+  size_t max_data_size = compute_max_data_size();
+  std::vector<size_t> filtered_sizes;
+  filtered_sizes.reserve(sizes_to_test.size());
+  for (size_t size : sizes_to_test) {
+    if (size <= max_data_size) {
+      filtered_sizes.push_back(size);
+    }
+  }
+  if (!filtered_sizes.empty()) {
+    sizes_to_test.swap(filtered_sizes);
+  }
+
   // Validate input
   if (!generate_data && input_file.empty()) {
     std::cerr << "Error: No input file specified. Use --generate-data to "
@@ -1140,6 +1180,7 @@ int main(int argc, char **argv) {
       std::cout << ", ";
   }
   std::cout << "\n";
+  std::cout << "  VRAM-limited max size: " << format_bytes(max_data_size) << "\n";
   std::cout << "  Iterations per test: " << NUM_ITERATIONS << "\n";
   std::cout << "  CSV output: " << csv_output << "\n\n";
 
