@@ -539,67 +539,79 @@ bool test_metadata_and_format_helpers() {
     size_t temp_size = 0;
     size_t compressed_size = data_size * 2;
     size_t decompressed_size = data_size;
+    int err = 0;
+    size_t num_chunks = 0;
+    Status chunk_status = Status::SUCCESS;
+    NvcompV5Metadata metadata;
+    NvcompV5Options opts;
+    std::unique_ptr<ZstdManager> manager;
+    std::vector<size_t> chunk_sizes;
+
+    auto cleanup = [&]() {
+        safe_cuda_free(d_input);
+        safe_cuda_free(d_compressed);
+        safe_cuda_free(d_output);
+        safe_cuda_free(d_temp);
+    };
+
+    auto fail = [&](const char* message) {
+        printf("%s\n", message);
+        cleanup();
+        return false;
+    };
 
     if (!safe_cuda_malloc(&d_input, data_size) ||
         !safe_cuda_malloc(&d_compressed, data_size * 2) ||
         !safe_cuda_malloc(&d_output, data_size)) {
-        printf("❌ Memory allocation failed\n");
-        return false;
+        return fail("❌ Memory allocation failed");
     }
 
     if (!safe_cuda_memcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice)) {
-        printf("❌ Failed to copy input\n");
-        goto cleanup_meta;
+        return fail("❌ Failed to copy input");
     }
 
     // Create manager and compress
-    NvcompV5Options opts;
-    auto manager = create_nvcomp_v5_manager(opts);
+    manager = create_nvcomp_v5_manager(opts);
     temp_size = manager->get_compress_temp_size(data_size);
     if (!safe_cuda_malloc(&d_temp, temp_size)) {
-        printf("❌ Failed to allocate temp buffer\n");
-        goto cleanup_meta;
+        return fail("❌ Failed to allocate temp buffer");
     }
 
     Status st = manager->compress(d_input, data_size, d_compressed, &compressed_size,
                                   d_temp, temp_size, nullptr, 0, 0);
     if (st != Status::SUCCESS) {
-        printf("❌ Compression failed\n");
-        goto cleanup_meta;
+        return fail("❌ Compression failed");
     }
 
     // Format check
     if (!is_nvcomp_v5_zstd_format(d_compressed, compressed_size)) {
-        printf("❌ is_nvcomp_v5_zstd_format returned false for valid data\n");
-        goto cleanup_meta;
+        return fail("❌ is_nvcomp_v5_zstd_format returned false for valid data");
     }
 
     // Metadata retrieval
-    NvcompV5Metadata metadata;
-    int err = nvcomp_zstd_get_metadata_v5(d_compressed, compressed_size, &metadata, 0);
+    err = nvcomp_zstd_get_metadata_v5(d_compressed, compressed_size, &metadata, 0);
     if (err != 0) {
         printf("❌ nvcomp_zstd_get_metadata_v5 failed: %d\n", err);
-        goto cleanup_meta;
+        cleanup();
+        return false;
     }
 
     if (metadata.uncompressed_size != data_size) {
-        printf("❌ Metadata uncompressed_size mismatch\n");
-        goto cleanup_meta;
+        return fail("❌ Metadata uncompressed_size mismatch");
     }
 
-    // Chunk size helpers
-    size_t num_chunks = 0;
-    err = nvcomp_zstd_get_num_chunks_v5(d_compressed, compressed_size, &num_chunks);
-    if (err != 0 || num_chunks == 0) {
-        printf("❌ nvcomp_zstd_get_num_chunks_v5 failed\n");
-        goto cleanup_meta;
+    // Chunk size helpers (C++ API)
+    chunk_status = cuda_zstd::nvcomp_v5::get_num_chunks(
+        d_compressed, compressed_size, &num_chunks);
+    if (chunk_status != Status::SUCCESS || num_chunks == 0) {
+        return fail("❌ get_num_chunks failed");
     }
 
-    std::vector<size_t> chunk_sizes(num_chunks);
-    err = nvcomp_zstd_get_chunk_sizes_v5(d_compressed, compressed_size, chunk_sizes.data(), num_chunks);
-    if (err != 0) {
-        printf("❌ nvcomp_zstd_get_chunk_sizes_v5 failed\n");
-        goto cleanup_meta;
+    chunk_sizes.assign(num_chunks, 0);
+    chunk_status = cuda_zstd::nvcomp_v5::get_chunk_sizes(
+        d_compressed, compressed_size, chunk_sizes.data(), num_chunks);
+    if (chunk_status != Status::SUCCESS) {
+        return fail("❌ get_chunk_sizes failed");
     }
 
     // Roundtrip for sanity
@@ -607,24 +619,12 @@ bool test_metadata_and_format_helpers() {
     st = manager->decompress(d_compressed, compressed_size, d_output, &decompressed_size,
                              d_temp, temp_size, 0);
     if (st != Status::SUCCESS || decompressed_size != data_size) {
-        printf("❌ Decompression failed\n");
-        goto cleanup_meta;
+        return fail("❌ Decompression failed");
     }
 
     printf("✅ Metadata and format helpers passed\n");
-
-    safe_cuda_free(d_input);
-    safe_cuda_free(d_compressed);
-    safe_cuda_free(d_output);
-    safe_cuda_free(d_temp);
+    cleanup();
     return true;
-
-cleanup_meta:
-    safe_cuda_free(d_input);
-    safe_cuda_free(d_compressed);
-    safe_cuda_free(d_output);
-    safe_cuda_free(d_temp);
-    return false;
 }
 
 // ============================================================================

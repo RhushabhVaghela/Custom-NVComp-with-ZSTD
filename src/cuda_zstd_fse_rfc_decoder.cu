@@ -183,11 +183,13 @@ __global__ void k_fse_decode_interleaved_rfc(
 
         // --- Value Calculation & Output ---
         if (emit_of) {
-            if (of_sym <= 2) {
+            if (decode_of) {
+                u32 base = of_table.baseValue[stateOF];
+                d_of_out[seq] = base + of_extra;
+            } else if (of_sym <= 2) {
                 d_of_out[seq] = of_sym + 1;
             } else {
-                u32 base = decode_of ? of_table.baseValue[stateOF]
-                                     : (1u << of_sym);
+                u32 base = sequence::ZstdSequence::get_offset(of_sym);
                 d_of_out[seq] = base + of_extra + 3;
             }
         }

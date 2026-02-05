@@ -522,9 +522,7 @@ static __global__ void fse_encode_chunk_kernel(
   }
 
   GPU_FSE_CState CState;
-  CState.stateLog = tableLog;
   CState.stateTable = stateTable;
-  CState.symbolTT = symbolTT;
 
   const byte_t *ip = symbols + end_idx - 1;
   const byte_t *chunk_begin = symbols + start_idx;
@@ -554,11 +552,11 @@ static __global__ void fse_encode_chunk_kernel(
   // --- Backward Encoding Loop ---
   while (ip >= chunk_begin) {
     u32 sym_idx = *ip--;
-    gpu_fse_encode_symbol(&bitC, &CState, sym_idx);
+    gpu_fse_encode_symbol(&bitC, &CState, sym_idx, symbolTT, stateTable);
     gpu_bit_flush_bits(&bitC);
   }
 
-  gpu_fse_flush_state(&bitC, &CState);
+  gpu_fse_flush_state(&bitC, &CState, tableLog);
   gpu_bit_add_bits(&bitC, 1, 1);
   gpu_bit_flush_bits(&bitC);
 
@@ -585,6 +583,82 @@ static __global__ void fse_encode_chunk_kernel(
 
 namespace cuda_zstd {
 namespace fse {
+
+// Device function to encode a single block
+__device__ inline void fse_encode_block_device(
+    const byte_t *d_input, u32 input_size, const u16 *stateTable,
+    const GPU_FSE_SymbolTransform *symbolTT, u16 tableLog, byte_t *d_output,
+    u32 max_output_size, u32 *d_output_size) {
+
+  if (input_size == 0) {
+    *d_output_size = 0;
+    return;
+  }
+
+  GPU_BitStream bitC;
+  if (gpu_bit_init_stream(&bitC, d_output, max_output_size) != 0) {
+    *d_output_size = 0;
+    return;
+  }
+
+  GPU_FSE_CState CState;
+  const byte_t *ip = d_input + input_size - 1;
+  const byte_t *const ibegin = d_input;
+
+  // Initialize state from first symbol
+  u32 symbol = *ip--;
+  GPU_FSE_SymbolTransform const symbolTransform = symbolTT[symbol];
+  u32 nbBitsOut = (symbolTransform.deltaNbBits + (1u << 15)) >> 16;
+  u64 tempValue = ((u64)nbBitsOut << 16) - symbolTransform.deltaNbBits;
+  u32 tableIndex = (u32)(tempValue >> nbBitsOut) + symbolTransform.deltaFindState;
+  CState.value = stateTable[tableIndex];
+  CState.stateTable = stateTable;
+
+  while (ip >= ibegin) {
+    u32 sym_idx = *ip--;
+    gpu_fse_encode_symbol(&bitC, &CState, sym_idx, symbolTT, stateTable);
+    gpu_bit_flush_bits(&bitC);
+  }
+
+  gpu_fse_flush_state(&bitC, &CState, tableLog);
+  gpu_bit_add_bits(&bitC, 1, 1);
+  gpu_bit_flush_bits(&bitC);
+
+  if (bitC.bitPos > 0) {
+    if (bitC.ptr < bitC.endPtr) {
+      *bitC.ptr = (byte_t)bitC.bitContainer;
+      bitC.ptr++;
+    }
+  }
+
+  *d_output_size = (u32)(bitC.ptr - bitC.startPtr);
+}
+
+// NEW: Batch Parallel Kernel
+// Processes multiple blocks in parallel (one thread per block)
+static __global__ void fse_batch_encode_kernel(
+    const byte_t *const *d_inputs, const u32 *d_input_sizes, byte_t **d_outputs,
+    u32 *d_output_sizes,
+    const u16 *const *d_state_tables,                      // Array of pointers
+    const GPU_FSE_SymbolTransform *const *d_symbol_tables, // Array of pointers
+    const u32 *d_table_logs,                               // Array of values
+    u32 num_blocks) {
+
+  u32 idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= num_blocks)
+    return;
+
+  u32 input_size = d_input_sizes[idx];
+  u32 max_capacity = input_size * 2 + 128;
+
+  u16 tableLog = (u16)d_table_logs[idx];
+  const u16 *stateTable = d_state_tables[idx];
+  const GPU_FSE_SymbolTransform *symbolTT = d_symbol_tables[idx];
+
+  fse_encode_block_device(d_inputs[idx], input_size, stateTable, symbolTT,
+                          tableLog, d_outputs[idx], max_capacity,
+                          &d_output_sizes[idx]);
+}
 
 // Helper for Byte Atomic OR (Simulated using 32-bit Atomic OR)
 __device__ inline void atomicOr_u8(byte_t *address, byte_t val) {

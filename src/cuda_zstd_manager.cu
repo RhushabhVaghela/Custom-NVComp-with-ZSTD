@@ -4258,9 +4258,6 @@ private:
     cudaMallocAsync(&d_bitstream, capacity, stream);
     cudaMemsetAsync(d_bitstream, 0, capacity, stream);
 
-    printf("[FSE_LAUNCH] num_sequences=%u, d_ll_codes=%p, d_of_codes=%p, d_ml_codes=%p\n",
-           num_sequences, seq_ctx->d_ll_codes, seq_ctx->d_of_codes, seq_ctx->d_ml_codes);
-    
     // Use RFC 8878 compliant encoding (NEW)
     Status launchStatus = fse::launch_fse_encoding_kernel_rfc(
         seq_ctx->d_ll_codes, seq_ctx->d_ll_extras, seq_ctx->d_ll_num_bits,
@@ -4287,15 +4284,6 @@ private:
 
     cudaMemcpyAsync(output + header_len, d_bitstream, h_pos_val,
                     cudaMemcpyDeviceToDevice, stream);
-
-    
-    {
-        unsigned char h_dbg[16];
-        cudaMemcpy(h_dbg, output, 16, cudaMemcpyDeviceToHost);
-        printf("[GPU_OUT] Hdr+Stream: ");
-        for(int k=0; k<16; k++) printf("%02X ", h_dbg[k]);
-        printf("\n");
-    }
 
     if (output_size)
       *output_size = header_len + h_pos_val;

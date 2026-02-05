@@ -974,7 +974,8 @@ int main(int argc, char **argv) {
       std::cout << "\n--- ENCODING-ONLY BENCHMARKS ---\n";
       print_result_table_header();
 
-      for (size_t data_size : data_sizes) {
+      for (size_t size_index = 0; size_index < data_sizes.size(); ++size_index) {
+        size_t data_size = data_sizes[size_index];
 
         for (int l = 0; l < NUM_LEVELS; ++l) {
           int level = COMPRESSION_LEVELS[l];
@@ -985,7 +986,7 @@ int main(int argc, char **argv) {
           print_result_row(result);
 
           tests_completed++;
-          if (s % 2 == 0 && l == 0) {
+          if (size_index % 2 == 0 && l == 0) {
             print_progress(tests_completed, total_tests, "Progress");
           }
 

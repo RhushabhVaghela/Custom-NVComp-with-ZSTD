@@ -326,14 +326,16 @@ __global__ void k_fse_encode_rfc_from_old_tables(
     const u8 *__restrict__ d_ml_codes, const u32 *__restrict__ d_ml_extras,
     const u8 *__restrict__ d_ml_bits, u32 num_symbols,
     const FSEEncodeTable *tables, unsigned char *__restrict__ output_bitstream,
-    size_t bitstream_capacity, size_t *__restrict__ output_pos) {
+    size_t bitstream_capacity, size_t *__restrict__ output_pos,
+    u16 *__restrict__ state_storage) {
 
   if (threadIdx.x != 0 || num_symbols == 0 || bitstream_capacity == 0) {
     if (threadIdx.x == 0 && output_pos) *output_pos = 0;
     return;
   }
 
-  if (!d_ll_codes || !d_of_codes || !d_ml_codes || !output_bitstream || !output_pos || !tables) {
+  if (!d_ll_codes || !d_of_codes || !d_ml_codes || !output_bitstream ||
+      !output_pos || !tables || !state_storage) {
     if (output_pos) *output_pos = 0;
     return;
   }
@@ -350,9 +352,10 @@ __global__ void k_fse_encode_rfc_from_old_tables(
     bitCount += nbBits;
     while (bitCount >= 8) {
       if (ptr > output_bitstream) {
-        *(--ptr) = (unsigned char)(bitContainer >> (bitCount - 8));
+        *(--ptr) = (unsigned char)(bitContainer & 0xFF);
       }
       bitCount -= 8;
+      bitContainer >>= 8;
     }
   };
 
@@ -360,11 +363,7 @@ __global__ void k_fse_encode_rfc_from_old_tables(
   const u32 of_table_log = tables[1].table_log;
   const u32 ml_table_log = tables[2].table_log;
 
-  // Use output buffer for temporary state storage (safe due to backward write)
-  // Max sequences = 128KB block / 3 bytes = ~43k. u16 * 43k * 3 = 258KB.
-  // bitstream_capacity is roughly num_seq * 8.
-  // 43k * 8 = 344KB. So it fits.
-  u16 *state_storage_ll = (u16*)(void*)output_bitstream;
+  u16 *state_storage_ll = state_storage;
   u16 *state_storage_of = state_storage_ll + num_symbols;
   u16 *state_storage_ml = state_storage_of + num_symbols;
 
@@ -414,54 +413,51 @@ __global__ void k_fse_encode_rfc_from_old_tables(
   write_bits(stateOF, of_table_log);
   write_bits(stateLL, ll_table_log);
 
-  // 3. Sequence Loop (0 up to N-1) - Discovery Order: Seq 0, Seq 1, ...
-  for (u32 i = 0; i < num_symbols; i++) {
-    if (i < num_symbols - 1) {
-      const u32 next_idx = i + 1;
-
-      // OF transition for sequence next_idx (push order: OF -> ML -> LL)
-      {
-        u32 next_state = state_storage_of[next_idx];
-        u8 next_code = d_of_codes[next_idx];
-        const auto sym = tables[1].d_symbol_table[next_code];
-        u32 nb = (next_state + sym.deltaNbBits) >> 16;
-        if (nb)
-          write_bits(next_state & ((1u << nb) - 1), nb);
-      }
-
-      // ML transition
-      {
-        u32 next_state = state_storage_ml[next_idx];
-        u8 next_code = d_ml_codes[next_idx];
-        const auto sym = tables[2].d_symbol_table[next_code];
-        u32 nb = (next_state + sym.deltaNbBits) >> 16;
-        if (nb)
-          write_bits(next_state & ((1u << nb) - 1), nb);
-      }
-
-      // LL transition
-      {
-        u32 next_state = state_storage_ll[next_idx];
-        u8 next_code = d_ll_codes[next_idx];
-        const auto sym = tables[0].d_symbol_table[next_code];
-        u32 nb = (next_state + sym.deltaNbBits) >> 16;
-        if (nb)
-          write_bits(next_state & ((1u << nb) - 1), nb);
-      }
-    }
-
+  // 3. Sequence Loop (N-1 down to 0) - Decoder reads in reverse order
+  for (int seq = (int)num_symbols - 1; seq >= 0; --seq) {
     // Extra bits for current sequence (Reader consumes OF -> ML -> LL)
     // Writer must push in reverse order: LL -> ML -> OF.
-    write_bits(d_ll_extras[i], d_ll_bits[i]);
-    write_bits(d_ml_extras[i], d_ml_bits[i]);
-    write_bits(d_of_extras[i], d_of_bits[i]);
+    write_bits(d_ll_extras[seq], d_ll_bits[seq]);
+    write_bits(d_ml_extras[seq], d_ml_bits[seq]);
+    write_bits(d_of_extras[seq], d_of_bits[seq]);
+
+    if (seq > 0) {
+      // Transitions for current sequence (Reader consumes LL -> ML -> OF)
+      // Writer must push in reverse order: OF -> ML -> LL.
+      {
+        u32 state = state_storage_of[seq];
+        u8 code = d_of_codes[seq];
+        const auto sym = tables[1].d_symbol_table[code];
+        u32 nb = (state + sym.deltaNbBits) >> 16;
+        if (nb)
+          write_bits(state & ((1u << nb) - 1), nb);
+      }
+      {
+        u32 state = state_storage_ml[seq];
+        u8 code = d_ml_codes[seq];
+        const auto sym = tables[2].d_symbol_table[code];
+        u32 nb = (state + sym.deltaNbBits) >> 16;
+        if (nb)
+          write_bits(state & ((1u << nb) - 1), nb);
+      }
+      {
+        u32 state = state_storage_ll[seq];
+        u8 code = d_ll_codes[seq];
+        const auto sym = tables[0].d_symbol_table[code];
+        u32 nb = (state + sym.deltaNbBits) >> 16;
+        if (nb)
+          write_bits(state & ((1u << nb) - 1), nb);
+      }
+    }
   }
 
   // Final flush
-  if (bitCount > 0) {
+  while (bitCount > 0) {
     if (ptr > output_bitstream) {
-        *(--ptr) = (unsigned char)((bitContainer << (8 - bitCount)) & 0xFF);
+      *(--ptr) = (unsigned char)(bitContainer & 0xFF);
     }
+    bitContainer >>= 8;
+    bitCount = (bitCount > 8) ? bitCount - 8 : 0;
   }
 
   size_t written = (output_bitstream + bitstream_capacity) - ptr;
@@ -487,12 +483,18 @@ __host__ Status launch_fse_encoding_kernel_rfc(
     return Status::SUCCESS;
   }
 
+  u16 *d_state_storage = nullptr;
+  size_t state_storage_bytes = static_cast<size_t>(num_symbols) * 3 * sizeof(u16);
+  cudaMallocAsync(&d_state_storage, state_storage_bytes, stream);
+
   cudaMemsetAsync(d_bitstream, 0, bitstream_capacity, stream);
 
   k_fse_encode_rfc_from_old_tables<<<1, 1, 0, stream>>>(
       d_ll_codes, d_ll_extras, d_ll_bits, d_of_codes, d_of_extras, d_of_bits,
       d_ml_codes, d_ml_extras, d_ml_bits, num_symbols, d_tables, d_bitstream,
-      bitstream_capacity, d_output_pos);
+      bitstream_capacity, d_output_pos, d_state_storage);
+
+  cudaFreeAsync(d_state_storage, stream);
 
   CUDA_CHECK(cudaGetLastError());
   return Status::SUCCESS;

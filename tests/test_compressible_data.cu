@@ -377,7 +377,7 @@ int main() {
       "Context: benchmark_lz77 showed 'zero sequences' with random data\n\n");
 
   try {
-    // Variable removed - was unused (all tests commented out)
+    bool all_passed = true;
     bool full_suite = true; // Set to false to run only basic tests
 
     // all_passed &= test_json_pattern();
