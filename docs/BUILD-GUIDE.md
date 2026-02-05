@@ -2,7 +2,7 @@
 
 ## Overview
 
-The build system uses CMake 3.18+ with CUDA support, producing static and shared libraries plus a comprehensive test suite.
+The build system uses CMake 3.18+ with CUDA support, producing a static library plus tests and benchmarks.
 
 ## Quick Start
 
@@ -20,14 +20,6 @@ make -j$(nproc)
 ### Basic Options
 
 ```bash
-# Library type
--DCUDA_ZSTD_BUILD_SHARED=ON    # Build shared library (default: ON)
--DCUDA_ZSTD_BUILD_STATIC=ON    # Build static library (default: ON)
-
-# Components
--DCUDA_ZSTD_BUILD_TESTS=ON     # Build tests (default: ON)
--DCUDA_ZSTD_BUILD_BENCHMARKS=ON # Build benchmarks (default: ON)
-
 # Build type
 -DCMAKE_BUILD_TYPE=Release     # Release/Debug/RelWithDebInfo
 ```
@@ -48,11 +40,6 @@ make -j$(nproc)
 ### Advanced Options
 
 ```bash
-# Debug features
--DCUDA_ZSTD_ENABLE_DEBUG_LOGS=ON    # Debug output
--DCUDA_ZSTD_ENABLE_PROFILING=ON     # Perf timing
--DCUDA_ZSTD_ENABLE_SANITIZERS=ON    # Address sanitizer
-
 # Optimization
 -DCMAKE_CUDA_FLAGS="-O3 --use_fast_math"
 
@@ -64,8 +51,7 @@ make -j$(nproc)
 
 | Target | Description |
 |:-------|:------------|
-| `cuda_zstd_static` | Static library |
-| `cuda_zstd_shared` | Shared library |
+| `cuda_zstd` | Static library |
 | `test_*` | Individual test executables |
 | `benchmark_*` | Benchmark executables |
 | `all` | All targets |
@@ -104,13 +90,12 @@ make -j$(nproc)
 
 ```
 build/
-├── libcuda_zstd_static.a       # Static library
-├── libcuda_zstd_shared.so      # Shared library (Linux)
-├── cuda_zstd.dll               # Shared library (Windows)
-├── libzstd_static.a            # Bundled ZSTD (CPU)
-├── test_*                      # Test executables
-├── benchmark_*                 # Benchmark executables
-└── CMakeCache.txt              # Build configuration
+├── lib/
+│   └── libcuda_zstd.a           # Static library
+├── bin/
+│   ├── test_*                   # Test executables
+│   └── benchmark_*              # Benchmark executables
+└── CMakeCache.txt               # Build configuration
 ```
 
 ## Running Tests

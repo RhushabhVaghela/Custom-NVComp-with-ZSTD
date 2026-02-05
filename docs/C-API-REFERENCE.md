@@ -8,38 +8,16 @@ The C API provides a stable, ABI-compatible interface for integrating CUDA-ZSTD 
 
 ```c
 #include "cuda_zstd_types.h"    // Core types and enums
-#include "cuda_zstd_manager.h"  // C++ API (optional)
+#include "cuda_zstd_manager.h"  // C API declarations
 ```
 
 ## Core Types
 
 ### Status Codes
-```c
-typedef enum {
-    CUDA_ZSTD_SUCCESS = 0,
-    CUDA_ZSTD_ERROR_GENERIC = 1,
-    CUDA_ZSTD_ERROR_INVALID_PARAMETER = 2,
-    CUDA_ZSTD_ERROR_BUFFER_TOO_SMALL = 3,
-    CUDA_ZSTD_ERROR_OUT_OF_MEMORY = 4,
-    CUDA_ZSTD_ERROR_CUDA_ERROR = 5,
-    CUDA_ZSTD_ERROR_UNSUPPORTED_FORMAT = 6,
-    CUDA_ZSTD_ERROR_CHECKSUM_MISMATCH = 7,
-    CUDA_ZSTD_ERROR_INVALID_HEADER = 8,
-    CUDA_ZSTD_ERROR_CORRUPTED_DATA = 9,
-    // ... 18 total error codes
-} cuda_zstd_status_t;
-```
+Status values are returned as `int` codes compatible with nvCOMP error values.
 
 ### Compression Configuration
-```c
-typedef struct {
-    int compression_level;        // 1-22
-    size_t block_size;            // Block size (default: 128KB)
-    int enable_checksum;          // 0=disabled, 1=enabled
-    int enable_dictionaries;      // 0=disabled, 1=enabled
-    void* reserved[4];            // Future expansion
-} cuda_zstd_config_t;
-```
+This API uses `CompressionConfig` from `cuda_zstd_types.h` on the C++ side.
 
 ## API Functions
 
@@ -59,7 +37,7 @@ cuda_zstd_manager_t* cuda_zstd_create_manager(
 
 #### Destroy Manager
 ```c
-cuda_zstd_status_t cuda_zstd_destroy_manager(
+void cuda_zstd_destroy_manager(
     cuda_zstd_manager_t* manager
 );
 ```
@@ -77,7 +55,7 @@ size_t cuda_zstd_get_compress_workspace_size(
 #### Compress
 
 ```c
-cuda_zstd_status_t cuda_zstd_compress(
+int cuda_zstd_compress(
     cuda_zstd_manager_t* manager,
     const void* d_input,          // Device input buffer
     size_t input_size,            // Input size in bytes
@@ -102,7 +80,7 @@ size_t cuda_zstd_get_decompress_workspace_size(
 #### Decompress
 
 ```c
-cuda_zstd_status_t cuda_zstd_decompress(
+int cuda_zstd_decompress(
     cuda_zstd_manager_t* manager,
     const void* d_input,          // Compressed data
     size_t input_size,
@@ -121,11 +99,10 @@ cuda_zstd_status_t cuda_zstd_decompress(
 #include <cuda_runtime.h>
 
 // Assuming C API declarations available
-extern cuda_zstd_status_t cuda_zstd_create_manager(void**, int);
-extern cuda_zstd_status_t cuda_zstd_compress(void*, const void*, size_t,
-                                             void*, size_t*, void*, size_t,
-                                             cudaStream_t);
-extern cuda_zstd_status_t cuda_zstd_destroy_manager(void*);
+extern cuda_zstd_manager_t* cuda_zstd_create_manager(int);
+extern int cuda_zstd_compress(cuda_zstd_manager_t*, const void*, size_t,
+                              void*, size_t*, void*, size_t, cudaStream_t);
+extern void cuda_zstd_destroy_manager(cuda_zstd_manager_t*);
 
 int main() {
     void* manager = NULL;
@@ -178,10 +155,10 @@ int main() {
 ## Error Handling
 
 ```c
-const char* cuda_zstd_get_error_string(cuda_zstd_status_t status);
+const char* cuda_zstd_get_error_string(int status);
 
 // Example
-cuda_zstd_status_t status = cuda_zstd_compress(...);
+int status = cuda_zstd_compress(...);
 if (status != CUDA_ZSTD_SUCCESS) {
     fprintf(stderr, "Compression failed: %s\n",
             cuda_zstd_get_error_string(status));

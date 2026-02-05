@@ -14,12 +14,12 @@
 [![C++](https://img.shields.io/badge/C%2B%2B-14-00599C?logo=c%2B%2B)](https://isocpp.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![RFC 8878](https://img.shields.io/badge/RFC-8878-orange.svg)](https://datatracker.ietf.org/doc/html/rfc8878)
-[![Tests](https://img.shields.io/badge/Tests-100%25%20passing-brightgreen.svg)]()
-[![Throughput](https://img.shields.io/badge/Throughput-60%2B%20GB%2Fs-blueviolet.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-Project%20WIP-yellow.svg)]()
+[![Throughput](https://img.shields.io/badge/Throughput-Varies-blueviolet.svg)]()
 
 > **Imagine compressing a 4K movie in under a second.** That's CUDA-ZSTD.
 
-This is a **production-ready, GPU-accelerated implementation** of Zstandard compression that leverages your graphics card's thousands of parallel cores to achieve breakthrough speeds:
+This is an **experimental, GPU-accelerated implementation** of Zstandard compression that leverages your graphics card's parallel cores to pursue high throughput:
 
 ---
 
@@ -54,11 +54,11 @@ This is a **production-ready, GPU-accelerated implementation** of Zstandard comp
 CUDA-ZSTD is a **comprehensive GPU-accelerated implementation** of the Zstandard compression algorithm built from the ground up in CUDA C++. Unlike CPU-based ZSTD or simple GPU wrappers, this library implements the entire ZSTD compression pipeline as native CUDA kernels, enabling massive parallelism and achieving **5-20 GB/s compression throughput** on modern GPUs.
 
 This project provides:
-- ✅ **Smart Router**: Hybrid execution engine automatically routes small files (<1MB) to CPU and large files to GPU for optimal latency/throughput
+- ✅ **Smart Router**: Execution path selection (GPU path enforced by default)
 - ✅ **Complete ZSTD Implementation**: Full LZ77 match finding, optimal parsing, FSE encoding, and Huffman compression
 - ✅ **Native GPU Kernels**: All operations execute on GPU for maximum parallelism
 - ✅ **Production-Ready Quality**: Comprehensive error handling, testing, and RFC 8878 compliance
-- ✅ **Advanced Features**: Streaming, batching, dictionary compression, adaptive level selection
+- ✅ **Advanced Features**: Streaming (chunked frames), batching, dictionary compression, adaptive level selection
 - ✅ **Flexible APIs**: C++ and C interfaces for broad compatibility
 
 ### Project Goals
@@ -80,14 +80,14 @@ This project provides:
 - ✅ GPU memory pool management for allocation optimization
 - ✅ Adaptive compression level selection based on data characteristics
 - ✅ Performance profiling and metrics collection
-- ✅ Both static and shared library builds
+- ✅ Static library build via CMake
 - ✅ Windows, Linux, and WSL support
 
 #### **Out of Scope**
 - ❌ ZSTD decompression of legacy formats (pre-v0.8)
-- ❌ ZSTD long-range matching (LDM) - future enhancement
+- ❌ Multi-stream frame stitching (true streaming across a single frame)
 - ❌ Multi-GPU distribution - single GPU per stream
-- ❌ CPU fallback - GPU required for operation
+- ❌ CPU-only mode (GPU required for the accelerated path)
 
 ---
 
@@ -185,7 +185,7 @@ Single NVIDIA A100 GPU:
 |---------|--------|-------------|
 | **Single-Shot Compression** | ✅ Implemented | Compress entire buffer in one call |
 | **Single-Shot Decompression** | ✅ Implemented | Decompress entire buffer in one call |
-| **Streaming Compression** | ✅ Implemented | Process data in configurable chunks |
+| **Streaming Compression** | ✅ Implemented | Chunked frames (not a single continuous frame) |
 | **Streaming Decompression** | ✅ Implemented | Decompress data incrementally |
 | **Batch Processing** | ✅ Implemented | Compress multiple buffers in parallel |
 | **Dictionary Training** | ✅ Implemented | COVER algorithm for optimal dictionaries |
@@ -210,7 +210,7 @@ Single NVIDIA A100 GPU:
 | **XXHash64 Checksumming** | ✅ Implemented | Fast data integrity verification |
 | **RFC 8878 Compliance** | ✅ Implemented | Full ZSTD format compatibility |
 | **Custom Metadata Frames** | ✅ Implemented | Embed compression level, timestamps |
-| **NVCOMP Compatibility** | ✅ Implemented | Drop-in replacement for nvCOMP ZSTD |
+| **NVCOMP Compatibility** | ✅ Implemented | nvCOMP v5-compatible API surface |
 | **C and C++ APIs** | ✅ Implemented | Dual API for broad compatibility |
 | **Windows/Linux Support** | ✅ Implemented | Cross-platform builds |
 | **CMake Integration** | ✅ Implemented | Easy project integration |
@@ -250,13 +250,13 @@ Single NVIDIA A100 GPU:
 
 #### **Manager Layer** _(100% Complete)_
 - ✅ [`DefaultZstdManager`](src/cuda_zstd_manager.cu) - Single-shot compression/decompression
-- ✅ [`ZstdStreamingManager`](src/cuda_zstd_manager.cu) - Streaming operations
+- ✅ [`ZstdStreamingManager`](src/cuda_zstd_manager.cu) - Chunked frame streaming
 - ✅ [`ZstdBatchManager`](src/cuda_zstd_manager.cu) - Batch processing
 - ✅ [`AdaptiveLevelSelector`](src/cuda_zstd_adaptive.cu) - Auto compression level selection
 - ✅ [`MemoryPoolManager`](src/cuda_zstd_memory_pool.cu) - GPU memory pooling
 - ✅ **RFC 8878 Compliance**: Validated FSE bitstream order and RepCode logic
 - ✅ **GPU Path Prioritization**: Robust GPU execution for all data sizes
-- ✅ Stream pool management with configurable pool sizes
+- ✅ Stream pool management with configurable pool sizes (cuda_zstd_stream_pool)
 - ✅ Frame header generation and parsing
 - ✅ Metadata frame support (custom extension)
 - ✅ Comprehensive error handling and logging
@@ -310,11 +310,11 @@ Single NVIDIA A100 GPU:
 - ✅ Performance profiling infrastructure
 - ✅ Debug logging with configurable verbosity
 
-#### **Testing Infrastructure** _(100% Complete)_
+#### **Testing Infrastructure** _(In Progress)_
 - ✅ [`test_correctness.cu`](tests/test_correctness.cu) - RFC 8878 compliance
-- ✅ [`test_streaming.cu`](tests/test_streaming.cu) - Streaming operations (8/8 PASS)
-- ✅ [`test_nvcomp_interface.cu`](tests/test_nvcomp_interface.cu) - NVCOMP v5.0 API (5/5 PASS)
-- ✅ [`test_error_handling.cu`](tests/test_error_handling.cu) - Exception safety (14/14 PASS)
+- ✅ [`test_streaming.cu`](tests/test_streaming.cu) - Streaming operations
+- ✅ [`test_nvcomp_interface.cu`](tests/test_nvcomp_interface.cu) - NVCOMP v5.0 API helpers
+- ✅ [`test_error_handling.cu`](tests/test_error_handling.cu) - Exception safety
 - ✅ [`test_memory_pool.cu`](tests/test_memory_pool.cu) - Memory pool validation
 - ✅ [`test_adaptive_level.cu`](tests/test_adaptive_level.cu) - Adaptive selection
 - ✅ [`test_dictionary.cu`](tests/test_dictionary.cu) - Dictionary compression
@@ -347,55 +347,7 @@ For a detailed list of recently resolved issues, see [DEBUGLOG.md](DEBUGLOG.md).
 
 ## 📊 Performance
 
-### 🏆 Headline Numbers (Verified)
-
-| Mode | Throughput | What That Means |
-|:-----|:----------:|:----------------|
-| **Batch (256KB chunks)** | **61.9 GB/s** | Compress a Blu-ray disc in 0.4 seconds |
-| **Batch (64KB chunks)** | **29.4 GB/s** | 1000 files per second |
-| **Single-shot** | **8-15 GB/s** | 10-25x faster than CPU |
-
-### Throughput by Data Type
-
-| Data Type | Level | Throughput | Ratio | Notes |
-|-----------|:-----:|:----------:|:-----:|:------|
-| 📝 **Logs (text)** | 3 | 8.5 GB/s | 3.2:1 | Real-world server logs |
-| 📋 **JSON** | 5 | 6.2 GB/s | 4.1:1 | API responses |
-| 💾 **Binary** | 9 | 3.8 GB/s | 2.8:1 | Executables |
-| 🧬 **Genomic** | 7 | 5.1 GB/s | 3.8:1 | DNA sequences |
-| 🌐 **Network Packets** | 1 | 15.2 GB/s | 2.1:1 | Lowest latency |
-
-### Latency
-
-| Operation | Block Size | Latency |
-|:----------|:----------:|:-------:|
-| Single-Shot Compress | 1 MB | 0.12 ms |
-| Single-Shot Compress | 128 KB | 0.015 ms |
-| Batch (100 items) | 128 KB each | 1.5 ms total |
-
-### vs. The Competition
-
-| Implementation | Throughput | Comparison |
-|:---------------|:----------:|:-----------|
-| **CUDA-ZSTD (this)** | **61.9 GB/s** | 🏆 Winner |
-| CPU ZSTD (16-thread) | 4.5 GB/s | 14x slower |
-| nvCOMP ZSTD | 6.2 GB/s | 10x slower |
-| CPU ZSTD (1-thread) | 0.6 GB/s | 100x slower |
-
-### Scalability
-
-```
-Batch Compression Scaling (128KB blocks):
-  1 buffer:    8.5 GB/s
-  10 buffers:  85 GB/s aggregate
-  100 buffers: 850 GB/s aggregate
-  (Linear scaling with number of buffers)
-
-Multi-Stream Scaling:
-  1 stream:  8.5 GB/s
-  4 streams: 33 GB/s (near-linear)
-  8 streams: 60 GB/s (limited by GPU SM count)
-```
+Performance varies by GPU, compression level, and data characteristics. Use the benchmark suite in `benchmarks/` to collect reproducible results for your hardware. The project does not ship authoritative throughput claims.
 
 ---
 
@@ -505,18 +457,18 @@ CompressionWorkspace (7-10 MB for 128KB block):
 ### Hardware Requirements
 
 #### Minimum Specifications
-- **GPU**: NVIDIA GPU with Compute Capability 6.0+ (Pascal or newer)
-  - Examples: GTX 1060, RTX 2060, Tesla P100, A100
-- **VRAM**: 2 GB minimum (4 GB+ recommended for large datasets)
+- **GPU**: NVIDIA GPU with Compute Capability 7.0+ (Volta or newer)
+  - Examples: RTX 2060, Tesla V100, A100
+- **VRAM**: Sized to your workload (benchmarks auto-cap large tests)
 - **System RAM**: 4 GB
 - **CPU**: Any modern x86_64 CPU
 
 #### Recommended Specifications
-- **GPU**: Compute Capability 7.0+ (Volta, Turing, Ampere, Ada Lovelace)
+- **GPU**: Compute Capability 8.0+ (Ampere, Ada Lovelace)
   - Examples: RTX 3080, RTX 5080 (mobile), A100, H100
 - **VRAM**: 8 GB or more
 - **System RAM**: 16 GB
-- **CPU**: Multi-core CPU for batch preprocessing
+- **CPU**: Multi-core CPU for preprocessing and I/O
 
 ### Software Requirements
 
@@ -527,7 +479,7 @@ CompressionWorkspace (7-10 MB for 128KB block):
 | **CUDA Toolkit** | 11.0+ | ✅ Yes | GPU compilation and runtime |
 | **CMake** | 3.18+ | ✅ Yes | Build system |
 | **C++ Compiler** | C++17 | ✅ Yes | Host code compilation |
-| **libzstd-dev** | 1.4.0+ | ✅ Yes | CPU compression fallback (Smart Router) |
+| **libzstd-dev** | 1.4.0+ | ✅ Yes | Host-side Zstd dependency |
 | **pkg-config** | Any | ✅ Yes | Library detection |
 
 #### Installation by Platform
@@ -764,10 +716,7 @@ ctest -C Release --output-on-failure
 
 ```bash
 # Build options
-cmake -DCUDA_ZSTD_BUILD_SHARED=ON/OFF ..     # Build shared library (default: ON)
-cmake -DCUDA_ZSTD_BUILD_STATIC=ON/OFF ..     # Build static library (default: ON)
-cmake -DCUDA_ZSTD_BUILD_TESTS=ON/OFF ..      # Build test suite (default: ON)
-cmake -DCUDA_ZSTD_BUILD_EXAMPLES=ON/OFF ..   # Build examples (default: ON)
+cmake ..                                    # Uses static library target
 
 # CUDA architectures (compute capabilities)
 cmake -DCMAKE_CUDA_ARCHITECTURES="70;75;80;86;89;90" ..
@@ -781,9 +730,7 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..   # Release with debug info
 cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
 
 # Advanced options
-cmake -DCUDA_ZSTD_ENABLE_PROFILING=ON ..     # Enable performance profiling
-cmake -DCUDA_ZSTD_ENABLE_DEBUG_LOGS=ON ..    # Enable debug logging
-cmake -DCUDA_ZSTD_ENABLE_SANITIZERS=ON ..    # Enable memory sanitizers
+cmake -DCMAKE_CUDA_FLAGS="-O3 --use_fast_math" ..
 ```
 
 ### Build Artifacts
@@ -792,14 +739,13 @@ After successful build:
 
 ```
 build/
-├── libcuda_zstd_static.a         # Static library
-├── libcuda_zstd_shared.so        # Shared library (Linux)
-├── cuda_zstd.dll                 # Shared library (Windows)
-└── tests/
-    ├── test_correctness          # Correctness tests
-    ├── test_streaming            # Streaming tests
-    ├── test_performance          # Performance benchmarks
-    └── test_*.cu                 # Other test executables
+├── lib/                          # Static library output
+│   └── libcuda_zstd.a
+├── bin/                          # Test and benchmark executables
+│   ├── test_correctness
+│   ├── test_streaming
+│   └── benchmark_* 
+└── CMakeCache.txt
 ```
 
 ### Linking Against CUDA-ZSTD
@@ -1004,7 +950,7 @@ int main() {
 }
 ```
 
-### Example 2: Streaming Compression
+### Example 2: Streaming Compression (Chunked Frames)
 
 ```cpp
 #include <cuda_zstd_manager.h>
@@ -1016,6 +962,8 @@ void compress_large_file(const std::string& filename) {
     // Create streaming manager
     auto stream_mgr = create_streaming_manager(5);
     stream_mgr->init_compression();
+    // Each chunk produces an independent frame. Use the history variant
+    // for better ratios across chunks.
     
     // Setup chunk processing
     const size_t chunk_size = 128 * 1024; // 128 KB chunks

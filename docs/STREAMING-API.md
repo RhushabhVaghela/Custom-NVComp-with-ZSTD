@@ -6,6 +6,8 @@
 
 Imagine you're watching a live video. You don't wait for the entire movie to download—you watch it as it arrives. **Streaming compression** works the same way!
 
+Note: The current implementation produces a separate Zstd frame per chunk. It does not maintain a single continuous frame across chunks. The `compress_chunk_with_history` path retains a sliding window for better ratios, but still emits independent frames.
+
 ```
 Traditional Compression:          Streaming Compression:
                                    
@@ -45,8 +47,8 @@ Total time: 10 seconds            [███████████████
 
 void compress_huge_file(const std::string& filename) {
     // 1. Create a streaming manager
-    auto stream_mgr = cuda_zstd::ZstdStreamingManager::create(5);
-    // Use init_compression_with_history to enable optimal ratios across chunks
+    auto stream_mgr = cuda_zstd::create_streaming_manager(5);
+    // Use init_compression_with_history to enable better ratios across chunks
     stream_mgr->init_compression_with_history();
     
     // 2. Process the file in 128KB chunks
@@ -107,7 +109,7 @@ while (socket.has_data()) {
 └─────────────────────────────────────────────────────────────┘
 ```
 
-The streaming manager remembers its state between chunks, so each piece connects seamlessly to the next!
+The streaming manager keeps per-chunk state, and the history-enabled path improves ratios, but each chunk is still a standalone frame.
 
 ---
 
