@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.24)
 project(cuda_zstd VERSION 1.0.0 LANGUAGES CXX CUDA)
 
 # ==============================================================================
@@ -39,8 +39,6 @@ file(GLOB_RECURSE CUDA_ZSTD_SOURCES
     "src/*.cu" 
     "src/*.cpp"
 )
-# Avoid compiling legacy stream pool implementation
-list(REMOVE_ITEM CUDA_ZSTD_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/stream_pool.cu")
 # Exclude temporary or backup files if any remain
 list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*\\.new$")
 list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*\\.bak$")
@@ -100,6 +98,7 @@ foreach(test_src ${TEST_SOURCES})
     target_include_directories(${test_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
     
     add_test(NAME ${test_name} COMMAND ${test_name})
+    set_tests_properties(${test_name} PROPERTIES TIMEOUT 120)
 endforeach()
 
 # ==============================================================================
