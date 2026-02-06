@@ -374,7 +374,13 @@ int main() {
   check_cuda_device();
 
   // Run test
-  test_metadata_roundtrip();
+  Status result = test_metadata_roundtrip();
+
+  if (result != Status::SUCCESS) {
+    std::cerr << "\n✗ Test FAILED with status: "
+              << static_cast<int>(result) << "\n\n";
+    return 1;
+  }
 
   std::cout << "\n✓ All tests completed\n\n";
 

@@ -239,7 +239,7 @@ void test_GPU_Encoding() {
     for (auto b : ref_bitstream)
       printf("%02X ", b);
     printf("\n");
-    // exit(1);
+    exit(1);
   }
 }
 

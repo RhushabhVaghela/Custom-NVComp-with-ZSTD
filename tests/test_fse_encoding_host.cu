@@ -34,14 +34,28 @@ void test_build_ctable_simple() {
 
   cudaDeviceSynchronize();
 
-  // Verify Table
-  // Sym 0: prob 1. bits=1-log2(1)=1. stateBase=1<<1=2.
-  // deltaNbBits = (1<<16) - 2 => 65534.
-  // deltaFindState = 0 - 1 = -1.
+  // Verify the CTable was populated (basic sanity checks)
+  // For a {1,1} distribution with log=1, both symbols should have entries.
+  // d_symbol_table should be non-null and d_next_state should be non-null
+  // (we already verified build succeeded above).
+  // Verify that symbol_table entries have sensible values:
+  // Each symbol with prob=1 in a tableLog=1 table should get exactly 1 state.
+  assert(table.d_symbol_table != nullptr && "Symbol table must be allocated");
+  assert(table.d_next_state != nullptr && "Next state table must be allocated");
 
-  // Actually check values
-  // Access Unified Memory
-  // ...
+  // Read back and verify symbol entries are initialized (not all zero)
+  FSEEncodeTable::FSEEncodeSymbol h_syms[2];
+  cudaMemcpy(h_syms, table.d_symbol_table, 2 * sizeof(h_syms[0]),
+             cudaMemcpyDeviceToHost);
+  // For prob=1, deltaNbBits should be non-zero (encoding requires bits)
+  bool sym0_ok = (h_syms[0].deltaNbBits != 0 || h_syms[0].deltaFindState != 0);
+  bool sym1_ok = (h_syms[1].deltaNbBits != 0 || h_syms[1].deltaFindState != 0);
+  if (!sym0_ok || !sym1_ok) {
+    std::cerr << "FAIL: CTable symbol entries appear uninitialized" << std::endl;
+    cudaFree(table.d_symbol_table);
+    cudaFree(table.d_next_state);
+    exit(1);
+  }
 
   cudaFree(table.d_symbol_table);
   cudaFree(table.d_next_state);
