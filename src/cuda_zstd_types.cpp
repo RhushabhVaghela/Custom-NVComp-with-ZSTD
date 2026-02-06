@@ -762,111 +762,43 @@ Status free_compression_workspace(CompressionWorkspace &workspace) {
   memory::MemoryPoolManager &pool = memory::get_global_pool();
 
   if (workspace.d_hash_table) {
-    //         std::cerr << "free_compression_workspace: dealloc d_hash_table="
-    //         << (void*)workspace.d_hash_table << std::endl;
-    std::string st = cuda_zstd::util::capture_stacktrace(32);
-    //         std::cerr << "free_compression_workspace: stacktrace: \n" << st
-    //         << std::endl;
-    auto _s = pool.deallocate(workspace.d_hash_table);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_hash_table -> "
-    //         << status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_hash_table);
   }
   if (workspace.d_chain_table) {
-    //         std::cerr << "free_compression_workspace: dealloc d_chain_table="
-    //         << (void*)workspace.d_chain_table << std::endl;
-    auto _s = pool.deallocate(workspace.d_chain_table);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_chain_table ->
-    //         " << status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_chain_table);
   }
   if (workspace.d_matches) {
-    //         std::cerr << "free_compression_workspace: dealloc d_matches=" <<
-    //         (void*)workspace.d_matches << std::endl;
-    auto _s = pool.deallocate(workspace.d_matches);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_matches -> " <<
-    //         status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_matches);
   }
   if (workspace.d_costs) {
-    //         std::cerr << "free_compression_workspace: dealloc d_costs=" <<
-    //         (void*)workspace.d_costs << std::endl;
-    auto _s = pool.deallocate(workspace.d_costs);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_costs -> " <<
-    //         status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_costs);
   }
   if (workspace.d_literal_lengths_reverse) {
-    //         std::cerr << "free_compression_workspace: dealloc
-    //         d_literal_lengths_reverse=" <<
-    //         (void*)workspace.d_literal_lengths_reverse << std::endl;
-    auto _s = pool.deallocate(workspace.d_literal_lengths_reverse);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for
-    //         d_literal_lengths_reverse -> " << status_to_string(_s) <<
-    //         std::endl;
+    pool.deallocate(workspace.d_literal_lengths_reverse);
   }
   if (workspace.d_match_lengths_reverse) {
-    //         std::cerr << "free_compression_workspace: dealloc
-    //         d_match_lengths_reverse=" <<
-    //         (void*)workspace.d_match_lengths_reverse << std::endl;
-    auto _s = pool.deallocate(workspace.d_match_lengths_reverse);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for
-    //         d_match_lengths_reverse -> " << status_to_string(_s) <<
-    //         std::endl;
+    pool.deallocate(workspace.d_match_lengths_reverse);
   }
   if (workspace.d_offsets_reverse) {
-    //         std::cerr << "free_compression_workspace: dealloc
-    //         d_offsets_reverse=" << (void*)workspace.d_offsets_reverse <<
-    //         std::endl;
-    auto _s = pool.deallocate(workspace.d_offsets_reverse);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_offsets_reverse
-    //         -> " << status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_offsets_reverse);
   }
   if (workspace.d_frequencies) {
-    //         std::cerr << "free_compression_workspace: dealloc d_frequencies="
-    //         << (void*)workspace.d_frequencies << std::endl;
-    auto _s = pool.deallocate(workspace.d_frequencies);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_frequencies ->
-    //         " << status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_frequencies);
   }
   if (workspace.d_code_lengths) {
-    //         std::cerr << "free_compression_workspace: dealloc
-    //         d_code_lengths=" << (void*)workspace.d_code_lengths << std::endl;
-    auto _s = pool.deallocate(workspace.d_code_lengths);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_code_lengths ->
-    //         " << status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_code_lengths);
   }
   if (workspace.d_bit_offsets) {
-    //         std::cerr << "free_compression_workspace: dealloc d_bit_offsets="
-    //         << (void*)workspace.d_bit_offsets << std::endl;
-    auto _s = pool.deallocate(workspace.d_bit_offsets);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_bit_offsets ->
-    //         " << status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_bit_offsets);
   }
   if (workspace.d_block_sums) {
-    //         std::cerr << "free_compression_workspace: dealloc d_block_sums="
-    //         << (void*)workspace.d_block_sums << std::endl;
-    auto _s = pool.deallocate(workspace.d_block_sums);
-    //         if (_s != Status::SUCCESS) std::cerr <<
-    //         "free_compression_workspace: dealloc failed for d_block_sums -> "
-    //         << status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_block_sums);
   }
   if (workspace.d_scanned_block_sums) {
-    //         std::cerr << "free_compression_workspace: dealloc
-    //         d_scanned_block_sums=" << (void*)workspace.d_scanned_block_sums
-    //         << std::endl;
-    auto _s = pool.deallocate(workspace.d_scanned_block_sums);
-    //         "free_compression_workspace: dealloc failed for
-    //         d_scanned_block_sums -> " << status_to_string(_s) << std::endl;
+    pool.deallocate(workspace.d_scanned_block_sums);
   }
   if (workspace.d_lz77_temp) {
-    auto _s = pool.deallocate(workspace.d_lz77_temp);
+    pool.deallocate(workspace.d_lz77_temp);
   }
 
   // Reset all pointers and metadata

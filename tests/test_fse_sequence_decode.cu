@@ -69,6 +69,8 @@ bool test_state_bounds_checking(TestResults &results) {
   h_table.newState = new u16[table_size];
   h_table.symbol = new u8[table_size];
   h_table.nbBits = new u8[table_size];
+  h_table.nbAdditionalBits = new u8[table_size];
+  h_table.baseValue = new u32[table_size];
   h_table.table_log = table_log;
   h_table.table_size = table_size;
 
@@ -79,6 +81,8 @@ bool test_state_bounds_checking(TestResults &results) {
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
     return false;
   }
 
@@ -107,6 +111,8 @@ bool test_state_bounds_checking(TestResults &results) {
   delete[] h_table.newState;
   delete[] h_table.symbol;
   delete[] h_table.nbBits;
+  delete[] h_table.nbAdditionalBits;
+  delete[] h_table.baseValue;
 
   return bounds_ok;
 }
@@ -130,6 +136,8 @@ bool test_state_normalization(TestResults &results) {
   h_table.newState = new u16[table_size];
   h_table.symbol = new u8[table_size];
   h_table.nbBits = new u8[table_size];
+  h_table.nbAdditionalBits = new u8[table_size];
+  h_table.baseValue = new u32[table_size];
   h_table.table_log = table_log;
   h_table.table_size = table_size;
 
@@ -146,6 +154,8 @@ bool test_state_normalization(TestResults &results) {
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
     return false;
   }
 
@@ -167,6 +177,8 @@ bool test_state_normalization(TestResults &results) {
   delete[] h_table.newState;
   delete[] h_table.symbol;
   delete[] h_table.nbBits;
+  delete[] h_table.nbAdditionalBits;
+  delete[] h_table.baseValue;
 
   return normalization_ok;
 }
@@ -204,6 +216,8 @@ bool test_predefined_tables(TestResults &results) {
     h_table.newState = new u16[table_size];
     h_table.symbol = new u8[table_size];
     h_table.nbBits = new u8[table_size];
+    h_table.nbAdditionalBits = new u8[table_size];
+    h_table.baseValue = new u32[table_size];
     h_table.table_log = log;
     h_table.table_size = table_size;
 
@@ -243,6 +257,8 @@ bool test_predefined_tables(TestResults &results) {
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
   }
 
   results.report("Predefined tables", all_ok, "Table validation failed");
@@ -268,6 +284,8 @@ bool test_device_table_copy(TestResults &results) {
   h_table.newState = new u16[table_size];
   h_table.symbol = new u8[table_size];
   h_table.nbBits = new u8[table_size];
+  h_table.nbAdditionalBits = new u8[table_size];
+  h_table.baseValue = new u32[table_size];
   h_table.table_log = table_log;
   h_table.table_size = table_size;
 
@@ -283,6 +301,8 @@ bool test_device_table_copy(TestResults &results) {
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
     return false;
   }
 
@@ -344,6 +364,8 @@ bool test_device_table_copy(TestResults &results) {
   delete[] h_table.newState;
   delete[] h_table.symbol;
   delete[] h_table.nbBits;
+  delete[] h_table.nbAdditionalBits;
+  delete[] h_table.baseValue;
 
   return copy_ok;
 }

@@ -68,6 +68,21 @@ bool test_gpu_compress_cpu_decompress(size_t input_size, int level) {
   CUDA_CHECK_INT(cudaMemcpy(h_compressed.data(), d_output, compressed_size,
                             cudaMemcpyDeviceToHost));
 
+  // Dump compressed data for debugging
+  {
+    FILE *f = fopen("debug_gpu_compressed.zst", "wb");
+    if (f) {
+      fwrite(h_compressed.data(), 1, compressed_size, f);
+      fclose(f);
+    }
+    printf("  [DBG] GPU compressed %zu -> %zu bytes. First 64 bytes:\n  ", input_size, compressed_size);
+    for (size_t i = 0; i < std::min(compressed_size, (size_t)64); i++) {
+      printf("%02X ", h_compressed[i]);
+      if ((i+1) % 16 == 0) printf("\n  ");
+    }
+    printf("\n");
+  }
+
   // Decompress with libzstd (CPU)
   std::vector<uint8_t> h_decompressed(input_size);
   size_t d_size = ZSTD_decompress(h_decompressed.data(), input_size,

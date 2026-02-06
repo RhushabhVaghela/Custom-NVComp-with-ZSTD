@@ -1199,8 +1199,6 @@ int main(int argc, char **argv) {
 
   // Data patterns to test
   const char *patterns[] = {"random", "repetitive", "semi-random", "text-like"};
-  const int num_patterns = 4;
-
   std::vector<ComparisonResult> all_results;
 
   // Run benchmarks

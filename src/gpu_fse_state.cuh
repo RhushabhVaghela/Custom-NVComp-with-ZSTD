@@ -47,8 +47,8 @@ gpu_fse_encode_symbol(GPU_BitStream *bitC, GPU_FSE_CState *statePtr, u32 symbol,
   GPU_FSE_SymbolTransform const symbolTT = symbolTable[symbol];
 
   // Calculate number of bits to output
-  // Formula from FSE: nbBitsOut = (deltaNbBits + (1<<15)) >> 16
-  u32 const nbBitsOut = (symbolTT.deltaNbBits + (1u << 15)) >> 16;
+  // Formula from Zstandard FSE_encodeSymbol: nbBitsOut = (state + deltaNbBits) >> 16
+  u32 const nbBitsOut = (statePtr->value + symbolTT.deltaNbBits) >> 16;
 
   // Output low bits of current state
   gpu_bit_add_bits(bitC, statePtr->value, nbBitsOut);

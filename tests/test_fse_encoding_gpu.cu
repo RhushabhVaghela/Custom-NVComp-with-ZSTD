@@ -19,34 +19,64 @@ using u16 = unsigned short;
 using u32 = unsigned int;
 using u64 = unsigned long long;
 
-// Helper to convert Ref Table to GPU Table
-void convert_table(const std::vector<cuda_zstd::fse::FSE_CTable_Entry> &ref,
-                   cuda_zstd::fse::FSEEncodeTable &gpu_table,
-                   unsigned table_log) {
-  // Allocate on device
-  cudaMalloc(&gpu_table.d_symbol_table,
-             ref.size() *
-                 sizeof(cuda_zstd::fse::FSEEncodeTable::FSEEncodeSymbol));
-  cudaMalloc(&gpu_table.d_symbol_first_state, ref.size() * sizeof(u16));
-  gpu_table.table_log = table_log;
+// Helper to build a proper GPU CTable using FSE_buildCTable_Device().
+// This allocates all required device arrays and uses the k_build_ctable kernel
+// to correctly populate them, following the pattern from
+// encode_sequences_with_predefined_fse() in cuda_zstd_manager.cu.
+void build_gpu_table(const std::vector<short> &counts, unsigned table_log,
+                     cuda_zstd::fse::FSEEncodeTable &gpu_table,
+                     cuda_zstd::fse::FSEEncodeTable *d_table_slot) {
+  using namespace cuda_zstd::fse;
 
-  // Host buffers
-  std::vector<cuda_zstd::fse::FSEEncodeTable::FSEEncodeSymbol> h_syms(
-      ref.size());
-  std::vector<u16> h_next(ref.size());
+  u32 max_symbol = (u32)(counts.size() - 1);
+  u32 table_size = 1u << table_log;
 
-  for (size_t i = 0; i < ref.size(); ++i) {
-    h_syms[i].deltaNbBits = ref[i].deltaNbBits;
-    h_syms[i].deltaFindState = ref[i].deltaFindState;
-    h_next[i] = ref[i].nextState;
-  }
+  // 1. Fill host-side descriptor
+  FSEEncodeTable h_desc;
+  memset(&h_desc, 0, sizeof(h_desc));
+  h_desc.table_log = table_log;
+  h_desc.table_size = table_size;
+  h_desc.max_symbol = max_symbol;
 
-  cudaMemcpy(gpu_table.d_symbol_table, h_syms.data(),
-             h_syms.size() *
-                 sizeof(cuda_zstd::fse::FSEEncodeTable::FSEEncodeSymbol),
+  // 2. Allocate ALL device arrays the kernel and encoder need
+  cudaMalloc(&h_desc.d_symbol_table,
+             (max_symbol + 1) * sizeof(FSEEncodeTable::FSEEncodeSymbol));
+  cudaMalloc(&h_desc.d_next_state, table_size * sizeof(u16));
+  cudaMalloc(&h_desc.d_state_to_symbol, table_size * sizeof(u8));
+  cudaMalloc(&h_desc.d_symbol_first_state, (max_symbol + 1) * sizeof(u16));
+  h_desc.d_nbBits_table = nullptr;     // Not used by k_encode_fse_interleaved
+  h_desc.d_next_state_vals = nullptr;   // Not used by k_encode_fse_interleaved
+
+  // 3. Zero-initialize to avoid garbage reads
+  cudaMemset(h_desc.d_symbol_table, 0,
+             (max_symbol + 1) * sizeof(FSEEncodeTable::FSEEncodeSymbol));
+  cudaMemset(h_desc.d_symbol_first_state, 0, (max_symbol + 1) * sizeof(u16));
+
+  // 4. Copy descriptor to the device table slot
+  cudaMemcpy(d_table_slot, &h_desc, sizeof(FSEEncodeTable),
              cudaMemcpyHostToDevice);
-  cudaMemcpy(gpu_table.d_symbol_first_state, h_next.data(),
-             h_next.size() * sizeof(u16), cudaMemcpyHostToDevice);
+  cudaDeviceSynchronize();
+
+  // 5. Upload normalized counts as u32 array
+  std::vector<u32> h_norm_u32(max_symbol + 1);
+  for (u32 i = 0; i <= max_symbol; ++i)
+    h_norm_u32[i] = (u32)counts[i];
+
+  u32 *d_norm;
+  cudaMalloc(&d_norm, (max_symbol + 1) * sizeof(u32));
+  cudaMemcpy(d_norm, h_norm_u32.data(), (max_symbol + 1) * sizeof(u32),
+             cudaMemcpyHostToDevice);
+
+  // 6. Build the CTable via the GPU kernel
+  FSE_buildCTable_Device(d_norm, max_symbol, table_log, d_table_slot, nullptr,
+                         0, 0);
+  cudaDeviceSynchronize();
+
+  // 7. Copy the populated descriptor back to host for reference
+  cudaMemcpy(&gpu_table, d_table_slot, sizeof(FSEEncodeTable),
+             cudaMemcpyDeviceToHost);
+
+  cudaFree(d_norm);
 }
 
 void test_GPU_Encoding() {
@@ -138,20 +168,19 @@ void test_GPU_Encoding() {
   std::cout << std::endl;
 
   // 3. GPU Run
-  cuda_zstd::fse::FSEEncodeTable h_gpu_table_struct;
-  convert_table(ref_table, h_gpu_table_struct, table_log);
-
+  // Allocate array of 3 tables on device (LL, OF, ML — all same for this test)
   cuda_zstd::fse::FSEEncodeTable *d_gpu_tables;
   cudaMalloc(&d_gpu_tables, 3 * sizeof(cuda_zstd::fse::FSEEncodeTable));
-  cudaMemcpy(d_gpu_tables + 0, &h_gpu_table_struct,
-             sizeof(cuda_zstd::fse::FSEEncodeTable),
-             cudaMemcpyHostToDevice); // LL
-  cudaMemcpy(d_gpu_tables + 1, &h_gpu_table_struct,
-             sizeof(cuda_zstd::fse::FSEEncodeTable),
-             cudaMemcpyHostToDevice); // OF
-  cudaMemcpy(d_gpu_tables + 2, &h_gpu_table_struct,
-             sizeof(cuda_zstd::fse::FSEEncodeTable),
-             cudaMemcpyHostToDevice); // ML
+
+  // Build all 3 tables using the proper CTable builder kernel
+  cuda_zstd::fse::FSEEncodeTable h_gpu_table_struct;
+  build_gpu_table(counts, table_log, h_gpu_table_struct, &d_gpu_tables[0]);
+
+  // Copy slot 0 to slots 1 and 2 (same table for all 3 streams in this test)
+  cudaMemcpy(&d_gpu_tables[1], &d_gpu_tables[0],
+             sizeof(cuda_zstd::fse::FSEEncodeTable), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(&d_gpu_tables[2], &d_gpu_tables[0],
+             sizeof(cuda_zstd::fse::FSEEncodeTable), cudaMemcpyDeviceToDevice);
 
   u8 *d_ll_codes;
   cudaMalloc(&d_ll_codes, 3);

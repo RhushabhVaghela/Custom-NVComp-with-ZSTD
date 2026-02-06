@@ -77,13 +77,13 @@ struct alignas(16) FSEEncodeTable {
 };
 
 struct alignas(16) FSEDecodeTable {
-  u16 *newState;
-  u8 *symbol;
-  u8 *nbBits;
-  u8 *nbAdditionalBits;
-  u32 *baseValue;
-  u32 table_log;
-  u32 table_size;
+  u16 *newState = nullptr;
+  u8 *symbol = nullptr;
+  u8 *nbBits = nullptr;
+  u8 *nbAdditionalBits = nullptr;
+  u32 *baseValue = nullptr;
+  u32 table_log = 0;
+  u32 table_size = 0;
 };
 
 struct FSEStats {
@@ -409,8 +409,6 @@ fse_reconstruct_sequences_kernel(const u8 *d_ll_codes, const u8 *d_ml_codes,
 __host__ Status analyze_block_statistics(const unsigned char *d_input, u32 input_size,
                                          FSEStats *stats,
                                          cudaStream_t stream = 0);
-
-__host__ void print_fse_stats(const FSEStats &stats);
 
 // ==============================================================================
 // UTILITY FUNCTIONS

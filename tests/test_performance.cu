@@ -604,7 +604,7 @@ bool test_memory_bandwidth() {
   PerformanceProfiler::enable_profiling(true);
   PerformanceProfiler::reset_metrics();
 
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2;  // Initialize to output buffer capacity
   Status status =
       manager->compress(d_input, data_size, d_output, &compressed_size, d_temp,
                         temp_size, nullptr, 0, 0);
@@ -831,7 +831,7 @@ bool test_csv_export() {
   PerformanceProfiler::enable_profiling(true);
   PerformanceProfiler::reset_metrics();
 
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2;  // Initialize to output buffer capacity
   Status status =
       manager->compress(d_input, data_size, d_output, &compressed_size, d_temp,
                         temp_size, nullptr, 0, 0);

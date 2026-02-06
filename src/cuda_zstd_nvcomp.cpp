@@ -131,11 +131,15 @@ bool is_nvcomp_v5_zstd_format(const void *compressed_data,
     return false;
 
   u32 magic = 0;
-  // We assume this might be called with a host pointer for metadata checks
-  // If it's device, this memcpy is invalid, but is_nvcomp_* usually implies
-  // host access or specific API For safety in this glue layer, we'll assume
-  // standard ZSTD magic behavior.
-  memcpy(&magic, compressed_data, sizeof(u32));
+  // The data may reside on the device (GPU). Try cudaMemcpy first;
+  // if it fails (e.g. host pointer on a non-UVM system), fall back to memcpy.
+  cudaError_t err = cudaMemcpy(&magic, compressed_data, sizeof(u32),
+                               cudaMemcpyDeviceToHost);
+  if (err != cudaSuccess) {
+    // Reset the CUDA error state and try host memcpy
+    cudaGetLastError();
+    memcpy(&magic, compressed_data, sizeof(u32));
+  }
 
   if (magic == ZSTD_MAGIC)
     return true;
@@ -920,24 +924,6 @@ std::vector<NvcompV5BenchmarkResult> benchmark_all_levels(const void *d_input,
         benchmark_level(d_input, input_size, level, iterations, stream));
   }
   return results;
-}
-
-void print_benchmark_results(
-    const std::vector<NvcompV5BenchmarkResult> &results) {
-  //     printf("| Level | Comp (ms) | Decomp (ms) | Comp (MB/s) | Decomp (MB/s)
-  //     | Ratio |\n");
-  //     printf("|-------|-----------|-------------|-------------|---------------|-------|\n");
-  for (const auto &r : results) {
-    //         printf("| %-5d | %-9.3f | %-11.3f | %-11.1f | %-13.1f | %-5.2f
-    //         |\n",
-    //             r.level,
-    //             r.compress_time_ms,
-    //             r.decompress_time_ms,
-    //             r.compress_throughput_mbps,
-    //             r.decompress_throughput_mbps,
-    //             r.compression_ratio
-    //         );
-  }
 }
 
 } // namespace nvcomp_v5

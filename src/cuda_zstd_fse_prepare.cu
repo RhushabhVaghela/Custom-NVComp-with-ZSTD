@@ -2,6 +2,7 @@
 // Preparation Kernel: Calculate codes and extra bits from raw values
 // ============================================================================
 
+#include "cuda_zstd_debug.h"
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_sequence.h"
 #include "cuda_zstd_types.h"
@@ -46,9 +47,11 @@ __global__ void fse_prepare_sequences_kernel(
   u32 of_extra = sequence::ZstdSequence::get_offset_extra_bits(of_enc, of_code);
 
   if (idx == 0) {
+#ifdef CUDA_ZSTD_DEBUG
     printf("[FSE_PREPARE] idx=%u of=%u of_enc=%u of_code=%u of_extra=%u "
            "num_bits=%u\n",
            idx, of, of_enc, of_code, of_extra, of_num_bits);
+#endif
   }
 
   // Store results

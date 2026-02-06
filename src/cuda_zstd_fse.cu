@@ -5,6 +5,7 @@
 // cuda_zstd_fse.cu - Complete FSE Implementation
 // ==============================================================================
 
+#include "cuda_zstd_debug.h"
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_fse_chunk_kernel.cuh" // <-- NEW: Chunk Parallel Kernels
 #include "gpu_fse_state.cuh"
@@ -1083,22 +1084,26 @@ __host__ Status FSE_buildCTable_Host(
     if (freq == 0) {
       h_table.d_symbol_table[s].deltaNbBits =
           ((table_log + 1) << 16) - (1 << table_log);
-      h_table.d_symbol_table[s].deltaFindState = 0;
+      // libzstd: deltaFindState = total - 1 for zero-freq symbols
+      h_table.d_symbol_table[s].deltaFindState = (i32)cumul[s] - 1;
       continue;
     }
 
-    // Calculate maxBitsOut and minStatePlus
+    // Calculate maxBitsOut and minStatePlus (libzstd compatible)
+    // libzstd uses FSE_highbit32(normalizedCounter[s]-1) for freq >= 2
+    // For freq == 1: highbit is 0 (same result either way)
     u32 high_bit = 0;
-    if (freq > 0) {
-      high_bit = 31 - clz_u32(freq);
+    if (freq >= 2) {
+      high_bit = 31 - clz_u32(freq - 1);
     }
     u32 maxBitsOut = table_log - high_bit;
     u32 minStatePlus = (u32)freq << maxBitsOut;
 
     h_table.d_symbol_table[s].deltaNbBits = ((maxBitsOut << 16) - minStatePlus);
-    // deltaFindState = cumulative frequency BEFORE this symbol
-    // This is cumul[s], which equals the start position of this symbol's states
-    h_table.d_symbol_table[s].deltaFindState = (i32)cumul[s];
+    // libzstd: deltaFindState = total - normalizedCounter[s]
+    // where total = cumulative sum before this symbol = cumul[s]
+    // So deltaFindState = cumul[s] - freq[s]
+    h_table.d_symbol_table[s].deltaFindState = (i32)cumul[s] - (i32)freq;
   }
 
   return Status::SUCCESS;
@@ -1140,12 +1145,6 @@ __global__ void fse_parallel_encode_setup_kernel(
   u32 symbols_per_chunk = (input_size + num_chunks - 1) / num_chunks;
   u32 table_size = 1u << table_log;
 
-  
-  // printf("[SETUP_DBG] input_size=%u num_chunks=%u
-  // symbols_per_chunk=%u "
-  //        "table_log=%u table_size=%u\n",
-  //        input_size, num_chunks, symbols_per_chunk, table_log,
-  //        table_size);
 
   // Initialize start state for the LAST chunk (logical start of
   // encoding)
@@ -1163,8 +1162,6 @@ __global__ void fse_parallel_encode_setup_kernel(
     u32 state = (u32)d_next_state[idx]; // LOOKUP ACTUAL STATE!
 
     d_chunk_start_states[num_chunks - 1] = state;
-    // printf("[SETUP_DBG] Set chunk[%u] start_state=%u (init from
-    // sym=%u)\n", num_chunks - 1, state, symbol);
   }
 
   // Iterate BACKWARDS through input
@@ -1174,15 +1171,8 @@ __global__ void fse_parallel_encode_setup_kernel(
     u8 symbol = d_input[i];
     u32 chunk_id = i / symbols_per_chunk;
 
-    
-    if (i >= (int)input_size - 10) {
-      // printf("[SETUP_DBG] i=%d symbol=%u chunk_id=%u\n", i, symbol,
-      // chunk_id);
-    }
-
     // BOUNDS CHECK: Verify symbol is valid
     if (symbol > 255) {
-      // printf("[SETUP_ERROR] Invalid symbol=%u at i=%d\n", symbol, i);
       return;
     }
 
@@ -1196,67 +1186,27 @@ __global__ void fse_parallel_encode_setup_kernel(
     // Direct lookup: Get nbBits for current state
     u8 nbBitsOut = d_nbBits_table[state];
 
-    
-    if (i >= (int)input_size - 3) {
-      // printf("[SETUP_DBG] i=%d state=%u nbBitsOut=%u (direct lookup)\n", i,
-      //        state, nbBitsOut);
-    }
-
-    // Calculate output bits (NOT used in state transition, just for
-    // completeness) u32 bits_to_write = state & ((1U << nbBitsOut) -
-    // 1);
-
-    // Calculate next state: This is the lookup index
-    // In Zstd: next_state_index = (current_state >> nbBits) +
-    // symbol_base But we have precomputed next states in
-    // d_next_state_vals indexed by current state
-
-    // The next state for encoding symbol `symbol` from state `state`
-    // is: Let me reconsider: The encoding kernel uses:
-    //   u32 next_state_index = (state >> nbBits) + deltaFindState;
-    //   state = d_next_state_vals[next_state_index];
-    //
-    // So we DO need d_symbol_table to get deltaFindState!
-    // The issue is deltaNbBits is wrong, not deltaFindState.
-    //
-    // Solution: Use d_nbBits_table[state] directly, but still need
-    // deltaFindState from symbol_table
-
+    // Calculate next state using deltaFindState from the symbol table.
+    // Note: d_nbBits_table[state] is used instead of deltaNbBits because
+    // deltaNbBits was found to be incorrect; deltaFindState is still valid.
     FSEEncodeTable::FSEEncodeSymbol stateInfo = d_symbol_table[symbol];
     u32 nextStateIndex = (state >> nbBitsOut) + stateInfo.deltaFindState;
 
-    
-    if (i >= (int)input_size - 3) {
-      // printf("[SETUP_DBG] i=%d deltaFindState=%d nextStateIndex=%u\n", i,
-      //        stateInfo.deltaFindState, nextStateIndex);
-    }
-
     // BOUNDS CHECK: Verify nextStateIndex is within table bounds
     if (nextStateIndex >= table_size) {
-      // printf("[SETUP_ERROR] nextStateIndex=%u >= table_size=%u at i=%d "
-      //        "symbol=%u state=%u nbBitsOut=%u\n",
-      //        nextStateIndex, table_size, i, symbol, state, nbBitsOut);
       return;
     }
 
     // Look up the actual next state value
     state = d_next_state_vals[nextStateIndex];
 
-    if (i >= (int)input_size - 10) {
-      // printf("[SETUP_DBG] i=%d new_state=%u\n", i, state);
-    }
-
     // If at chunk boundary, save state for previous chunk
     if (i == chunk_id * symbols_per_chunk) {
       if (chunk_id > 0) {
         d_chunk_start_states[chunk_id - 1] = state;
-        // printf("[SETUP_DBG] Boundary: Set chunk[%u] start_state=%u\n",
-        //        chunk_id - 1, state);
       }
     }
   }
-
-  // printf("[SETUP_DBG] Setup kernel completed successfully\n");
 }
 
 /**
@@ -1311,8 +1261,10 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
   }
 
   // Build DTable using official Zstd formula
+#ifdef CUDA_ZSTD_DEBUG
   printf("[BUILD] Building table: size=%u, log=%u, max_sym=%u\n", 
          table_size, table_log, max_symbol);
+#endif
 
   const u32 *base_table = nullptr;
   const u8 *bits_table = nullptr;
@@ -1373,8 +1325,10 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
     
     
     if (state == 1) {
+#ifdef CUDA_ZSTD_DEBUG
       printf("[BUILD_WRITE] state=1: wrote newState=%u, read back=%u\n",
              newState, h_table.newState[1]);
+#endif
     }
     
     if (symbol == max_symbol) {
@@ -1382,8 +1336,10 @@ __host__ Status FSE_buildDTable_Host(const i16 *h_normalized, u32 max_symbol,
     }
   }
   
+#ifdef CUDA_ZSTD_DEBUG
   printf("[BUILD] Table complete: newState[0]=%u, newState[1]=%u, newState[%u]=%u\n",
          h_table.newState[0], h_table.newState[1], table_size-1, h_table.newState[table_size-1]);
+#endif
 
   return Status::SUCCESS;
 }
@@ -1572,9 +1528,12 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
                         cudaMemcpyHostToDevice));
 
   // PARALLEL ENCODING THRESHOLD
-  // For small inputs, use sequential encoder (simpler, verified)
-  // For large inputs, use parallel encoder with new Zstd-compatible kernels
-  const u32 PARALLEL_THRESHOLD = 64 * 1024; // 64KB to match Decoder Chunk Size
+  // The parallel encoder is DISABLED: each chunk independently writes its own
+  // sentinel bit and state flush, producing an invalid merged single-bitstream.
+  // State transitions between chunks are not chained, so the decoder cannot
+  // seamlessly decode across chunk boundaries. Proper fix requires a two-pass
+  // approach with state chaining (Phase C). Use sequential encoder for all sizes.
+  const u32 PARALLEL_THRESHOLD = UINT32_MAX; // Disabled — sequential only
 
   if (input_size <= PARALLEL_THRESHOLD) {
     // === SEQUENTIAL PATH (Restored) ===
@@ -1617,12 +1576,25 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
     u32 bit_position = header_size * 8;
     u64 state = (1u << table_log);
 
+#ifdef CUDA_ZSTD_DEBUG
+    if (input_size <= 32) {
+      fprintf(stderr, "[ENCODE_DBG] input_size=%u table_log=%u initial_state=%llu header_size=%u\n",
+              input_size, table_log, (unsigned long long)state, header_size);
+    }
+#endif
+
     for (int i = (int)input_size - 1; i >= 0; i--) {
       u8 symbol = h_input_vec[i];
       const FSEEncodeTable::FSEEncodeSymbol &enc_sym =
           h_ctable.d_symbol_table[symbol];
 
       u32 nbBitsOut = (state + enc_sym.deltaNbBits) >> 16;
+#ifdef CUDA_ZSTD_DEBUG
+      if (input_size <= 32) {
+        fprintf(stderr, "[ENCODE_DBG] i=%d sym=%u state=%llu nbBitsOut=%u deltaNbBits=%u deltaFindState=%d bitPos=%u\n",
+                i, symbol, (unsigned long long)state, nbBitsOut, enc_sym.deltaNbBits, enc_sym.deltaFindState, bit_position);
+      }
+#endif
       if (nbBitsOut > 0) {
         u64 bits = state & ((1ULL << nbBitsOut) - 1);
         write_bits_to_buffer_verified(h_out_vec.data(), bit_position, bits,
@@ -1639,6 +1611,10 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
     write_bits_to_buffer_verified(h_out_vec.data(), bit_position,
                                   state & ((1ULL << state_bits) - 1),
                                   state_bits);
+
+    // Write sentinel bit (1) — decoder scans backward for this to find
+    // the start of the bitstream, consistent with parallel encoder
+    write_bits_to_buffer_verified(h_out_vec.data(), bit_position, 1, 1);
 
     u32 total_bits = bit_position;
     u32 total_bytes = (total_bits + 7) / 8;
@@ -1774,8 +1750,10 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
       chunk_size, d_chunk_start_states, d_chunk_bit_counts);
   auto kerr1 = cudaGetLastError();
   if (kerr1 != cudaSuccess) {
+#ifdef CUDA_ZSTD_DEBUG
     printf("[CRASH] fse_compute_states_kernel_parallel_shmem failed: %s\n",
            cudaGetErrorString(kerr1));
+#endif
   }
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -1788,8 +1766,10 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
       max_chunk_stream_size);
   auto kerr2 = cudaGetLastError();
   if (kerr2 != cudaSuccess) {
+#ifdef CUDA_ZSTD_DEBUG
     printf("[CRASH] fse_encode_chunk_kernel failed: %s\n",
            cudaGetErrorString(kerr2));
+#endif
   }
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -1833,8 +1813,10 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   );
   auto kerr3 = cudaGetLastError();
   if (kerr3 != cudaSuccess) {
+#ifdef CUDA_ZSTD_DEBUG
     printf("[CRASH] fse_merge_bitstreams_kernel failed: %s\n",
            cudaGetErrorString(kerr3));
+#endif
   }
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -2410,50 +2392,6 @@ __host__ Status analyze_block_statistics(const unsigned char *d_input,
   return Status::SUCCESS;
 }
 
-__host__ void print_fse_stats(const FSEStats &stats) {
-  //     printf("\n=== FSE Statistics
-  //     ===\n"); printf("Total Count:
-  //     %u\n", stats.total_count);
-  //     printf("Max Symbol: %u\n",
-  //     stats.max_symbol);
-  //     printf("Unique Symbols: %u\n",
-  //     stats.unique_symbols);
-  //     printf("Entropy: %.2f bits\n",
-  //     stats.entropy);
-  //     printf("Recommended Table Log:
-  //     %u (size: %u)\n",
-  //            stats.recommended_log,
-  //            1u <<
-  //            stats.recommended_log);
-
-  //     printf("\nTop 10
-  //     Frequencies:\n");
-  struct SymFreq {
-    u8 sym;
-    u32 freq;
-  };
-  std::vector<SymFreq> freqs;
-
-  for (u32 i = 0; i <= stats.max_symbol; i++) {
-    if (stats.frequencies[i] > 0) {
-      freqs.push_back({(u8)i, stats.frequencies[i]});
-    }
-  }
-
-  std::sort(freqs.begin(), freqs.end(),
-            [](const SymFreq &a, const SymFreq &b) { return a.freq > b.freq; });
-
-  for (size_t i = 0; i < std::min(freqs.size(), size_t(10)); i++) {
-    f32 percent = 100.0f * freqs[i].freq / stats.total_count;
-    //         printf("  Symbol %3u:
-    //         %8u (%.2f%%)\n",
-    //                freqs[i].sym,
-    //                freqs[i].freq,
-    //                percent);
-  }
-  //     printf("======================\n\n");
-}
-
 // ==============================================================================
 // VALIDATION & UTILITIES
 // ==============================================================================
@@ -2466,13 +2404,7 @@ __host__ Status validate_fse_table(const FSEEncodeTable &table) {
   if (table.table_size != (1u << table.table_log)) {
     return Status::ERROR_COMPRESSION;
   }
-  //  Pointers are on device
-  // if (!table.state_table ||
-  // !table.symbol_table ||
-  // !table.nb_bits_table) {
-  //     return
-  //     Status::ERROR_COMPRESSION;
-  // }
+  // Note: pointer validation skipped — pointers reside on device memory
   return Status::SUCCESS;
 }
 
@@ -2652,20 +2584,9 @@ find_chunk_boundaries_cpu(const unsigned char *d_bitstream, u32 bitstream_size,
       // u32 old_state = state;
       state = nextStateBase + bits;
 
-      if (chunk_idx == 0 && i < 10) {
-        // printf("[CPU_SIM] Chunk0 i=%u "
-        //        "bit_pos=%u nbBits=%u "
-        //        "bits=%u state=%u\n",
-        //        i, bit_pos, nbBits, bits, state);
-      }
     }
   }
 end_loop:
-
-  // No need to reverse, we pushed in
-  // 0..N order
-  // std::reverse(chunks.begin(),
-  // chunks.end());
 
   return chunks;
 }
@@ -3210,10 +3131,6 @@ __global__ void fse_parallel_decode_fixed_bits_kernel(
 
     if (current_bit <= stop_bit) {
       if (symbols_written < count) {
-        
-        //   printf("[DEC_GPU] i=%u state=%u sym=%02x nb=%u\n", symbols_written,
-        //          state, symbol, nb);
-        // }
         // FORWARD WRITE: Decoder produces symbols in correct order (0..N)
         my_output[symbols_written] = symbol;
       }
@@ -3333,16 +3250,6 @@ __global__ void fse_parallel_decode_kernel_v2(
   u32 state = info.state;
   u32 bit_pos = info.bit_position;
 
-  if (chunk_id == 0) {
-    // printf(
-    //     "GPU Decoder Chunk 0:
-    //     start_seq=%u, count=%u,
-    //     state=%u, bit_pos=%u\n",
-    //     info.start_seq,
-    //     info.num_symbols, state,
-    //     bit_pos);
-  }
-
   // Decode symbols
   for (u32 i = 0; i < info.num_symbols; i++) {
     // Read from shared memory tables
@@ -3401,11 +3308,6 @@ __host__ static Status FSE_buildDTable_Internal(const u16 *normalized_freqs,
     table_log++;
 
   
-  // Better: print only if size=64 to check ML table candidate
-  if (table_size == 64) {
-    // printf("[TBL_BUILD] Size 64 detected. MaxSym: %u\n", max_symbol);
-  }
-
   // 2. Spread Symbols (Matches ZSTD)
   const u32 table_mask = table_size - 1;
   const u32 step = (table_size >> 1) + (table_size >> 3) + 3;
@@ -3515,37 +3417,9 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
   output_size_expected = h_header_base[1];
   max_symbol = h_header_base[2];
 
-  if (output_size_expected > input_size * 64u) {
-    return Status::ERROR_CORRUPT_DATA;
-  }
   *d_output_size = output_size_expected; // Set host output size
 
-  // Validations for correctness / safety against random data
-  if (table_log > FSE_MAX_TABLELOG || table_log < FSE_MIN_TABLELOG) {
-    if (max_symbol == 0 && table_log == 0) {
-      // This is potentially RLE
-    } else {
-      return Status::ERROR_CORRUPT_DATA;
-    }
-  }
-
-  // Validate max_symbol (Zstd FSE usually limited to 255)
-  if (max_symbol > FSE_MAX_SYMBOL_VALUE) {
-    return Status::ERROR_CORRUPT_DATA;
-  }
-
-  // Calculate expected header size for validation
-  if (table_log > 0) {
-    u32 header_table_size = (max_symbol + 1) * sizeof(u16);
-    u32 header_size = (sizeof(u32) * 3) + header_table_size;
-
-    // Check if header fits in input
-    if (header_size > input_size) {
-      return Status::ERROR_CORRUPT_DATA;
-    }
-  }
-
-  // === RLE/Raw Check ===
+  // === RLE/Raw Check (before ratio guard — RLE has extreme ratios) ===
   if (table_log == 0) {
     if (max_symbol == 0) {
       // RLE Block
@@ -3566,6 +3440,28 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
                                  cudaMemcpyDeviceToDevice, stream));
     }
     return Status::SUCCESS;
+  }
+
+  // === FSE-encoded block validations (table_log > 0) ===
+  if (output_size_expected > input_size * 64u) {
+    return Status::ERROR_CORRUPT_DATA;
+  }
+
+  if (table_log > FSE_MAX_TABLELOG || table_log < FSE_MIN_TABLELOG) {
+    return Status::ERROR_CORRUPT_DATA;
+  }
+
+  if (max_symbol > FSE_MAX_SYMBOL_VALUE) {
+    return Status::ERROR_CORRUPT_DATA;
+  }
+
+  // Check if header fits in input
+  {
+    u32 header_table_size = (max_symbol + 1) * sizeof(u16);
+    u32 header_size = (sizeof(u32) * 3) + header_table_size;
+    if (header_size > input_size) {
+      return Status::ERROR_CORRUPT_DATA;
+    }
   }
 
   // Smart Router: Select CPU or GPU
@@ -3625,6 +3521,16 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     const unsigned char *bitstream = h_input.data() + header_size;
     u32 bitstream_size = input_size - header_size;
 
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[DECODE_DBG] header_size=%u bitstream_size=%u output_expected=%u table_log=%u max_symbol=%u\n",
+            header_size, bitstream_size, output_size_expected, table_log, max_symbol);
+    // Dump first/last bytes of bitstream
+    fprintf(stderr, "[DECODE_DBG] bitstream bytes:");
+    for (u32 bb = 0; bb < bitstream_size && bb < 32; bb++)
+      fprintf(stderr, " %02X", bitstream[bb]);
+    fprintf(stderr, "\n");
+#endif
+
     // Bitstream is read backwards from end
     i32 byte_idx = (i32)bitstream_size - 1;
     while (byte_idx >= 0 && bitstream[byte_idx] == 0) {
@@ -3645,6 +3551,10 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
       bit_position = bitstream_size * 8;
     }
 
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[DECODE_DBG] sentinel at bit_position=%u (byte_idx=%d)\n", bit_position, byte_idx);
+#endif
+
     // Skip the terminator bit and position to read initial state
     // Consistent with Parallel Kernel: Read table_log bits
     u32 state_bits = table_log;
@@ -3653,6 +3563,9 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     if (bit_position >= state_bits) {
       bit_position -= state_bits; // Position now at start of final_state
     } else {
+#ifdef CUDA_ZSTD_DEBUG
+      fprintf(stderr, "[DECODE_DBG] ERROR: bit_position=%u < state_bits=%u\n", bit_position, state_bits);
+#endif
       delete[] h_table.newState;
       delete[] h_table.symbol;
       delete[] h_table.nbBits;
@@ -3667,6 +3580,9 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     // Raw state (0..table_size-1) is already the index
     u32 state = raw_state;
     
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[DECODE_DBG] initial state=%u bit_position_after_state=%u\n", state, bit_position);
+#endif
 
     // FSE decodes in reverse order: first decoded symbol is the LAST original
     // symbol. Decode forward, then reverse the decoded portion.
@@ -3676,6 +3592,13 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
       u8 num_bits = h_table.nbBits[state];
       u16 next_state_base = h_table.newState[state];
 
+#ifdef CUDA_ZSTD_DEBUG
+      if (output_size_expected <= 32) {
+        fprintf(stderr, "[DECODE_DBG] step %d: state=%u sym=%u nbBits=%u nextBase=%u bitPos=%u\n",
+                i, state, symbol, num_bits, next_state_base, bit_position);
+      }
+#endif
+
       // Write decoded symbol FORWARD (we reverse later)
       h_output[i] = symbol;
       decoded_count++;
@@ -3683,6 +3606,10 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
       // Update state
       if (num_bits > 0) {
         if (bit_position < num_bits) {
+#ifdef CUDA_ZSTD_DEBUG
+          fprintf(stderr, "[DECODE_DBG] ERROR: bit exhausted at i=%d/%u bit_position=%u num_bits=%u state=%u symbol=%u\n",
+                  i, output_size_expected, bit_position, num_bits, state, symbol);
+#endif
           delete[] h_table.newState;
           delete[] h_table.symbol;
           delete[] h_table.nbBits;
@@ -4035,8 +3962,8 @@ __global__ void k_decode_sequences_interleaved(
 
   u64 total_lit_len = 0;
 
-  // Decode Loop
-  for (int i = (int)num_sequences - 1; i >= 0; i--) {
+  // Decode Loop (forward, matching standard ZSTD decode order)
+  for (u32 i = 0; i < num_sequences; i++) {
     // Validate states before table access
     if (decode_ll && stateLL >= ll_table_size) {
       if (d_error_flag)
@@ -4065,13 +3992,11 @@ __global__ void k_decode_sequences_interleaved(
     else if (rle_ml) ml_sym = rle_ml_symbol;
     
 
-    // Process Fields: Split Extras and State Updates to match Interleaved Stream
-    // Encoder pushes (backward, LIFO): sentinel -> final_states -> [for i=0..N-1:
-    //   transitions(i+1) -> extras(i)]
-    // Decoder pops (forward): initial_states -> [for i=N-1..0:
-    //   extras(i) -> transitions(i)]
-    // Within each group encoder uses OF->ML->LL ordering, so reader consumes
-    // OF->ML->LL for extras and transitions.
+    // Process Fields: Standard ZSTD interleaved decode order
+    // Decoder reads forward (0 to N-1):
+    //   initial_states -> [for i=0..N-1: extras(i) -> values(i) -> transitions(i)]
+    // Extras read order: OF, ML, LL (matching standard)
+    // State transitions order: LL, ML, OF (matching standard)
 
     u32 of_extra = 0;
     u32 ml_extra = 0;
@@ -4096,31 +4021,10 @@ __global__ void k_decode_sequences_interleaved(
       return;
     }
 
-    if (i > 0) {
-      if (decode_of) {
-        u8 nb = of_table.nbBits[stateOF];
-        u32 bits = nb ? reader.read(nb) : 0;
-        stateOF = of_table.newState[stateOF] + bits;
-      }
-      if (decode_ml) {
-        u8 nb = ml_table.nbBits[stateML];
-        u32 bits = nb ? reader.read(nb) : 0;
-        stateML = ml_table.newState[stateML] + bits;
-      }
-      if (decode_ll) {
-        u8 nb = ll_table.nbBits[stateLL];
-        u32 bits = nb ? reader.read(nb) : 0;
-        stateLL = ll_table.newState[stateLL] + bits;
-      }
-    }
-
-    if (reader.underflow) {
-      if (d_error_flag)
-        *d_error_flag = 1;
-      return;
-    }
-    
-    // Calculate Values
+    // Calculate Values BEFORE state transitions
+    // baseValue[] is indexed by state, so we must use the current (pre-transition)
+    // states. For mode 2 (compressed tables), get_lit_len/get_match_len use the
+    // symbol which was already captured before extras, so those are fine either way.
     
     // LL Value
     u32 val_ll = 0;
@@ -4147,6 +4051,12 @@ __global__ void k_decode_sequences_interleaved(
         d_ml_out[i] = val_ml;
     }
     
+#ifdef CUDA_ZSTD_DEBUG
+    printf("[FSE_DECODE] seq=%d: ll_sym=%u ll_extra=%u val_ll=%u | of_sym=%u of_extra=%u stateOF=%u | ml_sym=%u ml_extra=%u val_ml=%u | modes=%u/%u/%u | stateLL=%u stateML=%u\n",
+           i, ll_sym, ll_extra, val_ll, of_sym, of_extra, stateOF, ml_sym, ml_extra, val_ml,
+           ll_mode, of_mode, ml_mode, stateLL, stateML);
+#endif
+    
     // OF Value
     u32 val_of = 0;
     if (decode_of || rle_of) {
@@ -4158,6 +4068,32 @@ __global__ void k_decode_sequences_interleaved(
              val_of = sequence::ZstdSequence::get_offset(of_sym) + of_extra + 3;
         }
         d_of_out[i] = val_of;
+    }
+
+    // State transitions for the NEXT sequence (after value calculation)
+    // Standard ZSTD decode order: LL, ML, OF
+    if (i < num_sequences - 1) {
+      if (decode_ll) {
+        u8 nb = ll_table.nbBits[stateLL];
+        u32 bits = nb ? reader.read(nb) : 0;
+        stateLL = ll_table.newState[stateLL] + bits;
+      }
+      if (decode_ml) {
+        u8 nb = ml_table.nbBits[stateML];
+        u32 bits = nb ? reader.read(nb) : 0;
+        stateML = ml_table.newState[stateML] + bits;
+      }
+      if (decode_of) {
+        u8 nb = of_table.nbBits[stateOF];
+        u32 bits = nb ? reader.read(nb) : 0;
+        stateOF = of_table.newState[stateOF] + bits;
+      }
+    }
+
+    if (reader.underflow) {
+      if (d_error_flag)
+        *d_error_flag = 1;
+      return;
     }
     
   }

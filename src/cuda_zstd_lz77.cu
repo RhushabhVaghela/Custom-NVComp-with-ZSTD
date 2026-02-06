@@ -188,33 +188,11 @@ __global__ void build_hash_chains_kernel(const unsigned char *input,
           u32 h = s_updates[i].hash;
           u32 pos = s_updates[i].position;
           u32 prev_pos = atomicExch(&hash_table.table[h], pos);
-#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
-          if (h >= hash_table.size) {
-            if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
-                         // g_debug_print_limit) {
-            }
-          }
-          if (pos >= chain_table.size) {
-            if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
-                         // g_debug_print_limit) {
-            }
-          }
-#endif
           // Safety: guard against position overflow to avoid illegal
           // memory accesses. If this occurs, the chain table is
           // undersized for the combined dictionary+input positions.
           if (pos < chain_table.size) {
             chain_table.prev[pos] = prev_pos;
-          } else {
-#if defined(__CUDACC__)
-            if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
-                         // g_debug_print_limit) {
-              //                             printf("[SAFEGUARD]
-              //                             build_hash_chains_kernel: OOB write
-              //                             pos=%u chain_size=%u\n",
-              //                                 pos, chain_table.size);
-            }
-#endif
           }
         }
       }
@@ -312,26 +290,10 @@ __global__ void build_hash_chains_kernel(const unsigned char *input,
         u32 h = s_updates[i].hash;
         u32 pos = s_updates[i].position;
         u32 prev_pos = atomicExch(&hash_table.table[h], pos);
-#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
-        if (h >= hash_table.size) {
-        }
-        if (pos >= chain_table.size) {
-        }
-#endif
         // Guard: avoid OOB writes into the chain_table when chain size
         // is 1 (chain disabled) or otherwise too small.
         if (pos < chain_table.size) {
           chain_table.prev[pos] = prev_pos;
-        } else {
-#if defined(__CUDACC__)
-          if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
-                       // g_debug_print_limit) {
-            //                         printf("[SAFEGUARD]
-            //                         build_hash_chains_kernel (input): OOB
-            //                         write pos=%u chain_size=%u\n", pos,
-            //                         chain_table.size);
-          }
-#endif
         }
       }
     }
@@ -364,8 +326,10 @@ __device__ inline u32 match_length(const unsigned char *input,
     len++;
   }
   if (p1 == 174 && p2 == 104) {
+#ifdef CUDA_ZSTD_DEBUG
     printf("[MATCH_LENGTH] p1=174 Val=%02X p2=104 Val=%02X Len=%u\n", p1_ptr[0],
            p2_ptr[0], len);
+#endif
   }
   return len;
 }
@@ -392,14 +356,6 @@ find_best_match_parallel(const unsigned char *input, u32 current_pos,
   // because we will use the candidate directly for hash-only mode.
   if (config.chain_log > 0 && match_candidate_pos != 0xFFFFFFFF &&
       match_candidate_pos >= chain_table.size) {
-#if defined(__CUDACC__)
-    if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
-                 // g_debug_print_limit) {
-      //             printf("[SAFEGUARD] find_best_match_parallel: Invalid
-      //             match_candidate_pos=%u chain_size=%u\n",
-      //                    match_candidate_pos, chain_table.size);
-    }
-#endif
     match_candidate_pos = 0xFFFFFFFF;
   }
 
@@ -459,20 +415,6 @@ find_best_match_parallel(const unsigned char *input, u32 current_pos,
     }
 
   
-    if (len > 0) {
-      // Check if it really matches
-      if (input[current_pos] != match_ptr[0]) {
-        //                  printf("[GPU ERROR] Match reported at %u but bytes
-        //                  differ! Len=%u, Cand=%u, Inp=%02X, Match=%02X\n",
-        //                         current_pos, len, match_candidate_pos,
-        //                         input[current_pos], match_ptr[0]);
-        //                  printf("[GPU ERROR] Ptrs: Input=%p, Match=%p,
-        //                  Diff=%ld\n",
-        //                         input + current_pos, match_ptr, (long)(input
-        //                         + current_pos) - (long)match_ptr);
-      }
-    }
-
     if (len >= config.min_match) {
       u32 distance = 0;
       if (match_candidate_pos >= dict_size) {
@@ -542,14 +484,6 @@ find_best_match_parallel(const unsigned char *input, u32 current_pos,
         max_possible_len = input_remain;
     }
 
-#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
-    if (match_candidate_pos >= chain_table.size) {
-      if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
-                   // g_debug_print_limit) {
-      }
-    }
-#endif
-
     // Avoid misaligned 4-byte reads: only compare 32-bit words if both pointers
     // are 4-byte aligned. Otherwise fall back to byte-by-byte compare.
     bool aligned32 = (((uintptr_t)match_ptr & 3u) == 0u) &&
@@ -587,15 +521,7 @@ find_best_match_parallel(const unsigned char *input, u32 current_pos,
     // Advance through chain; guard against invalid indices from the chain
     u32 next_candidate = chain_table_lookup(chain_table, match_candidate_pos);
     if (next_candidate != 0xFFFFFFFF && next_candidate >= chain_table.size) {
-// If the chain points outside of bounds then stop chain traversal
-#if defined(__CUDACC__)
-      if (false) { // if (atomicAdd(&g_debug_print_counter, 1u) <
-                   // g_debug_print_limit) {
-        //                 printf("[SAFEGUARD] find_best_match_parallel: Invalid
-        //                 chain next_candidate=%u chain_size=%u\n",
-        //                        next_candidate, chain_table.size);
-      }
-#endif
+      // Chain points outside of bounds — stop chain traversal
       break;
     }
     match_candidate_pos = next_candidate;
@@ -609,10 +535,12 @@ find_best_match_parallel(const unsigned char *input, u32 current_pos,
   
   if (best_len > 0) {
     if (input[current_pos] != input[current_pos - best_off]) {
+#ifdef CUDA_ZSTD_DEBUG
       printf("[GPU ERROR] Match Validation Failed! Pos=%u, Off=%u, Len=%u. "
              "Byte[%u]=%02X, Byte[%u]=%02X\n",
              current_pos, best_off, best_len, current_pos, input[current_pos],
              current_pos - best_off, input[current_pos - best_off]);
+#endif
     }
   }
 
@@ -638,36 +566,15 @@ __global__ void parallel_find_all_matches_kernel(
     d_matches[idx].position = idx;
   }
 
-  if (idx == 0)
-    if (idx == 104)
-      if (idx == 174)
-
-        if (idx >= input_size - config.min_match) {
-          return;
-        }
+  if (idx >= input_size - config.min_match) {
+    return;
+  }
 
   u32 max_dist = (1u << config.window_log);
   u32 dict_size = (dict && dict->d_buffer) ? dict->size : 0;
   u32 current_global_pos = dict_size + idx;
   u32 window_min =
       (current_global_pos > max_dist) ? (current_global_pos - max_dist) : 0;
-
-#if defined(CUDA_ZSTD_DEBUG_BOUNDS) && defined(__CUDACC__)
-  // Low-volume debug prints: throttle via bitmask so console isn't flooded.
-  const u32 DEBUG_LOG_STRIDE = 1u << 16; // print once every 65536 idx
-  if ((idx & (DEBUG_LOG_STRIDE - 1)) == 0u) {
-  }
-#endif
-
-  // 1. Find the best match at the current position `idx`
-  if (idx == 0) {
-    // const char *strat = "UNKNOWN";
-    // if (config.strategy == Strategy::GREEDY)
-    //   strat = "GREEDY";
-    // if (config.strategy == Strategy::LAZY)
-    //   strat = "LAZY";
-    // (void)strat; // Suppress unused variable warning
-  }
 
   // Find best match using parallel helper
   Match current_match =
@@ -976,257 +883,10 @@ Status get_matches(const LZ77Context &ctx,
   return Status::SUCCESS;
 }
 
-// CPU-based backtracking helper to avoid single-thread GPU bottleneck
-// This replaces the slow backtrack_build_sequences_kernel
-// LEGACY_CPU_BACKTRACK: void backtrack_sequences_cpu(
-// LEGACY_CPU_BACKTRACK:     const ParseCost* h_costs,
-// LEGACY_CPU_BACKTRACK:     u32 input_size,
-// LEGACY_CPU_BACKTRACK:     u32* h_literal_lengths,
-// LEGACY_CPU_BACKTRACK:     u32* h_match_lengths,
-// LEGACY_CPU_BACKTRACK:     u32* h_offsets,
-// LEGACY_CPU_BACKTRACK:     u32* h_num_sequences,
-// LEGACY_CPU_BACKTRACK:     u32 max_sequences
-// LEGACY_CPU_BACKTRACK: ) {
-// LEGACY_CPU_BACKTRACK:     u32 pos = input_size;
-// LEGACY_CPU_BACKTRACK:     u32 seq_idx = 0;
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:     // 1. Consume trailing literals (not part of any
-// sequence) LEGACY_CPU_BACKTRACK:     // These are handled by the final literal
-// copy phase, not as a sequence LEGACY_CPU_BACKTRACK:     while (pos > 0 &&
-// !h_costs[pos].is_match) { LEGACY_CPU_BACKTRACK:         pos--;
-// LEGACY_CPU_BACKTRACK:     }
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:     // 2. Backtrack matches
-// LEGACY_CPU_BACKTRACK:     while (pos > 0 && seq_idx < max_sequences) {
-// LEGACY_CPU_BACKTRACK:         const ParseCost& entry = h_costs[pos];
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:         if (!entry.is_match) {
-// LEGACY_CPU_BACKTRACK:             // Should not happen if logic is correct
-// (we skip literals below) LEGACY_CPU_BACKTRACK:             pos--;
-// LEGACY_CPU_BACKTRACK:             continue;
-// LEGACY_CPU_BACKTRACK:         }
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:         u32 ml = entry.len;
-// LEGACY_CPU_BACKTRACK:         u32 of = entry.offset;
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:         if (ml == 0 || ml > pos) break; // Safety check
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:         pos -= ml;
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:         // Count literals before this match
-// LEGACY_CPU_BACKTRACK:         u32 ll = 0;
-// LEGACY_CPU_BACKTRACK:         while (pos > 0 && !h_costs[pos].is_match) {
-// LEGACY_CPU_BACKTRACK:             ll++;
-// LEGACY_CPU_BACKTRACK:             pos--;
-// LEGACY_CPU_BACKTRACK:         }
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:         h_literal_lengths[seq_idx] = ll;
-// LEGACY_CPU_BACKTRACK:         h_match_lengths[seq_idx] = ml;
-// LEGACY_CPU_BACKTRACK:         h_offsets[seq_idx] = of;
-// LEGACY_CPU_BACKTRACK:         seq_idx++;
-// LEGACY_CPU_BACKTRACK:     }
-// LEGACY_CPU_BACKTRACK:
-// LEGACY_CPU_BACKTRACK:     *h_num_sequences = seq_idx;
-// LEGACY_CPU_BACKTRACK: }
-
-// LEGACY_CPU_PARSE: Status find_optimal_parse(
-// LEGACY_CPU_PARSE:     LZ77Context& lz77_ctx,
-// LEGACY_CPU_PARSE:     const unsigned char* d_input,
-// LEGACY_CPU_PARSE:     size_t input_size,
-// LEGACY_CPU_PARSE:     const DictionaryContent* dict,
-// LEGACY_CPU_PARSE:     CompressionWorkspace* workspace,
-// LEGACY_CPU_PARSE:     const unsigned char* d_window,
-// LEGACY_CPU_PARSE:     size_t window_size,
-// LEGACY_CPU_PARSE:     cudaStream_t stream,
-// LEGACY_CPU_PARSE:     sequence::SequenceContext* seq_ctx,
-// LEGACY_CPU_PARSE:     u32* num_sequences_out,
-// LEGACY_CPU_PARSE:     size_t* literals_size_out,
-// LEGACY_CPU_PARSE:     bool is_last_block,
-// LEGACY_CPU_PARSE:     u32 chunk_size,
-// LEGACY_CPU_PARSE:     u32* total_literals_out,
-// LEGACY_CPU_PARSE:     bool output_raw_values
-// LEGACY_CPU_PARSE: ) {
-// LEGACY_CPU_PARSE:     if (!d_input || input_size == 0 || !workspace ||
-// !seq_ctx) { LEGACY_CPU_PARSE:         return Status::ERROR_INVALID_PARAMETER;
-// LEGACY_CPU_PARSE:     }
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // CRITICAL: Clear any pending CUDA errors from
-// previous operations LEGACY_CPU_PARSE:     // cudaPointerGetAttributes can
-// leave sticky errors that contaminate subsequent calls LEGACY_CPU_PARSE:
-// cudaError_t entry_err = cudaGetLastError(); LEGACY_CPU_PARSE:
-// (void)entry_err; // Suppress unused variable warning in release builds
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // Set workspace pointers into context
-// LEGACY_CPU_PARSE:     lz77_ctx.d_matches =
-// static_cast<Match*>(workspace->d_matches); LEGACY_CPU_PARSE: lz77_ctx.d_costs
-// = static_cast<ParseCost*>(workspace->d_costs); LEGACY_CPU_PARSE:
-// lz77_ctx.d_literal_lengths_reverse = workspace->d_literal_lengths_reverse;
-// LEGACY_CPU_PARSE:     lz77_ctx.d_match_lengths_reverse =
-// workspace->d_match_lengths_reverse; LEGACY_CPU_PARSE:
-// lz77_ctx.d_offsets_reverse = workspace->d_offsets_reverse; LEGACY_CPU_PARSE:
-// lz77_ctx.max_sequences_capacity = workspace->max_sequences; LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     lz77_ctx.max_sequences_capacity =
-// workspace->max_sequences; LEGACY_CPU_PARSE:
-// isolate hang LEGACY_CPU_PARSE:     // return Status::SUCCESS;
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // Phase 1: Compute optimal parse costs
-// LEGACY_CPU_PARSE:     // Use 128KB chunks for better parallelism and
-// compression LEGACY_CPU_PARSE:     // u32 chunk_size = 131072; // Use
-// parameter instead LEGACY_CPU_PARSE:     // u32 num_blocks = (input_size +
-// chunk_size - 1) / chunk_size; LEGACY_CPU_PARSE: LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // Initialize costs to infinity first (required because
-// we removed per-block init loop) LEGACY_CPU_PARSE:     // We can use a simple
-// kernel or memset for this if needed, but for now relying on logic
-// LEGACY_CPU_PARSE:     // Actually, optimal_parse_kernel checks
-// d_costs[pos].cost < infinity. LEGACY_CPU_PARSE:     // So we MUST initialize
-// d_costs to infinity. LEGACY_CPU_PARSE:     // Since ParseCost is struct,
-// memset 0xFF sets cost to huge value (good). LEGACY_CPU_PARSE:     //
-// 0xFFFFFFFF is > 1000000000. LEGACY_CPU_PARSE:     // Initialize costs to
-// infinity (0xFF creates large values for ParseCost fields) LEGACY_CPU_PARSE:
-// // Phase 1 & 2: CPU Optimal Parse & Backtracking (Replaces GPU kernels)
-// LEGACY_CPU_PARSE:     // The GPU kernel was O(N^2) due to wavefront
-// relaxation. CPU is O(N). LEGACY_CPU_PARSE: LEGACY_CPU_PARSE:     // 1.
-// Allocate host memory (Pageable for cacheable access) LEGACY_CPU_PARSE: Match*
-// h_matches = new Match[input_size]; LEGACY_CPU_PARSE:     ParseCost* h_costs =
-// new ParseCost[input_size + 1]; LEGACY_CPU_PARSE:     u32* h_literal_lengths =
-// new u32[lz77_ctx.max_sequences_capacity]; LEGACY_CPU_PARSE:     u32*
-// h_match_lengths = new u32[lz77_ctx.max_sequences_capacity]; LEGACY_CPU_PARSE:
-// u32* h_offsets = new u32[lz77_ctx.max_sequences_capacity]; LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // Initialize costs[0]
-// LEGACY_CPU_PARSE:     h_costs[0] = {0, 0, 0, false};
-// LEGACY_CPU_PARSE:     // Initialize rest to infinity
-// LEGACY_CPU_PARSE:     for (size_t i = 1; i <= input_size; ++i) {
-// LEGACY_CPU_PARSE:         h_costs[i].cost = 1000000000;
-// LEGACY_CPU_PARSE:     }
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // 2. Copy matches to Host
-// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaMemcpyAsync(h_matches,
-// lz77_ctx.d_matches, input_size * sizeof(Match), LEGACY_CPU_PARSE:
-// cudaMemcpyDeviceToHost, stream)); LEGACY_CPU_PARSE: LEGACY_CPU_PARSE: // 3.
-// Sync stream (Wait for matches) LEGACY_CPU_PARSE:
-// CUDA_CHECK(cudaStreamSynchronize(stream)); LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // 4. Run CPU Optimal Parse (Forward DP)
-// LEGACY_CPU_PARSE:     // This is strictly O(N)
-// LEGACY_CPU_PARSE:     for (u32 pos = 0; pos < input_size; ++pos) {
-// LEGACY_CPU_PARSE:         u32 current_cost = h_costs[pos].cost;
-// LEGACY_CPU_PARSE:         if (current_cost >= 1000000000) continue; // Should
-// not happen if reachable LEGACY_CPU_PARSE: LEGACY_CPU_PARSE:         // Option
-// 1: Literal LEGACY_CPU_PARSE:         // Assume literal cost is 1 (simplified,
-// or use calculate_literal_cost(1)) LEGACY_CPU_PARSE:         // In kernel it
-// was: current_cost + calculate_literal_cost(1) LEGACY_CPU_PARSE:         //
-// Let's assume calculate_literal_cost is available or inline it.
-// LEGACY_CPU_PARSE:         // For now, let's use a constant or look up the
-// function. LEGACY_CPU_PARSE:         // It's likely in a header. Let's assume
-// 1 for now or find it. LEGACY_CPU_PARSE:         // Actually, let's use a
-// rough estimate: 8 bits + overhead? LEGACY_CPU_PARSE:         // The kernel
-// used `calculate_literal_cost(1)`. LEGACY_CPU_PARSE:         // I'll define a
-// helper or just use 9 (approx cost in bits). LEGACY_CPU_PARSE:         u32
-// cost_literal = current_cost + 9; LEGACY_CPU_PARSE: LEGACY_CPU_PARSE: if (pos
-// + 1 <= input_size) { LEGACY_CPU_PARSE:             if (cost_literal <
-// h_costs[pos + 1].cost) { LEGACY_CPU_PARSE:                 h_costs[pos +
-// 1].cost = cost_literal; LEGACY_CPU_PARSE:                 h_costs[pos +
-// 1].len = 1; LEGACY_CPU_PARSE:                 h_costs[pos + 1].offset = 0;
-// LEGACY_CPU_PARSE:                 h_costs[pos + 1].is_match = false;
-// LEGACY_CPU_PARSE:             }
-// LEGACY_CPU_PARSE:         }
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:         // Option 2: Match
-// LEGACY_CPU_PARSE:         Match m = h_matches[pos];
-// LEGACY_CPU_PARSE:         if (m.length >= 3) {
-// LEGACY_CPU_PARSE:             // Calculate match cost. Kernel used
-// `calculate_match_cost`. LEGACY_CPU_PARSE:             // We need to replicate
-// this. LEGACY_CPU_PARSE:             // Cost is roughly: token cost + offset
-// cost + length cost. LEGACY_CPU_PARSE:             // Let's use a simplified
-// cost model for CPU: LEGACY_CPU_PARSE:             // Cost = 20 (base) +
-// (offset_log) + (length_log) LEGACY_CPU_PARSE:             // Or just use the
-// match length as heuristic? LEGACY_CPU_PARSE:             // No, we need bit
-// cost. LEGACY_CPU_PARSE:             // Let's use a simple approximation:
-// LEGACY_CPU_PARSE:             // Match cost < Literal cost * length.
-// LEGACY_CPU_PARSE:             // Match cost ~ 20 bits. Literal cost * 3 ~ 27
-// bits. LEGACY_CPU_PARSE:             u32 cost_match = current_cost + 25; //
-// Approx match cost LEGACY_CPU_PARSE: LEGACY_CPU_PARSE:             u32 end_pos
-// = pos + m.length; LEGACY_CPU_PARSE:             if (end_pos <= input_size) {
-// LEGACY_CPU_PARSE:                 if (cost_match < h_costs[end_pos].cost) {
-// LEGACY_CPU_PARSE:                     h_costs[end_pos].cost = cost_match;
-// LEGACY_CPU_PARSE:                     h_costs[end_pos].len = m.length;
-// LEGACY_CPU_PARSE:                     h_costs[end_pos].offset = m.offset;
-// LEGACY_CPU_PARSE:                     h_costs[end_pos].is_match = true;
-// LEGACY_CPU_PARSE:                 }
-// LEGACY_CPU_PARSE:             }
-// LEGACY_CPU_PARSE:         }
-// LEGACY_CPU_PARSE:     }
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // 5. Run CPU Backtracking
-// LEGACY_CPU_PARSE:     u32 num_sequences = 0;
-// LEGACY_CPU_PARSE:     backtrack_sequences_cpu(
-// LEGACY_CPU_PARSE:         h_costs,
-// LEGACY_CPU_PARSE:         input_size,
-// LEGACY_CPU_PARSE:         h_literal_lengths,
-// LEGACY_CPU_PARSE:         h_match_lengths,
-// LEGACY_CPU_PARSE:         h_offsets,
-// LEGACY_CPU_PARSE:         &num_sequences,
-// LEGACY_CPU_PARSE:         lz77_ctx.max_sequences_capacity
-// LEGACY_CPU_PARSE:     );
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // 6. Copy results back to Device
-// LEGACY_CPU_PARSE:
-// CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_literal_lengths_reverse,
-// h_literal_lengths, LEGACY_CPU_PARSE: num_sequences * sizeof(u32),
-// cudaMemcpyHostToDevice, stream)); LEGACY_CPU_PARSE:
-// CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_match_lengths_reverse, h_match_lengths,
-// LEGACY_CPU_PARSE:                                num_sequences * sizeof(u32),
-// cudaMemcpyHostToDevice, stream)); LEGACY_CPU_PARSE:
-// CUDA_CHECK(cudaMemcpyAsync(lz77_ctx.d_offsets_reverse, h_offsets,
-// LEGACY_CPU_PARSE:                                num_sequences * sizeof(u32),
-// cudaMemcpyHostToDevice, stream)); LEGACY_CPU_PARSE: LEGACY_CPU_PARSE: // 7.
-// Cleanup Host Memory LEGACY_CPU_PARSE:
-// CUDA_CHECK(cudaStreamSynchronize(stream)); LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     delete[] h_matches;
-// LEGACY_CPU_PARSE:     delete[] h_costs;
-// LEGACY_CPU_PARSE:     delete[] h_literal_lengths;
-// LEGACY_CPU_PARSE:     delete[] h_match_lengths;
-// LEGACY_CPU_PARSE:     delete[] h_offsets;
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     if (num_sequences_out) *num_sequences_out =
-// num_sequences; LEGACY_CPU_PARSE: LEGACY_CPU_PARSE:     // Phase 5: Reverse &
-// Build LEGACY_CPU_PARSE:     u32* d_total_literals =
-// &workspace->d_block_sums[2]; LEGACY_CPU_PARSE:     u32 block_size = 256;
-// LEGACY_CPU_PARSE:     u32 grid_size = (num_sequences + block_size - 1) /
-// block_size; LEGACY_CPU_PARSE:     if (grid_size == 0) grid_size = 1;
-// LEGACY_CPU_PARSE:     size_t shared_mem = block_size * sizeof(u32);
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     reverse_and_build_sequences_kernel<<<grid_size,
-// block_size, shared_mem, stream>>>( LEGACY_CPU_PARSE:         d_input,
-// LEGACY_CPU_PARSE:         input_size,
-// LEGACY_CPU_PARSE:         lz77_ctx.d_literal_lengths_reverse,
-// LEGACY_CPU_PARSE:         lz77_ctx.d_match_lengths_reverse,
-// LEGACY_CPU_PARSE:         lz77_ctx.d_offsets_reverse,
-// LEGACY_CPU_PARSE:         num_sequences,
-// LEGACY_CPU_PARSE:         seq_ctx->d_literal_lengths,
-// LEGACY_CPU_PARSE:         seq_ctx->d_match_lengths,
-// LEGACY_CPU_PARSE:         seq_ctx->d_offsets,
-// LEGACY_CPU_PARSE:         seq_ctx->d_literals_buffer,
-// LEGACY_CPU_PARSE:         d_total_literals,
-// LEGACY_CPU_PARSE:         output_raw_values
-// LEGACY_CPU_PARSE:     );
-// LEGACY_CPU_PARSE:     CUDA_CHECK(cudaGetLastError());
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     // Phase 6: Copy total literals
-// LEGACY_CPU_PARSE:     if (total_literals_out) {
-// LEGACY_CPU_PARSE:         CUDA_CHECK(cudaMemcpyAsync(total_literals_out,
-// d_total_literals, sizeof(u32), LEGACY_CPU_PARSE: cudaMemcpyDeviceToHost,
-// stream)); LEGACY_CPU_PARSE: CUDA_CHECK(cudaStreamSynchronize(stream));
-// LEGACY_CPU_PARSE:     }
-// LEGACY_CPU_PARSE:
-// LEGACY_CPU_PARSE:     return Status::SUCCESS;
-// LEGACY_CPU_PARSE: }
-
 void test_linkage() {
-  //     printf("test_linkage called\n");
 }
 
 void find_optimal_parse_v3(int x) {
-  //     printf("find_optimal_parse_v3 called with %d\n", x);
 }
 
 // ============================================================================

@@ -49,9 +49,11 @@ static __global__ void fse_compute_states_kernel_sequential(
   // Bounds check for first access
   u32 table_size = 1u << tableLog;
   if (tableIndex >= table_size) {
+#ifdef CUDA_ZSTD_DEBUG
     printf("[CRASH] fse_compute_states: tableIndex=%u >= table_size=%u at "
            "symbol=%u\n",
            tableIndex, table_size, symbol);
+#endif
     return;
   }
   state_value = stateTable[tableIndex];
@@ -125,10 +127,12 @@ static __global__ void fse_compute_states_kernel_sequential(
     u32 const nbBits = ((u32)state_value + sTT.deltaNbBits) >> 16;
     u32 loop_index = (state_value >> nbBits) + sTT.deltaFindState;
     if (loop_index >= table_size) {
+#ifdef CUDA_ZSTD_DEBUG
       printf("[CRASH] Loop: index=%u >= table_size=%u at symbol=%u state=%llu "
              "nbBits=%u\n",
              loop_index, table_size, symbol, (unsigned long long)state_value,
              nbBits);
+#endif
       return;
     }
     state_value = stateTable[loop_index];

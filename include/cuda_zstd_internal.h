@@ -255,25 +255,26 @@ struct ZstdSequence {
       return 23;
     if (length < 64)
       return 24;
-    if (length < 80)
+    // RFC 8878 Table 16: Correct boundaries = base of next code
+    if (length < 128)
       return 25;
-    if (length < 112)
+    if (length < 256)
       return 26;
-    if (length < 144)
+    if (length < 512)
       return 27;
-    if (length < 208)
+    if (length < 1024)
       return 28;
-    if (length < 272)
+    if (length < 2048)
       return 29;
-    if (length < 400)
+    if (length < 4096)
       return 30;
-    if (length < 528)
+    if (length < 8192)
       return 31;
-    if (length < 784)
+    if (length < 16384)
       return 32;
-    if (length < 1040)
+    if (length < 32768)
       return 33;
-    if (length < 1552)
+    if (length < 65536)
       return 34;
     return 35; // Max for Predefined
   }
@@ -297,15 +298,16 @@ struct ZstdSequence {
     if (length <= 82) return 40;
     if (length <= 98) return 41;
     if (length <= 130) return 42;
-    if (length <= 162) return 43;
-    if (length <= 226) return 44;
-    if (length <= 290) return 45;
-    if (length <= 418) return 46;
-    if (length <= 546) return 47;
-    if (length <= 802) return 48;
-    if (length <= 1058) return 49;
-    if (length <= 1570) return 50;
-    if (length <= 2082) return 51;
+    // RFC 8878 Table 17: Correct boundaries = base + (1 << bits) - 1
+    if (length <= 258) return 43;
+    if (length <= 514) return 44;
+    if (length <= 1026) return 45;
+    if (length <= 2050) return 46;
+    if (length <= 4098) return 47;
+    if (length <= 8194) return 48;
+    if (length <= 16386) return 49;
+    if (length <= 32770) return 50;
+    if (length <= 65538) return 51;
     return 52;
   }
 
@@ -353,7 +355,7 @@ struct ZstdSequence {
         35, 37,  39,  41,  // 32-35
         43, 47,  // 36-37
         51, 59,  // 38-39
-        67, 83,  99,  131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
+        67, 83,  99,  131, 259, 515, 1027, 2051, 4099, 8195, 16387, 32771, 65539};
     return (code < 53) ? ML_base[code] : 0;
   }
 
@@ -364,7 +366,7 @@ struct ZstdSequence {
       35, 37,  39,  41,
       43, 47,
       51, 59,
-      67, 83,  99,  131, 163, 227, 291, 419, 547, 803, 1059, 1571, 2083};
+      67, 83,  99,  131, 259, 515, 1027, 2051, 4099, 8195, 16387, 32771, 65539};
 
   __device__ __host__ static __forceinline__ u32
   get_ml_base_predefined(u32 code) {
@@ -433,11 +435,14 @@ struct ZstdSequence {
     return code; // Extra bits = Offset_Code
   }
 
+  // RFC 8878 § 3.1.2.4: Offset_Value = (1 << Offset_Code) + Extra_Bits
+  // Base values are simply (1 << code). The -3 correction for repeat offsets
+  // is applied later in get_actual_offset(), NOT baked into this table.
   static constexpr u32 OF_base_table[29] = {
-      0,        1,       1,       5,     0xD,     0x1D,     0x3D,     0x7D,
-      0xFD,   0x1FD,   0x3FD,   0x7FD,   0xFFD,   0x1FFD,   0x3FFD,   0x7FFD,
-      0xFFFD, 0x1FFFD, 0x3FFFD, 0x7FFFD, 0xFFFFD, 0x1FFFFD, 0x3FFFFD, 0x7FFFFD,
-      0xFFFFFD, 0x1FFFFFD, 0x3FFFFFD, 0x7FFFFFD, 0xFFFFFFD};
+      1,        2,        4,        8,       16,       32,       64,      128,
+      256,    512,     1024,     2048,     4096,     8192,    16384,    32768,
+      65536, 131072,  262144,  524288,  1048576,  2097152,  4194304,  8388608,
+      16777216, 33554432, 67108864, 134217728, 268435456};
 
   static constexpr u8 OF_bits_table[29] = {
       0,  1,  2,  3,  4,  5,  6,  7,

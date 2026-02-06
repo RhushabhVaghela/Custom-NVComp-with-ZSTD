@@ -160,6 +160,10 @@ __host__ void ldm_cleanup_context(LDMContext& ctx) {
         cudaFree(ctx.d_hash_table);
         ctx.d_hash_table = nullptr;
     }
+    ctx.window_start = 0;
+    ctx.window_size = 0;
+    ctx.matches_found = 0;
+    ctx.rolling_hash_state = 0;
 }
 
 __host__ Status ldm_process_block(LDMContext& ctx,

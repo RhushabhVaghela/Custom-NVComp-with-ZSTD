@@ -53,6 +53,12 @@ target_include_directories(cuda_zstd PRIVATE
 
 target_link_libraries(cuda_zstd PUBLIC CUDA::cudart ${ZSTD_LIBRARY})
 
+# Debug flag for ZSTD decompression tracing
+option(CUDA_ZSTD_DEBUG "Enable verbose ZSTD decompress debug output" OFF)
+if(CUDA_ZSTD_DEBUG)
+    target_compile_definitions(cuda_zstd PRIVATE CUDA_ZSTD_DEBUG)
+endif()
+
 # Optimization flags
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     target_compile_options(cuda_zstd PRIVATE

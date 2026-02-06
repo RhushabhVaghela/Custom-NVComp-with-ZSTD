@@ -261,11 +261,6 @@ std::vector<NvcompV5BenchmarkResult> benchmark_all_levels(
     cudaStream_t stream = 0
 );
 
-// Print benchmark results
-void print_benchmark_results(
-    const std::vector<NvcompV5BenchmarkResult>& results
-);
-
 } // namespace nvcomp_v5
 } // namespace cuda_zstd
 #endif

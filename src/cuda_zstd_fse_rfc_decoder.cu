@@ -109,7 +109,7 @@ __global__ void k_fse_decode_interleaved_rfc(
 
     u64 total_lit_len = 0;
 
-    for (int seq = (int)num_sequences - 1; seq >= 0; --seq) {
+    for (u32 seq = 0; seq < num_sequences; seq++) {
         if (decode_ll && stateLL >= ll_table.table_size) {
             if (d_error_flag) *d_error_flag = ERROR_INVALID_TABLE_STATE;
             return;
@@ -157,31 +157,8 @@ __global__ void k_fse_decode_interleaved_rfc(
             return;
         }
 
-        // 4. Update States (Order: LL, then ML, then OF)
-        if (seq > 0) {
-            if (decode_ll) {
-                u8 nb = ll_table.nbBits[stateLL];
-                u32 bits = nb ? reader.read(nb) : 0u;
-                stateLL = ll_table.newState[stateLL] + bits;
-            }
-            if (decode_ml) {
-                u8 nb = ml_table.nbBits[stateML];
-                u32 bits = nb ? reader.read(nb) : 0u;
-                stateML = ml_table.newState[stateML] + bits;
-            }
-            if (decode_of) {
-                u8 nb = of_table.nbBits[stateOF];
-                u32 bits = nb ? reader.read(nb) : 0u;
-                stateOF = of_table.newState[stateOF] + bits;
-            }
-        }
-
-        if (reader.underflow) {
-            if (d_error_flag) *d_error_flag = ERROR_BITSTREAM_UNDERFLOW;
-            return;
-        }
-
-        // --- Value Calculation & Output ---
+        // --- Value Calculation & Output (BEFORE state transitions) ---
+        // Values must use pre-transition states for baseValue[] lookups
         if (emit_of) {
             if (decode_of) {
                 u32 base = of_table.baseValue[stateOF];
@@ -215,6 +192,30 @@ __global__ void k_fse_decode_interleaved_rfc(
             
             d_ll_out[seq] = val_ll;
             total_lit_len += val_ll;
+        }
+
+        // 4. Update States (Order: LL, then ML, then OF) — standard ZSTD decode order
+        if (seq < num_sequences - 1) {
+            if (decode_ll) {
+                u8 nb = ll_table.nbBits[stateLL];
+                u32 bits = nb ? reader.read(nb) : 0u;
+                stateLL = ll_table.newState[stateLL] + bits;
+            }
+            if (decode_ml) {
+                u8 nb = ml_table.nbBits[stateML];
+                u32 bits = nb ? reader.read(nb) : 0u;
+                stateML = ml_table.newState[stateML] + bits;
+            }
+            if (decode_of) {
+                u8 nb = of_table.nbBits[stateOF];
+                u32 bits = nb ? reader.read(nb) : 0u;
+                stateOF = of_table.newState[stateOF] + bits;
+            }
+        }
+
+        if (reader.underflow) {
+            if (d_error_flag) *d_error_flag = ERROR_BITSTREAM_UNDERFLOW;
+            return;
         }
     }
 }

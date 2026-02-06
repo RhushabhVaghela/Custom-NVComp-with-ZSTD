@@ -172,6 +172,9 @@ bool test_fse_roundtrip_small() {
                       static_cast<byte_t *>(d_decoded), &decoded_size);
 
   if (status != Status::SUCCESS) {
+#ifdef CUDA_ZSTD_DEBUG
+    printf("  [DEBUG] decode_fse returned status=%d\n", (int)status);
+#endif
     LOG_FAIL(__func__, "decode_fse failed");
     cudaFree(d_input);
     cudaFree(d_output);
@@ -181,6 +184,9 @@ bool test_fse_roundtrip_small() {
   }
 
   if (decoded_size != data_size) {
+#ifdef CUDA_ZSTD_DEBUG
+    printf("  [DEBUG] decoded_size=%u, expected=%u\n", decoded_size, data_size);
+#endif
     LOG_FAIL(__func__, "Decoded size mismatch");
     cudaFree(d_input);
     cudaFree(d_output);
@@ -195,6 +201,9 @@ bool test_fse_roundtrip_small() {
 
   for (u32 i = 0; i < data_size; i++) {
     if (h_decoded[i] != test_data[i]) {
+#ifdef CUDA_ZSTD_DEBUG
+      printf("  [DEBUG] Data mismatch at index %u: got %u, expected %u\n", i, h_decoded[i], test_data[i]);
+#endif
       LOG_FAIL(__func__, "Data mismatch");
       cudaFree(d_input);
       cudaFree(d_output);
@@ -260,6 +269,9 @@ bool test_fse_roundtrip_large() {
                       static_cast<byte_t *>(d_decoded), &decoded_size);
 
   if (status != Status::SUCCESS) {
+#ifdef CUDA_ZSTD_DEBUG
+    printf("  [DEBUG] decode_fse returned status=%d for large roundtrip\n", (int)status);
+#endif
     LOG_FAIL(__func__, "decode_fse failed");
     cudaFree(d_input);
     cudaFree(d_output);

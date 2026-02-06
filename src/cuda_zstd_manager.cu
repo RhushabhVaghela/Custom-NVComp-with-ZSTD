@@ -3,6 +3,7 @@
 // =============================================================================
 
 #include "cuda_zstd_ldm.h"
+#include "cuda_zstd_debug.h"
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_fse_encoding_kernel.h"
@@ -46,9 +47,7 @@
 namespace cuda_zstd {
 
 namespace lz77 {
-void test_linkage_v2(int x) {
-  //         printf("test_linkage_v2 (in manager) called with %d\n", x);
-}
+void test_linkage_v2(int x) {}
 } // namespace lz77
 
 // Add alignment constants
@@ -71,6 +70,12 @@ __global__ void convert_sequences_to_fse_codes_kernel(
   u32 ll = d_ll_in[idx];
   u32 of = d_of_in[idx];
 
+#ifdef CUDA_ZSTD_DEBUG
+  if (idx < 10) {
+    printf("[FSE_CODES] seq[%u]: ll=%u, ml=%u, of=%u\n", idx, ll, ml, of);
+  }
+#endif
+
   // Match Length
   u32 ml_code = sequence::ZstdSequence::get_match_len_code(ml);
   
@@ -79,8 +84,13 @@ __global__ void convert_sequences_to_fse_codes_kernel(
   u32 ml_base = sequence::ZstdSequence::get_ml_base_predefined(ml_code);
   u32 ml_bits = sequence::ZstdSequence::get_match_len_extra_bits(ml_code);
   u32 ml_max = (ml_bits >= 32) ? 0xFFFFFFFF : (ml_base + (1u << ml_bits) - 1);
-  if (ml < ml_base || ml > ml_max)
+  if (ml < ml_base || ml > ml_max) {
     *d_incompatible_flag = 1;
+#ifdef CUDA_ZSTD_DEBUG
+    printf("[FSE_CODES] seq[%u] ML INCOMPATIBLE: ml=%u, ml_code=%u, ml_base=%u, ml_bits=%u, ml_max=%u\n",
+           idx, ml, ml_code, ml_base, ml_bits, ml_max);
+#endif
+  }
 
   d_ml_out[idx] = (unsigned char)ml_code;
   d_ml_bits_out[idx] = (unsigned char)ml_bits;
@@ -90,8 +100,13 @@ __global__ void convert_sequences_to_fse_codes_kernel(
   u32 ll_base = sequence::ZstdSequence::get_ll_base_predefined(ll_code);
   u32 ll_bits = sequence::ZstdSequence::get_lit_len_extra_bits(ll_code);
   u32 ll_max = (ll_bits >= 32) ? 0xFFFFFFFF : (ll_base + (1u << ll_bits) - 1);
-  if (ll < ll_base || ll > ll_max)
+  if (ll < ll_base || ll > ll_max) {
     *d_incompatible_flag = 1;
+#ifdef CUDA_ZSTD_DEBUG
+    printf("[FSE_CODES] seq[%u] LL INCOMPATIBLE: ll=%u, ll_code=%u, ll_base=%u, ll_bits=%u, ll_max=%u\n",
+           idx, ll, ll_code, ll_base, ll_bits, ll_max);
+#endif
+  }
 
   d_ll_out[idx] = (unsigned char)ll_code;
   d_ll_bits_out[idx] = (unsigned char)ll_bits;
@@ -219,9 +234,6 @@ __global__ void k_read_3bytes(const unsigned char *src, u32 *dst) {
 
     u64 combined = ((u64)w1 << 32) | w0;
     u64 shifted = combined >> (offset * 8);
-
-    // printf("[K] Aligned Read: %p (Off=%u) -> %08X %08X -> %06X\n",
-    // (void*)aligned_addr, offset, w0, w1, (u32)(shifted & 0xFFFFFF));
 
     *dst = (u32)(shifted & 0xFFFFFF);
   }
@@ -386,8 +398,6 @@ __global__ void check_rle_kernel(const unsigned char *input, size_t size,
   // Race condition on write is fine (all write 0).
   if (local_mismatch) {
     *d_is_rle = 0;
-  } else {
-    // printf("K Match: tid=%d\n", tid);
   }
 }
 
@@ -599,9 +609,11 @@ copy_block_literals_kernel(const unsigned char *input,
 
     // Safety Check
     if (out_pos + ll > capacity) {
+#ifdef CUDA_ZSTD_DEBUG
       printf("[FATAL GPU] Block %u: Literals Buffer OOB! Seq %u, LL %u, Out "
              "%u, Cap %u\n",
              block_idx, i, ll, out_pos, capacity);
+#endif
       if (d_extracted_size) *d_extracted_size = out_pos;
       return; // Prevent crash
     }
@@ -610,8 +622,10 @@ copy_block_literals_kernel(const unsigned char *input,
 
     // Valid input bounds check
     if (in_pos + ll > input_size) {
+#ifdef CUDA_ZSTD_DEBUG
       printf("[FATAL GPU] Block %u: Input OOB! Seq %u, LL %u, In %u, Size %u\n",
              block_idx, i, ll, in_pos, input_size);
+#endif
       if (d_extracted_size) *d_extracted_size = out_pos;
       return;
     }
@@ -635,8 +649,10 @@ copy_block_literals_kernel(const unsigned char *input,
           }
           out_pos += trailing;
       } else {
+#ifdef CUDA_ZSTD_DEBUG
           printf("[FATAL GPU] Block %u: Literals Buffer OOB (Trailing)! Need %u, Cap %u\n",
                  block_idx, out_pos + trailing, capacity);
+#endif
       }
   }
 
@@ -901,7 +917,13 @@ Status parse_zstd_frame_header(const unsigned char *compressed_data,
       metadata->content_size = compressed_data[offset];
       break;
     case 2:
-      metadata->content_size = read_u32_le(compressed_data + offset) & 0xFFFF;
+      metadata->content_size = (read_u32_le(compressed_data + offset) & 0xFFFF);
+      // RFC 8878 Section 3.1.1.1.2: When FCS_Field_Size is 2 and
+      // Single_Segment_flag is set, the stored value has a +256 offset.
+      // The writer subtracts 256 before storing, so we add it back.
+      if (fhd_parser.is_single_segment()) {
+        metadata->content_size += 256;
+      }
       break;
     case 4:
       metadata->content_size = read_u32_le(compressed_data + offset);
@@ -1235,9 +1257,19 @@ public:
     total += align_to_boundary(costs_bytes, GPU_MEMORY_ALIGNMENT);
 
     // 5. Reverse sequence buffers (Global Buffers)
+    //    d_all_lit_lengths_reverse, d_all_match_lengths_reverse,
+    //    d_all_offsets_reverse
     size_t reverse_seq_bytes =
         num_blocks * ZSTD_BLOCKSIZE_MAX * sizeof(u32) * 3;
     total += align_to_boundary(reverse_seq_bytes, GPU_MEMORY_ALIGNMENT);
+
+    // 5b. On-buffer literals (d_all_literals_buffer) — allocated alongside
+    //     reverse sequence buffers in compress() at the on_buffer section.
+    //     Uses num_blocks * block_size bytes; upper-bound with
+    //     ZSTD_BLOCKSIZE_MAX.
+    size_t on_buffer_literals_bytes =
+        (size_t)num_blocks * ZSTD_BLOCKSIZE_MAX;
+    total += align_to_boundary(on_buffer_literals_bytes, GPU_MEMORY_ALIGNMENT);
 
     // 6. Forward sequence buffers
     size_t forward_seq_bytes = num_blocks * ZSTD_BLOCKSIZE_MAX * 16;
@@ -1251,18 +1283,38 @@ public:
     size_t block_sums_bytes = num_blocks * 3 * sizeof(u32) * 2;
     total += align_to_boundary(block_sums_bytes, GPU_MEMORY_ALIGNMENT);
 
+    // 9. Checksum buffer
+    total += align_to_boundary(sizeof(u64), GPU_MEMORY_ALIGNMENT);
+
+    // 10. Huffman frequencies
+    total += align_to_boundary(256 * sizeof(u32), GPU_MEMORY_ALIGNMENT);
+
+    // 11. Huffman code_lengths (per-input-symbol)
+    total += align_to_boundary(input_size * sizeof(u32), GPU_MEMORY_ALIGNMENT);
+
+    // 12. Huffman bit_offsets (prefix sum result, per-input-symbol)
+    total += align_to_boundary(input_size * sizeof(u32), GPU_MEMORY_ALIGNMENT);
+
+    // 13. Sequence objects (all blocks)
+    size_t sequence_objs_bytes =
+        num_blocks * ZSTD_BLOCKSIZE_MAX * 16; // sizeof(sequence::Sequence) = 16
+    total += align_to_boundary(sequence_objs_bytes, GPU_MEMORY_ALIGNMENT);
+
+    // 14. Per-block metadata arrays (d_block_literals_sizes,
+    //     d_block_num_sequences, d_block_has_dummy)
+    total += align_to_boundary(3 * num_blocks * sizeof(u32), GPU_MEMORY_ALIGNMENT);
 
     // --- Per-Block Workspace (ws_base) ---
-    // N * (OutputBuffer + FSE_Tables + Huff_Table + Matches + LZ77_Temp)
+    // N * (OutputBuffer + FSE_Tables + Huff_Table + LZ77_Temp)
+    // NOTE: Matches are allocated globally (above), NOT per-block.
 
-    // 1. Matches + LZ77 Temp
-    size_t matches_part = align_to_boundary(CUDA_ZSTD_BLOCKSIZE_MAX * 6, GPU_MEMORY_ALIGNMENT);
+    // 1. LZ77 Temp (decisions + offsets arrays)
     size_t lz77_temp_part = align_to_boundary(CUDA_ZSTD_BLOCKSIZE_MAX * 2 * sizeof(u32), GPU_MEMORY_ALIGNMENT);
-    size_t per_block_base = matches_part + lz77_temp_part;
+    size_t per_block_base = lz77_temp_part;
 
-    // 2. Output Buffer (Adaptive) - Matches compress()
+    // 2. Output Buffer (Adaptive) - Must match compress()
     const size_t min_buffer_size = 256 * 1024; // 256KB min
-    size_t adaptive_size = (size_t)(block_size * 8) + 8192; // 8x + 8KB
+    size_t adaptive_size = (size_t)(block_size * 4) + 8192; // 4x + 8KB (matches compress())
     size_t output_buffer_size = std::max(min_buffer_size, adaptive_size);
     per_block_base += align_to_boundary(output_buffer_size, GPU_MEMORY_ALIGNMENT);
 
@@ -1281,6 +1333,7 @@ public:
     size_t proportional_padding = input_size * 4; // 4x input
     size_t scaled_padding =
         std::max(min_padding, std::min(max_padding, proportional_padding));
+
     total += scaled_padding;
 
     // Only add padding once
@@ -1414,7 +1467,9 @@ public:
     std::lock_guard<std::mutex> lock(api_mutex);
     auto status = validate_config(new_config);
     if (status != Status::SUCCESS) {
+#ifdef CUDA_ZSTD_DEBUG
       fprintf(stderr, "failed with status %d\n", (int)status);
+#endif
       return status;
     }
 
@@ -1458,11 +1513,7 @@ public:
     fflush(stdout);
     void *device_workspace = nullptr; // Scope for cleanup
 
-    // cudaEvent_t memset_done_event = 0; // REMOVED (Unused and causing
-    // crashes)
     Status status = Status::SUCCESS;
-    
-    // stream = 0;
 
     // === CRITICAL: Parameter Validation ===
     if (!uncompressed_data || !compressed_data || !compressed_size ||
@@ -1495,9 +1546,6 @@ public:
     if (effective_block_size > uncompressed_size) {
       // Auto-adjust block size to input size
       effective_block_size = (u32)uncompressed_size;
-      // fprintf(stderr, "[WARNING] Block size (%u) > input size (%zu), adjusted
-      // to %u\n",
-      //         config.block_size, uncompressed_size, effective_block_size);
     }
 
     // Create effective config with validated block size
@@ -1516,10 +1564,7 @@ public:
       ctx.seq_ctx = new sequence::SequenceContext();
     }
 
-    // Ensure stream is clean - OPTIMIZATION: Removed synchronization for
-    // throughput cudaError_t start_stream_err = cudaStreamSynchronize(stream);
-    // if (start_stream_err != cudaSuccess) { ... }
-    cudaGetLastError(); // Just clear previous errors
+    cudaGetLastError(); // Clear previous errors
 
     // ======================================================================
     // Hybrid Execution: Route small payloads (<1MB) to CPU to avoid overhead
@@ -1598,7 +1643,6 @@ public:
     if (temp_attr_err != cudaSuccess ||
         temp_attrs.type != cudaMemoryTypeDevice) {
       // Allocate device buffer if not already device memory
-      // void *device_workspace = nullptr; // Moved up
       cudaError_t alloc_err = cudaMalloc(&device_workspace, temp_size);
       if (alloc_err != cudaSuccess) {
       
@@ -1869,9 +1913,8 @@ public:
     workspace_ptr = align_ptr(workspace_ptr + forward_match_bytes, alignment);
 
     ctx.seq_ctx->d_offsets = reinterpret_cast<u32 *>(workspace_ptr);
-    // size_t forward_offset_bytes = ZSTD_BLOCKSIZE_MAX * sizeof(u32);
     workspace_ptr = align_ptr(workspace_ptr + forward_match_bytes,
-                              alignment); // reuse size
+                              alignment); // reuse forward_match_bytes size
 
     ctx.seq_ctx->d_literals_buffer =
         reinterpret_cast<unsigned char *>(workspace_ptr);
@@ -1992,31 +2035,12 @@ public:
                                  cudaMemcpyHostToDevice, stream));
     }
 
-    /*
-    cudaError_t probe_err = cudaMemset(d_output, 0, 1);
-    if (probe_err != cudaSuccess) {
-    }
-    */
-
     u32 compressed_offset = 0;
-
-    // Kernel to write header (Workaround for cudaMemcpy invalid
-    // argument) write_skippable_header_kernel<<<1, 1, 0, stream>>>(
-    //     d_output + compressed_offset, ZSTD_MAGIC_SKIPPABLE_START,
-    //     sizeof(CustomMetadataFrame), CUSTOM_METADATA_MAGIC,
-    //     config.level);
 
     cudaError_t kernel_err = cudaGetLastError();
 
-    // compressed_offset +=
-    //     sizeof(SkippableFrameHeader) + sizeof(CustomMetadataFrame);
-
-    // printf("[WARN] compress: Skipping Skippable Header Write due to
-    // persistent "
-    //        "CUDA error.\n");
-    // --- 3. Write Frame Header ---
+    // 3. Write Frame Header
     u32 header_size = 0;
-    // Status status = Status::SUCCESS; // Redeclaration removed
 
     // 3. Write Frame Header
     // Status initialized above
@@ -2149,6 +2173,7 @@ public:
     // Ensure we didn't overrun (simple check)
     size_t final_used =
         (unsigned char *)workspace_ptr - (unsigned char *)workspace_start;
+
     if (final_used > temp_size) {
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
@@ -2224,13 +2249,6 @@ public:
         status = Status::ERROR_CUDA_ERROR;
         goto cleanup;
       }
-
-      // TDR Prevention: Sync every 16 blocks to prevent watchdog
-      // timeout/queue overflow
-      
-      // if (block_idx % 16 == 0) {
-      //   cudaStreamSynchronize(stream);
-      // }
 
       u32 block_start = block_idx * block_size;
       u32 current_block_size_val =
@@ -2623,20 +2641,6 @@ public:
         launch_async_sum_reduce(block_ws.d_literal_lengths_reverse, copy_count,
                                 &d_block_literals_sizes[block_idx], stream);
 
-        //  Sync and copy directly to host array per-block
-        // This bypasses batch D2H corruption that caused blocks 4-7 to
-        // return 0
-        // (OPTIMIZATION) Per-block sync removed.
-        // Batch copy of block_literals_sizes is handled before Phase 2b loop.
-
-        if (current_block_size_val <= 10) {
-          // Debug print removed for performance
-        }
-
-        // if (has_dummy) {
-        //   block_num_sequences[block_idx]--;
-        // }
-
       } else {
         //  If no sequences, the entire block is literals
         // (PHASE 2a) Update device array required for batch copy later
@@ -2846,28 +2850,7 @@ public:
 
     } // End of Merged Loop
 
-    // (TWO-PHASE) Cleanup: Arrays are now part of workspace, no free needed
-    // (O(n) BATCH) Cleanup: Arrays are now part of workspace, no free needed
-
-    // Cleanup synchronization event
-    // Cleanup synchronization event - handled in cleanup label below
-    // if (memset_done_event)
-    //   cudaEventDestroy(memset_done_event);
-
-    // SYNC: Wait for encoding to complete
     CUDA_CHECK(cudaStreamSynchronize(stream));
-
-    // auto phase2_end = std::chrono::high_resolution_clock::now();
-    // auto phase2_ms = ... (Disabled due to merged loop logic)
-    // if (block_idx == num_blocks - 1) { ... print stats ... }
-
-    // printf("[PERF] Phase 1 (LZ77): %ld ms, Phase 2 (Encode): %ld
-    // ms\n",
-    //        phase1_ms, phase2_ms);
-
-    // (STREAMING) Phase 3 removed - blocks written immediately in main
-    // loop This eliminates need to preserve all block outputs
-    // sequentially
 
     if (config.checksum != ChecksumPolicy::NO_COMPUTE_NO_VERIFY) {
       u64 *d_checksum_result =
@@ -2919,15 +2902,7 @@ public:
     if (device_workspace)
       cudaFree(device_workspace);
 
-    // Cleanup synchronization event - handled in cleanup label below
-    // if (memset_done_event)
-    //   cudaEventDestroy(memset_done_event);
-
     return status;
-
-    return Status::ERROR_CUDA_ERROR; // Or specific status? Problem:
-                                     // multiple statuses.
-    // Better to use RAII helper class for device_workspace and event.
   }
 
   // //
@@ -3059,20 +3034,14 @@ public:
         // Total frame size = 8 byte header + frame_size
         u32 total_frame_size = 8 + frame_size;
 
-        if (h_compressed_size_remaining < total_frame_size) {
-          //           return Status::ERROR_CORRUPT_DATA;
-        }
-
         // Move past this skippable frame
         data_offset += total_frame_size;
         h_compressed_size_remaining -= total_frame_size;
       } else {
         // Invalid magic number
-        //                 number 0x%X\n", magic);
         return Status::ERROR_INVALID_MAGIC;
       }
     }
-    // handled, offset=%u\n", data_offset);
 
     if (h_compressed_size_remaining < 4) {
       return Status::ERROR_CORRUPT_DATA;
@@ -3159,6 +3128,10 @@ public:
     auto status = parse_frame_header(d_input + data_offset, h_compressed_size_remaining,
                                      &header_size_val, &frame_content_size,
                                      &is_single_segment, &has_checksum);
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[DECOMPRESS-DBG] parse_frame_header: status=%d, header_size=%u, content_size=%u, single_seg=%d, checksum=%d, data_offset=%u, remaining=%zu\n",
+            (int)status, header_size_val, frame_content_size, (int)is_single_segment, (int)has_checksum, data_offset, h_compressed_size_remaining);
+#endif
     if (status != Status::SUCCESS) {
       return status;
     }
@@ -3217,15 +3190,21 @@ public:
       }
 
       if (status != Status::SUCCESS) {
+#ifdef CUDA_ZSTD_DEBUG
+        fprintf(stderr, "[DECOMPRESS-DBG] read_block_header FAILED: status=%d at read_offset=%u\n", (int)status, read_offset);
+#endif
         return status;
       }
 
+#ifdef CUDA_ZSTD_DEBUG
       // Print Raw Header for debugging
       {
         unsigned char bh_raw[3];
         cudaMemcpy(bh_raw, d_input + read_offset, 3, cudaMemcpyDeviceToHost);
-        // Debug output removed for production
+        fprintf(stderr, "[DECOMPRESS-DBG] Block: raw=[%02X %02X %02X], is_last=%d, compressed=%d, rle=%d, size=%u, hdr_size=%u\n",
+                bh_raw[0], bh_raw[1], bh_raw[2], (int)blk_is_last, (int)blk_is_compressed, (int)blk_is_rle, blk_size, blk_header_size);
       }
+#endif
 
       read_offset += blk_header_size;
       // Debug output removed for production
@@ -3233,12 +3212,22 @@ public:
       // === Process Block ===
       if (blk_is_compressed) {
         u32 decompressed_size = 0;
+#ifdef CUDA_ZSTD_DEBUG
+        fprintf(stderr, "[DECOMPRESS-DBG] Decompressing block: input_offset=%u, blk_size=%u, write_offset=%u\n", read_offset, blk_size, write_offset);
+#endif
         status =
             decompress_block(d_input + read_offset, blk_size,
                              d_output + write_offset, &decompressed_size,
                              d_output, d_output_max_size, stream, d_rep_codes);
-        if (status != Status::SUCCESS)
+        if (status != Status::SUCCESS) {
+#ifdef CUDA_ZSTD_DEBUG
+          fprintf(stderr, "[DECOMPRESS-DBG] decompress_block FAILED: status=%d\n", (int)status);
+#endif
           return status;
+        }
+#ifdef CUDA_ZSTD_DEBUG
+        fprintf(stderr, "[DECOMPRESS-DBG] Block decompressed: %u bytes\n", decompressed_size);
+#endif
 
         write_offset += decompressed_size;
         read_offset += blk_size;
@@ -3635,14 +3624,7 @@ private:
                             const void *dict_buffer, size_t dict_size,
                             const CompressionConfig &config,
                             cudaStream_t stream) {
-    // content_size=%u\n",
-    // //                 content_size);
-    // max_size=%zu, FRAME_HEADER_SIZE_MIN=%u\n",
-    // //                 max_size, FRAME_HEADER_SIZE_MIN);
     if (max_size < FRAME_HEADER_SIZE_MIN) {
-      //             fprintf(stderr, "[ERROR] write_frame_header: Buffer too
-      //             small! max_size=%zu < MIN=%u\n",
-      //                     max_size, FRAME_HEADER_SIZE_MIN);
       return Status::ERROR_BUFFER_TOO_SMALL;
     }
 
@@ -3963,6 +3945,10 @@ private:
     auto status = decompress_literals(
         input, input_size, d_decompressed_literals, &literals_header_size,
         &literals_compressed_size, &literals_decompressed_size, stream);
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[BLOCK-DBG] decompress_literals: status=%d, hdr_size=%u, comp_size=%u, decomp_size=%u\n",
+            (int)status, literals_header_size, literals_compressed_size, literals_decompressed_size);
+#endif
     if (status != Status::SUCCESS) {
       return status;
     }
@@ -3993,12 +3979,21 @@ private:
       return Status::SUCCESS;
     }
     if (sequences_offset > input_size) {
+#ifdef CUDA_ZSTD_DEBUG
+      fprintf(stderr, "[BLOCK-DBG] sequences_offset (%u) > input_size (%u) -> CORRUPT_DATA\n", sequences_offset, input_size);
+#endif
       return Status::ERROR_CORRUPT_DATA;
     }
 
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[BLOCK-DBG] Decoding sequences at offset=%u, remaining=%u\n", sequences_offset, input_size - sequences_offset);
+#endif
     status = decompress_sequences(input + sequences_offset,
                                   input_size - sequences_offset, ctx.seq_ctx,
                                   literals_decompressed_size, stream);
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[BLOCK-DBG] decompress_sequences: status=%d, num_sequences=%u\n", (int)status, ctx.seq_ctx->num_sequences);
+#endif
 
     if (status != Status::SUCCESS) {
       return status;
@@ -4121,12 +4116,14 @@ private:
     }
 
     
+#ifdef CUDA_ZSTD_DEBUG
     printf("[COMPRESS] Writing Raw literals header: num_literals=%u, header_len=%u, header=[",
            num_literals, header_len);
     for (u32 i = 0; i < header_len; i++) {
       printf("%02X ", header[i]);
     }
     printf("], compressed_size=%u (same as num_literals for Raw)\n", num_literals);
+#endif
 
     if (!writer.write_bytes(header, header_len, stream)) {
       return Status::ERROR_BUFFER_TOO_SMALL;
@@ -4258,8 +4255,8 @@ private:
     cudaMallocAsync(&d_bitstream, capacity, stream);
     cudaMemsetAsync(d_bitstream, 0, capacity, stream);
 
-    // Use RFC 8878 compliant encoding (NEW)
-    Status launchStatus = fse::launch_fse_encoding_kernel_rfc(
+    // Use interleaved FSE encoder matching decode_sequences_interleaved
+    Status launchStatus = fse::launch_fse_encoding_kernel(
         seq_ctx->d_ll_codes, seq_ctx->d_ll_extras, seq_ctx->d_ll_num_bits,
         seq_ctx->d_of_codes, seq_ctx->d_of_extras, seq_ctx->d_of_num_bits,
         seq_ctx->d_ml_codes, seq_ctx->d_ml_extras, seq_ctx->d_ml_num_bits,
@@ -4553,8 +4550,10 @@ private:
       // Pack OF.
       // Pack LL (High).
       
+#ifdef CUDA_ZSTD_DEBUG
       printf("[FSE_PACK] InitStates: LL=%u (%u bits), OF=%u (%u bits), ML=%u (%u bits)\n",
              stateLL, ctLL.tableLog, stateOF, ctOF.tableLog, stateML, ctML.tableLog);
+#endif
 
       pack(stateML, ctML.tableLog);
       pack(stateOF, ctOF.tableLog);
@@ -5271,6 +5270,11 @@ private:
                       cudaMemcpyDeviceToHost, stream);
       cudaStreamSynchronize(stream); // Sync required to decide branch
 
+#ifdef CUDA_ZSTD_DEBUG
+      printf("[compress_sequences] num_sequences=%u, h_incompatible=%u\n",
+             num_sequences, h_incompatible);
+#endif
+
       // WORKAROUND: Predefined Mode Encoder (k_fse_encode) fixed.
       if (h_incompatible == 0) {
         // Compatible! Use Predefined Mode.
@@ -5297,9 +5301,15 @@ private:
             workspace, stream);
 
         if (status == Status::SUCCESS) {
+#ifdef CUDA_ZSTD_DEBUG
+          printf("[compress_sequences] Predefined FSE succeeded, output_size=%u\n", output_size);
+#endif
           writer.advance(output_size);
           return Status::SUCCESS;
         }
+#ifdef CUDA_ZSTD_DEBUG
+        printf("[compress_sequences] Predefined FSE FAILED with status=%d, falling back to raw\n", (int)status);
+#endif
         // If failed (e.g. buffer too small), Fallback to Raw?
         // Or just return error. Usually Predefined is smaller than Raw.
         // But if it failed, maybe Raw works? Let's try Raw as fallback or
@@ -5309,10 +5319,15 @@ private:
         }
         // If buffer too small, Raw might also fail, but let's try.
       } else {
-        //       }
+#ifdef CUDA_ZSTD_DEBUG
+        printf("[compress_sequences] Incompatible with predefined tables, falling back to raw\n");
+#endif
       }
 
       // Fallback: Encode Raw
+#ifdef CUDA_ZSTD_DEBUG
+      printf("[compress_sequences] Using encode_sequences_raw (NON-STANDARD 0xFF mode)\n");
+#endif
       return encode_sequences_raw(seq_ctx, num_sequences, writer, stream);
     }
     return encode_sequences_raw(seq_ctx, num_sequences, writer, stream);
@@ -5489,6 +5504,16 @@ private:
 
     unsigned char fse_modes = h_header[offset];
     offset += 1;
+
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[SEQ-DBG] fse_modes=0x%02X, num_sequences=%u, offset=%u, input_size=%u\n",
+            fse_modes, num_sequences, offset, input_size);
+    fprintf(stderr, "[SEQ-DBG] header bytes: ");
+    for (u32 i = 0; i < std::min(16u, input_size); i++) {
+      fprintf(stderr, "%02X ", h_header[i]);
+    }
+    fprintf(stderr, "\n");
+#endif
 
     // Check for custom raw u32 mode (fse_modes=0xFF)
     if (fse_modes == 0xFF) {
@@ -5815,12 +5840,11 @@ private:
       // Predefined verification logic removed
     }
 
-    Status status = fse::decode_sequences_interleaved_rfc(
+    Status status = fse::decode_sequences_interleaved(
         input + offset, input_size - offset, num_sequences,
         seq_ctx->d_literal_lengths, seq_ctx->d_offsets,
-        seq_ctx->d_match_lengths, orig_ll_mode, orig_of_mode, orig_ml_mode, p_ll_table,
-        p_of_table, p_ml_table, ll_rle_value, of_rle_value, ml_rle_value,
-        total_literal_count, stream);
+        seq_ctx->d_match_lengths, orig_ll_mode, orig_of_mode, orig_ml_mode,
+        p_ll_table, p_of_table, p_ml_table, total_literal_count, stream);
 
     if (!used_prev_tables) {
       if (ll_mode == 1) {

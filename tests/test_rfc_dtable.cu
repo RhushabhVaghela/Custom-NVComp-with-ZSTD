@@ -23,11 +23,13 @@ int main() {
     h_table.newState = new u16[table_size];
     h_table.symbol = new u8[table_size];
     h_table.nbBits = new u8[table_size];
+    h_table.nbAdditionalBits = new u8[table_size];
+    h_table.baseValue = new u32[table_size];
     h_table.table_log = table_log;
     h_table.table_size = table_size;
     
     printf("\n=== Calling FSE_buildDTable_rfc ===\n");
-    Status status = FSE_buildDTable_rfc(normalized.data(), 35, table_size, h_table);
+    Status status = FSE_buildDTable_rfc(normalized.data(), 35, table_log, h_table);
     
     if (status == Status::SUCCESS) {
         printf("\n=== Table built successfully ===\n");
@@ -40,6 +42,8 @@ int main() {
     delete[] h_table.newState;
     delete[] h_table.symbol;
     delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
     
     return (status == Status::SUCCESS) ? 0 : 1;
 }

@@ -9,6 +9,7 @@
 // performance bottleneck.
 // ============================================================================
 
+#include "cuda_zstd_debug.h"
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_sequence.h" // <-- Matches the header
 #include "cuda_zstd_types.h"
@@ -285,12 +286,14 @@ __global__ void compute_sequence_details_kernel(
             get_actual_offset(lit_len, seq.match_offset, state);
       }
     } else {
-      d_actual_offsets[i] = 0; // No match
+    d_actual_offsets[i] = 0; // No match
     }
 
-    // printf(
-    //     "[SEQ_DETAIL] i=%u: LL=%u, ML=%u, OF=%u, total_out=%u\n",
-    //     i, lit_len, match_length, seq.match_offset, total_output);
+#ifdef CUDA_ZSTD_DEBUG
+    printf(
+        "[SEQ_DETAIL] i=%u: LL=%u, ML=%u, OF=%u, total_out=%u\n",
+        i, lit_len, match_length, seq.match_offset, total_output);
+#endif
   }
 
   // Add trailing literals to total output size

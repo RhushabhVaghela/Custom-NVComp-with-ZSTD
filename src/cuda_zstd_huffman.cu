@@ -9,6 +9,7 @@
 // (NEW) NOTE: Refactored to use cuda_zstd_utils for parallel_scan.
 // ============================================================================
 
+#include "cuda_zstd_debug.h"
 #include "cuda_zstd_huffman.h"
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_types.h"
@@ -346,6 +347,7 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
   u32 num_fse_symbols = symbol;
 
   
+#ifdef CUDA_ZSTD_DEBUG
   fprintf(stderr,
           "[HUF_FSE] Parsed %u symbols, remaining=%d, expected=0, bit_pos=%u\n",
           num_fse_symbols, remaining, bit_pos_header);
@@ -354,6 +356,7 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
     fprintf(stderr, "%d ", (int)norm_counts[i]);
   }
   fprintf(stderr, "\n");
+#endif
 
   if (remaining != 0) {
     fprintf(
@@ -467,8 +470,10 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
     return Status::ERROR_CORRUPT_DATA;
   }
 
+#ifdef CUDA_ZSTD_DEBUG
   fprintf(stderr, "[HUF_FSE] Bitstream: start=%u, size=%u, bit_pos=%u\n",
           bitstream_start, bitstream_size, bit_pos);
+#endif
 
   // libzstd BIT_DStream compatible implementation
   // Load up to 8 bytes from end of bitstream as LE word
@@ -735,7 +740,9 @@ __host__ Status deserialize_huffman_table_rfc8878(const unsigned char *h_input,
     return status;
   }
 
+#ifdef CUDA_ZSTD_DEBUG
   fprintf(stderr, "[HUF_TABLE] FSE decode OK, num_symbols=%u\n", num_symbols);
+#endif
 
   // Convert weights to code lengths
   u32 max_bits;
@@ -791,11 +798,13 @@ huffman_encode_phase1_kernel(const unsigned char *input, u32 input_size,
   d_positions_out[idx] = d_bit_offsets[idx];
 
   // Debug output for first few symbols
+#ifdef CUDA_ZSTD_DEBUG
   if (threadIdx.x == 0 && blockIdx.x == 0 && idx < 10) {
     printf("[ENCODE-PHASE1] idx=%u symbol=%u('%c') code=0x%X len=%u pos=%u\n",
            idx, symbol, symbol >= 32 ? symbol : '?', c.code, c.length,
            d_bit_offsets[idx]);
   }
+#endif
 }
 
 /**
@@ -847,8 +856,10 @@ huffman_encode_phase2_kernel(const u32 *d_codes, const u32 *d_lengths,
     u32 bit_pos = d_positions[idx];
 
     if (idx < 5) {
+#ifdef CUDA_ZSTD_DEBUG
       printf("[ENCODE-PHASE2] idx=%u block=%u code=%u len=%u pos=%u\n", idx,
              blockIdx.x, code, length, bit_pos);
+#endif
     }
 
     if (length > 0) {
@@ -875,11 +886,13 @@ huffman_encode_phase2_kernel(const u32 *d_codes, const u32 *d_lengths,
           // shared_words is 4-byte aligned by construction
           atomicOr(&shared_words[aligned_word_idx],
                    (u32)byte_val << byte_shift);
+#ifdef CUDA_ZSTD_DEBUG
           if (idx < 5) {
             printf("[ENCODE-WRITE] idx=%u byte_offset=%u word=%u shift=%u "
                    "val=0x%02X\n",
                    idx, byte_offset, aligned_word_idx, byte_shift, byte_val);
           }
+#endif
         }
       }
     }
@@ -1524,6 +1537,7 @@ __global__ void huffman_decode_forward_kernel(
   u32 num_decoded = 0;
 
   if (threadIdx.x == 0 && blockIdx.x == 0) {
+#ifdef CUDA_ZSTD_DEBUG
     printf("[DECODE-FWD] max_len=%u, input_size=%u, total=%u, start_bits=%u\n",
            max_len, input_size, total_regen_size, bitstream_start_bits);
     printf(
@@ -1532,6 +1546,7 @@ __global__ void huffman_decode_forward_kernel(
     printf("[DECODE-FWD] symbol_index[1]=%u, symbol_index[2]=%u, "
            "symbol_index[3]=%u\n",
            d_symbol_index[1], d_symbol_index[2], d_symbol_index[3]);
+#endif
   }
 
   // Bit container for forward reading
@@ -1568,6 +1583,7 @@ __global__ void huffman_decode_forward_kernel(
       code = reverse_bits_device(raw_code, l);
 
       u32 count_at_len = d_symbol_index[l + 1] - d_symbol_index[l];
+#ifdef CUDA_ZSTD_DEBUG
       if (threadIdx.x == 0 && blockIdx.x == 0 && num_decoded < 5) {
         printf(
             "[DECODE-FWD] l=%u raw=0x%X code=0x%X first=%u count=%u match=%d\n",
@@ -1577,6 +1593,7 @@ __global__ void huffman_decode_forward_kernel(
                 ? 1
                 : 0);
       }
+#endif
 
       if (count_at_len > 0 && code >= d_first_code[l] &&
           code < d_first_code[l] + count_at_len) {
@@ -1586,21 +1603,25 @@ __global__ void huffman_decode_forward_kernel(
     }
 
     if (len == 0) {
+#ifdef CUDA_ZSTD_DEBUG
       if (threadIdx.x == 0 && blockIdx.x == 0) {
         printf("[DECODE-FWD] Failed to decode at symbol %u, bits_avail=%u\n",
                num_decoded, bits_available);
       }
+#endif
       break;
     }
 
     u8 symbol = d_symbols[d_symbol_index[len] + (code - d_first_code[len])];
     output[num_decoded] = symbol;
 
+#ifdef CUDA_ZSTD_DEBUG
     if (threadIdx.x == 0 && blockIdx.x == 0 && num_decoded < 10) {
       printf("[DECODE-FWD] sym[%u]=%u('%c') code=0x%X len=%u bits_avail=%u\n",
              num_decoded, symbol, symbol >= 32 ? symbol : '?', code, len,
              bits_available);
     }
+#endif
 
     num_decoded++;
     bit_container >>= len;
@@ -1608,7 +1629,9 @@ __global__ void huffman_decode_forward_kernel(
   }
 
   if (threadIdx.x == 0 && blockIdx.x == 0) {
+#ifdef CUDA_ZSTD_DEBUG
     printf("[DECODE-FWD] Done: decoded %u symbols\n", num_decoded);
+#endif
   }
 }
 

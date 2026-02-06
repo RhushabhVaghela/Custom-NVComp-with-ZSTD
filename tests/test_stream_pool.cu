@@ -109,15 +109,14 @@ bool test_acquire_release() {
 // Test 3: Guard validation and invalid access
 // ==============================================================================
 bool test_guard_validation() {
-  // Test invalid guard from failed acquisition
+  // Test invalid guard from failed acquisition (exhaust pool, then timeout)
   {
-    StreamPool pool(0); // Empty pool
+    StreamPool pool(1);
+    auto guard_held = pool.acquire(); // Exhaust the single stream
 
-    // This should return an invalid guard since pool has no streams
-    auto guard = pool.acquire();
-    TEST_ASSERT(!guard.is_valid(), "Guard from empty pool should be invalid");
-    TEST_ASSERT(guard.get_stream() == nullptr,
-                "Invalid guard should return nullptr");
+    // Try to acquire with a short timeout - should fail and return nullopt
+    auto guard_opt = pool.acquire_for(1); // 1ms timeout
+    TEST_ASSERT(!guard_opt.has_value(), "Timed-out acquire should return nullopt");
   }
 
   // Test guard movement
