@@ -960,7 +960,7 @@ Status extract_metadata(const void *compressed_data, size_t compressed_size,
   // Map to NvcompMetadata
   metadata.format_version = 0x00010000; // 1.0.0
   metadata.compression_level = 3;       // Default (unknown)
-  metadata.uncompressed_size = (u32)internal_meta.content_size;
+  metadata.uncompressed_size = internal_meta.content_size;
   metadata.dictionary_id = internal_meta.dictionary_id;
   metadata.checksum_policy = internal_meta.has_checksum
                                  ? ChecksumPolicy::COMPUTE_AND_VERIFY
@@ -2993,6 +2993,8 @@ public:
     // frame check loop\n");
 
     // Skip all skippable frames to find the real Zstd frame
+    constexpr u32 MAX_SKIPPABLE_FRAMES = 256; // Prevent DoS via crafted input
+    u32 skippable_count = 0;
     while (h_compressed_size_remaining >= 8) {
       u32 magic;
       //  compressed_data is a DEVICE pointer, must use cudaMemcpy
@@ -3009,6 +3011,9 @@ public:
 
       // Check if this is a skippable frame
       if ((magic & 0xFFFFFFF0) == ZSTD_MAGIC_SKIPPABLE_START) {
+        if (++skippable_count > MAX_SKIPPABLE_FRAMES) {
+          return Status::ERROR_CORRUPT_DATA; // Too many skippable frames
+        }
         // Read the frame size (next 4 bytes)
         u32 frame_size;
         CUDA_CHECK(cudaMemcpy(&frame_size,
@@ -3017,6 +3022,10 @@ public:
 
         // Total frame size = 8 byte header + frame_size
         u32 total_frame_size = 8 + frame_size;
+        // Bounds check: ensure we don't read past input
+        if (total_frame_size > h_compressed_size_remaining) {
+          return Status::ERROR_CORRUPT_DATA;
+        }
 
         // Move past this skippable frame
         data_offset += total_frame_size;

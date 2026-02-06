@@ -145,8 +145,8 @@ struct NvcompV5Metadata {
     u32 format_version;           // NVCOMP format version
     u32 library_version;          // Library version
     int compression_level;        // Compression level used
-    u32 uncompressed_size;        // Original size
-    u32 compressed_size;          // Compressed size
+    u64 uncompressed_size;        // Original size (u64 to support >4GB)
+    u64 compressed_size;          // Compressed size
     u32 num_chunks;               // Number of chunks
     u32 chunk_size;               // Size per chunk
     u32 dictionary_id;            // Dictionary ID (0 if none)

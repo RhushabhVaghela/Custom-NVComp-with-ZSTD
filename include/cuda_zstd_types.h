@@ -290,7 +290,7 @@ struct DictionaryContent {
 struct NvcompMetadata {
   u32 format_version = 0;
   u32 compression_level = 0;
-  u32 uncompressed_size = 0;
+  u64 uncompressed_size = 0;  // u64 to support files >4GB without truncation
   u32 num_chunks = 0;
   u32 chunk_size = 0;
   u32 dictionary_id = 0;

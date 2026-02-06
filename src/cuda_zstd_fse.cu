@@ -595,11 +595,17 @@ write_bits_to_buffer(unsigned char *buffer,
 }
 
 /**
- * @brief Read bits from buffer with proper masking
+ * @brief Read bits from buffer with proper masking and bounds awareness.
+ *
+ * @note Caller must ensure buffer has at least (bit_position/8 + 8) bytes
+ *       available. For safety, all call sites should pre-validate buffer
+ *       length before entering decode loops.
  */
 __host__ u64 read_bits_from_buffer(const unsigned char *buffer,
                                    u32 &bit_position, u32 num_bits) {
   if (num_bits == 0)
+    return 0;
+  if (num_bits > 57) // Max safe bits in a u64 with bit_off up to 7
     return 0;
 
   u32 byte_off = bit_position / 8;
