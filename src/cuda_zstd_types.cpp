@@ -105,6 +105,7 @@ void log_error(const ErrorContext &ctx) {
   std::lock_guard<std::recursive_mutex> lock(get_error_mutex());
   g_last_error = ctx;
 
+#ifdef CUDA_ZSTD_DEBUG
   // Print to stderr for debugging
   std::cerr << "[ERROR] " << status_to_string(ctx.status);
   if (ctx.file) {
@@ -120,6 +121,7 @@ void log_error(const ErrorContext &ctx) {
     std::cerr << " (CUDA: " << cudaGetErrorString(ctx.cuda_error) << ")";
   }
   std::cerr << std::endl;
+#endif
 
   if (g_error_callback) {
     g_error_callback(ctx);

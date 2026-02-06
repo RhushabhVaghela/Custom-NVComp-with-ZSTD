@@ -55,6 +55,8 @@ struct __align__(16) Sequence {
 
 struct SequenceContext {
   // Device output buffers populated by decompression
+  // NOTE: These 6 buffers are independently cudaMalloc'd and OWNED by this
+  // context. The destructor will cudaFree them.
   Sequence *d_sequences = nullptr;
   unsigned char *d_literals_buffer = nullptr;
   u32 *d_literal_lengths = nullptr;
@@ -73,7 +75,8 @@ struct SequenceContext {
   bool is_raw_offsets = false;
 
   // Tier 1: Predefined FSE Tables (Device Pointers)
-  // These are populated during context initialization if Tier 1 is enabled.
+  // NOTE: These are BORROWED pointers into workspace/temp memory — NOT freed
+  // here.
   void *d_ll_table = nullptr; // Cast to fse::FSEEncodeTable*
   void *d_ml_table = nullptr; // Cast to fse::FSEEncodeTable*
   void *d_of_table = nullptr; // Cast to fse::FSEEncodeTable*
@@ -84,8 +87,8 @@ struct SequenceContext {
   u8 *d_of_decode = nullptr; // State→symbol table for OF
 
   // Tier 1 Optimization: Intermediate Buffers (Codes & Extra Bits)
-  // These allow splitting FSE into Parallel (Prepare/Reconstruct) and Serial
-  // (State Update) phases.
+  // NOTE: These are BORROWED pointers into workspace/temp memory — NOT freed
+  // here.
   u8 *d_ll_codes = nullptr;
   u8 *d_ml_codes = nullptr;
   u8 *d_of_codes = nullptr;
@@ -97,6 +100,78 @@ struct SequenceContext {
   u8 *d_ll_num_bits = nullptr;
   u8 *d_ml_num_bits = nullptr;
   u8 *d_of_num_bits = nullptr;
+
+  // RAII: free the 6 owned device buffers on destruction (host-only context)
+  ~SequenceContext() {
+    if (d_literals_buffer)
+      cudaFree(d_literals_buffer);
+    if (d_literal_lengths)
+      cudaFree(d_literal_lengths);
+    if (d_match_lengths)
+      cudaFree(d_match_lengths);
+    if (d_offsets)
+      cudaFree(d_offsets);
+    if (d_num_sequences)
+      cudaFree(d_num_sequences);
+    if (d_sequences)
+      cudaFree(d_sequences);
+    d_literals_buffer = nullptr;
+    d_literal_lengths = nullptr;
+    d_match_lengths = nullptr;
+    d_offsets = nullptr;
+    d_num_sequences = nullptr;
+    d_sequences = nullptr;
+  }
+
+  // Non-copyable (unique ownership of device memory)
+  SequenceContext(const SequenceContext &) = delete;
+  SequenceContext &operator=(const SequenceContext &) = delete;
+
+  // Default constructor
+  SequenceContext() = default;
+
+  // Move semantics
+  SequenceContext(SequenceContext &&other) noexcept
+      : d_sequences(other.d_sequences),
+        d_literals_buffer(other.d_literals_buffer),
+        d_literal_lengths(other.d_literal_lengths),
+        d_match_lengths(other.d_match_lengths), d_offsets(other.d_offsets),
+        d_num_sequences(other.d_num_sequences),
+        max_sequences(other.max_sequences), max_literals(other.max_literals),
+        num_sequences(other.num_sequences), num_literals(other.num_literals),
+        is_raw_offsets(other.is_raw_offsets), d_ll_table(other.d_ll_table),
+        d_ml_table(other.d_ml_table), d_of_table(other.d_of_table),
+        d_ll_decode(other.d_ll_decode), d_ml_decode(other.d_ml_decode),
+        d_of_decode(other.d_of_decode), d_ll_codes(other.d_ll_codes),
+        d_ml_codes(other.d_ml_codes), d_of_codes(other.d_of_codes),
+        d_ll_extras(other.d_ll_extras), d_ml_extras(other.d_ml_extras),
+        d_of_extras(other.d_of_extras), d_ll_num_bits(other.d_ll_num_bits),
+        d_ml_num_bits(other.d_ml_num_bits),
+        d_of_num_bits(other.d_of_num_bits) {
+    // Null out source's owned pointers to prevent double-free
+    other.d_sequences = nullptr;
+    other.d_literals_buffer = nullptr;
+    other.d_literal_lengths = nullptr;
+    other.d_match_lengths = nullptr;
+    other.d_offsets = nullptr;
+    other.d_num_sequences = nullptr;
+    // Borrowed pointers don't need nulling (but do for safety)
+    other.d_ll_table = nullptr;
+    other.d_ml_table = nullptr;
+    other.d_of_table = nullptr;
+    other.d_ll_decode = nullptr;
+    other.d_ml_decode = nullptr;
+    other.d_of_decode = nullptr;
+    other.d_ll_codes = nullptr;
+    other.d_ml_codes = nullptr;
+    other.d_of_codes = nullptr;
+    other.d_ll_extras = nullptr;
+    other.d_ml_extras = nullptr;
+    other.d_of_extras = nullptr;
+    other.d_ll_num_bits = nullptr;
+    other.d_ml_num_bits = nullptr;
+    other.d_of_num_bits = nullptr;
+  }
 };
 
 // ============================================================================

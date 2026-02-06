@@ -23,7 +23,9 @@ inline void log_benchmark_result(const char *benchmark_name,
 
   file.open(filename, std::ios::app);
   if (!file.is_open()) {
+#ifdef CUDA_ZSTD_DEBUG
     std::cerr << "Failed to open " << filename << " for writing result.\n";
+#endif
     return;
   }
 

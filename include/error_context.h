@@ -37,6 +37,7 @@ namespace error_handling {
     inline void log_error(const ErrorContext& ctx) {
         set_last_error(ctx);
 
+#ifdef CUDA_ZSTD_DEBUG
         std::cerr << "[ERROR] " << status_to_string(ctx.status);
         if (ctx.file) {
             std::cerr << " at " << ctx.file << ":" << ctx.line;
@@ -51,6 +52,7 @@ namespace error_handling {
             std::cerr << " (CUDA: " << cudaGetErrorString(ctx.cuda_error) << ")";
         }
         std::cerr << std::endl;
+#endif
     }
 }
 

@@ -18,3 +18,35 @@ dist/
 Conversation-1
 Conversation-2
 Conversation-3
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.lib
+*.obj
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+Testing/
+
+# CUDA profiling
+*.nsys-rep
+*.ncu-rep
+*.qdrep
+*.sqlite
+
+# Benchmark output
+*.csv
+
+# IDE (additional)
+.cache/
+.ccls-cache/
+
+# Temporary test/debug files
+*.zst
+*.bin
+diag_fse
+fse_brute

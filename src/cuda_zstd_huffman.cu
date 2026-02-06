@@ -359,10 +359,12 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
 #endif
 
   if (remaining != 0) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(
         stderr,
         "[ERROR] FSE normalization sum mismatch: remaining=%d (should be 0)\n",
         remaining);
+#endif
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -465,8 +467,10 @@ __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
   }
 
   if (bit_pos < 2 * accuracy_log) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(stderr, "[ERROR] Not enough bits: bit_pos=%u, need=%u\n", bit_pos,
             2 * accuracy_log);
+#endif
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -735,8 +739,10 @@ __host__ Status deserialize_huffman_table_rfc8878(const unsigned char *h_input,
   }
 
   if (status != Status::SUCCESS) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(stderr, "[ERROR] decode_huffman_weights_fse status=%d\n",
             (int)status);
+#endif
     return status;
   }
 

@@ -883,12 +883,6 @@ Status get_matches(const LZ77Context &ctx,
   return Status::SUCCESS;
 }
 
-void test_linkage() {
-}
-
-void find_optimal_parse_v3(int x) {
-}
-
 // ============================================================================
 // V2: Multi-Pass Optimal Parser Kernel (10-100x faster than V1!)
 // ============================================================================

@@ -146,7 +146,9 @@ int StreamPool::acquire_index() {
 
   // Check if pool has any resources
   if (resources_.empty()) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(stderr, "[ERROR] StreamPool: No streams available in pool\n");
+#endif
     return -1;
   }
 
@@ -159,8 +161,10 @@ int StreamPool::acquire_index() {
 
   // Validate index is within bounds
   if (idx < 0 || static_cast<size_t>(idx) >= resources_.size()) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(stderr, "[CRITICAL] StreamPool: Invalid index %d (pool size %zu)\n",
             idx, resources_.size());
+#endif
     return -1;
   }
 
@@ -172,7 +176,9 @@ int StreamPool::acquire_index_for(size_t timeout_ms) {
 
   // Check if pool has any resources
   if (resources_.empty()) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(stderr, "[ERROR] StreamPool: No streams available in pool\n");
+#endif
     return -1;
   }
 
@@ -194,8 +200,10 @@ int StreamPool::acquire_index_for(size_t timeout_ms) {
 
   // Validate index is within bounds
   if (idx < 0 || static_cast<size_t>(idx) >= resources_.size()) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(stderr, "[CRITICAL] StreamPool: Invalid index %d (pool size %zu)\n",
             idx, resources_.size());
+#endif
     return -1;
   }
 
@@ -208,9 +216,11 @@ void StreamPool::release_index(int idx) {
 
     // Validate index before releasing
     if (idx < 0 || static_cast<size_t>(idx) >= resources_.size()) {
+#ifdef CUDA_ZSTD_DEBUG
       fprintf(stderr,
               "[CRITICAL] StreamPool: Attempted to release invalid index %d\n",
               idx);
+#endif
       return;
     }
 
@@ -251,9 +261,11 @@ StreamPool::Guard::Guard(StreamPool *pool, int idx)
 
   // Validate index is within bounds
   if (static_cast<size_t>(idx) >= pool->resources_.size()) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(stderr,
             "[CRITICAL] StreamPool::Guard: Index %d out of bounds (size %zu)\n",
             idx, pool->resources_.size());
+#endif
     pool_ = nullptr;
     idx_ = -1;
     resources_ = nullptr;
@@ -262,8 +274,10 @@ StreamPool::Guard::Guard(StreamPool *pool, int idx)
 
   // Validate stream is not null
   if (pool->resources_[idx].stream == nullptr) {
+#ifdef CUDA_ZSTD_DEBUG
     fprintf(stderr,
             "[CRITICAL] StreamPool::Guard: Stream at index %d is null\n", idx);
+#endif
     pool_ = nullptr;
     idx_ = -1;
     resources_ = nullptr;

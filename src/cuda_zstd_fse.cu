@@ -134,7 +134,9 @@ __host__ Status FSE_spread_symbols_shared(const i16 *h_normalized,
 
     // Verify position wrapped back to 0
     if (position != 0) {
+#ifdef CUDA_ZSTD_DEBUG
       fprintf(stderr, "[ERROR] FSE spread: position=%u != 0\n", position);
+#endif
       return Status::ERROR_CORRUPT_DATA;
     }
   } else {
@@ -155,8 +157,10 @@ __host__ Status FSE_spread_symbols_shared(const i16 *h_normalized,
     }
 
     if (position != 0) {
+#ifdef CUDA_ZSTD_DEBUG
       fprintf(stderr, "[ERROR] FSE spread (low-prob): pos=%u, highThresh=%u\n",
               position, high_thresh);
+#endif
       return Status::ERROR_CORRUPT_DATA;
     }
   }
@@ -4839,10 +4843,12 @@ __host__ Status read_fse_header(const unsigned char *input, u32 input_size,
       prob = 1;
       // RFC 8878: nCount == -1 means probability of 1 (uses 1 slot)
       if (remaining < 1) {
+#ifdef CUDA_ZSTD_DEBUG
         fprintf(stderr,
                 "[FSE_READ_ERR] remaining(%u) < 1 at sym %u (nCount=-1, "
                 "underflow)\n",
                 remaining, symbol);
+#endif
         return Status::ERROR_CORRUPT_DATA;
       }
       remaining -= 1; // prob=1 consumes 1 slot per RFC 8878

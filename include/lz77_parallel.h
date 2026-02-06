@@ -30,10 +30,6 @@ __device__ inline u32 match_length(const u8 *input, u32 p1, u32 p2, u32 max_len,
       break;
     len++;
   }
-  if (p1 == 174 && p2 == 104) {
-    printf("[MATCH_LENGTH] p1=174 Val=%02X p2=104 Val=%02X Len=%u\n", input[p1],
-           input[p2], len);
-  }
   return len;
 }
 
@@ -42,8 +38,6 @@ Status find_matches_parallel(const u8 *d_input, u32 input_size,
                              const LZ77Config &config, cudaStream_t stream,
                              u32 *d_hash_table_persistent = nullptr,
                              u32 *d_chain_table_persistent = nullptr);
-
-Status compute_optimal_parse();
 
 // V2: Optimized multi-pass algorithm (10-100x faster!)
 Status compute_optimal_parse_v2(const u8 *d_input, u32 input_size,

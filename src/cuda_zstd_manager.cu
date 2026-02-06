@@ -47,7 +47,6 @@
 namespace cuda_zstd {
 
 namespace lz77 {
-void test_linkage_v2(int x) {}
 } // namespace lz77
 
 // Add alignment constants
@@ -1101,29 +1100,14 @@ public:
     free_compression_workspace(ctx.workspace);
 
     // Free other resources...
-    if (ctx.seq_ctx) {
-      if (ctx.seq_ctx->d_literals_buffer)
-        cudaFree(ctx.seq_ctx->d_literals_buffer);
-      if (ctx.seq_ctx->d_literal_lengths)
-        cudaFree(ctx.seq_ctx->d_literal_lengths);
-      if (ctx.seq_ctx->d_match_lengths)
-        cudaFree(ctx.seq_ctx->d_match_lengths);
-      if (ctx.seq_ctx->d_offsets)
-        cudaFree(ctx.seq_ctx->d_offsets);
-      if (ctx.seq_ctx->d_num_sequences)
-        cudaFree(ctx.seq_ctx->d_num_sequences);
-      if (ctx.seq_ctx->d_sequences)
-        cudaFree(ctx.seq_ctx->d_sequences);
-      delete ctx.seq_ctx;
-      ctx.seq_ctx = nullptr;
-    }
+    // SequenceContext destructor now handles cudaFree of its owned device
+    // buffers
+    delete ctx.seq_ctx;
+    ctx.seq_ctx = nullptr;
 
-    if (ctx.huff_ctx) {
-      if (ctx.huff_ctx->codes)
-        cudaFree(ctx.huff_ctx->codes);
-      delete ctx.huff_ctx;
-      ctx.huff_ctx = nullptr;
-    }
+    // HuffmanTable destructor now handles cudaFree of codes
+    delete ctx.huff_ctx;
+    ctx.huff_ctx = nullptr;
 
     delete ctx.lit_fse_table;
     ctx.lit_fse_table = nullptr;

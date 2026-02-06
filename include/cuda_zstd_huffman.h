@@ -46,6 +46,32 @@ struct HuffmanCode {
 struct HuffmanTable {
   HuffmanCode *codes; // Device pointer to 256 HuffmanCode entries
   HuffmanTable() : codes(nullptr) {}
+
+  // RAII: free device memory on destruction (host-only, never used on device)
+  ~HuffmanTable() {
+    if (codes) {
+      cudaFree(codes);
+      codes = nullptr;
+    }
+  }
+
+  // Non-copyable (unique ownership of device memory)
+  HuffmanTable(const HuffmanTable &) = delete;
+  HuffmanTable &operator=(const HuffmanTable &) = delete;
+
+  // Move semantics
+  HuffmanTable(HuffmanTable &&other) noexcept : codes(other.codes) {
+    other.codes = nullptr;
+  }
+  HuffmanTable &operator=(HuffmanTable &&other) noexcept {
+    if (this != &other) {
+      if (codes)
+        cudaFree(codes);
+      codes = other.codes;
+      other.codes = nullptr;
+    }
+    return *this;
+  }
 };
 
 // ============================================================================

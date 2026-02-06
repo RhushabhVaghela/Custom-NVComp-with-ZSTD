@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(cuda_zstd LANGUAGES CXX CUDA)
+project(cuda_zstd VERSION 1.0.0 LANGUAGES CXX CUDA)
 
 # ==============================================================================
 # Configuration
@@ -15,6 +15,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# ==============================================================================
+# Build Options
+# ==============================================================================
+option(CUDA_ZSTD_DEBUG "Enable verbose ZSTD decompress debug output" OFF)
+option(CUDA_ZSTD_VERBOSE_PTX "Enable verbose PTX register/spill info (-Xptxas=-v)" OFF)
 
 # ==============================================================================
 # Dependencies
@@ -54,19 +60,28 @@ target_include_directories(cuda_zstd PRIVATE
 target_link_libraries(cuda_zstd PUBLIC CUDA::cudart ${ZSTD_LIBRARY})
 
 # Debug flag for ZSTD decompression tracing
-option(CUDA_ZSTD_DEBUG "Enable verbose ZSTD decompress debug output" OFF)
 if(CUDA_ZSTD_DEBUG)
     target_compile_definitions(cuda_zstd PRIVATE CUDA_ZSTD_DEBUG)
 endif()
 
-# Optimization flags
+# CUDA Compiler flags
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
     target_compile_options(cuda_zstd PRIVATE
         $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
         $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda>
-        $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas=-v>
-        $<$<CONFIG:Release>:-O3>
+        # Release: aggressive optimization
+        $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Release>>:-O3>
+        # Debug: device debug info
+        $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:-G>
+        # RelWithDebInfo: line info for profilers (nsight etc.)
+        $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:RelWithDebInfo>>:-lineinfo>
     )
+    # Verbose PTX output (register usage, spills) — opt-in only
+    if(CUDA_ZSTD_VERBOSE_PTX)
+        target_compile_options(cuda_zstd PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xptxas=-v>
+        )
+    endif()
 endif()
 
 # ==============================================================================
@@ -74,13 +89,11 @@ endif()
 # ==============================================================================
 enable_testing()
 
-file(GLOB TEST_SOURCES "tests/test_*.cu" "tests/test_*.c")
+# FIX: Include .cpp test files alongside .cu and .c
+file(GLOB TEST_SOURCES "tests/test_*.cu" "tests/test_*.c" "tests/test_*.cpp")
 
 foreach(test_src ${TEST_SOURCES})
     get_filename_component(test_name ${test_src} NAME_WE)
-    
-    # Handle C files separately if needed, but nvcc can handle .c via -x c
-    # For simplicity, compile all as part of CUDA target or CXX executable linked with cuda_zstd
     
     add_executable(${test_name} ${test_src})
     target_link_libraries(${test_name} PRIVATE cuda_zstd)
@@ -114,8 +127,10 @@ foreach(bench_src ${BENCHMARK_SOURCES})
 endforeach()
 
 # ==============================================================================
-# Installation (Optional)
+# Installation
 # ==============================================================================
+include(CMakePackageConfigHelpers)
+
 install(TARGETS cuda_zstd
     EXPORT cuda_zstdTargets
     ARCHIVE DESTINATION lib
@@ -123,4 +138,31 @@ install(TARGETS cuda_zstd
     RUNTIME DESTINATION bin
 )
 
-install(DIRECTORY include/ DESTINATION include/cuda_zstd)
+# Install headers directly under include/ (not include/cuda_zstd/)
+# This matches internal #include "cuda_zstd_types.h" paths
+install(DIRECTORY include/ DESTINATION include)
+
+# Generate and install config-mode find_package support
+install(EXPORT cuda_zstdTargets
+    FILE cuda_zstdTargets.cmake
+    NAMESPACE cuda_zstd::
+    DESTINATION lib/cmake/cuda_zstd
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/cuda_zstdConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cuda_zstdConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cuda_zstdConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/cuda_zstd
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/cuda_zstdConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/cuda_zstdConfigVersion.cmake"
+    DESTINATION lib/cmake/cuda_zstd
+)
