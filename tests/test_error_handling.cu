@@ -65,9 +65,9 @@ bool test_all_error_codes() {
                                      Status::ERROR_INVALID_PARAMETER,
                                      Status::ERROR_BUFFER_TOO_SMALL,
                                      Status::ERROR_OUT_OF_MEMORY,
-                                     Status::ERROR_COMPRESSION_FAILED,
-                                     Status::ERROR_DECOMPRESSION_FAILED,
-                                     Status::ERROR_CORRUPTED_DATA,
+                                     Status::ERROR_COMPRESSION,
+                                     Status::ERROR_DECOMPRESSION,
+                                     Status::ERROR_CORRUPT_DATA,
                                      Status::ERROR_UNSUPPORTED_VERSION,
                                      Status::ERROR_DICTIONARY_MISMATCH,
                                      Status::ERROR_CUDA_ERROR,
@@ -110,7 +110,7 @@ bool test_error_message_validation() {
                   strstr(oom, "MEMORY") != nullptr,
               "Out of memory message should contain 'memory'");
 
-  const char *corrupted = status_to_string(Status::ERROR_CORRUPTED_DATA);
+  const char *corrupted = status_to_string(Status::ERROR_CORRUPT_DATA);
   ASSERT_TRUE(strstr(corrupted, "corrupt") != nullptr ||
                   strstr(corrupted, "CORRUPT") != nullptr,
               "Corrupted data message should contain 'corrupt'");
@@ -406,7 +406,7 @@ bool test_corrupted_frame_headers() {
   if (status == Status::ERROR_BUFFER_TOO_SMALL) {
     LOG_INFO("✓ Invalid magic number detected (via Buffer Check)");
   } else {
-    EXPECT_ERROR(status, Status::ERROR_CORRUPTED_DATA,
+    EXPECT_ERROR(status, Status::ERROR_CORRUPT_DATA,
                  "Invalid magic number should fail");
   }
   LOG_INFO("✓ Invalid magic number detected");

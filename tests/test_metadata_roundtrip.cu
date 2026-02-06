@@ -173,7 +173,7 @@ Status test_metadata_roundtrip() {
       safe_cuda_free(d_compressed);
       safe_cuda_free(d_decompressed);
       safe_cuda_free(d_compress_workspace);
-      return Status::ERROR_CORRUPTED_DATA;
+      return Status::ERROR_CORRUPT_DATA;
     }
 
     std::cout << "    ✓ Magic number is correct (0xFD2FB528)\n";
@@ -235,7 +235,7 @@ Status test_metadata_roundtrip() {
       safe_cuda_free(d_compressed);
       safe_cuda_free(d_decompressed);
       safe_cuda_free(d_compress_workspace);
-      return Status::ERROR_CORRUPTED_DATA;
+      return Status::ERROR_CORRUPT_DATA;
     }
 
     std::cout << "    ✓ Content size is correct\n\n";
@@ -306,7 +306,7 @@ Status test_metadata_roundtrip() {
       safe_cuda_free(d_decompressed);
       safe_cuda_free(d_compress_workspace);
       safe_cuda_free(d_decompress_workspace);
-      return Status::ERROR_CORRUPTED_DATA;
+      return Status::ERROR_CORRUPT_DATA;
     }
 
     std::cout << "    ✓ Size matches original (" << DATA_SIZE << " bytes)\n";
@@ -330,7 +330,7 @@ Status test_metadata_roundtrip() {
       safe_cuda_free(d_decompressed);
       safe_cuda_free(d_compress_workspace);
       safe_cuda_free(d_decompress_workspace);
-      return Status::ERROR_CORRUPTED_DATA;
+      return Status::ERROR_CORRUPT_DATA;
     }
 
     std::cout << "    ✓ Data matches exactly (byte-by-byte verification)\n";

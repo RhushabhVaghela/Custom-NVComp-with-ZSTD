@@ -54,9 +54,11 @@ struct __align__(16) Sequence {
 // ============================================================================
 
 struct SequenceContext {
-  // Device output buffers populated by decompression
-  // NOTE: These 6 buffers are independently cudaMalloc'd and OWNED by this
-  // context. The destructor will cudaFree them.
+  // Device output buffers populated by decompression.
+  // When owns_memory == true, these 6 buffers are independently cudaMalloc'd
+  // and will be cudaFree'd by the destructor. When owns_memory == false
+  // (e.g. shallow copies used as per-block views), these are BORROWED pointers
+  // and the destructor is a no-op.
   Sequence *d_sequences = nullptr;
   unsigned char *d_literals_buffer = nullptr;
   u32 *d_literal_lengths = nullptr;
@@ -101,20 +103,34 @@ struct SequenceContext {
   u8 *d_ml_num_bits = nullptr;
   u8 *d_of_num_bits = nullptr;
 
-  // RAII: free the 6 owned device buffers on destruction (host-only context)
+  // --- Ownership flag ---
+  // true  = this instance owns the 6 device buffers above; destructor frees.
+  // false = shallow view / borrowed pointers; destructor is a no-op.
+  // Only the canonical instance created via new+cudaMalloc (in
+  // initialize_context) should set this to true. Copies (per-block views,
+  // temporary code_ctx) are always non-owning.
+  bool owns_memory = false;
+
+  // Default constructor (non-owning by default — safe for stack/vector usage)
+  SequenceContext() = default;
+
+  // RAII: free the 6 owned device buffers on destruction (host-only context).
+  // Only runs when owns_memory == true.
   ~SequenceContext() {
-    if (d_literals_buffer)
-      cudaFree(d_literals_buffer);
-    if (d_literal_lengths)
-      cudaFree(d_literal_lengths);
-    if (d_match_lengths)
-      cudaFree(d_match_lengths);
-    if (d_offsets)
-      cudaFree(d_offsets);
-    if (d_num_sequences)
-      cudaFree(d_num_sequences);
-    if (d_sequences)
-      cudaFree(d_sequences);
+    if (owns_memory) {
+      if (d_literals_buffer)
+        cudaFree(d_literals_buffer);
+      if (d_literal_lengths)
+        cudaFree(d_literal_lengths);
+      if (d_match_lengths)
+        cudaFree(d_match_lengths);
+      if (d_offsets)
+        cudaFree(d_offsets);
+      if (d_num_sequences)
+        cudaFree(d_num_sequences);
+      if (d_sequences)
+        cudaFree(d_sequences);
+    }
     d_literals_buffer = nullptr;
     d_literal_lengths = nullptr;
     d_match_lengths = nullptr;
@@ -123,14 +139,11 @@ struct SequenceContext {
     d_sequences = nullptr;
   }
 
-  // Non-copyable (unique ownership of device memory)
-  SequenceContext(const SequenceContext &) = delete;
-  SequenceContext &operator=(const SequenceContext &) = delete;
+  // Copy constructor: SHALLOW non-owning copy (safe for per-block views)
+  SequenceContext(const SequenceContext &other) = default;
+  SequenceContext &operator=(const SequenceContext &other) = default;
 
-  // Default constructor
-  SequenceContext() = default;
-
-  // Move semantics
+  // Move constructor: transfers ownership (source becomes non-owning)
   SequenceContext(SequenceContext &&other) noexcept
       : d_sequences(other.d_sequences),
         d_literals_buffer(other.d_literals_buffer),
@@ -147,30 +160,67 @@ struct SequenceContext {
         d_ll_extras(other.d_ll_extras), d_ml_extras(other.d_ml_extras),
         d_of_extras(other.d_of_extras), d_ll_num_bits(other.d_ll_num_bits),
         d_ml_num_bits(other.d_ml_num_bits),
-        d_of_num_bits(other.d_of_num_bits) {
-    // Null out source's owned pointers to prevent double-free
+        d_of_num_bits(other.d_of_num_bits),
+        owns_memory(other.owns_memory) {
+    // Source becomes non-owning to prevent double-free
+    other.owns_memory = false;
     other.d_sequences = nullptr;
     other.d_literals_buffer = nullptr;
     other.d_literal_lengths = nullptr;
     other.d_match_lengths = nullptr;
     other.d_offsets = nullptr;
     other.d_num_sequences = nullptr;
-    // Borrowed pointers don't need nulling (but do for safety)
-    other.d_ll_table = nullptr;
-    other.d_ml_table = nullptr;
-    other.d_of_table = nullptr;
-    other.d_ll_decode = nullptr;
-    other.d_ml_decode = nullptr;
-    other.d_of_decode = nullptr;
-    other.d_ll_codes = nullptr;
-    other.d_ml_codes = nullptr;
-    other.d_of_codes = nullptr;
-    other.d_ll_extras = nullptr;
-    other.d_ml_extras = nullptr;
-    other.d_of_extras = nullptr;
-    other.d_ll_num_bits = nullptr;
-    other.d_ml_num_bits = nullptr;
-    other.d_of_num_bits = nullptr;
+  }
+
+  SequenceContext &operator=(SequenceContext &&other) noexcept {
+    if (this != &other) {
+      // Free current owned memory if any
+      if (owns_memory) {
+        if (d_literals_buffer) cudaFree(d_literals_buffer);
+        if (d_literal_lengths) cudaFree(d_literal_lengths);
+        if (d_match_lengths)   cudaFree(d_match_lengths);
+        if (d_offsets)         cudaFree(d_offsets);
+        if (d_num_sequences)   cudaFree(d_num_sequences);
+        if (d_sequences)       cudaFree(d_sequences);
+      }
+      // Transfer all fields
+      d_sequences = other.d_sequences;
+      d_literals_buffer = other.d_literals_buffer;
+      d_literal_lengths = other.d_literal_lengths;
+      d_match_lengths = other.d_match_lengths;
+      d_offsets = other.d_offsets;
+      d_num_sequences = other.d_num_sequences;
+      max_sequences = other.max_sequences;
+      max_literals = other.max_literals;
+      num_sequences = other.num_sequences;
+      num_literals = other.num_literals;
+      is_raw_offsets = other.is_raw_offsets;
+      d_ll_table = other.d_ll_table;
+      d_ml_table = other.d_ml_table;
+      d_of_table = other.d_of_table;
+      d_ll_decode = other.d_ll_decode;
+      d_ml_decode = other.d_ml_decode;
+      d_of_decode = other.d_of_decode;
+      d_ll_codes = other.d_ll_codes;
+      d_ml_codes = other.d_ml_codes;
+      d_of_codes = other.d_of_codes;
+      d_ll_extras = other.d_ll_extras;
+      d_ml_extras = other.d_ml_extras;
+      d_of_extras = other.d_of_extras;
+      d_ll_num_bits = other.d_ll_num_bits;
+      d_ml_num_bits = other.d_ml_num_bits;
+      d_of_num_bits = other.d_of_num_bits;
+      owns_memory = other.owns_memory;
+      // Source becomes non-owning
+      other.owns_memory = false;
+      other.d_sequences = nullptr;
+      other.d_literals_buffer = nullptr;
+      other.d_literal_lengths = nullptr;
+      other.d_match_lengths = nullptr;
+      other.d_offsets = nullptr;
+      other.d_num_sequences = nullptr;
+    }
+    return *this;
   }
 };
 

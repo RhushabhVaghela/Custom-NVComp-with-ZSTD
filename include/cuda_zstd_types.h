@@ -97,16 +97,19 @@ enum class Status : u32 {
   ERROR_CUDA_ERROR = 4,            /**< CUDA runtime error occurred */
   ERROR_INVALID_MAGIC = 5,         /**< Invalid ZSTD magic number */
   ERROR_CORRUPT_DATA = 6,          /**< Input data is corrupted or malformed */
-  ERROR_CORRUPTED_DATA = 6,        /**< Alias for ERROR_CORRUPT_DATA */
+  /** @deprecated Use ERROR_CORRUPT_DATA instead */
+  ERROR_CORRUPTED_DATA [[deprecated("Use ERROR_CORRUPT_DATA instead")]] = 6,
   ERROR_BUFFER_TOO_SMALL = 7,      /**< Provided output buffer is too small */
   ERROR_UNSUPPORTED_VERSION = 8,   /**< Unsupported ZSTD format version */
   ERROR_DICTIONARY_MISMATCH = 9,   /**< Dictionary does not match data */
   ERROR_CHECKSUM_FAILED = 10,      /**< Frame checksum verification failed */
   ERROR_IO = 11,                   /**< I/O operation failed */
   ERROR_COMPRESSION = 12,          /**< Error occurred during compression */
-  ERROR_COMPRESSION_FAILED = 12,   /**< Alias for ERROR_COMPRESSION */
+  /** @deprecated Use ERROR_COMPRESSION instead */
+  ERROR_COMPRESSION_FAILED [[deprecated("Use ERROR_COMPRESSION instead")]] = 12,
   ERROR_DECOMPRESSION = 13,        /**< Error occurred during decompression */
-  ERROR_DECOMPRESSION_FAILED = 13, /**< Alias for ERROR_DECOMPRESSION */
+  /** @deprecated Use ERROR_DECOMPRESSION instead */
+  ERROR_DECOMPRESSION_FAILED [[deprecated("Use ERROR_DECOMPRESSION instead")]] = 13,
   ERROR_WORKSPACE_INVALID = 14,    /**< Temporary workspace is invalid or too small */
   ERROR_STREAM_ERROR = 15,         /**< CUDA stream error */
   ERROR_ALLOCATION_FAILED = 16,    /**< Resource allocation failed */

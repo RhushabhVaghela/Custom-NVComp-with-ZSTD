@@ -3558,6 +3558,9 @@ private:
       {
         cudaError_t e = cudaGetLastError();
       }
+
+      // Mark as owning — destructor will cudaFree the 6 buffers above
+      ctx.seq_ctx->owns_memory = true;
     }
 
     // Initialize FSE tables

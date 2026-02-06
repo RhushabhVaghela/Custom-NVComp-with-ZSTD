@@ -1,7 +1,6 @@
 #ifndef CUDA_ZSTD_INTERNAL_H_
 #define CUDA_ZSTD_INTERNAL_H_
 
-#include <iostream>
 #include <vector>
 #ifdef _MSC_VER
 #include <intrin.h> // For _BitScanReverse
@@ -21,8 +20,7 @@ struct DictSegment {
   u32 block_index;  // Block index this segment belongs to
 };
 
-// Make DictSegment available at global scope for compatibility
-using DictSegment = DictSegment;
+
 
 // Dictionary D-mer structure for compression
 namespace dictionary {
