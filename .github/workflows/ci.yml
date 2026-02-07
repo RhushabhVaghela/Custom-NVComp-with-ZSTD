@@ -1,0 +1,144 @@
+# =============================================================================
+# CI/CD for cuda-zstd Python package
+#
+# This workflow builds and tests the pybind11 Python bindings on a
+# CUDA-enabled runner.  It also produces a source distribution (sdist) that
+# can be uploaded to PyPI.
+#
+# Notes:
+#   - Wheel builds require a GPU runner with CUDA Toolkit installed.
+#   - sdist creation does NOT require a GPU.
+#   - Tests require an NVIDIA GPU (skipped on CPU-only runners via
+#     the `requires_cuda` pytest marker).
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ---------------------------------------------------------------------------
+# Job 1: Lint & type-check (no GPU needed)
+# ---------------------------------------------------------------------------
+jobs:
+  lint:
+    name: Lint & static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: pip install ruff
+
+      - name: Ruff lint
+        run: ruff check python/
+
+      - name: Ruff format check
+        run: ruff format --check python/
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Build sdist (no GPU needed)
+  # ---------------------------------------------------------------------------
+  sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build frontend
+        run: pip install build
+
+      - name: Build sdist
+        run: python -m build --sdist
+
+      - name: Verify sdist contents
+        run: |
+          echo "=== sdist contents ==="
+          tar tzf dist/*.tar.gz | head -80
+          echo "..."
+          echo "=== Checking critical files ==="
+          tar tzf dist/*.tar.gz | grep -E "(src/|include/|python/src/binding\.cpp|python/CMakeLists\.txt)" | head -20
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Build wheel & test (requires CUDA GPU runner)
+  # ---------------------------------------------------------------------------
+  build-and-test:
+    name: "Build & test (Python ${{ matrix.python }}, CUDA ${{ matrix.cuda }})"
+    # Use a self-hosted runner with NVIDIA GPU + CUDA Toolkit.
+    # If you don't have one, change to a GitHub-hosted runner with CUDA
+    # (e.g., via the nvidia/cuda Docker image in a container job).
+    runs-on: [self-hosted, linux, gpu]
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+        cuda: ["12.4"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libzstd-dev cmake
+
+      - name: Build and install cuda-zstd
+        run: |
+          pip install --upgrade pip
+          pip install ".[test]"
+
+      - name: Verify import
+        run: |
+          python -c "
+          import cuda_zstd
+          print('cuda_zstd', cuda_zstd.__version__, 'loaded')
+          print('CUDA available:', cuda_zstd.is_cuda_available())
+          "
+
+      - name: Run tests
+        run: pytest python/tests/ -v --tb=short
+
+  # ---------------------------------------------------------------------------
+  # Job 4: Publish to PyPI (on tagged releases only)
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish to PyPI
+    needs: [lint, sdist, build-and-test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      id-token: write  # for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # Uses trusted publishing — no API token needed.
+        # Configure at https://pypi.org/manage/project/cuda-zstd/settings/publishing/

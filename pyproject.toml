@@ -1,0 +1,122 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "pybind11>=2.12",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cuda-zstd"
+version = "1.0.0"  # ← CANONICAL VERSION — update here, then sync binding.cpp & python/pyproject.toml
+description = "GPU-accelerated Zstandard compression/decompression using CUDA"
+readme = "python/README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Rhushabh Vaghela", email = "rhushabhvaghela@gmail.com"},
+]
+keywords = [
+    "compression",
+    "zstd",
+    "zstandard",
+    "cuda",
+    "gpu",
+    "nvidia",
+    "nvcomp",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Archiving :: Compression",
+]
+dependencies = []
+
+[project.optional-dependencies]
+numpy = ["numpy>=1.20"]
+cupy = ["cupy>=12.0"]
+test = [
+    "pytest>=7.0",
+    "numpy>=1.20",
+]
+dev = [
+    "pytest>=7.0",
+    "numpy>=1.20",
+    "ruff>=0.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/RhushabhVaghela/Custom-NVComp-with-ZSTD"
+Documentation = "https://github.com/RhushabhVaghela/Custom-NVComp-with-ZSTD#readme"
+Repository = "https://github.com/RhushabhVaghela/Custom-NVComp-with-ZSTD"
+Issues = "https://github.com/RhushabhVaghela/Custom-NVComp-with-ZSTD/issues"
+
+# ---------------------------------------------------------------------------
+# scikit-build-core configuration
+# ---------------------------------------------------------------------------
+[tool.scikit-build]
+cmake.build-type = "Release"
+cmake.version = ">=3.24"
+
+# CMake source is in python/ (contains the pybind11 CMakeLists.txt)
+cmake.source-dir = "python"
+
+# Pass CUDA architectures to CMake.
+# Users can override via CMAKE_CUDA_ARCHITECTURES env var or
+#   pip install . -C cmake.define.CMAKE_CUDA_ARCHITECTURES="80;86;89;90"
+cmake.define.CMAKE_CUDA_ARCHITECTURES = "native"
+
+# The Python package lives under python/cuda_zstd/ in the source tree.
+# scikit-build-core will install it as top-level `cuda_zstd` in the wheel.
+wheel.packages = ["python/cuda_zstd"]
+
+# Ensure C++ sources and headers are included in the sdist tarball.
+sdist.include = [
+    "src/",
+    "include/",
+    "python/",
+    "LICENSE",
+    "CMakeLists.txt",
+]
+sdist.exclude = [
+    "tests/",
+    "benchmarks/",
+    "docs/",
+    "scripts/",
+    ".github/",
+    "benchmark_results.csv",
+]
+
+build.verbose = true
+
+[tool.scikit-build.cmake.define]
+# Consumers can override zstd location:
+#   pip install . -C cmake.define.ZSTD_ROOT="/path/to/zstd"
+# By default CMake will find_library(zstd) from system paths.
+
+# ---------------------------------------------------------------------------
+# pytest configuration
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]
+addopts = ["-v", "--tb=short"]
+
+# ---------------------------------------------------------------------------
+# ruff (linter/formatter)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
