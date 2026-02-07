@@ -28,7 +28,6 @@ __device__ inline void
 gpu_fse_init_state(GPU_FSE_CState *statePtr,
                    const GPU_FSE_SymbolTransform *ct, // Compression table
                    u32 symbol) {
-  const GPU_FSE_SymbolTransform symbolTT = ct[symbol];
   const u16 *stateTable = (const u16 *)ct;
 
   // Initial state is at the beginning of the symbol's range

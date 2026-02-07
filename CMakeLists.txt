@@ -42,9 +42,6 @@ file(GLOB_RECURSE CUDA_ZSTD_SOURCES
 # Exclude temporary or backup files if any remain
 list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*\\.new$")
 list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*\\.bak$")
-# Exclude superseded simple Huffman implementation (ODR conflict with cuda_zstd_huffman.cu
-# and contains host memcpy to device pointers — undefined behavior)
-list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*huffman_simple.*")
 
 add_library(cuda_zstd STATIC ${CUDA_ZSTD_SOURCES})
 

@@ -217,28 +217,6 @@ __global__ void k_record_size(u32 *ptr, u32 val) {
 }
 
 // ==============================================================================
-// READ 3 BYTES SAFELY (Fixes Unaligned Access)
-// ==============================================================================
-__global__ void k_read_3bytes(const unsigned char *src, u32 *dst) {
-  if (threadIdx.x == 0) {
-    uintptr_t addr = (uintptr_t)src;
-    uintptr_t aligned_addr = addr & ~3; // Align to 4 bytes
-    u32 offset = addr & 3;
-
-    const u32 *base = (const u32 *)aligned_addr;
-    // Read two words to cover all offset cases (0, 1, 2, 3)
-    // Little Endian assumption
-    u32 w0 = base[0];
-    u32 w1 = base[1];
-
-    u64 combined = ((u64)w1 << 32) | w0;
-    u64 shifted = combined >> (offset * 8);
-
-    *dst = (u32)(shifted & 0xFFFFFF);
-  }
-}
-
-// ==============================================================================
 // ASYNC SUM REDUCE KERNEL (replaces sync thrust::reduce)
 // Reduces array of u32 to single sum, writes to device memory (no sync needed)
 // ==============================================================================
@@ -349,11 +327,6 @@ struct CustomMetadataFrame {
 Status parse_frame_header(const unsigned char *input, u32 input_size,
                           u32 *header_size, u32 *content_size,
                           bool *is_single_segment, bool *has_checksum);
-
-__global__ void debug_inspect_memory(const unsigned char *ptr, u32 size,
-                                     const char *label) {
-  // Debug output removed for production - noop
-}
 
 // Kernel: Check if a block is RLE (all bytes identical)
 // Returns: *d_is_rle = 1 if RLE, 0 otherwise
@@ -1384,7 +1357,7 @@ public:
       return Status::ERROR_OUT_OF_MEMORY;
 
     // 2. Build Tables (Literals, Offsets, MatchLengths)
-    auto build_table = [&](fse::TableType type, int idx) {
+    auto build_table = [&](fse::TableType type, int idx) -> Status {
       u32 max_s, t_log;
       const u16 *h_norm = fse::get_predefined_norm(type, &max_s, &t_log);
 
@@ -1393,7 +1366,7 @@ public:
         h_norm_u32[i] = h_norm[i];
 
       u32 *d_norm;
-      cudaMallocAsync(&d_norm, (max_s + 1) * sizeof(u32), stream);
+      CUDA_CHECK(cudaMallocAsync(&d_norm, (max_s + 1) * sizeof(u32), stream));
       cudaMemcpyAsync(d_norm, h_norm_u32.data(), (max_s + 1) * sizeof(u32),
                       cudaMemcpyHostToDevice, stream);
 
@@ -1402,17 +1375,17 @@ public:
       h_desc.table_log = t_log;
       h_desc.table_size = 1 << t_log;
 
-      cudaMallocAsync(
+      CUDA_CHECK(cudaMallocAsync(
           &h_desc.d_symbol_table,
-          (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream);
-      cudaMallocAsync(&h_desc.d_next_state, h_desc.table_size * sizeof(u16),
-                      stream);
-      cudaMallocAsync(&h_desc.d_nbBits_table, h_desc.table_size * sizeof(u8),
-                      stream);
-      cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
-                      stream);
-      cudaMallocAsync(&h_desc.d_state_to_symbol, h_desc.table_size * sizeof(u8),
-                      stream);
+          (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream));
+      CUDA_CHECK(cudaMallocAsync(&h_desc.d_next_state, h_desc.table_size * sizeof(u16),
+                      stream));
+      CUDA_CHECK(cudaMallocAsync(&h_desc.d_nbBits_table, h_desc.table_size * sizeof(u8),
+                      stream));
+      CUDA_CHECK(cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
+                      stream));
+      CUDA_CHECK(cudaMallocAsync(&h_desc.d_state_to_symbol, h_desc.table_size * sizeof(u8),
+                      stream));
 
       cudaMemcpyAsync(&d_cached_fse_tables[idx], &h_desc,
                       sizeof(fse::FSEEncodeTable), cudaMemcpyHostToDevice,
@@ -1425,11 +1398,16 @@ public:
       fse::FSE_buildCTable_Device(
           d_norm, max_s, t_log, &d_cached_fse_tables[idx], nullptr, 0, stream);
       cudaFreeAsync(d_norm, stream);
+      return Status::SUCCESS;
     };
 
-    build_table(fse::TableType::LITERALS, 0);
-    build_table(fse::TableType::OFFSETS, 1);
-    build_table(fse::TableType::MATCH_LENGTHS, 2);
+    Status tbl_status;
+    tbl_status = build_table(fse::TableType::LITERALS, 0);
+    if (tbl_status != Status::SUCCESS) return tbl_status;
+    tbl_status = build_table(fse::TableType::OFFSETS, 1);
+    if (tbl_status != Status::SUCCESS) return tbl_status;
+    tbl_status = build_table(fse::TableType::MATCH_LENGTHS, 2);
+    if (tbl_status != Status::SUCCESS) return tbl_status;
 
     // CRITICAL: Sync to ensure all table builds complete before returning
     cudaStreamSynchronize(stream);
@@ -4185,10 +4163,10 @@ private:
     if (using_cache) {
       d_tables = d_cached_fse_tables;
     } else {
-      cudaMallocAsync(&d_tables, 3 * sizeof(fse::FSEEncodeTable), stream);
+      CUDA_CHECK(cudaMallocAsync(&d_tables, 3 * sizeof(fse::FSEEncodeTable), stream));
 
       // Helper to build one table
-      auto build_table = [&](fse::TableType type, int idx) {
+      auto build_table = [&](fse::TableType type, int idx) -> Status {
         u32 max_s, t_log;
         const u16 *h_norm = fse::get_predefined_norm(type, &max_s, &t_log);
 
@@ -4197,7 +4175,7 @@ private:
           h_norm_u32[i] = h_norm[i];
 
         u32 *d_norm;
-        cudaMallocAsync(&d_norm, (max_s + 1) * sizeof(u32), stream);
+        CUDA_CHECK(cudaMallocAsync(&d_norm, (max_s + 1) * sizeof(u32), stream));
         cudaMemcpyAsync(d_norm, h_norm_u32.data(), (max_s + 1) * sizeof(u32),
                         cudaMemcpyHostToDevice, stream);
 
@@ -4207,16 +4185,16 @@ private:
         u32 table_size = 1 << t_log;
         h_desc.table_size = table_size;
 
-        cudaMallocAsync(
+        CUDA_CHECK(cudaMallocAsync(
             &h_desc.d_symbol_table,
-            (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream);
-        cudaMallocAsync(&h_desc.d_next_state, table_size * sizeof(u16), stream);
-        cudaMallocAsync(&h_desc.d_nbBits_table, table_size * sizeof(u8),
-                        stream);
-        cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
-                        stream);
-        cudaMallocAsync(&h_desc.d_state_to_symbol, table_size * sizeof(u8),
-                        stream);
+            (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream));
+        CUDA_CHECK(cudaMallocAsync(&h_desc.d_next_state, table_size * sizeof(u16), stream));
+        CUDA_CHECK(cudaMallocAsync(&h_desc.d_nbBits_table, table_size * sizeof(u8),
+                        stream));
+        CUDA_CHECK(cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
+                        stream));
+        CUDA_CHECK(cudaMallocAsync(&h_desc.d_state_to_symbol, table_size * sizeof(u8),
+                        stream));
 
         // CRITICAL: Zero-initialize all table memory before kernel runs
         cudaMemsetAsync(h_desc.d_symbol_table, 0, 
@@ -4235,20 +4213,25 @@ private:
                                     nullptr, 0, stream);
 
         // Note: d_norm leaked for Phase 2a prototype
+        return Status::SUCCESS;
       };
 
-      build_table(fse::TableType::LITERALS, 0);
-      build_table(fse::TableType::OFFSETS, 1);
-      build_table(fse::TableType::MATCH_LENGTHS, 2);
+      Status tbl_status;
+      tbl_status = build_table(fse::TableType::LITERALS, 0);
+      if (tbl_status != Status::SUCCESS) return tbl_status;
+      tbl_status = build_table(fse::TableType::OFFSETS, 1);
+      if (tbl_status != Status::SUCCESS) return tbl_status;
+      tbl_status = build_table(fse::TableType::MATCH_LENGTHS, 2);
+      if (tbl_status != Status::SUCCESS) return tbl_status;
     } // End else (!using_cache)
 
     // 3. Launch Encoding
     size_t *d_pos;
-    cudaMallocAsync(&d_pos, sizeof(size_t), stream);
+    CUDA_CHECK(cudaMallocAsync(&d_pos, sizeof(size_t), stream));
 
     size_t capacity = num_sequences * 8 + 512;
     unsigned char *d_bitstream;
-    cudaMallocAsync(&d_bitstream, capacity, stream);
+    CUDA_CHECK(cudaMallocAsync(&d_bitstream, capacity, stream));
     cudaMemsetAsync(d_bitstream, 0, capacity, stream);
 
     // Use interleaved FSE encoder matching decode_sequences_interleaved
@@ -4293,730 +4276,6 @@ private:
   }
 
   // NOTE: Compress Sequences Logic Updated Below
-
-#if 0
-    // === HOST FALLBACK IMPLEMENTATION ===
-    // 1. Copy Sequences to Host
-    u32 *h_offsets = new u32[num_sequences];
-    u32 *h_literal_lengths = new u32[num_sequences];
-    u32 *h_match_lengths = new u32[num_sequences];
-
-    cudaMemcpy(h_offsets, seq_ctx->d_offsets, num_sequences * sizeof(u32),
-               cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_literal_lengths, seq_ctx->d_literal_lengths,
-               num_sequences * sizeof(u32), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_match_lengths, seq_ctx->d_match_lengths,
-               num_sequences * sizeof(u32), cudaMemcpyDeviceToHost);
-    cudaStreamSynchronize(stream);
-
-    // 2. Build CTables (LL, ML, OF)
-    using namespace fse; // For FSEEncodeTable
-    FSEEncodeTable ct_ll, ct_ml, ct_of;
-    // Allocate Host-side mirrors (Note: FSE_buildCTable_Host allocates temp
-    // host memory but EXPECTS device pointers in table struct... Wait, my
-    // FSE_buildCTable_Host implementation COPIES to device pointers. This is a
-    // mismatch for a pure Host fallback! I need FSE_buildCTable_Host to give me
-    // HOST tables if I want to encode on HOST.
-
-    // CORRECTION: FSE_buildCTable_Host as implemented attempts to cudaMemcpy to
-    // d_symbol_table. Ideally I should have a version that keeps it on Host.
-    // For now, I will manually build the tables HERE to avoid refactoring
-    // fse.cu again and risking breakage. Or I can modify FSE_buildCTable_Host
-    // to accept host pointers if device pointers are null? No, I'll implement a
-    // `build_ctable_host_only` helper LOCALLY here.
-
-    // Structs for Host Encoding
-    struct HostFSECTable {
-      u16 *nextState;
-      FSEEncodeTable::FSEEncodeSymbol *symbolTT;
-      u32 tableLog;
-    };
-
-    auto build_host_ctable = [&](TableType type, u32 max_sym, u32 default_log,
-                                 HostFSECTable &table) {
-      u32 max_s = 0;
-      u32 t_log = 0;
-      const u16 *norm = get_predefined_norm(type, &max_s, &t_log);
-      // Note: predefined norms use default logs.
-      t_log = default_log; // Force default for predefined
-
-      u32 table_size = 1 << t_log;
-      table.tableLog = t_log;
-      table.nextState = new u16[table_size];
-      table.symbolTT = new FSEEncodeTable::FSEEncodeSymbol[max_sym + 1];
-
-      // --- COPY PASTE LOGIC from FSE_buildCTable_Host adjusted for HOST
-      // pointers ---
-      std::vector<u8> tableU8(table_size);
-      u32 *cumul = new u32[max_sym + 2];
-      cumul[0] = 0;
-      u32 step = (table_size >> 1) + (table_size >> 3) + 3;
-      u32 mask = table_size - 1;
-      u32 position = 0;
-      for (u32 s = 0; s <= max_sym; s++) {
-        int n = norm[s];
-        if (n == 0)
-          continue;
-        for (int i = 0; i < n; i++) {
-          tableU8[position] = (u8)s;
-          position = (position + step) & mask;
-        }
-      }
-      u32 total = 0;
-      for (u32 s = 0; s <= max_sym; s++) {
-        u32 proba = norm[s];
-        cumul[s] = total;
-        if (proba == 0) {
-          table.symbolTT[s].deltaNbBits = (u32)((-1) << 16);
-          table.symbolTT[s].deltaFindState = 0;
-          continue;
-        }
-        u32 minBitsOut = t_log - (31 - __builtin_clz(proba));
-        u32 minStatePlus = proba << minBitsOut;
-        table.symbolTT[s].deltaNbBits = (minBitsOut << 16) - minStatePlus;
-        table.symbolTT[s].deltaFindState = total - 1;
-        total += proba;
-      }
-      cumul[max_sym + 1] = total;
-      for (u32 u = 0; u < table_size; u++) {
-        u32 s = tableU8[u];
-        table.nextState[cumul[s]++] = (u16)(table_size + u);
-      }
-      delete[] cumul;
-    };
-
-    HostFSECTable ctLL, ctML, ctOF;
-    build_host_ctable(TableType::LITERALS, 35, 6, ctLL); // Max sym 35, log 6
-    build_host_ctable(TableType::MATCH_LENGTHS, 52, 6,
-                      ctML);                            // Max sym 52, log 6
-    build_host_ctable(TableType::OFFSETS, 28, 5, ctOF); // Max sym 28, log 5
-
-    // 3. Encode Loop
-    // Host Bitstream
-    std::vector<u8> bitStream;
-    bitStream.reserve(num_sequences * 4); // Estimation
-    u64 bitContainer = 0;
-    u32 bitPos = 0;
-
-    // Buffer for bit operations to support Reverse Writing (RFC 8878)
-    struct BitOp {
-      u64 val;
-      u32 nbBits;
-    };
-    std::vector<BitOp> bitStack;
-    bitStack.reserve(num_sequences * 4); // Approx size
-
-    auto addBits = [&](u64 val, u32 nbBits) {
-      if (nbBits == 0)
-        return;
-      bitStack.push_back({val, nbBits});
-    };
-
-    // States
-    u16 stateLL = 0;
-    u16 stateML = 0;
-    u16 stateOF = 0;
-
-    // Helper: Encode Symbol
-    auto host_fse_encode_symbol = [&](HostFSECTable &ct, u32 sym, u16 &state) {
-      FSEEncodeTable::FSEEncodeSymbol *symTT = ct.symbolTT;
-      u16 *nextAlloc = ct.nextState;
-
-      // FSE Encoding Logic (RFC 8878)
-      // nbBits = (state + deltaNbBits) >> 16
-      u32 nbBits = (state + symTT[sym].deltaNbBits) >> 16;
-
-      // Write bits
-      // Note: Value is (state & mask).
-      addBits(state & ((1 << nbBits) - 1), nbBits);
-
-      // Update State
-      // sub = state >> nbBits
-      // state = nextStateTable[ sub + deltaFindState ]
-      state = nextAlloc[(state >> nbBits) + symTT[sym].deltaFindState];
-    };
-
-    // Helper: Initialize State (First Sequence / Seq 0)
-    auto host_fse_init_state = [&](HostFSECTable &ct, u32 sym) -> u16 {
-      // Init state such that it is valid for "sym".
-      // Using the first valid slot in nextState table.
-      return ct.nextState[ct.symbolTT[sym].deltaFindState + 1];
-    };
-
-    if (num_sequences > 0) {
-      // Init states from Seq 0 (Start of Chain)
-      stateLL = host_fse_init_state(ctLL, h_literal_lengths[0]);
-      stateML = host_fse_init_state(ctML, h_match_lengths[0]);
-      stateOF = host_fse_init_state(ctOF, h_offsets[0]);
-
-      // Note: We DO NOT write headers here. Headers are the FINAL state.
-      // We encode sequences 1 to N-1, updating the state.
-      // The final state corresponds to the start of reading (End of stream).
-
-      for (u32 i = 1; i < num_sequences; i++) {
-        // Encode Seq[i] (Forward encoding builds up state chain)
-        host_fse_encode_symbol(ctLL, h_literal_lengths[i], stateLL);
-        host_fse_encode_symbol(ctML, h_match_lengths[i], stateML);
-        host_fse_encode_symbol(ctOF, h_offsets[i], stateOF);
-      }
-
-      // Write Final States to Bitstream (Header)
-      // Decoder reads these FIRST (from End of stream).
-      // Order: LL, OF, ML (Matches Decoder Read Order: ML, OF, LL ? per RFC)
-      // RFC: "Initial states order is LL, OF, ML" (read first).
-      // Since we flush LIFO (Reverse), the LAST pushed is FIRST written to physical End.
-      // Wait. Reader reads Backward.
-      // Physical: [Seq Bits] ... [Header Bits] [Sentinel]
-      // Reader @ End: Reads Header Bits.
-      // Header Order checks:
-      // Code 4047: read(ll), read(of), read(ml).
-      // So LL is at Highest Address (First Read).
-      // So LL should be written LAST physically.
-      // Reverse Flush writes Stack Top -> Bottom.
-      // Stack Top is Written LAST.
-      // So Stack Top should be LL.
-      // So Push ML, OF, LL.
-      // Headers are written in flushBits to ensure they are at the End.
-    }
-
-    // Flush Bits Implementation (Reverse)
-    auto flushBits = [&]() {
-      
-      
-      // Local bit buffer for packing
-      u64 localContainer = bitContainer; // preserve existing? (usually 0)
-      u32 localPos = bitPos;
-
-      // Helper to pack into local buffer
-      auto pack = [&](u64 val, u32 nbBits) {
-        if (nbBits == 0) return;
-        localContainer |= (val & ((1ULL << nbBits) - 1)) << localPos;
-        localPos += nbBits;
-        while (localPos >= 8) {
-            bitStream.push_back((u8)(localContainer));
-            localContainer >>= 8;
-            localPos -= 8;
-        }
-      };
-
-      // 1. Iterate Stack in REVERSE (LIFO) for Body Bits
-      // This puts the LAST pushed item (Seq N-1) at the Low Address of the New Segment
-      // Wait. Stack Top = Seq N-1.
-      // rbegin = Seq N-1.
-      // Pack Seq N-1 (Low).
-      // Pack Seq N-2 (Higher).
-      // ...
-      // Stream: [Seq N-1] [Seq N-2] ...
-      // Reader @ End: Reads Init.
-      // Moves back. Reads Seq N-2?
-      // NO. Reader decrement bit_pos.
-      // So Next Read comes from LOWER address.
-      // So Reader reads [Init], then [item BELOW Init].
-      // Item Below Init is [Seq N-2].
-      // Decoder Loop Step N-1 needs [Seq N-1] bits!
-      // So Below Init must be [Seq N-1].
-      // So Stream: ... [Seq N-1] [Init].
-      // So [Seq N-1] is packed JUST BEFORE [Init].
-      // So [Seq N-1] must be packed LAST of the body.
-      // Stack Top is [Seq N-1].
-      // So we must pack Stack Top LAST.
-      // So we must iterate Stack Forward (begin to end)!
-      // Stack: [Seq 0 ... Seq N-1].
-      // Pack Seq 0 (Low).
-      // ...
-      // Pack Seq N-1 (High - Just before Init).
-      // Pack Init (Highest).
-      // Stream: [Seq 0 ... Seq N-1 Init].
-      // Reader: Reads Init.
-      // Reads Seq N-1.
-      // ...
-      // Reads Seq 0.
-      // Matches Decoder Loop!
-      
-      // So: Iterate Forward!
-      for (const auto& op : bitStack) {
-          pack(op.val, op.nbBits);
-      }
-
-      // 2. Pack Headers (Init States)
-      // Must be at End.
-      // Decoder reads LL, OF, ML.
-      // Read LL (First) -> Must be Highest.
-      // Pack ML (Low).
-      // Pack OF.
-      // Pack LL (High).
-      
-#ifdef CUDA_ZSTD_DEBUG
-      printf("[FSE_PACK] InitStates: LL=%u (%u bits), OF=%u (%u bits), ML=%u (%u bits)\n",
-             stateLL, ctLL.tableLog, stateOF, ctOF.tableLog, stateML, ctML.tableLog);
-#endif
-
-      pack(stateML, ctML.tableLog);
-      pack(stateOF, ctOF.tableLog);
-      pack(stateLL, ctLL.tableLog);
-      
-      // Flush remaining bits
-      if (localPos > 0) {
-          bitStream.push_back((u8)(localContainer));
-      }
-
-      // 3. Sentinel Bit
-      pack(1, 1);
-
-      // 4. Flush remaining
-      while (localPos > 0) {
-        bitStream.push_back((u8)(localContainer));
-        localContainer >>= 8;
-        if (localPos >= 8) localPos -= 8; else localPos = 0;
-      }
-      
-      // Update member vars
-      bitContainer = localContainer;
-      bitPos = localPos;
-    };
-
-    flushBits();
-
-    // 4. Construct Final Output
-    // Format: [NumSeq][ModeByte][BitStream]
-    // Zstd Block Format:
-    // [Block Header (Managed by caller? No, caller calls us for Sequences
-    // Section)] Sequences Section: 1-3 bytes: Number of Sequences 1 byte:
-    // Symbol Compression Modes Bitstream.
-
-    // Write to d_output
-    // Need a Host Buffer first to assemble.
-    std::vector<u8> header;
-
-    // Num Sequences
-    if (num_sequences < 128) {
-      header.push_back((u8)num_sequences);
-    } else if (num_sequences < 0x7F00) {
-      header.push_back((u8)((num_sequences >> 8) + 128));
-      header.push_back((u8)(num_sequences & 0xFF));
-    } else {
-      header.push_back((u8)255);
-      header.push_back((u8)((num_sequences - 0x7F00) & 0xFF));
-      header.push_back((u8)((num_sequences - 0x7F00) >> 8));
-    }
-    // Fixed: Previous logic was loose. Stick to <128, <Longer.
-    // Simplifying: Just handle < 128 or error for now? No, assume standard
-    // encoding. If num_sequences >= 128, use 2-byte form: (byte0 >= 128). byte0
-    // = ((num_sequences >> 8) | 0x80) ? No. Value = ((byte0 - 128) << 8) +
-    // byte1. So byte0 = 128 + (num_sequences >> 8). byte1 = num_sequences &
-    // 0xFF.
-
-    // Mode Byte
-    // All Predefined (Mode 2? or 1?). RFC: Predefined=1.
-    // LL=1, OF=1, ML=1.
-    // Byte = (1<<6) | (1<<4) | (1<<2) = 0x54.
-    header.push_back(0x54);
-
-    // Total Size
-    u32 totalSize = header.size() + bitStream.size();
-    if (output_size)
-      *output_size = totalSize;
-    
-    if (bitStream.size() > 0) {
-    }
-
-    // Copy Header + Bitstream to Device
-    cudaMemcpyAsync(output, header.data(), header.size(),
-                    cudaMemcpyHostToDevice, stream);
-    cudaMemcpyAsync(output + header.size(), bitStream.data(), bitStream.size(),
-                    cudaMemcpyHostToDevice, stream);
-
-    cudaStreamSynchronize(stream);
-
-    // 5. Cleanup
-    delete[] h_offsets;
-    delete[] h_literal_lengths;
-    delete[] h_match_lengths;
-
-    auto free_ct = [&](HostFSECTable &t) {
-      delete[] t.nextState;
-      delete[] t.symbolTT;
-    };
-    free_ct(ctLL);
-    free_ct(ctML);
-    free_ct(ctOF);
-
-    return Status::SUCCESS;
-  }
-    // RFC 8878:
-    // "The first state is initialized by the first symbol to encode."
-    // state = nextStateTable[symbol + deltaFindState]? No.
-    //
-    // State initialization:
-    // state = CTable.nextState[ symbol_base + symbol ];  (Roughly)
-    // Actually, for the very first symbol encoded (which is the LAST symbol in
-    // the block), the state is just the Cumulative distribution index?
-    //
-    // Let's check Zstd source or spec.
-    // Spec: "The last symbol encoded (first one decoded) ... is encoded with
-    // state value." The decoder reads the initial state directly. The encoder
-    // thus must produce that state.
-    //
-    // Zstd Encoder Loop:
-    // 1. Init: state = CTable.nextState[ symbol ]; // Wait, this depends on
-    // which occurrence of symbol? Actually, usually it's just `state =
-    // table.nextState[symbol_start + symbol]`. But normalized counts > 1 means
-    // multiple states per symbol.
-    //
-    // Correct Init:
-    // state = nextState[ cumul[symbol] ]; // The very first slot for that
-    // symbol? No, any valid state for that symbol works for the *start*.
-    // Usually we pick the first one?
-    // Zstd reference `FSE_initCState`:
-    // state = header_table[symbol].nextState; // This implies a table lookup
-    // for init. In our `nextState` table, we have mapped (cumul[s]++) ->
-    // (table_size + u). So `nextState` contains the state values.
-    //
-    // For the FIRST symbol (last in stream), we just need ANY valid state `s`
-    // such that `symbol(s) == symbol`. Our CTable maps `index -> next_state`.
-    //
-    // Let's assume we pick a specific state for initialization.
-    // If we look at `FSE_encodeSymbol`:
-    // It takes `state`, emits bits, transitions to `next_state`.
-    //
-    // Issue: We process sequences in REVERSE (N-1 down to 0).
-    // The state is updated at each step.
-    // The Final State (after processing Seq 0) is written to the bitstream as
-    // the "Initial State" for the decoder.
-    //
-    // So, we need to initialize the state "before" the loop?
-    // Wait, the decoder starts with `state = readBits(tableLog)`.
-    // This `state` corresponds to the state *after* encoding the last symbol
-    // (Seq 0). So yes, we encode Seq 0, produce a state, and that state is
-    // written?
-    //
-    // NO!
-    // FSE is a state machine.
-    // Encoder:
-    // Init state.
-    // Loop (Symbol S):
-    //   Emit bits derived from (State, S).
-    //   Update State = NextState(State, S).
-    //
-    // If we process in Reverse (Decoder: forward read):
-    // Decoder: Read State. Loop: Emit S(State). Update State.
-    // Encoder: ???
-    //
-    // Zstd Encoder operates in REVERSE of Decoder direction.
-    // Decoder reads bits -> Symbols.
-    // Encoder takes Symbols -> bits.
-    //
-    // To encode:
-    // We start with the LAST symbol (Seq N-1)?
-    // Decoder reads Seq 0, then Seq 1...
-    // Input stream: [Seq0] [Seq1] ...
-    //
-    // Decoder reads from END of bitstream backwards?
-    // "The FSE bitstream is read in reverse direction"
-    // So the bitstream is a stack.
-    // We push symbols onto the stack.
-    // Last Symbol Encoded = First Symbol Decoded.
-    // If Decoder reads Seq 0 first, then Seq 0 must be LAST Encoded.
-    //
-    // Correct Order:
-    // Encode Seq N-1 -> State changes -> Bits emitted.
-    // ...
-    // Encode Seq 0 -> State changes -> Bits emitted.
-    // Final State is written as bitstream header.
-    //
-    // So we iterate: i = num_sequences - 1 down to 0. (Wait, if Seq 0 is last
-    // encoded, we iterate sequences Forward 0..N-1?)
-    //
-    // Let's check `fse.cu` decoder:
-    // `decode_sequences_interleaved`:
-    // `bit_position = input_size * 8;` (Starts at end)
-    // `state = read_bits(..., tableLog);` (Initial state)
-    // Loop `i = num_sequences - 1 down to 0`:
-    //    Decoder produces Seq i.
-    //
-    // So Decoder produces Seq N-1 FIRST?
-    // `h_output[i] = symbol;` -> i counts down.
-    // So Seq N-1 is at the END of the output array.
-    // Seq 0 is at the START.
-    //
-    // If loop is `i = N-1 down to 0`, first iteration handles i=N-1.
-    // So the Initial State (start of bitstream read) corresponds to Seq N-1.
-    //
-    // Therefore, Encoder must finish with Seq N-1.
-    // So Encoder iterates 0 to N-1?
-    //
-    // Correct. Encoder processes Seq 0, then 1... then N-1.
-    // The resulting state after Seq N-1 is written to the stream.
-    //
-    // But how do we Initialize Encoder State?
-    // We don't "Encode Seq 0" using a previous state.
-    // The very first symbol (Seq 0) determines the state?
-    //
-    // No. "The last symbol encoded is encoded with state value".
-    // If we encode 0..N-1, the last one is N-1.
-    //
-    // Basic FSE Encoding:
-    // State = CTable.nextState[ symbol_0 ]; // Pick a state for first symbol.
-    // Loop i = 1 to N-1:
-    //    Symbol s = seq[i];
-    //    Encode(s, State):
-    //       nbBits = ...
-    //       Emit(nbBits)
-    //       State = Next(State, s)
-    //
-    // This produces a state chain.
-    //
-    // Let's verify Sequence vs Interleaving.
-    // We have 3 streams: LL, ML, OF.
-    // They are interleaved.
-    // "Decoder Read Order: OF State, ML State, LL State, LL Extra, ML Extra, OF
-    // Extra"
-    //
-    // Decoder Loop (i=N-1 to 0):
-    // 1. Decode OF (uses stateOF) -> update stateOF
-    // 2. Decode ML (uses stateML) -> update stateML
-    // 3. Decode LL (uses stateLL) -> update stateLL
-    // ...
-    //
-    // So for Sequence i=N-1:
-    // We need stateOF, stateML, stateLL ready.
-    // These states come from the "Initial State" read from stream.
-    //
-    // So the Encoder must produce stateOF, stateML, stateLL corresponding to
-    // Seq N-1. This is the Result of encoding sequences 0..N-1.
-    //
-    // So Encoder Loop:
-    // Init stateLL, stateML, stateOF from Seq[0].
-    // Loop i = 1 to N-1:
-    //   Encode LL[i], ML[i], OF[i].
-    //
-    // Wait, interleaving is tricky.
-    // Decoder reads: OF bits? ML bits?
-    // Decoder reads bits for NEXT state.
-    //
-    // Encoder:
-    // We emit bits for the PREVIOUS state transition?
-    // Logic: `nbBits = (state + deltaNbBits) >> 16`.
-    // These bits allow the decoder (which has `state` (our `nextState`)) to
-    // distinguish which `previousState` (decoder's `nextState`) we came from.
-    //
-    // So if Decoder goes N-1 -> 0.
-    // Encoder goes 0 -> N-1.
-    //
-    // Init:
-    // stateLL = TableLL.nextState[ cumul[ LL[0] ] ]; // Just one valid state?
-    // stateML = ...
-    // stateOF = ...
-    //
-    // Loop i = 1 to N-1:
-    //    (Need to handle Interleaving: OF, ML, LL)
-    //    BUT Decoder reads OF, ML, LL.
-    //    Encoder writes LL, ML, OF? (Reverse stack)
-    //    No, bitstream is a stack.
-    //    If Decoder pops OF, then ML, then LL...
-    //    Encoder must Push LL, then ML, then OF.
-    //
-    //    So inside the loop (i = 0 to N-1? or 1 to N-1?):
-    //    We check the loop range carefully.
-    //    If we init with i=0.
-    //    We loop i=1 to N-1.
-    //    At step i: we encode Seq[i].
-    //    Push LL[i] bits. Push ML[i] bits. Push OF[i] bits.
-    //
-    //    Let's check `encodeSymbol` logic.
-    //    It modifies `state` and outputs bits.
-    //    `host_fse_encode_symbol(bitStream, table, symbol, state)`
-    //
-    //    Do we treat init specially?
-    //    Yes, the first symbol (0) doesn't emit bits? It ESTABLISHES the
-    //    baseline state. So for i=0, we just set `state`. For i=1..N-1, we
-    //    perform transitions.
-    //
-    //    Wait, does Seq 0 emit bits?
-    //    If we have 1 sequence.
-    //    Init state from Seq 0.
-    //    Write state to stream.
-    //    Decoder reads state.
-    //    Decodes Seq 0.
-    //    Loop 0 to 0. Done.
-    //    Correct. Seq 0 emits NO bits during the loop.
-    //
-    //    So Encoder Loop is `i = 1 to num_sequences - 1`.
-    //    Inside loop:
-    //       Encode Seq[i].
-    //       Order: Push LL, ML, OF (To reverse Decoder's OF, ML, LL).
-    //       Actually, check Decoder:
-    //       `if (decode_of) ... stateOF = ...`
-    //       `if (decode_ml) ... stateML = ...`
-    //       `if (decode_ll) ... stateLL = ...`
-    //       Then `Read Extra Bits`.
-    //
-    //       Decoder reads bitstream "Backwards" from end?
-    //       `read_bits_from_buffer` reads from `bit_position`. `bit_position -=
-    //       num_bits`. So it consumes from high to low. So "Pushing" bits means
-    //       appending to the stream (forward write), but logic assumes stack?
-    //       YES.
-    //       So if Decoder reads OF, then ML, then LL.
-    //       And reads "Top" of stack.
-    //       Then Encoder must write LL (bottom), then ML, then OF (top).
-    //
-    //    Wait. `write_bits_verified` writes to `bit_position`. `bit_position +=
-    //    num_bits`. So we write Forward. Decoder reads Backward. This is a
-    //    Stack. First Written = Last Read. Last Written = First Read.
-    //
-    //    Decoder reads: OF, ML, LL.
-    //    So Encoder writes: LL, ML, OF.
-    //
-    // Okay, that's the order.
-    //
-    // One catch: `deltaNbBits` gives the number of bits to emit for the *state
-    // transition*.
-    //
-    // Correct.
-    //
-    // Implementation Detail:
-    // `state` needs to be initialized correctly.
-    // `state = nextState[ cumul[symbol] ]`.
-    //
-    // Extra Bits:
-    // `get_lit_len_extra_bits`, etc.
-    //
-    // This looks complete.
-    //
-    // Check `num_sequences == 0` handled.
-    // Check `num_sequences == 1`. Loop doesn't run. State written. Correct.
-
-    // Write Header:
-    // Flush bitstream (align).
-    // Write 3 bytes (final states) or packed?
-    // Zstd Spec: "Compressed FSE streams... The bitstream starts with the FSE
-    // state values." "Each state is stored using tableLog bits." Packed? "The 3
-    // states are packed... LL (tableLog), OF (tableLog), ML (tableLog)." Wait,
-    // check spec. Actually, `decode_sequences_interleaved` reads: `bit_position
-    // -= table_log;` `state = read_bits...` It does this for EACH stream if
-    // they are separate? But here they are INTERLEAVED.
-    //
-    // Ah, `decode_sequences_interleaved` in `fse.cu` (Host Code) isn't the
-    // whole story. Wait, `decode_sequences_interleaved` IS the kernel/host
-    // decoder. Lines 3988: `if (bit_pos < ll_log + ml_log + of_log)` `stateLL =
-    // read_bits...` `stateML = read_bits...` `stateOF = read_bits...` (Wait,
-    // `bit_pos` handling there) It reads LL, then ML, then OF? Let's re-read
-    // the decoder I fixed/viewed earlier (Line 3996 in fse.cu).
-    //
-    // 3996: `if (decode_ll) ... stateLL = ...`
-    // 4012: `if (decode_of) ... stateOF = ...`
-    // 4029: `if (decode_ml) ... stateML = ...`
-    //
-    // The order in source seems to be LL, OF, ML.
-    // BUT they read from `bit_pos`.
-    // `bit_pos` is decremented.
-    //
-    // So the Last one read (Lowest bit address) is the First one written?
-    // No.
-    // `bit_pos` initialized to `input_size * 8`.
-    // Decrement -> High bits first.
-    //
-    // If Source order is:
-    // 1. LL (Reads from Top)
-    // 2. OF (Reads from New Top)
-    // 3. ML (Reads from New New Top)
-    //
-    // Then Encoder must write: ML, OF, LL.
-    //
-    // Wait, `bit_position` logic:
-    // `stateLL = read_bits(..., bit_pos -= ll_log, ...)`
-    //
-    // So LL is at the VERY END of the stream.
-    // OF is before LL.
-    // ML is before OF.
-    //
-    // Encoder (Forward Write):
-    // Write ML Final State.
-    // Write OF Final State.
-    // Write LL Final State.
-    //
-    // Then Body.
-    //
-    // Wait, the Body loop in Decoder also reads backwards.
-    // So Encoder Body (Forward Write) must push bits such that Decoder reads
-    // them in correct order.
-    //
-    // Decoder Loop (N-1 to 0):
-    // 1. OF State (Top)
-    // ...
-    //
-    // So Encoder Body (0 to N-1):
-    // Push OF State bits? No.
-    // If Decoder reads OF State FIRST (Highest Address),
-    // Encoder must write OF State LAST (Highest Address).
-    //
-    // So in Encoder Loop (i=1 to N-1):
-    // (We are generating bits for transition FROM i-1 TO i? No, from i TO i-1?)
-    //
-    // Encode Step:
-    // Decoder: State' = Table[State] + bits. (State grows/changes)
-    // Encoder: State = Table[State'] >> bits ??
-    //
-    // Zstd "Encoding is reverse of decoding".
-    //
-    // Let's just follow the logic:
-    // Decoder reads OF, ML, LL.
-    // So Encoder writes LL, ML, OF. (So OF is at top).
-    //
-    // Okay.
-
-    // Final check on `addBits` helper.
-    // It appends to `bitStream`.
-    // Make sure `bitStream` is `vector<unsigned char>`.
-
-    // Copy to `output`.
-    // `output[0] = 0x01;` // Header Mode? (Predefined)
-    // Actually `encode_sequences_with_predefined_fse` header?
-    // "Format:
-    // [mode_byte=0x01][ll_fse_stream][ml_fse_stream][offset_fse_stream]" This
-    // comment in `manager.cu` suggests 3 separate streams? But
-    // `decode_sequences_interleaved` handles 3 interleaved streams.
-    //
-    // If they are separate streams, they are concatenated.
-    // If interleaved, they are one stream.
-    //
-    // Standard Zstd Compressed Block:
-    // - Literals Section
-    // - Sequences Section
-    //   - Sequences Header (Num Sequences, Modes)
-    //   - FSE Tables (if needed)
-    //   - Bitstream (Interleaved)
-    //
-    // My function `encode_sequences_with_predefined_fse` is called to produce
-    // THE SEQUENCES SECTION? Or just the bitstream?
-    //
-    // "Format: [mode_byte=0x01]..."
-    // This signature suggests it produces the WHOLE sequences section,
-    // including header/modes.
-    //
-    // `encode_sequences_raw` writes `[num_sequences_header][fse_modes=0xFF]...`
-    //
-    // So yes.
-    // 1. Write Num Sequences (1-3 bytes).
-    // 2. Write Mode Byte (0x54 for all predefined? or 0x9B?).
-    //       LL=Predef(1), OF=Predef(1), ML=Predef(1). -> 0x55 (01 01 01 01?)
-    //       Bits 6-7: LL. 4-5: OF. 2-3: ML.
-    //       1<<6 | 1<<4 | 1<<2 = 64+16+4 = 84 = 0x54.
-    //
-    //    3. Write Bitstream.
-    //       Since we are Predefined, no tables.
-    //       Just the Interleaved Stream.
-    //
-    //       Wait, Zstd spec says if Predefined, no tables.
-    //
-    //    So output = NumSeq + ModeByte + Bitstream.
-
-    // I will simply implement the bitstream encoding and wrap it.
-
-    // 5. Cleanup: delete host arrays.
-
-    // Ready to write.
-#endif
 
   /**
    * @brief Tier 4 fallback: Encode sequences without compression (raw u32
@@ -5345,12 +4604,6 @@ private:
                           cudaMemcpyDeviceToHost));
     
 
-    auto read_le16 = [&](const unsigned char *src) -> u32 {
-      return (u32)src[0] | ((u32)src[1] << 8);
-    };
-    auto read_le24 = [&](const unsigned char *src) -> u32 {
-      return (u32)src[0] | ((u32)src[1] << 8) | ((u32)src[2] << 16);
-    };
     auto read_le32 = [&](const unsigned char *src) -> u32 {
       return (u32)src[0] | ((u32)src[1] << 8) | ((u32)src[2] << 16) |
              ((u32)src[3] << 24);

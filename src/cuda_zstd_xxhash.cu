@@ -406,8 +406,6 @@ __host__ u64 xxhash_64_cpu(const unsigned char *input, size_t input_size, u64 se
 // Utility Functions
 // ============================================================================
 
-[[maybe_unused]] static void print_xxhash64(u64 hash) {}
-
 bool verify_xxhash64(const unsigned char *data, u32 size, u64 expected_hash,
                      u64 seed) {
   u64 computed_hash = xxhash_64_cpu(data, size, seed);

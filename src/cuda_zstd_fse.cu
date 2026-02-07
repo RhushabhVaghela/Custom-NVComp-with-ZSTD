@@ -302,7 +302,8 @@ __host__ void write_bits_to_buffer_verified(unsigned char *buffer,
  * - Handles all cases consistently
  */
 __host__ u64 read_bits_from_buffer_verified(const unsigned char *buffer,
-                                            u32 &bit_position, u32 num_bits) {
+                                            u32 &bit_position, u32 num_bits,
+                                            u32 buffer_size) {
   if (num_bits == 0)
     return 0;
   if (num_bits > 64) {
@@ -319,6 +320,8 @@ __host__ u64 read_bits_from_buffer_verified(const unsigned char *buffer,
 
   // ===== CASE 1: All bits in current byte =====
   if (bit_offset + num_bits <= 8) {
+    if (byte_offset >= buffer_size)
+      return 0;
     u64 mask = (1ULL << num_bits) - 1;
     result = (buffer[byte_offset] >> bit_offset) & mask;
     return result;
@@ -328,6 +331,8 @@ __host__ u64 read_bits_from_buffer_verified(const unsigned char *buffer,
   u32 bits_in_first_byte = 8 - bit_offset;
   u64 mask = (1ULL << bits_in_first_byte) - 1;
 
+  if (byte_offset >= buffer_size)
+    return 0;
   result = (buffer[byte_offset] >> bit_offset) & mask;
   bits_read = bits_in_first_byte;
   byte_offset++;
@@ -335,6 +340,8 @@ __host__ u64 read_bits_from_buffer_verified(const unsigned char *buffer,
 
   // === Read complete middle bytes ===
   while (num_bits >= 8) {
+    if (byte_offset >= buffer_size)
+      return result; // Return partial result rather than OOB read
     result |= ((u64)buffer[byte_offset] << bits_read);
     bits_read += 8;
     num_bits -= 8;
@@ -343,6 +350,8 @@ __host__ u64 read_bits_from_buffer_verified(const unsigned char *buffer,
 
   // === Read remaining bits ===
   if (num_bits > 0) {
+    if (byte_offset >= buffer_size)
+      return result; // Return partial result rather than OOB read
     mask = (1ULL << num_bits) - 1;
     result |= (((u64)buffer[byte_offset] & mask) << bits_read);
   }
@@ -457,7 +466,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
   // Initial state is the last 'table_log' bits of the stream
   bit_position -= table_log;
   u16 state = (u16)read_bits_from_buffer_verified(encoded_data, bit_position,
-                                                  table_log);
+                                                  table_log,
+                                                  encoded_size_bytes);
 
   for (int i = (int)original_size - 1; i >= 0; i--) {
     if (state >= table_size) {
@@ -478,7 +488,8 @@ __host__ Status validate_fse_roundtrip(const u8 *encoded_data,
     if (num_bits > 0) {
       bit_position -= num_bits;
       u64 new_bits =
-          read_bits_from_buffer_verified(encoded_data, bit_position, num_bits);
+          read_bits_from_buffer_verified(encoded_data, bit_position, num_bits,
+                                         encoded_size_bytes);
 
       state = h_dtable.newState[state] + new_bits;
     }
@@ -602,7 +613,8 @@ write_bits_to_buffer(unsigned char *buffer,
  *       length before entering decode loops.
  */
 __host__ u64 read_bits_from_buffer(const unsigned char *buffer,
-                                   u32 &bit_position, u32 num_bits) {
+                                   u32 &bit_position, u32 num_bits,
+                                   u32 buffer_size) {
   if (num_bits == 0)
     return 0;
   if (num_bits > 57) // Max safe bits in a u64 with bit_off up to 7
@@ -611,9 +623,24 @@ __host__ u64 read_bits_from_buffer(const unsigned char *buffer,
   u32 byte_off = bit_position / 8;
   u32 bit_off = bit_position % 8;
 
+  // Bounds check: ensure we don't read past the buffer
+  if (byte_off + 8 > buffer_size) {
+    // Fall back to safe per-byte reads for tail of buffer
+    u64 val = 0;
+    for (int i = 0; i < 8; i++) {
+      if (byte_off + i < buffer_size) {
+        val |= ((u64)buffer[byte_off + i]) << (i * 8);
+      }
+    }
+    u64 mask = ((u64)1 << num_bits) - 1;
+    u64 result = (val >> bit_off) & mask;
+    bit_position += num_bits;
+    return result;
+  }
+
   u64 val = 0;
   // Read up to 8 bytes to safely cover any 32-bit read starting at any
-  // bit_offset. Safety padding of 16 bytes in h_input ensures this is safe.
+  // bit_offset.
   for (int i = 0; i < 8; i++) {
     val |= ((u64)buffer[byte_off + i]) << (i * 8);
   }
@@ -918,7 +945,7 @@ __host__ Status create_multi_table_fse(MultiTableFSE &multi_table,
   multi_table.active_tables = 0;
 
   u32 *d_frequencies;
-  cudaMalloc(&d_frequencies, 256 * sizeof(u32));
+  CUDA_CHECK(cudaMalloc(&d_frequencies, 256 * sizeof(u32)));
   cudaMemset(d_frequencies, 0, 256 * sizeof(u32));
 
   const u32 threads = 256;
@@ -3304,110 +3331,6 @@ __global__ void fse_parallel_decode_kernel_v2(
   }
 }
 
-/**
- * @brief (Internal) Custom CPU builder for FSE Decode Table.
- * Guarantees logic parity with FSE_buildCTable_Host.
- */
-__host__ static Status FSE_buildDTable_Internal(const u16 *normalized_freqs,
-                                                u32 max_symbol, u32 table_size,
-                                                FSEDecodeTable &d_table) {
-  // 1. Calculate table log
-  // Assumes table_size is power of 2
-  u32 table_log = 0;
-  while ((1u << table_log) < table_size)
-    table_log++;
-
-  
-  // 2. Spread Symbols (Matches ZSTD)
-  const u32 table_mask = table_size - 1;
-  const u32 step = (table_size >> 1) + (table_size >> 3) + 3;
-
-  std::vector<u8> spread_symbol(table_size);
-  u32 highThreshold = table_size - 1;
-
-  // Phase 1: Place low-probability (-1) symbols at highThreshold positions
-  for (u32 s = 0; s <= max_symbol; s++) {
-    if ((i16)normalized_freqs[s] == -1) {
-      spread_symbol[highThreshold--] = (u8)s;
-    }
-  }
-
-  // Phase 2: Spread regular symbols
-  u32 position = 0;
-  for (u32 s = 0; s <= max_symbol; s++) {
-    i16 count = (i16)normalized_freqs[s]; // Cast to signed to handle -1 check
-    if (count <= 0)
-      continue; // Skip 0 and -1 (already handled)
-
-    for (int i = 0; i < count; i++) {
-      spread_symbol[position] = (u8)s;
-      position = (position + step) & table_mask;
-      while (position > highThreshold) {
-        position = (position + step) & table_mask;
-      }
-    }
-  }
-
-  if (position != 0) {
-    // Error condition: Spread failed to fill correctly
-    // In a void/Status function we should match return type
-    return Status::ERROR_CORRUPT_DATA;
-  }
-
-  // 3. Build Table Entries
-  u16 symbol_next[256]; // Max symbols
-  for (u32 s = 0; s <= max_symbol; s++) {
-    i16 count = (i16)normalized_freqs[s];
-    if (count == -1)
-      symbol_next[s] = 1; // Low-prob symbol gets 1 entry
-    else
-      symbol_next[s] = (u16)count;
-  }
-
-  for (u32 state = 0; state < table_size; state++) {
-    u8 symbol = spread_symbol[state];
-    u16 next_state = symbol_next[symbol]++;
-
-    u32 nb_bits;
-    u16 new_state;
-
-    // Handle low-probability symbols (-1)
-    if ((i16)normalized_freqs[symbol] == -1) {
-      nb_bits = table_log; // Always read full table_log bits
-    } else {
-      // Calculate high_bit (CLZ)
-      u32 high_bit;
-#if defined(__GNUC__) || defined(__clang__)
-      high_bit = 31 - clz_u32(next_state);
-#elif defined(_MSC_VER)
-      high_bit = 0;
-      u32 tmp = next_state;
-      while (tmp >>= 1)
-        high_bit++;
-#else
-      high_bit = 0;
-      u32 tmp = next_state;
-      while (tmp >>= 1)
-        high_bit++;
-#endif
-
-      nb_bits = table_log - high_bit;
-      new_state = (u16)((next_state << nb_bits) - table_size);
-    }
-
-    d_table.symbol[state] = symbol;
-
-    d_table.nbBits[state] = (u8)nb_bits;
-    d_table.newState[state] = new_state;
-
-    
-    if (table_size == 2048 && state == 316) {
-      // Reduced debug print to avoid clutter unless needed
-    }
-  }
-
-  return Status::SUCCESS;
-}
 
 __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
                            unsigned char *d_output,
@@ -3585,7 +3508,7 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     }
 
     u32 read_pos = bit_position;
-    u32 raw_state = read_bits_from_buffer(bitstream, read_pos, state_bits);
+    u32 raw_state = read_bits_from_buffer(bitstream, read_pos, state_bits, bitstream_size);
 
     // Raw state (0..table_size-1) is already the index
     u32 state = raw_state;
@@ -3631,7 +3554,7 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
         bit_position -= num_bits;
 
         read_pos = bit_position;
-        u64 bits = read_bits_from_buffer(bitstream, read_pos, num_bits);
+        u64 bits = read_bits_from_buffer(bitstream, read_pos, num_bits, bitstream_size);
 
         state = next_state_base + bits;
       } else {
@@ -4433,19 +4356,44 @@ __host__ Status decode_fse_predefined(const unsigned char *d_input,
   u32 bit_position = input_size * 8;
 
   // Read initial state (last table_log bits)
+  if (bit_position < table_log) {
+    delete[] h_table.newState;
+    delete[] h_table.symbol;
+    delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
+    return Status::ERROR_CORRUPT_DATA;
+  }
   bit_position -= table_log;
-  u32 state = read_bits_from_buffer(h_input.data(), bit_position, table_log);
+  u32 state = read_bits_from_buffer(h_input.data(), bit_position, table_log, input_size);
 
   // Decode symbols in reverse
   for (int i = (int)num_sequences - 1; i >= 0; i--) {
+
+    if (state >= table_size) {
+      delete[] h_table.newState;
+      delete[] h_table.symbol;
+      delete[] h_table.nbBits;
+      delete[] h_table.nbAdditionalBits;
+      delete[] h_table.baseValue;
+      return Status::ERROR_CORRUPT_DATA;
+    }
 
     u8 symbol = h_table.symbol[state];
     u8 num_bits = h_table.nbBits[state];
 
     // Read bits for next state
+    if (bit_position < num_bits) {
+      delete[] h_table.newState;
+      delete[] h_table.symbol;
+      delete[] h_table.nbBits;
+      delete[] h_table.nbAdditionalBits;
+      delete[] h_table.baseValue;
+      return Status::ERROR_CORRUPT_DATA;
+    }
     bit_position -= num_bits;
     u32 new_bits =
-        read_bits_from_buffer(h_input.data(), bit_position, num_bits);
+        read_bits_from_buffer(h_input.data(), bit_position, num_bits, input_size);
 
     // Calculate next state
     u32 next_state_base = h_table.newState[state];

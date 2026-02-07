@@ -357,12 +357,6 @@ public:
     // Advanced statistics
     void get_detailed_statistics(PoolStats& stats) const;
     double get_average_allocation_latency() const;
-    double get_fragmentation_ratio() const;
-    
-    // State management
-    void capture_system_state();
-    Status restore_system_state();
-    void log_allocation_decision(const std::string& decision, const AllocationContext& context);
     
 private:
     // Pool storage - one pool per size class

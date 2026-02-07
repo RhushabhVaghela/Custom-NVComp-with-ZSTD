@@ -120,7 +120,7 @@ int main() {
       create_sample(test_data_size, "REPEATING_SEQUENCE_");
 
   byte_t *d_input, *d_compressed, *d_decompressed, *d_temp;
-  cudaError_t err;
+  [[maybe_unused]] cudaError_t err;
   err = cudaMalloc(&d_input, test_data_size);
   assert(err == cudaSuccess);
   // Calculate max compressed size - use 2x input to handle worst-case expansion

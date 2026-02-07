@@ -54,7 +54,7 @@ void test_workspace_reuse() {
     cuda_zstd::Status status = allocate_compression_workspace(workspace, max_block_size, config);
     assert(status == cuda_zstd::Status::SUCCESS);
 
-    void* original_hash_ptr = workspace.d_hash_table;
+    [[maybe_unused]] void* original_hash_ptr = workspace.d_hash_table;
 
     // Use multiple times WITHOUT re-allocation
     for (int i = 0; i < 10; i++) {

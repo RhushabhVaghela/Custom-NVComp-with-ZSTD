@@ -32,6 +32,7 @@ void generate_fse_data(std::vector<uint8_t> &data, size_t size) {
   }
 }
 
+#undef CUDA_CHECK // Override library version with benchmark-specific version
 #define CUDA_CHECK(call)                                                       \
   do {                                                                         \
     cudaError_t err = call;                                                    \
