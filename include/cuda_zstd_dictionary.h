@@ -70,10 +70,37 @@ struct DictionaryContent {
   u32 dict_id;
 };
 
-// Complete Dictionary struct for backward compatibility
+/**
+ * @brief Complete Dictionary struct for backward compatibility.
+ *
+ * ## Ownership Semantics
+ *
+ * This struct has **asymmetric ownership** of its `raw_content` pointer:
+ *
+ * - **Destructor does NOT free `raw_content`.**  This is intentional.
+ *   When a Dictionary is loaded via `DictionaryManager::set_dictionary()`,
+ *   the raw_content pointer is a shallow copy of externally-managed GPU
+ *   memory allocated by `allocate_dictionary_gpu()`.  Freeing in the
+ *   destructor would cause double-free segfaults.
+ *
+ * - **Copy constructor/assignment DO deep-copy `raw_content`** using
+ *   `malloc`/`memcpy` (host memory).  The copy's raw_content is owned
+ *   by the copy and must be freed by the caller if the copy is no longer
+ *   needed — but since the destructor is a no-op, the caller must call
+ *   `free(dict.raw_content)` explicitly for copies.
+ *
+ * - **GPU-side memory** (allocated via `allocate_dictionary_gpu`) must
+ *   be released via `DictionaryManager::free_dictionary_gpu()`.  The
+ *   Dictionary struct itself never calls cudaFree.
+ *
+ * In summary:
+ *   - Original dict from set_dictionary → caller frees via free_dictionary_gpu()
+ *   - Copied dict (copy ctor/assignment) → caller frees raw_content via free()
+ *   - Destructor → intentional no-op to prevent double-free
+ */
 struct Dictionary {
   DictionaryHeader header;
-  unsigned char *raw_content;
+  unsigned char *raw_content;  ///< NOT owned by destructor. See ownership docs above.
   u32 raw_size;
 
   Dictionary() : raw_content(nullptr), raw_size(0) {
@@ -87,16 +114,13 @@ struct Dictionary {
     header.raw_content_size = 0;
   }
 
-  // CRITICAL FIX: Do NOT free memory in destructor!
-  // Memory is managed externally via
-  // allocate_dictionary_gpu/free_dictionary_gpu. Shallow copies from
-  // set_dictionary would cause double-free segfault.
-  ~Dictionary() {
-    // Intentionally do nothing - caller is responsible for memory management
-    // via DictionaryManager::free_dictionary_gpu()
-  }
+  /// Destructor: intentional no-op. Memory is managed externally via
+  /// DictionaryManager::free_dictionary_gpu() for GPU allocations, or
+  /// manually via free() for host copies. See ownership docs above.
+  ~Dictionary() = default;
 
-  // Copy constructor with deep copy
+  /// Copy constructor: deep-copies raw_content into new host allocation.
+  /// Caller is responsible for freeing the copy's raw_content via free().
   Dictionary(const Dictionary &other) : raw_content(nullptr), raw_size(0) {
     header = other.header;
     raw_size = other.raw_size;
@@ -108,7 +132,8 @@ struct Dictionary {
     }
   }
 
-  // Copy assignment with deep copy
+  /// Copy assignment: deep-copies raw_content into new host allocation.
+  /// Frees any previously held host content. See ownership docs above.
   Dictionary &operator=(const Dictionary &other) {
     if (this != &other) {
       // Free existing content

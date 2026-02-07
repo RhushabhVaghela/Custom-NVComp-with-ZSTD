@@ -856,10 +856,95 @@ Status validate_config(const CompressionConfig &config) {
 }
 
 void apply_level_parameters(CompressionConfig &config) {
-  // TODO: implement level-specific parameter tuning
-  // Currently a no-op: level parameters are already applied in from_level().
-  // This function is called by DefaultZstdManager but doesn't need to do
-  // anything since config is already populated with level-appropriate values
+  // Map compression level to concrete parameters.
+  // This mirrors from_level() but mutates an existing config so callers like
+  // set_compression_level() that only set config.level get full parameter
+  // resolution without constructing a new CompressionConfig.
+  int level = config.level;
+
+  // Clamp to valid range
+  if (level < static_cast<int>(MIN_COMPRESSION_LEVEL))
+    level = static_cast<int>(MIN_COMPRESSION_LEVEL);
+  if (level > static_cast<int>(MAX_COMPRESSION_LEVEL))
+    level = static_cast<int>(MAX_COMPRESSION_LEVEL);
+
+  // --- Strategy selection ---
+  config.strategy = CompressionConfig::level_to_strategy(level);
+
+  // --- Window, hash, chain, search parameters ---
+  if (level <= 1) {
+    // Fast: small window, minimal search
+    config.window_log = 18;
+    config.hash_log = 15;
+    config.chain_log = 15;
+    config.search_log = 1;
+    config.min_match = 3;
+    config.target_length = 0;
+  } else if (level <= 3) {
+    // Double-fast: moderate window
+    config.window_log = 19;
+    config.hash_log = 17;
+    config.chain_log = 17;
+    config.search_log = 1;
+    config.min_match = 3;
+    config.target_length = 0;
+  } else if (level <= 6) {
+    // Greedy: balanced
+    config.window_log = 20;
+    config.hash_log = 17;
+    config.chain_log = 17;
+    config.search_log = (level == 4) ? 2 : (level == 5) ? 4 : 8;
+    config.min_match = 3;
+    config.target_length = (level <= 5) ? 0 : 8;
+  } else if (level <= 9) {
+    // Lazy: better compression, larger window
+    config.window_log = 22;
+    config.hash_log = 18;
+    config.chain_log = 18;
+    config.search_log = (level == 7) ? 8 : (level == 8) ? 16 : 32;
+    config.min_match = 3;
+    config.target_length = (level <= 8) ? 16 : 32;
+  } else if (level <= 12) {
+    // Lazy continued: high compression
+    config.window_log = 23;
+    config.hash_log = 19;
+    config.chain_log = 19;
+    config.search_log = (level == 10) ? 64 : (level == 11) ? 128 : 256;
+    config.min_match = 3;
+    config.target_length = 64;
+  } else if (level <= 15) {
+    // Lazy2: very high compression
+    config.window_log = 23;
+    config.hash_log = (level <= 14) ? 19 : 20;
+    config.chain_log = 19;
+    config.search_log = (level <= 14) ? 256 : 512;
+    config.min_match = 3;
+    config.target_length = 128;
+  } else if (level <= 18) {
+    // BT Lazy2: binary-tree matching
+    config.window_log = 23;
+    config.hash_log = 20;
+    config.chain_log = 20;
+    config.search_log = (level <= 17) ? 512 : 999;
+    config.min_match = 3;
+    config.target_length = 256;
+  } else if (level <= 20) {
+    // BT Optimal: optimal parsing
+    config.window_log = 23;
+    config.hash_log = 20;
+    config.chain_log = 20;
+    config.search_log = 999;
+    config.min_match = 3;
+    config.target_length = 999;
+  } else {
+    // BT Ultra: maximum compression (levels 21-22)
+    config.window_log = 23;
+    config.hash_log = 20;
+    config.chain_log = 20;
+    config.search_log = 999;
+    config.min_match = 3;
+    config.target_length = 999;
+  }
 }
 
 // ============================================================================

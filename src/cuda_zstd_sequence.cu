@@ -481,29 +481,30 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   const u32 threads = 256;
   const u32 blocks = (num_sequences + threads - 1) / threads;
 
-  // --- Allocate temporary buffers ---
-  // TODO: pool these allocations
-  u32 *d_actual_offsets;
-  u32 *d_literals_lengths;
-  u32 *d_match_lengths;
-  u32 *d_literal_offsets;
-  u32 *d_match_offsets; // Scanned match lengths
-  u32 *d_output_offsets;
-  u32 *d_rep_codes_local = nullptr;
-  u32 *d_error_flag;
+  // --- Allocate temporary buffers (pooled into single allocation) ---
+  // 6 arrays of num_sequences u32s + 1 error flag u32 + 3 rep_codes u32s
+  const size_t seq_buf_size = num_sequences * sizeof(u32);
+  const size_t rep_buf_size = 3 * sizeof(u32);
+  const size_t err_buf_size = sizeof(u32);
+  const size_t total_pool_size = 6 * seq_buf_size + err_buf_size + rep_buf_size;
 
-  CUDA_CHECK(cudaMalloc(&d_actual_offsets, num_sequences * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_literals_lengths, num_sequences * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_match_lengths, num_sequences * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_literal_offsets, num_sequences * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_match_offsets, num_sequences * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_output_offsets, num_sequences * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_error_flag, sizeof(u32)));
+  u8 *d_pool = nullptr;
+  CUDA_CHECK(cudaMalloc(&d_pool, total_pool_size));
+
+  // Compute sub-buffer offsets within the single allocation
+  u32 *d_actual_offsets   = reinterpret_cast<u32 *>(d_pool + 0 * seq_buf_size);
+  u32 *d_literals_lengths = reinterpret_cast<u32 *>(d_pool + 1 * seq_buf_size);
+  u32 *d_match_lengths    = reinterpret_cast<u32 *>(d_pool + 2 * seq_buf_size);
+  u32 *d_literal_offsets  = reinterpret_cast<u32 *>(d_pool + 3 * seq_buf_size);
+  u32 *d_match_offsets    = reinterpret_cast<u32 *>(d_pool + 4 * seq_buf_size);
+  u32 *d_output_offsets   = reinterpret_cast<u32 *>(d_pool + 5 * seq_buf_size);
+  u32 *d_error_flag       = reinterpret_cast<u32 *>(d_pool + 6 * seq_buf_size);
+  u32 *d_rep_codes_local  = reinterpret_cast<u32 *>(d_pool + 6 * seq_buf_size + err_buf_size);
+
   CUDA_CHECK(cudaMemsetAsync(d_error_flag, 0, sizeof(u32), stream));
 
   u32 *d_rep_to_use = d_rep_codes_inout;
   if (!d_rep_to_use) {
-    CUDA_CHECK(cudaMalloc(&d_rep_codes_local, 3 * sizeof(u32)));
     u32 h_rep_codes[3] = {1, 4, 8};
     CUDA_CHECK(cudaMemcpyAsync(d_rep_codes_local, h_rep_codes, 3 * sizeof(u32),
                                cudaMemcpyHostToDevice, stream));
@@ -528,15 +529,7 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   if (h_error_flag != 0) {
-    cudaFree(d_actual_offsets);
-    cudaFree(d_literals_lengths);
-    cudaFree(d_match_lengths);
-    cudaFree(d_literal_offsets);
-    cudaFree(d_match_offsets);
-    cudaFree(d_output_offsets);
-    if (d_rep_codes_local)
-      cudaFree(d_rep_codes_local);
-    cudaFree(d_error_flag);
+    cudaFree(d_pool);
     return Status::ERROR_CORRUPT_DATA;
   }
 
@@ -566,16 +559,8 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
       d_output_offsets, d_actual_offsets, d_output, literal_count, output_base,
       output_max_size);
 
-  // --- Cleanup ---
-  cudaFree(d_actual_offsets);
-  cudaFree(d_literals_lengths);
-  cudaFree(d_match_lengths);
-  cudaFree(d_literal_offsets);
-  cudaFree(d_match_offsets);
-  cudaFree(d_output_offsets);
-  if (d_rep_codes_local)
-    cudaFree(d_rep_codes_local);
-  cudaFree(d_error_flag);
+  // --- Cleanup (single pooled allocation) ---
+  cudaFree(d_pool);
 
   CUDA_CHECK(cudaGetLastError());
   return Status::SUCCESS;

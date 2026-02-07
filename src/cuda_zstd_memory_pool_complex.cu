@@ -7,6 +7,8 @@
 #include "cuda_zstd_stacktrace.h"
 #include <algorithm>
 #include <chrono>
+#include <cinttypes>
+#include <cstdio>
 #include <cstdlib>
 #include <functional>
 #include <iomanip>
@@ -1426,9 +1428,34 @@ void MemoryPoolManager::reset_statistics() {
 }
 
 void MemoryPoolManager::print_statistics() const {
-  // No-op: statistics printing not implemented
-  // Use get_statistics() to retrieve pool stats programmatically.
-  (void)get_statistics();
+  PoolStats stats = get_statistics();
+
+  fprintf(stdout,
+          "=== CUDA-ZSTD Memory Pool Statistics ===\n"
+          "Allocations:   %" PRIu64 " total, %" PRIu64 " deallocated\n"
+          "Cache:         %" PRIu64 " hits, %" PRIu64 " misses (%.1f%% hit rate)\n"
+          "Pool grows:    %" PRIu64 "\n"
+          "Fallbacks:     %" PRIu64 " host-mem, %" PRIu64 " degraded, %" PRIu64 " fallback\n"
+          "Failures:      %" PRIu64 " alloc failures, %" PRIu64 " rollbacks\n"
+          "Memory:        %zu bytes current, %zu bytes peak, %zu bytes pool capacity\n"
+          "Host memory:   %zu bytes\n"
+          "Mode:          %s\n"
+          "=========================================\n",
+          stats.total_allocations, stats.total_deallocations,
+          stats.cache_hits, stats.cache_misses,
+          stats.get_hit_rate() * 100.0,
+          stats.pool_grows,
+          stats.host_memory_allocations, stats.degraded_allocations,
+          stats.fallback_allocations,
+          stats.allocation_failures, stats.rollback_operations,
+          stats.current_memory_usage, stats.peak_memory_usage,
+          stats.total_pool_capacity,
+          stats.host_memory_usage,
+          stats.current_mode == DegradationMode::NORMAL ? "NORMAL" :
+          stats.current_mode == DegradationMode::CONSERVATIVE ? "CONSERVATIVE" :
+          stats.current_mode == DegradationMode::AGGRESSIVE ? "AGGRESSIVE" :
+          stats.current_mode == DegradationMode::EMERGENCY ? "EMERGENCY" :
+          "UNKNOWN");
 }
 
 // ============================================================================

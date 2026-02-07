@@ -264,8 +264,9 @@ bool test_multiple_managers() {
   cudaMalloc(&d_output, data_size * 2);
   cudaMemset(d_input, 0xCD, data_size);
 
-  // Get workspace size
+  // Get workspace size — use highest level tested (9) so workspace is large enough
   ZstdBatchManager temp_mgr;
+  temp_mgr.set_compression_level(9);
   size_t ws_size = temp_mgr.get_compress_temp_size(data_size);
   cudaMalloc(&d_workspace, ws_size);
 
