@@ -2,7 +2,7 @@
 
 ## Overview
 
-The build system uses CMake 3.18+ with CUDA support, producing a static library plus tests and benchmarks.
+The build system uses CMake 3.24+ with CUDA support, producing a static library plus tests and benchmarks.
 
 ## Quick Start
 

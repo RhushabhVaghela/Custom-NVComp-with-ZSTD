@@ -57,12 +57,12 @@ size_t cuda_zstd_get_compress_workspace_size(
 ```c
 int cuda_zstd_compress(
     cuda_zstd_manager_t* manager,
-    const void* d_input,          // Device input buffer
-    size_t input_size,            // Input size in bytes
-    void* d_output,               // Device output buffer
-    size_t* output_size,          // In: max size, Out: actual size
-    void* d_temp,                 // Device temp buffer
-    size_t temp_size,             // Temp buffer size
+    const void* src,              // Device input buffer
+    size_t src_size,              // Input size in bytes
+    void* dst,                    // Device output buffer
+    size_t* dst_size,             // In: max size, Out: actual size
+    void* workspace,              // Device workspace buffer
+    size_t workspace_size,        // Workspace buffer size
     cudaStream_t stream           // CUDA stream (0 for default)
 );
 ```
@@ -82,12 +82,12 @@ size_t cuda_zstd_get_decompress_workspace_size(
 ```c
 int cuda_zstd_decompress(
     cuda_zstd_manager_t* manager,
-    const void* d_input,          // Compressed data
-    size_t input_size,
-    void* d_output,               // Output buffer
-    size_t* output_size,          // In: max, Out: actual
-    void* d_temp,
-    size_t temp_size,
+    const void* src,              // Compressed data
+    size_t src_size,
+    void* dst,                    // Output buffer
+    size_t* dst_size,             // In: max, Out: actual
+    void* workspace,
+    size_t workspace_size,
     cudaStream_t stream
 );
 ```
@@ -103,10 +103,11 @@ extern cuda_zstd_manager_t* cuda_zstd_create_manager(int);
 extern int cuda_zstd_compress(cuda_zstd_manager_t*, const void*, size_t,
                               void*, size_t*, void*, size_t, cudaStream_t);
 extern void cuda_zstd_destroy_manager(cuda_zstd_manager_t*);
+extern size_t cuda_zstd_get_compress_workspace_size(cuda_zstd_manager_t*, size_t);
 
 int main() {
-    void* manager = NULL;
-    cuda_zstd_status_t status;
+    cuda_zstd_manager_t* manager = NULL;
+    int status;
     
     // 1. Create manager (level 5)
     manager = cuda_zstd_create_manager(5);
@@ -117,35 +118,35 @@ int main() {
     
     // 2. Prepare data
     size_t input_size = 1024 * 1024;  // 1MB
-    void *d_input, *d_output, *d_temp;
-    size_t temp_size = cuda_zstd_get_compress_workspace_size(manager, input_size);
+    void *d_src, *d_dst, *d_workspace;
+    size_t workspace_size = cuda_zstd_get_compress_workspace_size(manager, input_size);
     
-    cudaMalloc(&d_input, input_size);
-    cudaMalloc(&d_output, input_size * 2);
-    cudaMalloc(&d_temp, temp_size);
+    cudaMalloc(&d_src, input_size);
+    cudaMalloc(&d_dst, input_size * 2);
+    cudaMalloc(&d_workspace, workspace_size);
     
     // Fill input with test data
-    cudaMemset(d_input, 'A', input_size);
+    cudaMemset(d_src, 'A', input_size);
     
     // 3. Compress
-    size_t output_size = input_size * 2;
+    size_t dst_size = input_size * 2;
     status = cuda_zstd_compress(manager,
-                                d_input, input_size,
-                                d_output, &output_size,
-                                d_temp, temp_size,
+                                d_src, input_size,
+                                d_dst, &dst_size,
+                                d_workspace, workspace_size,
                                 0);
 
     
     if (status == 0) {
         printf("Compressed %zu -> %zu bytes (%.2fx)\n",
-               input_size, output_size,
-               (float)input_size / output_size);
+               input_size, dst_size,
+               (float)input_size / dst_size);
     }
     
     // 4. Cleanup
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFree(d_temp);
+    cudaFree(d_src);
+    cudaFree(d_dst);
+    cudaFree(d_workspace);
     cuda_zstd_destroy_manager(manager);
     
     return status;
