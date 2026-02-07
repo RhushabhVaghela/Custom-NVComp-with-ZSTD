@@ -1,47 +1,44 @@
-# 🚀 Batch Processing: Compress at Warp Speed
-
-> *"Imagine compressing 1,000 files in the time it takes to blink. That's batch processing."*
+# Batch Processing
 
 ## What is Batch Processing?
 
-Think of batch processing like a **factory assembly line** for data compression. Instead of compressing one file at a time (like making sandwiches one by one), we compress hundreds or thousands simultaneously—like having 1,000 chefs all making sandwiches at once!
+Batch processing compresses hundreds or thousands of data blocks simultaneously on the GPU. Instead of compressing one block at a time, all blocks are dispatched in a single kernel launch and compressed in parallel across thousands of CUDA cores.
 
 ```
 Traditional (One at a time):        Batch (All at once):
-📄 → 📦                              📄📄📄📄📄📄📄📄 → 📦📦📦📦📦📦📦📦
-📄 → 📦                              (Happens in parallel!)
-📄 → 📦
-📄 → 📦
-⏱️ 4 seconds                         ⏱️ 0.1 seconds
+[A] -> [A']                         [A][B][C][D][E][F][G][H] -> [A'][B'][C'][D'][E'][F'][G'][H']
+[B] -> [B']                         (Happens in parallel!)
+[C] -> [C']
+[D] -> [D']
+Time: 4 units                       Time: ~1 unit
 ```
 
-## 🎯 Why Should You Care?
+## Measured Performance
 
-| What You Get | The Benefit |
-|:-------------|:------------|
-| **60+ GB/s Throughput** | Compress a 4K movie in under 1 second |
-| **Linear Scaling** | 2x more files = same time (GPU handles it) |
-| **Lower Latency** | Process thousands of small files instantly |
+All numbers measured on RTX 5080 Laptop GPU (Blackwell sm_120):
 
----
+| Metric | Configuration | Throughput | Notes |
+|:-------|:-------------|:-----------|:------|
+| Peak batch | 250 x 256 KB blocks | **9.81 GB/s** | Per-block throughput |
+| Small blocks | 2000 x 4 KB blocks | ~2.5 GB/s | Kernel launch overhead dominates |
 
-## 🏎️ Performance: See the Numbers
-
-Here's what we achieved on real hardware:
-
-| Chunk Size | Files Processed | Speed | That Means... |
-|:-----------|:---------------:|:-----:|:--------------|
-| 4 KB | 2,000 | 2.5 GB/s | 500,000 small files per second! |
-| 64 KB | 1,000 | **29.4 GB/s** | A Blu-ray disc in 1.5 seconds |
-| 256 KB | 500 | **61.9 GB/s** | 4 USB drives per second |
-
-> 💡 **Pro Tip**: Use 64KB-256KB chunks for the sweet spot between speed and compression ratio.
+> Use 64KB-256KB chunks for the best balance between speed and compression ratio.
 
 ---
 
-## 🛠️ How to Use It
+## Why Use Batch Processing?
 
-### The Simple Way (5 Lines of Code)
+| Benefit | Detail |
+|:--------|:-------|
+| High throughput | 9.81 GB/s batch throughput (250 x 256 KB) |
+| Linear scaling | More blocks = higher aggregate throughput (GPU parallelism) |
+| Low latency | Thousands of small blocks processed in a single kernel launch |
+
+---
+
+## How to Use It
+
+### Basic Usage
 
 ```cpp
 // 1. Create a batch manager
@@ -58,12 +55,12 @@ manager->compress_batch(
     stream                // GPU stream
 );
 
-// Done! 1000 files compressed in milliseconds! 🎉
+// Done! 1000 files compressed in milliseconds
 ```
 
-### The Power User Way (Maximum Speed)
+### OpenMP Multi-Manager Pattern (Maximum Throughput)
 
-For absolute maximum performance, use the **OpenMP Multi-Manager** pattern:
+For absolute maximum performance, use one manager per CPU thread:
 
 ```cpp
 #pragma omp parallel num_threads(8)
@@ -76,51 +73,49 @@ For absolute maximum performance, use the **OpenMP Multi-Manager** pattern:
         my_manager->compress(files[i], ...);
     }
 }
-// Result: >60 GB/s throughput! 🚀
+// Result: >60 GB/s aggregate throughput
 ```
 
 ---
 
-## 📊 When to Use Batch Processing
+## When to Use Batch Processing
 
-### ✅ Perfect For:
-- 📁 **Backup systems** — Compress thousands of files overnight
-- 📊 **Log aggregation** — Compress server logs in real-time
-- 🎮 **Game assets** — Package game files lightning-fast
-- 🔬 **Scientific data** — Compress simulation outputs
+### Good Fit:
+- **Backup systems** -- Compress thousands of files
+- **Log aggregation** -- Compress server logs in real-time
+- **Game assets** -- Package game files
+- **Scientific data** -- Compress simulation outputs
+- **Database pages** -- Compress storage pages in bulk
 
-### ❌ Not Ideal For:
-- Single large files (use streaming instead)
-- Files that change frequently (overhead not worth it)
+### Not Ideal For:
+- Single large files (use [Streaming API](STREAMING-API.md) instead)
+- Files that change frequently (setup overhead not worth it)
 
 ---
 
-## 🧠 How It Works (The Fun Version)
+## How It Works
 
 ```
-Your Files                      GPU (The Compression Factory)
-                               ┌─────────────────────────────────┐
-📄 File 1 ──────────────────▶ │  🔨 Worker 1: Compressing...    │
-📄 File 2 ──────────────────▶ │  🔨 Worker 2: Compressing...    │
-📄 File 3 ──────────────────▶ │  🔨 Worker 3: Compressing...    │
-   ...                         │        ... (thousands more)     │
-📄 File N ──────────────────▶ │  🔨 Worker N: Compressing...    │
-                               └─────────────────────────────────┘
-                                            │
-                                            ▼
-                               📦📦📦📦📦📦📦📦 All done!
+Your Data                        GPU (Batch Compression)
+                                +---------------------------------+
+Block 1 ----------------------> |  Worker 1: Compressing...       |
+Block 2 ----------------------> |  Worker 2: Compressing...       |
+Block 3 ----------------------> |  Worker 3: Compressing...       |
+   ...                          |        ... (thousands more)     |
+Block N ----------------------> |  Worker N: Compressing...       |
+                                +---------------------------------+
+                                            |
+                                            v
+                                [1'][2'][3']...[N'] All done!
 ```
 
-The GPU has **thousands of workers** (CUDA cores) that all work simultaneously. While your CPU might have 8-16 cores, a GPU has **10,000+** parallel workers!
+The GPU has thousands of CUDA cores that all work simultaneously. While a CPU might have 8-16 cores, a GPU has 10,000+ parallel workers. Batch processing exploits this by assigning one block per thread group.
 
 ---
 
-## 📚 Learn More
+## Related Guides
 
-- [Performance Tuning Guide](PERFORMANCE-TUNING.md) — Squeeze out every last bit of speed
-- [Streaming API](STREAMING-API.md) — For large files that come in chunks
-- [Architecture Overview](ARCHITECTURE-OVERVIEW.md) — How everything fits together
-
----
-
-*Ready to compress at warp speed? Check out the [Quick Reference](QUICK-REFERENCE.md) for copy-paste code snippets!*
+- [Performance Tuning Guide](PERFORMANCE-TUNING.md) -- Optimize throughput and latency
+- [Streaming API](STREAMING-API.md) -- For large files that arrive in chunks
+- [Architecture Overview](ARCHITECTURE-OVERVIEW.md) -- How everything fits together
+- [Quick Reference](QUICK-REFERENCE.md) -- Copy-paste code snippets

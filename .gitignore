@@ -77,6 +77,17 @@ debug_1024_cpu.zst
 # ── Benchmark output ────────────────────────────────────────────
 *.csv
 
+# ── Python ──────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+*.whl
+pip-wheel-metadata/
+
 # ── Misc ────────────────────────────────────────────────────────
 node_modules/
 dist/
