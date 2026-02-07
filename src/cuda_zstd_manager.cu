@@ -4810,25 +4810,6 @@ private:
     const u32 orig_of_mode = of_mode;
     const u32 orig_ml_mode = ml_mode;
 
-    // Kernel config for RLE
-    const u32 threads = 256;
-    const u32 blocks = (num_sequences + threads - 1) / threads;
-
-    //     //     // for (int i = 0; i < 8 && i < input_size; i++)
-    //   fprintf(stderr, "%02x ", h_header[i]);
-    // fprintf(stderr, "\n");
-
-    //     // if (input_size >= 8) {
-    //       //   for (int i = input_size - 8; i < input_size; i++) {
-    //     // Safe access via device read? No, h_header only has 16
-    //     bytes.
-    //     // We need to read from 'input' (device).
-    //     unsigned char b;
-    //     CUDA_CHECK(cudaMemcpy(&b, input + i, 1,
-    //     cudaMemcpyDeviceToHost)); fprintf(stderr, "%02x ", b);
-    //   }
-    //   fprintf(stderr, "\n");
-    // }
     fse::FSEDecodeTable ll_table_obj = {};
     fse::FSEDecodeTable of_table_obj = {};
     fse::FSEDecodeTable ml_table_obj = {};
