@@ -111,7 +111,9 @@ foreach(bench_src ${BENCHMARK_SOURCES})
     
     add_executable(${bench_name} ${bench_src})
     target_link_libraries(${bench_name} PRIVATE cuda_zstd)
-    target_include_directories(${bench_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+    target_include_directories(${bench_name} PRIVATE 
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks)
 
     if(OpenMP_CXX_FOUND)
         target_link_libraries(${bench_name} PRIVATE OpenMP::OpenMP_CXX)

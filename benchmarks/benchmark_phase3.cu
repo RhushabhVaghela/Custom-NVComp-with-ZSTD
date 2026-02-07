@@ -9,7 +9,7 @@
 #include <random>
 #include <vector>
 
-#include "../include/benchmark_results.h"
+#include "benchmark_results.h"
 #include "../include/cuda_zstd_fse.h"
 #include "../include/cuda_zstd_manager.h"
 

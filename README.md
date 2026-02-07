@@ -835,7 +835,6 @@ Additional documentation is in the `docs/` directory:
 | [docs/FSE-IMPLEMENTATION.md](docs/FSE-IMPLEMENTATION.md) | FSE algorithm details |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Troubleshooting guide |
 | [docs/BENCHMARKING-GUIDE.md](docs/BENCHMARKING-GUIDE.md) | How to run benchmarks |
-| [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) | Release notes |
 
 ---
 

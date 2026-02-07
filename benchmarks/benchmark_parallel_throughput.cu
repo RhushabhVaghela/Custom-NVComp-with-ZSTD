@@ -8,7 +8,7 @@
 // - Uses 16MB data size (well within 16GB VRAM constraint)
 // ============================================================================
 
-#include "../include/benchmark_results.h"
+#include "benchmark_results.h"
 #include "cuda_error_checking.h"
 #include "cuda_zstd_nvcomp.h"
 #include <chrono>

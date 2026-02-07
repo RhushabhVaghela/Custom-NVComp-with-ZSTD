@@ -1,4 +1,4 @@
-#include "../include/benchmark_results.h"
+#include "benchmark_results.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_utils.h"
 #include <algorithm>
