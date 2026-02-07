@@ -152,10 +152,13 @@ if (status != Status::SUCCESS) {
 | Code | Meaning |
 |:----:|:--------|
 | 0 | Success |
-| 3 | Buffer too small |
-| 4 | Out of memory |
-| 5 | CUDA error |
-| 8 | Checksum mismatch |
+| 2 | Invalid parameter |
+| 3 | Out of memory |
+| 4 | CUDA error |
+| 7 | Buffer too small |
+| 10 | Checksum mismatch |
+
+See [ERROR-HANDLING.md](ERROR-HANDLING.md) for all 29 status codes.
 
 ---
 
