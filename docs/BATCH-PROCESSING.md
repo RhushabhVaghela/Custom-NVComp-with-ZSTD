@@ -73,7 +73,7 @@ For absolute maximum performance, use one manager per CPU thread:
         my_manager->compress(files[i], ...);
     }
 }
-// Result: >60 GB/s aggregate throughput
+// Result: Maximum aggregate throughput via GPU saturation
 ```
 
 ---

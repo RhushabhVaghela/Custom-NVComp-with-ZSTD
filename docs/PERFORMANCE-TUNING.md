@@ -144,7 +144,7 @@ for (int i = 0; i < num_chunks; i++) {
 }
 ```
 
-### The OpenMP Secret Weapon (60+ GB/s Aggregate)
+### The OpenMP Secret Weapon (Maximum Aggregate Throughput)
 
 This is the highest-performing pattern:
 
