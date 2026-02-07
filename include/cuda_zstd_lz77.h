@@ -179,8 +179,6 @@ Status find_optimal_parse(
     u32 chunk_size = 131072, // Default 128KB
     u32 *total_literals_out = nullptr, bool output_raw_values = false);
 
-void test_linkage();
-
 // ============================================================================
 // LZ77 Device Functions
 // ============================================================================

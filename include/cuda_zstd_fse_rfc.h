@@ -12,9 +12,6 @@
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_internal.h"
 
-// Forward declaration for wrapper compatibility
-struct FSEEncodeTable;
-
 namespace cuda_zstd {
 namespace fse {
 

@@ -24,7 +24,7 @@ struct LDMContext {
     u64 rolling_hash_state;
     
     LDMContext() : d_hash_table(nullptr), window_start(0), window_size(0), 
-                   matches_found(0), min_match_length(8), 
+                   matches_found(0), min_match_length(LDM_MIN_MATCH_LENGTH), 
                    max_distance(0), rolling_hash_state(0) {}
 };
 

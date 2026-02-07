@@ -56,51 +56,6 @@ namespace error_handling {
     }
 }
 
-// Status checking macro
-#ifndef CHECK_STATUS
-#define CHECK_STATUS(status) do { \
-    if ((status) != Status::SUCCESS) { \
-        ErrorContext __ctx((status), __FILE__, __LINE__, __FUNCTION__); \
-        error_handling::log_error(__ctx); \
-        return (status); \
-    } \
-} while(0)
-#endif
-
-// Status checking with message
-#ifndef CHECK_STATUS_MSG
-#define CHECK_STATUS_MSG(status, msg) do { \
-    if ((status) != Status::SUCCESS) { \
-        ErrorContext __ctx((status), __FILE__, __LINE__, __FUNCTION__, (msg)); \
-        error_handling::log_error(__ctx); \
-        return (status); \
-    } \
-} while(0)
-#endif
-
-// Validation macros
-#ifndef VALIDATE_NOT_NULL
-#define VALIDATE_NOT_NULL(ptr, name) do { \
-    if (!(ptr)) { \
-        ErrorContext __ctx(Status::ERROR_INVALID_PARAMETER, __FILE__, __LINE__, __FUNCTION__, \
-                          name " is null"); \
-        error_handling::log_error(__ctx); \
-        return Status::ERROR_INVALID_PARAMETER; \
-    } \
-} while(0)
-#endif
-
-#ifndef VALIDATE_RANGE
-#define VALIDATE_RANGE(val, min, max, name) do { \
-    if ((val) < (min) || (val) > (max)) { \
-        ErrorContext __ctx(Status::ERROR_INVALID_PARAMETER, __FILE__, __LINE__, __FUNCTION__, \
-                          name " out of range"); \
-        error_handling::log_error(__ctx); \
-        return Status::ERROR_INVALID_PARAMETER; \
-    } \
-} while(0)
-#endif
-
 } // namespace cuda_zstd
 
 #endif // ERROR_CONTEXT_H

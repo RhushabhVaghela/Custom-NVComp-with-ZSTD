@@ -37,12 +37,6 @@ namespace fse {
 struct FSEEncodeTable;
 struct FSEDecodeTable;
 } // namespace fse
-namespace huffman {
-struct HuffmanContext;
-}
-namespace xxhash {
-u64 compute_xxh64(const unsigned char *, u32, u64, cudaStream_t);
-}
 
 // ==============================================================================
 // MANAGER BASE CLASS
