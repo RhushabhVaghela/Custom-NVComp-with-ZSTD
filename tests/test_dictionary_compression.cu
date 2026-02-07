@@ -119,28 +119,68 @@ int main() {
   std::vector<byte_t> h_test_data =
       create_sample(test_data_size, "REPEATING_SEQUENCE_");
 
-  byte_t *d_input, *d_compressed, *d_decompressed, *d_temp;
-  [[maybe_unused]] cudaError_t err;
+  byte_t *d_input = nullptr, *d_compressed = nullptr, *d_decompressed = nullptr, *d_temp = nullptr;
+  cudaError_t err;
+
+  // Check available VRAM before allocating
+  size_t vram_free = 0, vram_total = 0;
+  cudaMemGetInfo(&vram_free, &vram_total);
+  std::cout << "  VRAM: " << (vram_free / (1024*1024)) << " MB free / "
+            << (vram_total / (1024*1024)) << " MB total\n";
+
   err = cudaMalloc(&d_input, test_data_size);
-  assert(err == cudaSuccess);
+  if (err != cudaSuccess) {
+    std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMalloc d_input failed: "
+              << cudaGetErrorString(err) << " (need " << test_data_size << " bytes)\n";
+    return 1;
+  }
   // Calculate max compressed size - use 2x input to handle worst-case expansion
   size_t max_compressed = test_data_size * 2;
   err = cudaMalloc(&d_compressed, max_compressed);
-  assert(err == cudaSuccess);
+  if (err != cudaSuccess) {
+    std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMalloc d_compressed failed: "
+              << cudaGetErrorString(err) << " (need " << max_compressed << " bytes)\n";
+    cudaFree(d_input);
+    return 1;
+  }
   err = cudaMalloc(&d_decompressed, test_data_size);
-  assert(err == cudaSuccess);
+  if (err != cudaSuccess) {
+    std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMalloc d_decompressed failed: "
+              << cudaGetErrorString(err) << " (need " << test_data_size << " bytes)\n";
+    cudaFree(d_input); cudaFree(d_compressed);
+    return 1;
+  }
   err = cudaMemcpy(d_input, h_test_data.data(), test_data_size,
                    cudaMemcpyHostToDevice);
-  assert(err == cudaSuccess);
+  if (err != cudaSuccess) {
+    std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMemcpy failed: "
+              << cudaGetErrorString(err) << "\n";
+    cudaFree(d_input); cudaFree(d_compressed); cudaFree(d_decompressed);
+    return 1;
+  }
 
   auto manager = create_manager(5);
 
   manager->set_dictionary(gpu_dict);
 
   size_t temp_size = manager->get_compress_temp_size(test_data_size);
+  std::cout << "  Temp buffer size: " << (temp_size / (1024*1024)) << " MB for "
+            << (test_data_size / 1024) << " KB input\n";
+
+  if (temp_size > vram_free * 80 / 100) { // Don't use more than 80% of free VRAM
+    std::cerr << "  \033[1;33m\u26A0 SKIPPED\033[0m: temp_size (" << (temp_size / (1024*1024))
+              << " MB) exceeds 80% of free VRAM (" << (vram_free / (1024*1024)) << " MB)\n";
+    cudaFree(d_input); cudaFree(d_compressed); cudaFree(d_decompressed);
+    return 0; // Skip, not fail
+  }
 
   err = cudaMalloc(&d_temp, temp_size);
-  assert(err == cudaSuccess);
+  if (err != cudaSuccess) {
+    std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMalloc d_temp failed: "
+              << cudaGetErrorString(err) << " (need " << (temp_size / (1024*1024)) << " MB)\n";
+    cudaFree(d_input); cudaFree(d_compressed); cudaFree(d_decompressed);
+    return 1;
+  }
 
   // ========================================================================
   // Test 1: Correctness Test (Round-trip)

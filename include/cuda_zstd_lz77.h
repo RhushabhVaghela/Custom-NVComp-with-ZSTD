@@ -54,7 +54,7 @@ struct LZ77Config {
   u32 search_depth = 8;  // Search depth for lazy matching
   u32 min_match = 3;     // Minimum match length
   u32 good_length = 32;  // Length that triggers greedy mode
-  u32 nice_length = 128; // Nice match length
+  u32 nice_length = 65535; // Nice match length (raised from 128 for better compression of repetitive data)
 };
 
 // ============================================================================

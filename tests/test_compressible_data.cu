@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <cuda_runtime.h>
 #include <iomanip>
 #include <random>
 #include <string>
@@ -155,9 +156,18 @@ CompressionResult test_compression(const std::vector<byte_t> &input_data,
     goto cleanup;
   }
 
-  // Create manager
-  manager = create_manager(3); // Level 3 is a good balance
+  // Create manager — force GPU path (cpu_threshold=0) so we test OUR
+  // CUDA compressor, not libzstd's CPU fallback.  The default threshold
+  // (1 MB) routes small inputs to ZSTD_compress() which emits Huffman-
+  // encoded literals that our GPU decompressor doesn't support yet.
+  {
+    CompressionConfig cfg = CompressionConfig::from_level(3);
+    cfg.cpu_threshold = 0; // Force GPU for all sizes
+    manager = create_manager(cfg);
+  }
   temp_size = manager->get_compress_temp_size(input_data.size());
+  printf("Temp buffer: %zu bytes (%.1f MB) for %zu byte input\n",
+         temp_size, (float)temp_size / (1024 * 1024), input_data.size());
 
   if (!safe_cuda_malloc(&d_temp, temp_size)) {
     printf("❌ CUDA malloc for temp failed\n");
@@ -173,6 +183,33 @@ CompressionResult test_compression(const std::vector<byte_t> &input_data,
   if (status != Status::SUCCESS) {
     printf("❌ Compression failed: %d\n", (int)status);
     goto cleanup;
+  }
+
+  // === HEX DUMP: Inspect compressed output before decompression ===
+  {
+    size_t dump_len = std::min((size_t)64, result.compressed_size);
+    std::vector<unsigned char> dump(dump_len);
+    cudaMemcpy(dump.data(), d_compressed, dump_len, cudaMemcpyDeviceToHost);
+    fprintf(stderr, "[TEST-HEXDUMP] Compressed output (%zu bytes total), first %zu bytes:\n  ",
+            result.compressed_size, dump_len);
+    for (size_t i = 0; i < dump_len; i++) {
+      fprintf(stderr, "%02X ", dump[i]);
+      if ((i + 1) % 16 == 0 && i + 1 < dump_len)
+        fprintf(stderr, "\n  ");
+    }
+    fprintf(stderr, "\n");
+
+    // Decode block header at offset 7 (after frame header)
+    if (dump_len >= 10) {
+      unsigned char bh0 = dump[7], bh1 = dump[8], bh2 = dump[9];
+      bool is_last = bh0 & 1;
+      u32 block_type = (bh0 >> 1) & 3;
+      u32 block_size = (bh0 >> 3) | ((u32)bh1 << 5) | ((u32)bh2 << 13);
+      fprintf(stderr, "[TEST-HEXDUMP] Block header at [7..9]: is_last=%d, type=%u, size=%u\n",
+              (int)is_last, block_type, block_size);
+      fprintf(stderr, "[TEST-HEXDUMP] Block content starts at offset 10, first byte=0x%02X (lit_type=%u)\n",
+              dump[10], dump[10] & 0x03);
+    }
   }
 
   // Decompress to verify
@@ -396,6 +433,14 @@ int main() {
   printf(
       "Context: benchmark_lz77 showed 'zero sequences' with random data\n\n");
 
+  // Report VRAM status
+  {
+    size_t vram_free = 0, vram_total = 0;
+    cudaMemGetInfo(&vram_free, &vram_total);
+    printf("GPU VRAM: %zu MB free / %zu MB total\n\n",
+           vram_free / (1024*1024), vram_total / (1024*1024));
+  }
+
   try {
     bool all_passed = true;
     bool full_suite = true; // Set to false to run only basic tests
@@ -429,6 +474,13 @@ int main() {
       }
     }
     if (full_suite) {
+      // Report VRAM before expensive 1MB-per-pattern comparison
+      {
+        size_t vram_free = 0, vram_total = 0;
+        cudaMemGetInfo(&vram_free, &vram_total);
+        printf("\nVRAM before comparison suite: %zu MB free / %zu MB total\n",
+               vram_free / (1024*1024), vram_total / (1024*1024));
+      }
       all_passed &= test_comparison_all_patterns();
       cudaDeviceSynchronize();
       {

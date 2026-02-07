@@ -269,335 +269,506 @@ __host__ Status decode_huffman_weights_direct(const unsigned char *h_input,
 __host__ Status decode_huffman_weights_fse(const unsigned char *h_input,
                                            u32 compressed_size, u8 *h_weights,
                                            u32 *num_symbols) {
-  // RFC 8878 Section 4.2.1.2: FSE Compression of Huffman Weights
-  // - Two interleaved FSE states sharing one distribution table
-  // - Bitstream is read backward (like all Zstd FSE bitstreams)
-  // - Max accuracy log is 6 for weight encoding
-
-  // RFC 8878 Section 4.2.1.2: FSE Compression of Huffman Weights
+  // =========================================================================
+  // Rewritten to faithfully follow libzstd reference implementation:
+  //   - FSE_readNCount_body  (lib/common/entropy_common.c)
+  //   - FSE_buildDTable_internal (lib/common/fse_decompress.c)
+  //   - FSE_decompress_usingDTable_generic (lib/common/fse_decompress.c)
+  //   - BIT_DStream (lib/common/bitstream.h)
+  //
   // For Huffman weights, Max_Accuracy_Log is 6.
-  // EMPIRICAL FINDING: Some encoders (like libzstd) may use a different 
-  // alignment or bias for Huffman weights. We use a more robust parsing 
-  // that handles potential Accuracy Log mismatches.
-  
-  u32 accuracy_log = h_input[0] & 0x0F;
-  u32 bit_pos_header = 4; // Start after 4 bits of AL
-  
-  if (accuracy_log > 6) {
-    // FALLBACK: If Accuracy Log looks invalid (>6), it's likely we're
-    // actually at the counts (Accuracy Log was omitted or different format)
-    accuracy_log = 6;
-    bit_pos_header = 0; 
-  }
+  // FSE_MIN_TABLELOG = 5.
+  // =========================================================================
 
-  constexpr u32 MAX_HUF_ALPHABET = 12; // weights 0-11
-  u32 table_size = 1 << accuracy_log;
-  i16 norm_counts[MAX_HUF_ALPHABET] = {0};
-  i32 remaining = table_size;
-  u32 symbol = 0;
+  if (compressed_size < 1) return Status::ERROR_CORRUPT_DATA;
 
-  auto read_bits_header = [&](u32 nbits) -> u32 {
-    u32 result = 0;
-    for (u32 i = 0; i < nbits; i++) {
-      if (bit_pos_header / 8 >= compressed_size)
-        break;
-      if (h_input[bit_pos_header / 8] & (1 << (bit_pos_header % 8))) {
-        result |= (1 << i);
-      }
-      bit_pos_header++;
-    }
-    return result;
+  // --------------- Helper: highbit32 (position of highest set bit) ----------
+  auto highbit32 = [](u32 v) -> u32 {
+    // Returns floor(log2(v)) for v > 0. Undefined for v == 0.
+    u32 r = 0;
+    while (v >>= 1) r++;
+    return r;
   };
 
-  while (remaining > 0 && symbol < MAX_HUF_ALPHABET) {
-    u32 nb_bits = 0;
-    u32 temp = remaining + 1;
-    while (temp >>= 1)
-      nb_bits++;
-    nb_bits++; // Log2(remaining + 1) + 1
+  // --------------- Helper: countTrailingZeros32 -----------------------------
+  auto ctz32 = [](u32 v) -> u32 {
+    if (v == 0) return 32;
+#ifdef __GNUC__
+    return (u32)__builtin_ctz(v);
+#else
+    u32 r = 0;
+    while ((v & 1) == 0) { v >>= 1; r++; }
+    return r;
+#endif
+  };
 
-    u32 threshold = (1 << nb_bits) - 1 - (remaining + 1);
-    u32 v = read_bits_header(nb_bits - 1);
-    i16 count;
-    if (v < threshold) {
-      count = (i16)v - 1;
-    } else {
-      v = (v << 1) | read_bits_header(1);
-      count = (i16)v - 1 - (i16)threshold;
+  // --------------- Helper: read LE32 from byte pointer ----------------------
+  auto read_le32 = [](const unsigned char *p) -> u32 {
+    return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) |
+           ((u32)p[3] << 24);
+  };
+
+  // =========================================================================
+  // PART 1: Parse NCount header (FSE_readNCount_body)
+  // =========================================================================
+  constexpr u32 FSE_MIN_TABLELOG = 5;
+  constexpr u32 MAX_FSE_SYMBOLS = 256; // FSE_MAX_SYMBOL_VALUE + 1
+
+  i16 norm_counts[MAX_FSE_SYMBOLS];
+  memset(norm_counts, 0, sizeof(norm_counts));
+
+  u32 maxSymbolValue = MAX_FSE_SYMBOLS - 1; // Will be updated
+  u32 tableLog;
+
+  // Pad input to at least 8 bytes for safe LE32 reads
+  unsigned char padded[64];
+  memset(padded, 0, sizeof(padded));
+  u32 copy_size = compressed_size < 64 ? compressed_size : 64;
+  memcpy(padded, h_input, copy_size);
+
+  const unsigned char *ip = padded;
+  const unsigned char *iend = padded + compressed_size;
+
+  u32 bitStream = read_le32(ip);
+  u32 nbBits = (bitStream & 0xF) + FSE_MIN_TABLELOG;
+  if (nbBits > 15) { // FSE_TABLELOG_ABSOLUTE_MAX
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[ERROR] FSE tableLog too large: %u\n", nbBits);
+#endif
+    return Status::ERROR_CORRUPT_DATA;
+  }
+  bitStream >>= 4;
+  i32 bitCount = 4;
+  tableLog = nbBits;
+  i32 remaining = (1 << nbBits) + 1;
+  i32 threshold = 1 << nbBits;
+  nbBits++;
+
+  u32 charnum = 0;
+  u32 maxSV1 = maxSymbolValue + 1;
+  i32 previous0 = 0;
+
+  for (;;) {
+    if (previous0) {
+      // Count runs of zero-probability symbols using 2-bit repeat codes.
+      // Each 0b11 pair means "3 more zeros". The final pair < 3 gives remainder.
+      u32 repeats = ctz32(~bitStream | 0x80000000u) >> 1;
+
+      // Handle long runs (repeats >= 12 means we consumed 24+ bits, need reload)
+      while (repeats >= 12) {
+        charnum += 3 * 12;
+        if (ip <= iend - 7) {
+          ip += 3;
+        } else {
+          bitCount -= (i32)(8 * (iend - 7 - ip));
+          bitCount &= 31;
+          ip = iend - 4;
+        }
+        bitStream = read_le32(ip) >> bitCount;
+        repeats = ctz32(~bitStream | 0x80000000u) >> 1;
+      }
+      charnum += 3 * repeats;
+      bitStream >>= 2 * repeats;
+      bitCount += 2 * repeats;
+
+      // Add the final repeat (which isn't 0b11)
+      charnum += bitStream & 3;
+      bitCount += 2;
+
+      if (charnum >= maxSV1) break;
+
+      // Reload bitstream
+      if ((ip <= iend - 7) || (ip + (bitCount >> 3) <= iend - 4)) {
+        ip += bitCount >> 3;
+        bitCount &= 7;
+      } else {
+        bitCount -= (i32)(8 * (iend - 4 - ip));
+        bitCount &= 31;
+        ip = iend - 4;
+      }
+      bitStream = read_le32(ip) >> bitCount;
     }
 
-    norm_counts[symbol++] = count;
-    // For FSE normalization, count=-1 means probability 0 (consumes 2 slots)
-    // count > 0 means probability count (consumes count slots)
-    // Only decrement if we have enough remaining slots for this count
-    if (count == -1) {
-      if (remaining >= 2) {
-        remaining -= 2; // count=-1 consumes 2 slots
+    // Decode one symbol count using threshold-based variable-length coding
+    {
+      i32 max_val = (2 * threshold - 1) - remaining;
+      i32 count;
+
+      if ((i32)(bitStream & (threshold - 1)) < max_val) {
+        count = (i32)(bitStream & (threshold - 1));
+        bitCount += (i32)nbBits - 1;
+      } else {
+        count = (i32)(bitStream & (2 * threshold - 1));
+        if (count >= threshold) count -= max_val;
+        bitCount += (i32)nbBits;
       }
-    } else if (count > 0) {
-      if (remaining >= (i32)count) {
+
+      count--; // Extra accuracy: count=0 in stream means probability=-1
+
+      if (count >= 0) {
         remaining -= count;
+      } else {
+        // count == -1: symbol has probability "less than 1"
+        remaining += count; // remaining -= 1
       }
-    } else {
-      // count=0 (shouldn't happen with valid input), but handle gracefully
-      remaining = 0;
+      norm_counts[charnum++] = (i16)count;
+      previous0 = !count; // If count==0, next symbols may be zero-run
+
+      // Update threshold when remaining shrinks
+      if (remaining < threshold) {
+        if (remaining <= 1) break; // Normal termination
+        nbBits = highbit32((u32)remaining) + 1;
+        threshold = 1 << (nbBits - 1);
+      }
+
+      if (charnum >= maxSV1) break;
+
+      // Reload bitstream
+      if ((ip <= iend - 7) || (ip + (bitCount >> 3) <= iend - 4)) {
+        ip += bitCount >> 3;
+        bitCount &= 7;
+      } else {
+        bitCount -= (i32)(8 * (iend - 4 - ip));
+        bitCount &= 31;
+        ip = iend - 4;
+      }
+      bitStream = read_le32(ip) >> bitCount;
     }
   }
 
-  u32 num_fse_symbols = symbol;
+  if (remaining != 1) {
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr,
+            "[ERROR] FSE NCount remaining=%d (should be 1), charnum=%u\n",
+            remaining, charnum);
+#endif
+    return Status::ERROR_CORRUPT_DATA;
+  }
+  if (charnum > maxSV1) {
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[ERROR] FSE charnum=%u > maxSV1=%u\n", charnum, maxSV1);
+#endif
+    return Status::ERROR_CORRUPT_DATA;
+  }
+  if (bitCount > 32) {
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[ERROR] FSE bitCount=%d > 32\n", bitCount);
+#endif
+    return Status::ERROR_CORRUPT_DATA;
+  }
 
-  
+  u32 num_fse_symbols = charnum;  // Actual number of symbols in the FSE table
+  u32 header_size = (u32)((ip - padded) + ((bitCount + 7) >> 3));
+
 #ifdef CUDA_ZSTD_DEBUG
   fprintf(stderr,
-          "[HUF_FSE] Parsed %u symbols, remaining=%d, expected=0, bit_pos=%u\n",
-          num_fse_symbols, remaining, bit_pos_header);
+          "[HUF_FSE] Parsed %u symbols, remaining=%d, expected=1, "
+          "header_size=%u\n",
+          num_fse_symbols, remaining, header_size);
   fprintf(stderr, "[HUF_FSE] NormCounts: ");
-  for (u32 i = 0; i < num_fse_symbols && i < 12; i++) {
+  for (u32 i = 0; i < num_fse_symbols && i < 32; i++) {
     fprintf(stderr, "%d ", (int)norm_counts[i]);
   }
   fprintf(stderr, "\n");
 #endif
 
-  if (remaining != 0) {
+  // Max accuracy log for Huffman weights is 6
+  if (tableLog > 6) {
 #ifdef CUDA_ZSTD_DEBUG
-    fprintf(
-        stderr,
-        "[ERROR] FSE normalization sum mismatch: remaining=%d (should be 0)\n",
-        remaining);
+    fprintf(stderr, "[ERROR] FSE tableLog=%u > 6 for Huffman weights\n",
+            tableLog);
 #endif
     return Status::ERROR_CORRUPT_DATA;
   }
 
-  // MAX_TABLE_SIZE is the maximum size for FSE/Huffman tables
-  // Based on ZSTD spec: max table size is 2^12 = 4096 for FSE
-  // Using 4096 to accommodate all valid table sizes
-  const u32 MAX_TABLE_SIZE = 4096;
-  u8 table_symbol[MAX_TABLE_SIZE] = {0};
-  u32 step = (table_size >> 1) + (table_size >> 3) + 3;
-  u32 mask = table_size - 1;
-  u32 pos = 0;
+  // =========================================================================
+  // PART 2: Build FSE decode table (FSE_buildDTable_internal)
+  // =========================================================================
+  u32 table_size = 1 << tableLog;
+  constexpr u32 MAX_TABLE_SIZE = 64; // 2^6 = 64 max for Huffman weights
 
-  for (u32 s = 0; s < num_fse_symbols; s++) {
-    if (norm_counts[s] > 0) {
-      for (i32 i = 0; i < norm_counts[s]; i++) {
-        table_symbol[pos & mask] = s;
-        pos = (pos + step) & mask;
-      }
-    }
-  }
+  struct FSE_Entry {
+    u8 symbol;
+    u8 nbBits;
+    u16 newState;
+  };
+  FSE_Entry decode_table[MAX_TABLE_SIZE];
+
+  u16 symbolNext[MAX_FSE_SYMBOLS];
+  u32 highThreshold = table_size - 1;
+
+  // First pass: place low-probability (-1) symbols at high positions,
+  // and initialize symbolNext for all symbols
   for (u32 s = 0; s < num_fse_symbols; s++) {
     if (norm_counts[s] == -1) {
-      while (table_symbol[pos & mask] != 0 || (pos & mask) == 0) {
-        if (table_symbol[pos & mask] == 0)
-          break;
-        pos = (pos + step) & mask;
-      }
-      table_symbol[pos & mask] = s;
-      pos = (pos + step) & mask;
-    }
-  }
-
-  // Build the decoder table
-  u8 fse_symbol[MAX_TABLE_SIZE];
-  u8 fse_nbits[MAX_TABLE_SIZE];
-  u16 fse_newstate[MAX_TABLE_SIZE];
-  u32 symbol_next_idx[MAX_HUF_ALPHABET];
-  for (u32 s = 0; s < num_fse_symbols; s++) {
-    symbol_next_idx[s] = 0; // Reset to 0 for state index counting
-  }
-
-  for (u32 i = 0; i < table_size; i++) {
-    u32 s = table_symbol[i];
-    fse_symbol[i] = (u8)s;
-    i16 count = norm_counts[s];
-    if (count == -1) {
-      // Probability -1 symbol: full state reset, read accuracy_log bits
-      fse_nbits[i] = (u8)accuracy_log;
-      fse_newstate[i] = 0; // Baseline 0, will wrap around table
+      decode_table[highThreshold].symbol = (u8)s;
+      highThreshold--;
+      symbolNext[s] = 1;
     } else {
-      // Get state index for this symbol (0, 1, 2... for each occurrence)
-      u32 state_idx = symbol_next_idx[s]++;
-
-      // Per RFC 8878: sort states, compute baseline
-      // For symbol with count N, next power of 2 is P >= N
-      // Lower (P - N) states need 1 more bit, higher states fewer bits
-      u32 n_states = (u32)count;
-      u32 next_pow2 = 1;
-      u32 high_bit = 0;
-      while (next_pow2 < n_states) {
-        next_pow2 <<= 1;
-        high_bit++;
-      }
-
-      u32 extra_states = next_pow2 - n_states; // Lower states needing more bits
-      u32 nb_bits, baseline;
-
-      if (state_idx < extra_states) {
-        // Lower states: need more bits (high_bit + 1)
-        nb_bits = accuracy_log - high_bit;
-        baseline = (state_idx + n_states) << nb_bits;
-      } else {
-        // Higher states: need fewer bits (high_bit)
-        nb_bits = accuracy_log - high_bit - (extra_states > 0 ? 0 : 1);
-        if (high_bit == 0)
-          nb_bits = accuracy_log; // Edge case: count=1
-        baseline = (state_idx - extra_states) << nb_bits;
-      }
-
-      // Wrap baseline to stay within table_size
-      fse_nbits[i] = (u8)nb_bits;
-      fse_newstate[i] = (u16)(baseline & (table_size - 1));
+      symbolNext[s] = (u16)((norm_counts[s] > 0) ? norm_counts[s] : 0);
     }
   }
 
-  u32 bitstream_start = (bit_pos_header + 7) / 8;
-  if (bitstream_start >= compressed_size)
-    return Status::ERROR_CORRUPT_DATA;
+  // Second pass: spread symbols using FSE_TABLESTEP
+  u32 step = (table_size >> 1) + (table_size >> 3) + 3;
+  u32 tableMask = table_size - 1;
+  u32 position = 0;
 
-  const unsigned char *bitstream = h_input + bitstream_start;
-  u32 bitstream_size = compressed_size - bitstream_start;
-  u32 bit_pos = bitstream_size * 8;
-
-  while (bit_pos > 0) {
-    if (bitstream[(bit_pos - 1) / 8] & (1 << ((bit_pos - 1) % 8))) {
-      bit_pos--;
-      break;
+  for (u32 s = 0; s < num_fse_symbols; s++) {
+    if (norm_counts[s] <= 0) continue; // Skip -1 and 0
+    for (i32 i = 0; i < norm_counts[s]; i++) {
+      decode_table[position].symbol = (u8)s;
+      position = (position + step) & tableMask;
+      // Skip positions occupied by low-probability symbols
+      while (position > highThreshold) {
+        position = (position + step) & tableMask;
+      }
     }
-    bit_pos--;
   }
 
-  if (bit_pos < 2 * accuracy_log) {
+  if (position != 0) {
 #ifdef CUDA_ZSTD_DEBUG
-    fprintf(stderr, "[ERROR] Not enough bits: bit_pos=%u, need=%u\n", bit_pos,
-            2 * accuracy_log);
+    fprintf(stderr,
+            "[ERROR] FSE symbol spreading failed: position=%u (should be 0)\n",
+            position);
 #endif
     return Status::ERROR_CORRUPT_DATA;
   }
 
+  // Third pass: compute nbBits and newState for each table entry
+  // Reference: tableDecode[u].nbBits = tableLog - highbit32(nextState)
+  //            tableDecode[u].newState = (nextState << nbBits) - tableSize
+  for (u32 u = 0; u < table_size; u++) {
+    u8 sym = decode_table[u].symbol;
+    u32 nextState = symbolNext[sym]++;
+    u32 nb = (u32)(tableLog - highbit32(nextState));
+    decode_table[u].nbBits = (u8)nb;
+    decode_table[u].newState = (u16)((nextState << nb) - table_size);
+  }
+
 #ifdef CUDA_ZSTD_DEBUG
-  fprintf(stderr, "[HUF_FSE] Bitstream: start=%u, size=%u, bit_pos=%u\n",
-          bitstream_start, bitstream_size, bit_pos);
+  fprintf(stderr, "[HUF_FSE] Decode table (tableLog=%u, size=%u):\n",
+          tableLog, table_size);
+  for (u32 i = 0; i < table_size && i < 16; i++) {
+    fprintf(stderr, "  [%2u] sym=%u nb=%u ns=%u\n", i,
+            decode_table[i].symbol, decode_table[i].nbBits,
+            decode_table[i].newState);
+  }
 #endif
 
-  // libzstd BIT_DStream compatible implementation
-  // Load up to 8 bytes from end of bitstream as LE word
+  // =========================================================================
+  // PART 3: Decode weights using BIT_DStream (FSE_decompress_usingDTable_generic)
+  // =========================================================================
+  if (header_size >= compressed_size) {
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr,
+            "[ERROR] No bitstream data: header_size=%u >= compressed_size=%u\n",
+            header_size, compressed_size);
+#endif
+    return Status::ERROR_CORRUPT_DATA;
+  }
+
+  const unsigned char *bs_start = h_input + header_size;
+  u32 bs_size = compressed_size - header_size;
+
+  // ----- BIT_initDStream -----
+  // The bitstream is read BACKWARD. We load from the end.
   u64 bit_container = 0;
   u32 bits_consumed = 0;
+  const unsigned char *bs_ptr;       // Current read pointer
+  const unsigned char *bs_limitPtr;  // Safe reload boundary
 
-  // Load bytes as little-endian (like MEM_readLEST)
-  u32 load_size = (bitstream_size > 8) ? 8 : bitstream_size;
-  for (u32 i = 0; i < load_size; i++) {
-    bit_container |= ((u64)bitstream[bitstream_size - load_size + i])
-                     << (i * 8);
-  }
+  bs_limitPtr = bs_start + sizeof(u64); // = bs_start + 8
 
-  // Find and consume sentinel bit (like BIT_initDStream)
-  u8 last_byte = bitstream[bitstream_size - 1];
-  if (last_byte == 0)
-    return Status::ERROR_CORRUPT_DATA; // No sentinel
-
-  // highbit finds the position of sentinel (0-7 for byte values 1-128)
-  u32 sentinel_bit = 0;
-  for (u32 b = 7; b > 0; b--) {
-    if (last_byte & (1 << b)) {
-      sentinel_bit = b;
+  if (bs_size >= sizeof(u64)) {
+    // Normal case: load last 8 bytes as LE u64
+    bs_ptr = bs_start + bs_size - sizeof(u64);
+    for (u32 i = 0; i < 8; i++) {
+      bit_container |= ((u64)bs_ptr[i]) << (i * 8);
+    }
+    u8 lastByte = bs_start[bs_size - 1];
+    if (lastByte == 0) return Status::ERROR_CORRUPT_DATA;
+    bits_consumed = 8 - highbit32((u32)lastByte);
+  } else {
+    // Small bitstream: load what we have with padding
+    bs_ptr = bs_start;
+    bit_container = (u64)bs_start[0];
+    switch (bs_size) {
+    case 7:
+      bit_container += ((u64)bs_start[6]) << (64 - 16);
+      /* fallthrough */
+    case 6:
+      bit_container += ((u64)bs_start[5]) << (64 - 24);
+      /* fallthrough */
+    case 5:
+      bit_container += ((u64)bs_start[4]) << (64 - 32);
+      /* fallthrough */
+    case 4:
+      bit_container += ((u64)bs_start[3]) << 24;
+      /* fallthrough */
+    case 3:
+      bit_container += ((u64)bs_start[2]) << 16;
+      /* fallthrough */
+    case 2:
+      bit_container += ((u64)bs_start[1]) << 8;
+      /* fallthrough */
+    default:
       break;
     }
+    u8 lastByte = bs_start[bs_size - 1];
+    if (lastByte == 0) return Status::ERROR_CORRUPT_DATA;
+    bits_consumed = 8 - highbit32((u32)lastByte);
+    bits_consumed += (u32)(sizeof(u64) - bs_size) * 8;
   }
-  if (last_byte == 1)
-    sentinel_bit = 0;
 
-  bits_consumed = (8 - sentinel_bit); // Bits consumed including sentinel
-  bits_consumed +=
-      (8 - load_size) * 8; // Account for padding if loaded < 8 bytes
+#ifdef CUDA_ZSTD_DEBUG
+  fprintf(stderr,
+          "[HUF_FSE] Bitstream: header_size=%u, bs_size=%u, "
+          "bits_consumed=%u, container=0x%016llx\n",
+          header_size, bs_size, bits_consumed,
+          (unsigned long long)bit_container);
+#endif
 
-  u32 byte_ptr = bitstream_size - load_size; // Points to next unloaded byte
+  // ----- BIT_lookBits / BIT_readBits / BIT_reloadDStream -----
 
-  auto read_bits = [&](u32 nbits) -> u32 {
-    // BIT_lookBits: extract from position (64 - bitsConsumed - nbits)
-    u32 start = 64 - bits_consumed - nbits;
-    u32 result = (bit_container >> start) & ((1U << nbits) - 1);
-    bits_consumed += nbits;
+  // BIT_DStream_status enum
+  enum DStreamStatus {
+    DS_unfinished = 0,
+    DS_endOfBuffer = 1,
+    DS_completed = 2,
+    DS_overflow = 3
+  };
 
-    // BIT_reloadDStream: refill if needed
-    if (bits_consumed > 56 && byte_ptr > 0) {
-      u32 refill = (byte_ptr > 8) ? 8 : byte_ptr;
-      u64 new_container = 0;
-      for (u32 i = 0; i < refill; i++) {
-        new_container |= ((u64)bitstream[byte_ptr - refill + i]) << (i * 8);
+  auto bit_look = [&](u32 nbits) -> u32 {
+    // BIT_getMiddleBits: extract nbits starting at position (64-bitsConsumed-nbits)
+    u32 start = (u32)(64 - bits_consumed - nbits);
+    return (u32)((bit_container >> start) & ((1ULL << nbits) - 1));
+  };
+
+  auto bit_skip = [&](u32 nbits) { bits_consumed += nbits; };
+
+  auto bit_read = [&](u32 nbits) -> u32 {
+    u32 val = bit_look(nbits);
+    bit_skip(nbits);
+    return val;
+  };
+
+  auto bit_reload = [&]() -> DStreamStatus {
+    if (bits_consumed > 64) {
+      return DS_overflow;
+    }
+    if (bs_ptr >= bs_limitPtr) {
+      // Normal reload: move ptr back, reload 8 bytes
+      bs_ptr -= (bits_consumed >> 3);
+      bits_consumed &= 7;
+      bit_container = 0;
+      for (u32 i = 0; i < 8; i++) {
+        bit_container |= ((u64)bs_ptr[i]) << (i * 8);
       }
-      byte_ptr -= refill;
-      // Shift old remaining bits up, add new bits at bottom
-      bit_container = (bit_container << (refill * 8)) | new_container;
-      // Careful: avoid underflow
-      i32 reduction = refill * 8;
-      if ((i32)bits_consumed > reduction)
-        bits_consumed -= reduction;
-      else
-        bits_consumed = 0;
+      return DS_unfinished;
+    }
+    if (bs_ptr == bs_start) {
+      if (bits_consumed < 64)
+        return DS_endOfBuffer;
+      return DS_completed;
+    }
+    // Cautious reload: partial
+    u32 nbBytes = bits_consumed >> 3;
+    DStreamStatus result = DS_unfinished;
+    if (bs_ptr - nbBytes < bs_start) {
+      nbBytes = (u32)(bs_ptr - bs_start);
+      result = DS_endOfBuffer;
+    }
+    bs_ptr -= nbBytes;
+    bits_consumed -= nbBytes * 8;
+    bit_container = 0;
+    // Read up to 8 bytes from bs_ptr (may be less than 8 if near start)
+    u32 avail = (u32)(bs_start + bs_size - bs_ptr);
+    u32 to_read = avail < 8 ? avail : 8;
+    for (u32 i = 0; i < to_read; i++) {
+      bit_container |= ((u64)bs_ptr[i]) << (i * 8);
     }
     return result;
   };
 
-  u32 state1 = read_bits(accuracy_log);
+  // ----- FSE_initDState: read initial states -----
+  u32 state1 = bit_read(tableLog);
+  u32 state2 = bit_read(tableLog);
 
-  u32 state2 = read_bits(accuracy_log);
+  DStreamStatus reload_status = bit_reload();
+  if (reload_status == DS_overflow) {
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[ERROR] BIT_DStream overflow after state init\n");
+#endif
+    return Status::ERROR_CORRUPT_DATA;
+  }
 
+#ifdef CUDA_ZSTD_DEBUG
+  fprintf(stderr, "[HUF_FSE] Initial states: s1=%u, s2=%u\n", state1, state2);
+#endif
+
+  // ----- FSE_decodeSymbol -----
+  auto fse_decode = [&](u32 &state) -> u8 {
+    FSE_Entry &e = decode_table[state];
+    u8 sym = e.symbol;
+    u32 nb = e.nbBits;
+    u32 lowBits = bit_read(nb);
+    state = (u32)e.newState + lowBits;
+    return sym;
+  };
+
+  // ----- Main decode loop -----
   u32 out_idx = 0;
   constexpr u32 MAX_WEIGHTS = 255;
-  while (out_idx < MAX_WEIGHTS) {
-    // State 1 decode
-    if (state1 >= table_size) {
-      return Status::ERROR_CORRUPT_DATA;
-    }
 
-    u32 idx1 = state1;
-    u8 symbol1 = fse_symbol[idx1];
-    u32 nb1 = fse_nbits[idx1];
+  // Fast loop: runs while bitstream is fully available (unfinished)
+  // Decode 4 symbols per iteration like the reference
+  while ((reload_status == DS_unfinished) && (out_idx + 3 < MAX_WEIGHTS)) {
+    h_weights[out_idx++] = fse_decode(state1);
 
-    // Check if we have enough bits for state transition
-    if (bits_consumed + nb1 > 64) {
-      // Not enough bits - emit current symbol and stop
-      h_weights[out_idx++] = symbol1;
-      break;
-    }
+    // Reload if needed (for tableLog*2+7 > 64, always reload - but with
+    // tableLog<=6, max bits per symbol = 6, so 4*6=24 < 57, no mid-reload needed)
+    h_weights[out_idx++] = fse_decode(state2);
+    h_weights[out_idx++] = fse_decode(state1);
+    h_weights[out_idx++] = fse_decode(state2);
 
-    u32 newstate_base1 = fse_newstate[idx1];
-    u32 bits_read1 = read_bits(nb1);
-    u32 new_state1 = newstate_base1 + bits_read1;
-
-    h_weights[out_idx++] = symbol1;
-    state1 = new_state1;
-
-    if (bits_consumed >= 64 || out_idx >= MAX_WEIGHTS)
-      break;
-
-    // State 2 decode
-    if (state2 >= table_size) {
-      return Status::ERROR_CORRUPT_DATA;
-    }
-
-    u32 idx2 = state2;
-    u8 symbol2 = fse_symbol[idx2];
-    u32 nb2 = fse_nbits[idx2];
-
-    // Check if we have enough bits for state transition
-    if (bits_consumed + nb2 > 64) {
-      // Not enough bits - emit current symbol and stop
-      h_weights[out_idx++] = symbol2;
-      break;
-    }
-
-    u32 newstate_base2 = fse_newstate[idx2];
-    u32 bits_read2 = read_bits(nb2);
-    u32 new_state2 = newstate_base2 + bits_read2;
-
-    h_weights[out_idx++] = symbol2;
-    state2 = new_state2;
-
-    if (bits_consumed >= 64)
-      break;
+    reload_status = bit_reload();
   }
+
+  // Tail loop: handle remaining symbols carefully
+  // Reference pattern: decode state1, check reload, decode state2, check reload
+  while (out_idx < MAX_WEIGHTS) {
+    if (out_idx >= MAX_WEIGHTS) break;
+    h_weights[out_idx++] = fse_decode(state1);
+    reload_status = bit_reload();
+    if (reload_status == DS_overflow) {
+      // Overflow after state1: emit state2's current symbol and done
+      if (out_idx < MAX_WEIGHTS) {
+        h_weights[out_idx++] = decode_table[state2].symbol;
+      }
+      break;
+    }
+
+    if (out_idx >= MAX_WEIGHTS) break;
+    h_weights[out_idx++] = fse_decode(state2);
+    reload_status = bit_reload();
+    if (reload_status == DS_overflow) {
+      // Overflow after state2: emit state1's current symbol and done
+      if (out_idx < MAX_WEIGHTS) {
+        h_weights[out_idx++] = decode_table[state1].symbol;
+      }
+      break;
+    }
+  }
+
+#ifdef CUDA_ZSTD_DEBUG
+  fprintf(stderr, "[HUF_FSE] Decoded %u weights: ", out_idx);
+  for (u32 i = 0; i < out_idx && i < 32; i++) {
+    fprintf(stderr, "%u ", (unsigned)h_weights[i]);
+  }
+  if (out_idx > 32) fprintf(stderr, "...");
+  fprintf(stderr, "\n");
+#endif
 
   *num_symbols = out_idx;
   return Status::SUCCESS;
@@ -620,47 +791,63 @@ __host__ Status weights_to_code_lengths(const u8 *h_weights, u32 num_weights,
   }
 
   if (weight_sum == 0) {
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[W2CL] ERROR: weight_sum==0, num_weights=%u\n", num_weights);
+#endif
     return Status::ERROR_CORRUPT_DATA;
   }
+#ifdef CUDA_ZSTD_DEBUG
+  fprintf(stderr, "[W2CL] weight_sum=%u, num_weights=%u\n", weight_sum, num_weights);
+#endif
 
-  // Find the smallest k such that 2^k >= weight_sum
-  // This is the max_bits value
+  // Determine tableLog following libzstd convention:
+  //   tableLog = highbit32(weight_sum) + 1
+  // This always gives a tableLog such that 2^tableLog > weight_sum,
+  // ensuring there's always room for the last (implicit) symbol.
+  // Our old code used "smallest k such that 2^k >= weight_sum" which
+  // produced k == highbit32(weight_sum) when weight_sum is a power of 2,
+  // resulting in last_weight_val = 0 and NO last symbol — WRONG.
   u32 max_num_bits = 0;
-  u32 next_power = 1;
-  while (next_power < weight_sum) {
-    next_power <<= 1;
-    max_num_bits++;
+  {
+    u32 temp = weight_sum;
+    while (temp > 0) {
+      temp >>= 1;
+      max_num_bits++;
+    }
+    // max_num_bits = floor(log2(weight_sum)) + 1 = highbit32(weight_sum) + 1
   }
 
-  // RFC 8878: The last weight's value is reconstructed so the sum is an exact
-  // power of 2. The last weight represents the remaining bits needed.
-  // If weight_sum is already a power of 2, last_weight_val = 0.
-  // Otherwise, we need to compute what the last weight should be.
-  u32 last_weight_val = next_power - weight_sum; // The additional value needed
+  // RFC 8878: The last weight's value fills the gap to 2^tableLog
+  u32 next_power = 1U << max_num_bits;
+  u32 last_weight_val = next_power - weight_sum; // Always > 0 with this tableLog
   u32 last_weight = 0;
   if (last_weight_val > 0) {
-    // The last weight is such that 2^(last_weight-1) fills the gap
-    // If gap = X, find w where 2^(w-1) = X => w = log2(X) + 1
-    if (last_weight_val > 0) {
-      // Compute log2(last_weight_val) + 1
-      u32 log_val = 0;
-      u32 temp = last_weight_val;
-      while (temp > 1) {
-        temp >>= 1;
-        log_val++;
-      }
-      // Check if it's exactly a power of 2
-      if ((1U << log_val) == last_weight_val) {
-        last_weight = log_val + 1;
-      } else {
-        // Not a power of 2, need different handling
-        // This shouldn't happen if RFC is followed correctly
-        last_weight = log_val + 2; // Round up
-      }
+    // The last weight is such that 2^(last_weight-1) = last_weight_val
+    // => last_weight = log2(last_weight_val) + 1
+    u32 log_val = 0;
+    u32 temp = last_weight_val;
+    while (temp > 1) {
+      temp >>= 1;
+      log_val++;
+    }
+    // Verify it's exactly a power of 2
+    if ((1U << log_val) == last_weight_val) {
+      last_weight = log_val + 1;
+    } else {
+      // Not a power of 2 — corrupt data per RFC
+#ifdef CUDA_ZSTD_DEBUG
+      fprintf(stderr, "[W2CL] ERROR: last_weight_val=%u is not a power of 2\n", last_weight_val);
+#endif
+      return Status::ERROR_CORRUPT_DATA;
     }
   }
 
   *max_bits = max_num_bits;
+
+#ifdef CUDA_ZSTD_DEBUG
+  fprintf(stderr, "[W2CL] max_num_bits=%u, next_power=%u, last_weight_val=%u, last_weight=%u\n",
+          max_num_bits, next_power, last_weight_val, last_weight);
+#endif
 
   // Convert weights to code lengths: bits = MaxBits + 1 - Weight
   // RFC 8878: C[w] = (MaxBits + 1 - w) for w in weights
@@ -754,6 +941,21 @@ __host__ Status deserialize_huffman_table_rfc8878(const unsigned char *h_input,
   u32 max_bits;
   status = weights_to_code_lengths(h_weights, num_symbols, h_code_lengths,
                                    &max_bits);
+
+#ifdef CUDA_ZSTD_DEBUG
+  fprintf(stderr, "[HUF_TABLE] weights_to_code_lengths status=%d, max_bits=%u\n",
+          (int)status, max_bits);
+  if (status == Status::SUCCESS) {
+    // Print first 20 non-zero code lengths
+    int printed = 0;
+    for (int i = 0; i < MAX_HUFFMAN_SYMBOLS && printed < 20; i++) {
+      if (h_code_lengths[i] > 0) {
+        fprintf(stderr, "[HUF_TABLE]   sym[%d]=%u\n", i, h_code_lengths[i]);
+        printed++;
+      }
+    }
+  }
+#endif
 
   if (status == Status::SUCCESS) {
   }
@@ -1065,6 +1267,304 @@ build_decode_table_kernel(const u8 *code_lengths, u32 num_symbols,
   d_symbol_index[0] = max_len;
 }
 
+// ============================================================================
+// DTable-based Huffman Decode (zstd reference-compatible)
+// ============================================================================
+
+/**
+ * @brief Build a flat DTable for O(1) Huffman symbol lookup.
+ *
+ * This matches the reference zstd HUF_readDTableX1_wksp approach:
+ *   - Table has (1 << tableLog) entries
+ *   - Each entry stores {nbBits, symbol}
+ *   - To decode: peek tableLog bits -> entry = dtable[val] -> symbol = entry.symbol,
+ *     advance bits_consumed by entry.nbBits
+ *
+ * @param code_lengths  Array of code lengths per symbol (0 = unused)
+ * @param num_symbols   Number of symbols (typically 256)
+ * @param d_dtable      Output: flat decode table of HuffmanDecoderEntry
+ * @param table_log     The table log (= max code length from the Huffman table)
+ */
+__global__ void build_huffman_dtable_kernel(
+    const u8 *code_lengths, u32 num_symbols,
+    HuffmanDecoderEntry *d_dtable, u32 table_log) {
+  if (threadIdx.x != 0 || blockIdx.x != 0)
+    return;
+
+  u32 table_size = 1U << table_log;
+
+  // Zero-init the table
+  for (u32 i = 0; i < table_size; i++) {
+    d_dtable[i].num_bits = 0;
+    d_dtable[i].symbol = 0;
+  }
+
+  // Fill DTable entries matching libzstd's HUF_readDTableX1_wksp order:
+  //   - Iterate by WEIGHT from 1 to tableLog (i.e., by code length from
+  //     tableLog DOWN to 1 — longest codes first, shortest codes last).
+  //   - Weight w  →  nbBits = tableLog + 1 - w
+  //   - Each symbol with weight w gets 2^(w-1) = (1 << (tableLog - nbBits)) entries.
+  //   - Within each weight/length, symbols appear in ascending order (canonical).
+  //
+  // This puts longest codes (weight 1, nbBits=tableLog) at position 0 with
+  // 1 entry each, and shortest codes (weight tableLog, nbBits=1) at the end
+  // with 2^(tableLog-1) entries each.
+  //
+  // The zstd compressor assigns the smallest code VALUES to the longest codes,
+  // so the MSB-first DTable lookup (val = top tableLog bits) must map small
+  // values → longest codes.  Our old code filled shortest codes first at
+  // position 0, which was INVERTED relative to the compressor's code assignment.
+  u32 pos = 0; // Current position in DTable
+  for (i32 nbBits = (i32)table_log; nbBits >= 1; nbBits--) {
+    u32 num_entries = 1U << (table_log - (u32)nbBits); // Entries per symbol at this length
+    for (u32 sym = 0; sym < num_symbols; sym++) {
+      if (code_lengths[sym] == (u32)nbBits) {
+        for (u32 j = 0; j < num_entries; j++) {
+          if (pos < table_size) {
+            d_dtable[pos].num_bits = (u8)nbBits;
+            d_dtable[pos].symbol = (u8)sym;
+            pos++;
+          }
+        }
+      }
+    }
+  }
+
+#ifdef CUDA_ZSTD_DEBUG
+  printf("[DTABLE] Built DTable: tableLog=%u, tableSize=%u, filled %u entries\n",
+         table_log, table_size, pos);
+  // Print first 16 entries for verification
+  for (u32 i = 0; i < 16 && i < table_size; i++) {
+    printf("[DTABLE] entry[%u] = {nbBits=%u, symbol=%u('%c')}\n",
+           i, d_dtable[i].num_bits, d_dtable[i].symbol,
+           d_dtable[i].symbol >= 32 ? d_dtable[i].symbol : '?');
+  }
+#endif
+}
+
+/**
+ * @brief DTable-based 4-stream Huffman decode kernel (zstd reference-compatible).
+ *
+ * Reads the Huffman bitstream BACKWARD per the Zstandard spec using exact
+ * BIT_DStream semantics from the reference implementation:
+ *   - Init: load LE u64 from end of stream, find sentinel bit
+ *   - Decode: peek tableLog MSB bits -> O(1) DTable lookup -> symbol + nbBits
+ *   - Refill: after EVERY symbol (not just when bits_consumed >= 32)
+ *   - Output: symbols in reverse order (backward bitstream = last symbol first)
+ *
+ * This replaces the old canonical-code-iteration kernel that had subtle bugs.
+ */
+__global__ void huffman_decode_dtable_kernel(
+    const unsigned char *input, u32 stream_bytes,
+    const HuffmanDecoderEntry *d_dtable, u32 table_log,
+    unsigned char *output, u32 total_regen_size,
+    u32 output_start_offset, u32 stream_id_debug,
+    u32 num_symbols_to_decode) {
+
+  if (threadIdx.x != 0 || blockIdx.x != 0)
+    return;
+
+  if (stream_bytes == 0 || num_symbols_to_decode == 0)
+    return;
+
+  // --- Step 1: Find sentinel bit in last byte ---
+  u8 last_byte = input[stream_bytes - 1];
+  if (last_byte == 0) return; // No sentinel — corrupt
+
+  // highbit32: position of highest set bit (0-indexed from LSB)
+  u32 high_bit = 0;
+  for (i32 i = 7; i >= 0; i--) {
+    if (last_byte & (1 << i)) {
+      high_bit = (u32)i;
+      break;
+    }
+  }
+
+  // --- Step 2: Initialize BIT_DStream ---
+  // Reference: BIT_initDStream
+  // Load up to 8 bytes LE from the end of the stream
+  const unsigned char *stream_start = input;
+  u32 load_start = (stream_bytes >= 8) ? (stream_bytes - 8) : 0;
+  u32 load_bytes = stream_bytes - load_start;
+
+  u64 bit_container = 0;
+  for (u32 i = 0; i < load_bytes; i++) {
+    bit_container |= ((u64)input[load_start + i]) << (i * 8);
+  }
+
+  // bits_consumed = (64 - load_bytes*8) [empty top bits] + (8 - high_bit) [padding + sentinel]
+  u32 bits_consumed = 64 - load_bytes * 8 + (8 - high_bit);
+
+  // ptr points to current window start; refills move it backward
+  const unsigned char *ptr = input + load_start;
+
+  // limitPtr: we can do fast reloads as long as ptr >= limitPtr
+  // Reference: sizeof(bitD->bitContainer) = 8, so limitPtr = start + 8
+  const unsigned char *limitPtr = stream_start + 8;
+
+#ifdef CUDA_ZSTD_DEBUG
+  printf("[DTABLE-KERNEL] stream=%u bytes=%u last_byte=0x%02X high_bit=%u "
+         "bits_consumed=%u load_start=%u load_bytes=%u tableLog=%u\n",
+         stream_id_debug, stream_bytes, last_byte, high_bit,
+         bits_consumed, load_start, load_bytes, table_log);
+#endif
+
+  // --- BIT_reloadDStream implementation ---
+  // Returns: 0=unfinished, 1=endOfBuffer, 2=completed, 3=overflow
+  // We use an inline lambda-like approach via a local variable
+
+  // --- Step 3: Decode symbols ---
+  u32 num_decoded = 0;
+
+  // Fast loop: while we have enough margin for fast reloads
+  // Reference: BIT_reloadDStreamFast requires ptr >= limitPtr (i.e., at least 8 bytes before ptr)
+  while (num_decoded + 3 < num_symbols_to_decode && ptr >= limitPtr) {
+    // Decode 4 symbols per iteration (like the reference HUF_decodeStreamX1)
+    for (u32 k = 0; k < 4 && num_decoded < num_symbols_to_decode; k++) {
+      // BIT_lookBitsFast: peek tableLog bits from MSB
+      u32 val = (u32)((bit_container << bits_consumed) >> (64 - table_log));
+      u8 symbol = d_dtable[val].symbol;
+      u8 nbBits = d_dtable[val].num_bits;
+      bits_consumed += nbBits;
+
+      // Output in reverse order (backward bitstream)
+      u32 out_idx = output_start_offset + (num_symbols_to_decode - 1 - num_decoded);
+      if (out_idx < total_regen_size) {
+        output[out_idx] = symbol;
+      }
+
+#ifdef CUDA_ZSTD_DEBUG
+      if (num_decoded < 8) {
+        printf("[DTABLE-KERNEL] stream=%u sym[%u]=%u('%c') val=0x%X nbBits=%u "
+               "out_idx=%u bits_consumed=%u\n",
+               stream_id_debug, num_decoded, symbol,
+               symbol >= 32 ? symbol : '?', val, nbBits, out_idx, bits_consumed);
+      }
+#endif
+      num_decoded++;
+    }
+
+    // BIT_reloadDStreamFast: fast reload (no bounds check needed since ptr >= limitPtr)
+    {
+      u32 nbBytes = bits_consumed >> 3;
+      ptr -= nbBytes;
+      bits_consumed -= nbBytes * 8;
+      // Reload 8 bytes LE from ptr
+      bit_container = 0;
+      for (u32 i = 0; i < 8; i++) {
+        bit_container |= ((u64)ptr[i]) << (i * 8);
+      }
+    }
+  }
+
+  // Tail loop: careful decoding with bounds-checked reloads
+  while (num_decoded < num_symbols_to_decode) {
+    // Check if we have enough bits
+    u32 remaining = 64 - bits_consumed;
+    if (remaining < table_log) {
+      // Try to reload
+      if (bits_consumed > 64) break; // overflow
+
+      if (ptr >= limitPtr) {
+        // Normal reload
+        u32 nbBytes = bits_consumed >> 3;
+        ptr -= nbBytes;
+        bits_consumed -= nbBytes * 8;
+        bit_container = 0;
+        for (u32 i = 0; i < 8; i++) {
+          bit_container |= ((u64)ptr[i]) << (i * 8);
+        }
+      } else if (ptr > stream_start) {
+        // Cautious reload
+        u32 nbBytes = bits_consumed >> 3;
+        if (ptr - nbBytes < stream_start) {
+          nbBytes = (u32)(ptr - stream_start);
+        }
+        ptr -= nbBytes;
+        bits_consumed -= nbBytes * 8;
+        // Read available bytes from ptr (may be < 8)
+        u32 avail = (u32)((stream_start + stream_bytes) - ptr);
+        if (avail > 8) avail = 8;
+        bit_container = 0;
+        for (u32 i = 0; i < avail; i++) {
+          bit_container |= ((u64)ptr[i]) << (i * 8);
+        }
+      } else {
+        // At stream_start, no more bytes to load
+        // Check if we have enough bits remaining
+        remaining = 64 - bits_consumed;
+        if (remaining < table_log) {
+          // Pad with zeros for final lookup — remaining bits are valid
+          // The DTable lookup with fewer bits may still work if the code is short enough
+          if (remaining == 0) break;
+        }
+      }
+      remaining = 64 - bits_consumed;
+      if (remaining < 1) break; // Truly exhausted
+    }
+
+    // Decode one symbol
+    u32 peek_bits = (remaining >= table_log) ? table_log : remaining;
+    u32 val = (u32)((bit_container << bits_consumed) >> (64 - table_log));
+    // If we have fewer bits than tableLog, the lookup is still valid because
+    // the low bits are zero-padded, and the DTable entry will have nbBits <= remaining
+    u8 symbol = d_dtable[val].symbol;
+    u8 nbBits = d_dtable[val].num_bits;
+
+    if (nbBits > remaining) {
+      // Not enough bits for this symbol — we're done
+#ifdef CUDA_ZSTD_DEBUG
+      printf("[DTABLE-KERNEL] stream=%u STOPPED at sym %u/%u: nbBits=%u > remaining=%u\n",
+             stream_id_debug, num_decoded, num_symbols_to_decode, nbBits, remaining);
+#endif
+      break;
+    }
+
+    bits_consumed += nbBits;
+
+    u32 out_idx = output_start_offset + (num_symbols_to_decode - 1 - num_decoded);
+    if (out_idx < total_regen_size) {
+      output[out_idx] = symbol;
+    }
+
+    num_decoded++;
+
+    // Reload after every symbol in tail loop (reference: BIT_reloadDStream)
+    if (bits_consumed > 64) break;
+
+    if (ptr >= limitPtr) {
+      u32 nbBytes = bits_consumed >> 3;
+      ptr -= nbBytes;
+      bits_consumed -= nbBytes * 8;
+      bit_container = 0;
+      for (u32 i = 0; i < 8; i++) {
+        bit_container |= ((u64)ptr[i]) << (i * 8);
+      }
+    } else if (ptr > stream_start) {
+      u32 nbBytes = bits_consumed >> 3;
+      if (ptr - nbBytes < stream_start) {
+        nbBytes = (u32)(ptr - stream_start);
+      }
+      if (nbBytes > 0) {
+        ptr -= nbBytes;
+        bits_consumed -= nbBytes * 8;
+        u32 avail = (u32)((stream_start + stream_bytes) - ptr);
+        if (avail > 8) avail = 8;
+        bit_container = 0;
+        for (u32 i = 0; i < avail; i++) {
+          bit_container |= ((u64)ptr[i]) << (i * 8);
+        }
+      }
+    }
+    // else: at stream_start, can't reload, but may still have bits
+  }
+
+#ifdef CUDA_ZSTD_DEBUG
+  printf("[DTABLE-KERNEL] stream=%u done: decoded %u/%u symbols\n",
+         stream_id_debug, num_decoded, num_symbols_to_decode);
+#endif
+}
+
 /**
  * @brief (NEW) Pass 1 for Parallel Decode: Find chunk start bits.
  * This kernel is SEQUENTIAL (<<<1, 1>>>) and scans the bitstream
@@ -1129,18 +1629,26 @@ __global__ void find_chunk_start_bits_kernel(
 }
 
 /**
- * @brief Decode Huffman bitstream backward.
+ * @brief Decode one Huffman symbol from the MSB of a bit container.
+ *
+ * @param bit_container  The 64-bit container loaded in LE order
+ * @param bits_consumed  How many MSB bits have been consumed so far
+ * @param d_first_code   First canonical code at each length
+ * @param d_symbol_index Starting index in d_symbols for each length
+ * @param d_symbols      Symbols array in canonical order
+ * @param max_len        Maximum code length
+ * @param consumed       [out] How many bits this symbol used (0 = failure)
  */
-__device__ u8 decode_huff_symbol(u64 bit_container, u32 bits_available,
+__device__ u8 decode_huff_symbol(u64 bit_container, u32 bits_consumed,
                                  const u32 *d_first_code,
                                  const u16 *d_symbol_index, const u8 *d_symbols,
                                  u32 max_len, u32 &consumed) {
-  u32 code = 0;
+  u32 remaining = 64 - bits_consumed;
   for (u32 len = 1; len <= max_len; ++len) {
-    if (len > bits_available)
+    if (len > remaining)
       break;
-    // Bits are read from the LSB of container (encoder writes LSB-first)
-    code = (u32)(bit_container & ((1U << len) - 1));
+    // Extract top `len` bits from the unconsumed portion (MSB-first)
+    u32 code = (u32)((bit_container << bits_consumed) >> (64 - len));
     u32 first_code = d_first_code[len];
     u32 count_at_len = d_symbol_index[len + 1] - d_symbol_index[len];
     if (count_at_len > 0 && code >= first_code &&
@@ -1156,9 +1664,15 @@ __device__ u8 decode_huff_symbol(u64 bit_container, u32 bits_available,
 }
 
 /**
- * @brief Parallel Huffman 4-stream decoder kernel.
- * Launched with 4 threads for small blocks, or more for larger ones.
- * For now, each block handles one stream.
+ * @brief Parallel Huffman 4-stream decoder kernel (RFC 8878 compliant).
+ *
+ * Reads the Huffman bitstream BACKWARD per the Zstandard spec:
+ *   - Bytes are loaded as little-endian u64 from the current pointer
+ *   - Bits are extracted from the MSB of the container (top-down)
+ *   - The pointer moves backward through the stream for refills
+ *   - Symbols are emitted in reverse order (last symbol first)
+ *
+ * This matches the reference zstd BIT_DStream implementation.
  */
 __global__ void huffman_decode_rfc8878_kernel(
     const unsigned char *input, u32 input_size, const u32 *d_first_code,
@@ -1167,70 +1681,104 @@ __global__ void huffman_decode_rfc8878_kernel(
     u32 output_start_offset, u32 stream_id_debug, u32 num_symbols_to_decode) {
 
   u32 max_len = d_symbol_index[0];
-  u32 bit_pos = stream_end_bits;
   u32 num_decoded = 0;
 
-  // Find sentinel bit
-  while (bit_pos > stream_start_bits) {
-    u32 byte_idx = (bit_pos - 1) >> 3;
-    u32 bit_idx = (bit_pos - 1) & 7;
-    if (input[byte_idx] & (1 << bit_idx)) {
-      bit_pos--;
+  // --- Step 1: Determine sub-stream byte range ---
+  u32 stream_bytes = (stream_end_bits + 7) / 8;
+  if (stream_bytes == 0) return;
+
+  // --- Step 2: Find sentinel bit in the last byte ---
+  // Per RFC 8878 §4.2.1: The last byte has a sentinel '1' bit followed by
+  // padding '0' bits. We need to find the highest set bit in the last byte.
+  u8 last_byte = input[stream_bytes - 1];
+  if (last_byte == 0) return; // No sentinel — corrupt
+
+  u32 high_bit = 0; // Bit position of sentinel within the last byte (0=LSB, 7=MSB)
+  for (i32 i = 7; i >= 0; i--) {
+    if (last_byte & (1 << i)) {
+      high_bit = (u32)i;
       break;
     }
-    bit_pos--;
   }
+  // padding_bits = number of zero bits above the sentinel = 7 - high_bit
+  // Total overhead in last byte = padding_bits + 1 (sentinel) = 8 - high_bit
 
-  // Bit container (64-bit) - load bytes from end backward
+  // --- Step 3: Load initial bit container (LE u64 from end of stream) ---
+  // We want to load bytes ending at the end of the stream
+  u32 load_start = (stream_bytes >= 8) ? (stream_bytes - 8) : 0;
+  u32 load_bytes = stream_bytes - load_start;
+
   u64 bit_container = 0;
-  u32 bits_available = 0;
-
-  // Initial load: read up to 8 bytes from end
-  u32 byte_pos = (bit_pos + 7) / 8;
-  u32 bytes_to_load = (byte_pos > 8) ? 8 : byte_pos;
-
-  for (u32 i = 0; i < bytes_to_load; i++) {
-    if (byte_pos > i) {
-      bit_container |= ((u64)input[byte_pos - bytes_to_load + i]) << (i * 8);
-    }
+  for (u32 i = 0; i < load_bytes; i++) {
+    bit_container |= ((u64)input[load_start + i]) << (i * 8);
   }
-  bits_available = bytes_to_load * 8;
-  byte_pos -= bytes_to_load;
 
+  // bits_consumed: how many MSB bits of the 64-bit container we've consumed.
+  // The container has `load_bytes * 8` meaningful bits in positions [0, load_bytes*8).
+  // The last byte of the stream is at container position [(load_bytes-1)*8, load_bytes*8).
+  // The sentinel is at container bit: (load_bytes - 1) * 8 + high_bit.
+  // Everything at or above that bit is overhead (sentinel + padding).
+  // From the MSB (bit 63): bits_consumed = 64 - ((load_bytes-1)*8 + high_bit)
+  //                                       = 64 - load_bytes*8 + 8 - high_bit
+  u32 bits_consumed = 64 - load_bytes * 8 + (8 - high_bit);
+  // This consumes: (64-load_bytes*8) empty top bits + (7-high_bit) padding + 1 sentinel
+
+  // Pointer for refills — next bytes are below load_start
+  const unsigned char *ptr = input + load_start;
+  const unsigned char *stream_start = input; // Don't read before stream start
+
+#ifdef CUDA_ZSTD_DEBUG
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    printf("[HUFF-KERNEL] stream=%u bytes=%u last_byte=0x%02X high_bit=%u "
+           "bits_consumed=%u load_start=%u load_bytes=%u\n",
+           stream_id_debug, stream_bytes, last_byte, high_bit,
+           bits_consumed, load_start, load_bytes);
+  }
+#endif
+
+  // --- Step 4: Decode symbols ---
   while (num_decoded < num_symbols_to_decode) {
-    // Refill when low
-    while (bits_available <= 56 && byte_pos > 0) {
-      u32 refill = (byte_pos > 8) ? 8 : byte_pos;
-      u64 new_bits = 0;
-      for (u32 i = 0; i < refill; i++) {
-        new_bits |= ((u64)input[byte_pos - refill + i]) << (i * 8);
+    // Refill: when bits_consumed >= 32 and we have bytes left to load
+    if (bits_consumed >= 32 && ptr > stream_start) {
+      u32 bytes_back = bits_consumed >> 3; // How many full bytes consumed
+      // Don't go below stream start
+      if (ptr - bytes_back < stream_start) {
+        bytes_back = (u32)(ptr - stream_start);
       }
-      bit_container = (bit_container << (refill * 8)) | new_bits;
-      bits_available += refill * 8;
-      byte_pos -= refill;
+      ptr -= bytes_back;
+      bits_consumed -= bytes_back * 8;
+
+      // Reload container from new ptr position
+      u32 avail = (u32)((input + stream_bytes) - ptr);
+      if (avail > 8) avail = 8;
+      bit_container = 0;
+      for (u32 i = 0; i < avail; i++) {
+        bit_container |= ((u64)ptr[i]) << (i * 8);
+      }
     }
 
-    if (bits_available == 0)
-      break;
+    u32 remaining = 64 - bits_consumed;
+    if (remaining == 0) break;
 
-    u32 consumed = 0;
-    // Try to decode a symbol from the top bits of the container
+    // Try to decode a symbol: extract top `len` bits from the unconsumed portion
+    u32 found = 0;
     for (u32 len = 1; len <= max_len; len++) {
-      if (len > bits_available)
-        break;
-      // Extract bottom 'len' bits (LSB)
-      u32 code = (u32)(bit_container & ((1U << len) - 1));
-      // Canonical Huffman: check if code is in range [first_code, first_code +
-      // count)
+      if (len > remaining) break;
+
+      // Extract top `len` bits of the unconsumed data.
+      // Unconsumed data starts at bit position (63 - bits_consumed) counting from bit 0.
+      // Shift container left by bits_consumed to put unconsumed at MSB,
+      // then shift right by (64 - len) to extract top `len` bits.
+      u32 code = (u32)((bit_container << bits_consumed) >> (64 - len));
+
+      // Canonical Huffman: check if code matches [first_code, first_code+count)
       u32 count_at_len = d_symbol_index[len + 1] - d_symbol_index[len];
       if (count_at_len > 0 && code >= d_first_code[len] &&
           code < d_first_code[len] + count_at_len) {
         u8 symbol = d_symbols[d_symbol_index[len] + (code - d_first_code[len])];
 
-        // INTERLEAVING: symbols are decoded in reverse order
-        // The first symbol decoded is the LAST symbol of this stream.
-        // INTERLEAVING FIX: RFC 8878 4-streams are CONCATENATED
-        // The first symbol decoded is the LAST symbol of this stream segment.
+        // Symbols are decoded in reverse order (backward bitstream).
+        // The first decoded symbol is the LAST symbol of this stream segment.
         u32 symbol_idx_within_stream = num_symbols_to_decode - 1 - num_decoded;
         u32 out_idx = output_start_offset + symbol_idx_within_stream;
 
@@ -1238,17 +1786,46 @@ __global__ void huffman_decode_rfc8878_kernel(
           output[out_idx] = symbol;
         }
 
+#ifdef CUDA_ZSTD_DEBUG
+        if (threadIdx.x == 0 && blockIdx.x == 0 && num_decoded < 8) {
+          printf("[HUFF-KERNEL] stream=%u sym[%u]=%u('%c') code=0x%X len=%u "
+                 "out_idx=%u bits_consumed=%u\n",
+                 stream_id_debug, num_decoded, symbol,
+                 symbol >= 32 ? symbol : '?', code, len, out_idx,
+                 bits_consumed);
+        }
+#endif
+
         num_decoded++;
-        // Consume bits from LSB by shifting right
-        bit_container >>= len;
-        bits_available -= len;
-        consumed = 1;
+        bits_consumed += len;
+        found = 1;
         break;
       }
     }
-    if (!consumed)
+
+    if (!found) {
+#ifdef CUDA_ZSTD_DEBUG
+      if (threadIdx.x == 0 && blockIdx.x == 0) {
+        u32 remaining_bits = 64 - bits_consumed;
+        u32 peek = 0;
+        if (remaining_bits >= max_len)
+          peek = (u32)((bit_container << bits_consumed) >> (64 - max_len));
+        printf("[HUFF-KERNEL] stream=%u FAILED at sym %u/%u, remaining=%u "
+               "peek=0x%X max_len=%u\n",
+               stream_id_debug, num_decoded, num_symbols_to_decode,
+               remaining_bits, peek, max_len);
+      }
+#endif
       break;
+    }
   }
+
+#ifdef CUDA_ZSTD_DEBUG
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    printf("[HUFF-KERNEL] stream=%u done: decoded %u/%u symbols\n",
+           stream_id_debug, num_decoded, num_symbols_to_decode);
+  }
+#endif
 }
 
 // ============================================================================
@@ -1646,33 +2223,62 @@ Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
   Status status = deserialize_huffman_table_rfc8878(
       h_weights_data, input_size, h_code_lengths, &huf_header_size);
   delete[] h_weights_data;
+#ifdef CUDA_ZSTD_DEBUG
+  fprintf(stderr, "[DECODE_HUF] deserialize status=%d, huf_header_size=%u, input_size=%zu\n",
+          (int)status, huf_header_size, input_size);
+#endif
   if (status != Status::SUCCESS)
     return status;
 
+  // Compute max code length (= tableLog for DTable)
+  u32 max_bits = 0;
+  for (u32 i = 0; i < MAX_HUFFMAN_SYMBOLS; i++) {
+    if (h_code_lengths[i] > max_bits)
+      max_bits = h_code_lengths[i];
+  }
+  if (max_bits == 0) {
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[DECODE_HUF] ERROR: max_bits==0, no Huffman codes\n");
+#endif
+    return Status::ERROR_CORRUPT_DATA;
+  }
+
+#ifdef CUDA_ZSTD_DEBUG
+  fprintf(stderr, "[DECODE_HUF] max_bits (tableLog) = %u\n", max_bits);
+#endif
+
+  // --- 2. Allocate and upload code_lengths to GPU ---
   u8 *d_code_lengths;
-  u32 *d_first_code;
-  u16 *d_symbol_index;
-  u8 *d_symbols;
-
   CUDA_CHECK(cudaMalloc(&d_code_lengths, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
-  CUDA_CHECK(cudaMalloc(&d_first_code, (MAX_HUFFMAN_BITS + 2) * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_symbol_index, (MAX_HUFFMAN_BITS + 2) * sizeof(u16)));
-  CUDA_CHECK(cudaMalloc(&d_symbols, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
-
   CUDA_CHECK(cudaMemcpyAsync(d_code_lengths, h_code_lengths,
                              MAX_HUFFMAN_SYMBOLS * sizeof(u8),
                              cudaMemcpyHostToDevice, stream));
 
-  build_decode_table_kernel<<<1, 1, 0, stream>>>(
-      d_code_lengths, MAX_HUFFMAN_SYMBOLS, d_first_code, d_symbol_index,
-      d_symbols);
-
-   const unsigned char *d_bitstream_base = d_input + huf_header_size;
+  const unsigned char *d_bitstream_base = d_input + huf_header_size;
   u32 bitstream_size_base = (u32)(input_size - huf_header_size);
 
   if (four_streams) {
-    if (bitstream_size_base < 6)
+    // --- 3a. Build DTable for O(1) Huffman decode ---
+    u32 table_log = max_bits;
+    u32 dtable_size = 1U << table_log;
+    HuffmanDecoderEntry *d_dtable;
+    CUDA_CHECK(cudaMalloc(&d_dtable, dtable_size * sizeof(HuffmanDecoderEntry)));
+
+    build_huffman_dtable_kernel<<<1, 1, 0, stream>>>(
+        d_code_lengths, MAX_HUFFMAN_SYMBOLS, d_dtable, table_log);
+
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[DECODE_HUF] four_streams: bitstream_size_base=%u, huf_header_size=%u, tableLog=%u, dtable_size=%u\n",
+            bitstream_size_base, huf_header_size, table_log, dtable_size);
+#endif
+    if (bitstream_size_base < 6) {
+#ifdef CUDA_ZSTD_DEBUG
+      fprintf(stderr, "[DECODE_HUF] ERROR: bitstream_size_base(%u) < 6\n", bitstream_size_base);
+#endif
+      cudaFree(d_dtable);
+      cudaFree(d_code_lengths);
       return Status::ERROR_CORRUPT_DATA;
+    }
 
     u16 stream_sizes[3];
     CUDA_CHECK(cudaMemcpyAsync(stream_sizes, d_bitstream_base, 6,
@@ -1682,30 +2288,62 @@ Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
     u32 L1 = stream_sizes[0];
     u32 L2 = stream_sizes[1];
     u32 L3 = stream_sizes[2];
-    if (6 + L1 + L2 + L3 > bitstream_size_base)
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[DECODE_HUF] L1=%u, L2=%u, L3=%u, 6+L1+L2+L3=%u, bitstream_size_base=%u\n",
+            L1, L2, L3, 6+L1+L2+L3, bitstream_size_base);
+#endif
+    if (6 + L1 + L2 + L3 > bitstream_size_base) {
+#ifdef CUDA_ZSTD_DEBUG
+      fprintf(stderr, "[DECODE_HUF] ERROR: stream sizes overflow: 6+%u+%u+%u=%u > %u\n",
+              L1, L2, L3, 6+L1+L2+L3, bitstream_size_base);
+#endif
+      cudaFree(d_dtable);
+      cudaFree(d_code_lengths);
       return Status::ERROR_CORRUPT_DATA;
+    }
     u32 L4 = bitstream_size_base - 6 - L1 - L2 - L3;
 
-    u32 N1 = (decompressed_size + 3) / 4;
-    u32 N2 = (decompressed_size + 2) / 4;
-    u32 N3 = (decompressed_size + 1) / 4;
-    u32 N4 = decompressed_size / 4;
+    // RFC 8878 / zstd reference: segmentSize = (dstSize + 3) / 4
+    // N1 = N2 = N3 = segmentSize, N4 = dstSize - 3*segmentSize
+    u32 segmentSize = (decompressed_size + 3) / 4;
+    u32 N1 = segmentSize;
+    u32 N2 = segmentSize;
+    u32 N3 = segmentSize;
+    u32 N4 = decompressed_size - 3 * segmentSize;
 
     const unsigned char *d_data = d_bitstream_base + 6;
-    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
-        d_data, input_size, d_first_code, d_symbol_index, d_symbols, d_output,
-        decompressed_size, 0, L1 * 8, 0, 0, N1);
-    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
-        d_data + L1, input_size, d_first_code, d_symbol_index, d_symbols,
-        d_output, decompressed_size, 0, L2 * 8, N1, 1, N2);
-    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
-        d_data + L1 + L2, input_size, d_first_code, d_symbol_index, d_symbols,
-        d_output, decompressed_size, 0, L3 * 8, N1 + N2, 2, N3);
-    huffman_decode_rfc8878_kernel<<<1, 1, 0, stream>>>(
-        d_data + L1 + L2 + L3, input_size, d_first_code, d_symbol_index,
-        d_symbols, d_output, decompressed_size, 0, L4 * 8, N1 + N2 + N3, 3, N4);
+#ifdef CUDA_ZSTD_DEBUG
+    fprintf(stderr, "[DECODE_HUF] Launching 4-stream DTable kernels: L1=%u L2=%u L3=%u L4=%u, N1=%u N2=%u N3=%u N4=%u, decompressed_size=%u\n",
+            L1, L2, L3, L4, N1, N2, N3, N4, decompressed_size);
+#endif
+    huffman_decode_dtable_kernel<<<1, 1, 0, stream>>>(
+        d_data, L1, d_dtable, table_log, d_output,
+        decompressed_size, 0, 0, N1);
+    huffman_decode_dtable_kernel<<<1, 1, 0, stream>>>(
+        d_data + L1, L2, d_dtable, table_log, d_output,
+        decompressed_size, N1, 1, N2);
+    huffman_decode_dtable_kernel<<<1, 1, 0, stream>>>(
+        d_data + L1 + L2, L3, d_dtable, table_log, d_output,
+        decompressed_size, N1 + N2, 2, N3);
+    huffman_decode_dtable_kernel<<<1, 1, 0, stream>>>(
+        d_data + L1 + L2 + L3, L4, d_dtable, table_log, d_output,
+        decompressed_size, N1 + N2 + N3, 3, N4);
+
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+    cudaFree(d_dtable);
   } else {
-    // Use forward-reading decoder for single-stream mode
+    // --- 3b. Single-stream: use old canonical code tables + forward decoder ---
+    u32 *d_first_code;
+    u16 *d_symbol_index;
+    u8 *d_symbols;
+    CUDA_CHECK(cudaMalloc(&d_first_code, (MAX_HUFFMAN_BITS + 2) * sizeof(u32)));
+    CUDA_CHECK(cudaMalloc(&d_symbol_index, (MAX_HUFFMAN_BITS + 2) * sizeof(u16)));
+    CUDA_CHECK(cudaMalloc(&d_symbols, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
+
+    build_decode_table_kernel<<<1, 1, 0, stream>>>(
+        d_code_lengths, MAX_HUFFMAN_SYMBOLS, d_first_code, d_symbol_index,
+        d_symbols);
+
     // Calculate chunk offsets size and skip past them
     u32 chunk_size_symbols = 4096;
     u32 num_chunks =
@@ -1727,14 +2365,14 @@ Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
     huffman_decode_forward_kernel<<<1, 1, 0, stream>>>(
         d_bitstream_with_offsets, bitstream_actual_size, d_first_code,
         d_symbol_index, d_symbols, d_output, decompressed_size, 0);
+
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+    cudaFree(d_first_code);
+    cudaFree(d_symbol_index);
+    cudaFree(d_symbols);
   }
 
-  CUDA_CHECK(cudaStreamSynchronize(stream));
-
   cudaFree(d_code_lengths);
-  cudaFree(d_first_code);
-  cudaFree(d_symbol_index);
-  cudaFree(d_symbols);
 
   *d_output_size = decompressed_size;
   return Status::SUCCESS;

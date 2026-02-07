@@ -155,27 +155,21 @@ void test_simple_weights() {
   }
 
   int size_format = (lit_header >> 2) & 3;
-  // int regenerated_size = 0;
   int header_bytes = 0;
 
-  if (size_format == 0) { // Single stream?
-    // regenerated_size = (lit_header >> 3); // 5 bits
-    header_bytes = 1;
-  } else if (size_format == 1) {
-    // regenerated_size = (lit_header >> 4) + (compressed[offset + 1] << 4);
-    header_bytes = 2;
-  } else if (size_format == 2) {
-    // regenerated_size = (lit_header >> 4) + (compressed[offset + 1] << 4) +
-    //                   (compressed[offset + 2] << 12);
+  // RFC 8878 Section 3.1.1.3.2: Compressed_Literals_Block header sizes
+  // size_format 0 (single stream): 3 bytes (10-bit regen, 10-bit compressed)
+  // size_format 1 (4 streams):     3 bytes (10-bit regen, 10-bit compressed)
+  // size_format 2 (4 streams):     4 bytes (14-bit regen, 14-bit compressed)
+  // size_format 3 (4 streams):     5 bytes (18-bit regen, 18-bit compressed)
+  if (size_format == 0 || size_format == 1) {
     header_bytes = 3;
+  } else if (size_format == 2) {
+    header_bytes = 4;
   } else { // size_format == 3
-    // regenerated_size =
-    //    (lit_header >> 4) + (compressed[offset + 1] << 4) +
-    //    (compressed[offset + 2] << 12) +
-    //    (compressed[offset + 3] << 20); // 28 bits? broken logic here but
-    //    approx
-    header_bytes = 3; // or 4 or 5
+    header_bytes = 5;
   }
+  printf("Size Format: %d, Header Bytes: %d\n", size_format, header_bytes);
 
   offset += header_bytes; // Points to Huffman Tree header?
 
@@ -200,50 +194,18 @@ void test_simple_weights() {
   size_t fse_stream_size = huff_header_byte; // The byte IS the size
   printf("FSE Stream Size: %zu bytes\n", fse_stream_size);
 
-  offset++; // Point to start of FSE stream content
+  offset++; // Point to start of FSE NCount + bitstream data
 
-  // Copy the relevant bytes
-  std::vector<uint8_t> fse_buffer;
-  fse_buffer.push_back(
-      huff_header_byte); // Decoder expects HeaderByte at index 0?
-  // Function signature: Status decode_huffman_weights_fse(const byte_t
-  // *h_input, u32 compressed_size, ...) h_input[0] is read as accuracy log in
-  // the implementation: (h_input[0] & 0xF) + 5 BUT wait. Reader impl: u32
-  // accuracy_log = (h_input[0] & 0x0F) + 5;
-  // ...
-  // u32 bitstream_start = (bit_pos_header + 7) / 8;
-  // bit_pos_header starts at 4.
-
-  // In strict RFC:
-  // The FSE stream follows the header byte immediately.
-  // If we pass the pointer pointing at the HeaderByte, then h_input[0] is
-  // HeaderByte. Yes.
-
-  // We need to pass the buffer starting at HeaderByte and containing
-  // `compressed_size` bytes. The `compressed_size` param in
-  // `decode_huffman_weights_fse` is `u32 compressed_size`. It uses it as the
-  // bound.
-
-  // So we copy from `compressed[offset-1]` (the header byte) for
-  // `fse_stream_size + 1` bytes? Wait. The valid size is `fse_stream_size`.
-  // Is the header byte included in that count? RFC: "This is a single byte,
-  // Value 0-127... Value is the size of the FSE bitstream." Does "size of FSE
-  // bitstream" include the header byte itself? Typically NO. The header byte
-  // says "N bytes follow". So we need N+1 bytes buffer? Let's look at
-  // `decode_huffman_weights_fse` impl: `u32 accuracy_log = (h_input[0] &
-  // 0x0F)
-  // + 5;` -> Reads first byte. `if (bitstream_start >= compressed_size)` ->
-  // Checks bounds. It treats `compressed_size` as the size of the buffer
-  // passed in. If the HeaderByte says "50", it means 50 bytes FOLLOW. So the
-  // total buffer size is 51. We must pass `fse_stream_size + 1`.
-
+  // Copy the FSE compressed data (same as how the real decoder calls it:
+  //   decode_huffman_weights_fse(h_input + 1, header_byte, ...)
+  // h_input+1 skips the header byte, header_byte = compressed size)
   size_t total_fse_buffer_size = fse_stream_size;
   std::vector<uint8_t> test_buffer(total_fse_buffer_size);
   memcpy(test_buffer.data(), &compressed[offset], total_fse_buffer_size);
 
   printf("Copied %zu bytes to test buffer.\n", total_fse_buffer_size);
   printf("FSE Data: ");
-  for (int i = 0; i < total_fse_buffer_size; i++)
+  for (size_t i = 0; i < total_fse_buffer_size; i++)
     printf("%02X ", test_buffer[i]);
   printf("\n");
 
@@ -262,36 +224,15 @@ void test_simple_weights() {
   printf("Decoded %u symbols.\n", num_symbols);
   printf("Weights: ");
   uint32_t weight_sum = 0;
-  for (int i = 0; i < num_symbols; i++) {
+  for (uint32_t i = 0; i < num_symbols; i++) {
     printf("%d ", weights[i]);
     if (weights[i] > 0) {
-      weight_sum += (1 << (weights[i] - 1)); // This is WRONG formula.
-      // Correct formula: sum += (1 << (MaxHeight - weight)) ?
-      // ZSTD Spec: "The sum of 2^(AccuracyLog - Weight) must be power of 2"
-      // No.
-      // Weights are 1..11.
-      // Formula: Sum( 1 << (Weight - 1) ) ? No.
-
-      // Standard Huffman: Sum( 2^(-L) ) = 1.
-      // Zstd Weights W represent probabilities P = 2^(W-HeaderAccuracy).
-      // Actually, `weights_to_code_lengths` converts them.
-      // Let's use the same CHECK as the kernel debug:
-      // sum += (1 << (weight - 1)) ?
-      // Let's see `weights_to_code_lengths` implementation again.
-      // for w in weights:
-      //    val = (w ? (1 << (w-1)) : 0)
-      //    sum += val
+      weight_sum += (1u << (weights[i] - 1));
     }
   }
   printf("\n");
 
-  for (int i = 0; i < num_symbols; i++) {
-    if (weights[i] > 0)
-      weight_sum += (1 << (weights[i] - 1));
-  }
-
-  // (void)regenerated_size;
-  printf("Weight Sum: %u (Expected 256 for Max_Bits 8, or power of 2)\n",
+  printf("Weight Sum: %u (Expected power of 2, or gap should be power of 2)\n",
          weight_sum);
 
   // Check next power of 2

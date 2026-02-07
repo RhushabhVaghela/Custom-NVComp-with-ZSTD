@@ -177,7 +177,7 @@ bool test_compression_timing_breakdown() {
   PerformanceProfiler::enable_profiling(true);
   PerformanceProfiler::reset_metrics();
 
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2;
   CudaTimer timer;
   timer.start();
 
@@ -324,7 +324,7 @@ bool test_decompression_timing() {
   }
 
   // Compress first
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2;
   Status status =
       manager->compress(d_input, data_size, d_compressed, &compressed_size,
                         d_temp, temp_size, nullptr, 0, 0);
@@ -455,7 +455,7 @@ bool test_compression_throughput() {
     CudaTimer timer;
     timer.start();
 
-    size_t compressed_size;
+    size_t compressed_size = data_size * 2;
     Status status =
         manager->compress(d_input, data_size, d_output, &compressed_size,
                           d_temp, temp_size, nullptr, 0, 0);
@@ -614,7 +614,7 @@ bool test_decompression_throughput() {
   }
 
   // Compress
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2;
   Status status =
       manager->compress(d_input, data_size, d_compressed, &compressed_size,
                         d_temp, temp_size, nullptr, 0, 0);
@@ -915,7 +915,7 @@ bool test_metrics_reset() {
   PerformanceProfiler::reset_metrics();
 
   // Run compression
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2;
   Status status =
       manager->compress(d_input, data_size, d_output, &compressed_size, d_temp,
                         temp_size, nullptr, 0, 0);
@@ -1096,7 +1096,7 @@ bool test_json_export() {
   PerformanceProfiler::enable_profiling(true);
   PerformanceProfiler::reset_metrics();
 
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2;
   Status status =
       manager->compress(d_input, data_size, d_output, &compressed_size, d_temp,
                         temp_size, nullptr, 0, 0);
@@ -1195,7 +1195,7 @@ bool test_memory_pool_performance_impact() {
   }
 
   // Warm up
-  size_t compressed_size;
+  size_t compressed_size = data_size * 2;
   Status status =
       manager->compress(d_input, data_size, d_output, &compressed_size, d_temp,
                         temp_size, nullptr, 0, 0);
