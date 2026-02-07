@@ -44,6 +44,8 @@ void generate_test_data(std::vector<byte_t> &data, size_t size) {
 bool test_dual_mode_roundtrip() {
   std::cout << "\n=== Dual Mode Roundtrip Test ===" << std::endl;
 
+  bool match = false;  // Track overall result — must be proven true
+
   const size_t size = 128 * 1024; // 128 KB
   std::vector<byte_t> h_input(size);
   generate_test_data(h_input, size);
@@ -94,12 +96,16 @@ bool test_dual_mode_roundtrip() {
         CHECK_CUDA(cudaMemcpy(h_output.data(), d_output, decompressed_size,
                               cudaMemcpyDeviceToHost));
 
-        bool match = (decompressed_size == size);
+        match = (decompressed_size == size);
         for (size_t i = 0; match && i < size; ++i) {
           match = (h_output[i] == h_input[i]);
         }
         std::cout << "  Verify: " << (match ? "PASSED" : "FAILED") << std::endl;
+      } else {
+        std::cerr << "  ERROR: Decompression failed, test cannot pass" << std::endl;
       }
+    } else {
+      std::cerr << "  ERROR: Compression failed, test cannot pass" << std::endl;
     }
   }
 
@@ -113,7 +119,7 @@ bool test_dual_mode_roundtrip() {
   CHECK_CUDA(cudaFree(d_output));
   CHECK_CUDA(cudaFree(d_temp));
 
-  return true;
+  return match;
 }
 
 void benchmark_decode(size_t size, int iterations) {
@@ -184,14 +190,14 @@ int main() {
   CHECK_CUDA(cudaGetDeviceProperties(&prop, 0));
   std::cout << "GPU: " << prop.name << std::endl;
 
-  test_dual_mode_roundtrip();
+  bool passed = test_dual_mode_roundtrip();
 
   std::cout << "\n--- Decode Benchmarks ---" << std::endl;
   benchmark_decode(1 * 1024 * 1024, 10); // 1 MB
 
   std::cout << "\n======================================" << std::endl;
-  std::cout << "Tests Complete" << std::endl;
+  std::cout << (passed ? "Tests PASSED" : "Tests FAILED") << std::endl;
   std::cout << "======================================" << std::endl;
 
-  return 0;
+  return passed ? 0 : 1;
 }

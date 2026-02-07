@@ -8,13 +8,13 @@
 namespace cuda_zstd {
 namespace error_handling {
 
-// CRITICAL FIX: Use pointer with lazy initialization to avoid static init heap corruption
 static std::mutex* error_mutex_ptr = nullptr;
+static std::once_flag error_mutex_flag;
 
 std::mutex& get_error_mutex() {
-    if (!error_mutex_ptr) {
+    std::call_once(error_mutex_flag, []() {
         error_mutex_ptr = new std::mutex();
-    }
+    });
     return *error_mutex_ptr;
 }
 

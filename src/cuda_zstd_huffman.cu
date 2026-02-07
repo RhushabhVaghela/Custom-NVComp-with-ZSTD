@@ -1334,9 +1334,6 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
                                         h_codes // Generate into host buffer
       );
   if (status != Status::SUCCESS) {
-    //         fprintf(stderr, "[ERROR] encode_huffman:
-    //         generate_canonical_codes failed with status %d\n",
-    //         (int)status);
     cudaFreeHost(h_frequencies); // FIX: Use cudaFreeHost for pinned memory
     delete[] h_nodes;
     delete[] h_code_lengths;

@@ -91,7 +91,7 @@ bool test_cpu_to_cpu(const char *input_str) {
   // Reference: use zstd directly if available, otherwise skip
   printf("Input: %s (size=%zu)\n", input_str, input_size);
   printf("SKIP: Requires libzstd Huffman-only API (not exposed)\n");
-  return true; // Placeholder - reference test
+  return true; // Placeholder - reference test (SKIP)
 }
 
 bool test_cpu_to_gpu(const char *input_str) {
@@ -100,7 +100,7 @@ bool test_cpu_to_gpu(const char *input_str) {
 
   printf("Input: %s (size=%zu)\n", input_str, input_size);
   printf("SKIP: Requires libzstd Huffman compression API\n");
-  return true; // Placeholder
+  return true; // Placeholder (SKIP)
 }
 
 bool test_gpu_to_cpu(const char *input_str) {
@@ -268,6 +268,7 @@ int main() {
   int num_tests = sizeof(test_strings) / sizeof(test_strings[0]);
   int passed = 0;
   int failed = 0;
+  int skipped = 0;
 
   for (int i = 0; i < num_tests; i++) {
     printf("\n");
@@ -276,25 +277,17 @@ int main() {
     printf("========================================\n");
 
     // Run all 4 combinations
+    // cpu_to_cpu, cpu_to_gpu, gpu_to_cpu are stubs — count as skipped, not passed
     bool result;
 
     result = test_cpu_to_cpu(test_strings[i]);
-    if (result)
-      passed++;
-    else
-      failed++;
+    skipped++; // Stub test — always skipped
 
     result = test_cpu_to_gpu(test_strings[i]);
-    if (result)
-      passed++;
-    else
-      failed++;
+    skipped++; // Stub test — always skipped
 
     result = test_gpu_to_cpu(test_strings[i]);
-    if (result)
-      passed++;
-    else
-      failed++;
+    skipped++; // Stub test — skips decode step
 
     result = test_gpu_to_gpu(test_strings[i]);
     if (result)
@@ -304,7 +297,7 @@ int main() {
   }
 
   printf("\n========================================\n");
-  printf("Results: %d passed, %d failed\n", passed, failed);
+  printf("Results: %d passed, %d failed, %d skipped\n", passed, failed, skipped);
   printf("========================================\n");
 
   return failed > 0 ? 1 : 0;

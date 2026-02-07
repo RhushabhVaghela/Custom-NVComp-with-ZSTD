@@ -243,9 +243,8 @@ bool test_small_input_threshold() {
   lz77_config.search_depth = (1u << config.search_log);
   lz77_config.min_match = 3;
 
-  // Run passes 1 and 2
+  // Run pass 1 (match finding)
   find_matches_parallel(d_input, input_size, &workspace, lz77_config, 0);
-  compute_optimal_parse_v2(d_input, input_size, &workspace, lz77_config, 0);
   cudaDeviceSynchronize();
 
   // Test adaptive routing (should use CPU for < 1MB)
@@ -293,9 +292,8 @@ bool test_correctness_1mb() {
   lz77_config.search_depth = (1u << config.search_log);
   lz77_config.min_match = 3;
 
-  // Run passes 1 and 2
+  // Run pass 1 (match finding)
   find_matches_parallel(d_input, input_size, &workspace, lz77_config, 0);
-  compute_optimal_parse_v2(d_input, input_size, &workspace, lz77_config, 0);
   cudaDeviceSynchronize();
 
   // Run both CPU and GPU
@@ -340,9 +338,8 @@ bool test_correctness_10mb() {
   lz77_config.search_depth = (1u << config.search_log);
   lz77_config.min_match = 3;
 
-  // Run passes 1 and 2
+  // Run pass 1 (match finding)
   find_matches_parallel(d_input, input_size, &workspace, lz77_config, 0);
-  compute_optimal_parse_v2(d_input, input_size, &workspace, lz77_config, 0);
   cudaDeviceSynchronize();
 
   // Run both CPU and GPU
@@ -388,11 +385,9 @@ bool test_performance_100mb() {
   lz77_config.search_depth = (1u << config.search_log);
   lz77_config.min_match = 3;
 
-  // Run passes 1 and 2
-  printf("Running Pass 1 and 2...\n");
+  // Run pass 1 (match finding)
+  printf("Running Pass 1...\n");
   find_matches_parallel(d_input, input_size, &workspace, lz77_config, 0);
-  compute_optimal_parse_v2(d_input, input_size, &workspace, lz77_config, 0);
-  printf("Debug: compute_optimal_parse_v2 returned\n");
   fflush(stdout);
 
   cudaDeviceSynchronize();
@@ -446,9 +441,8 @@ bool test_random_data_correctness() {
   lz77_config.search_depth = (1u << config.search_log);
   lz77_config.min_match = 3;
 
-  // Run passes 1 and 2
+  // Run pass 1 (match finding)
   find_matches_parallel(d_input, input_size, &workspace, lz77_config, 0);
-  compute_optimal_parse_v2(d_input, input_size, &workspace, lz77_config, 0);
   cudaDeviceSynchronize();
 
   // Run both CPU and GPU
@@ -521,9 +515,8 @@ void run_benchmark_case(u32 size_mb, const char *pattern_name) {
   lz77_config.search_depth = (1u << config.search_log);
   lz77_config.min_match = 3;
 
-  // Run passes 1 and 2 (Matches & Costs)
+  // Run pass 1 (match finding)
   find_matches_parallel(d_input, input_size, &workspace, lz77_config, 0);
-  compute_optimal_parse_v2(d_input, input_size, &workspace, lz77_config, 0);
   cudaDeviceSynchronize();
 
   // Measure GPU Parallel Backtracking

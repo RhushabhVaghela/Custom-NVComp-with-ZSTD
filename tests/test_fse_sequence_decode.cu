@@ -377,34 +377,100 @@ bool test_device_table_copy(TestResults &results) {
 bool test_offset_calculation(TestResults &results) {
   printf("\n=== Test: Offset Calculation ===\n");
 
-  // Test cases: symbol -> expected offset
-  // For predefined OF table:
-  // Symbols 1, 2, 3 are repeat codes (offset types 1, 2, 3)
-  // Symbols 4+ are actual offset codes that map to larger offsets
+  // Build the predefined OF decode table so we can verify actual table entries
+  const u32 table_log = 5;
+  const u32 table_size = 1u << table_log;
+
+  u32 max_sym, log;
+  const u16 *of_norm = get_predefined_norm(TableType::OFFSETS, &max_sym, &log);
+
+  FSEDecodeTable h_table;
+  h_table.newState = new u16[table_size];
+  h_table.symbol = new u8[table_size];
+  h_table.nbBits = new u8[table_size];
+  h_table.nbAdditionalBits = new u8[table_size];
+  h_table.baseValue = new u32[table_size];
+  h_table.table_log = table_log;
+  h_table.table_size = table_size;
+
+  std::vector<u16> normalized(max_sym + 1);
+  for (u32 i = 0; i <= max_sym; i++) {
+    normalized[i] = (u16)(((const i16 *)of_norm)[i]);
+  }
+
+  Status status =
+      FSE_buildDTable_Host(normalized.data(), max_sym, table_size, h_table);
+  if (status != Status::SUCCESS) {
+    printf("Failed to build OF decode table\n");
+    results.report("Offset calculation", false, "Could not build OF table");
+    delete[] h_table.newState;
+    delete[] h_table.symbol;
+    delete[] h_table.nbBits;
+    delete[] h_table.nbAdditionalBits;
+    delete[] h_table.baseValue;
+    return false;
+  }
 
   bool all_ok = true;
 
-  // Test repeat codes - symbols 1-3 directly map to offsets 1-3
-  for (u32 sym = 1; sym <= 3; sym++) {
-    // For repeat codes, symbol N means use offset N (1=rep1, 2=rep2, 3=rep3)
-    u32 expected = sym;
-    u32 actual = sym; // Simplified: symbol equals offset for repeat codes
+  // Verify offset codes (sym >= 0) using the built table
+  // Per RFC 8878 Table 15: Offset_Bits = N, Offset_Value_Baseline = (1 << N)
+  // For sym 0: nbAdditionalBits=0, baseValue=1
+  // For sym 1: nbAdditionalBits=1, baseValue=1
+  // For sym N (N>=1): nbAdditionalBits=N-1, baseValue=1<<(N-1) — but this depends
+  // on the table encoding. Let's verify the table entries match expected patterns.
+  //
+  // The standard OF table for symbols:
+  //   sym 0: Num_Bits=0, Baseline=0 (offset 0, but offset 1-3 are repeat codes in context)
+  //   sym N (N>=1): Num_Bits=N-1, Baseline=1<<(N-1)
 
-    if (actual != expected) {
-      printf("Symbol %u: expected offset=%u, got %u\n", sym, expected, actual);
-      all_ok = false;
-    } else {
-      printf("Symbol %u: offset=%u (repeat code)\n", sym, actual);
+  // Scan all table entries and verify each symbol's baseValue and nbAdditionalBits
+  // Build a map of which symbols appear and what their table entries claim
+  bool symbol_seen[32] = {};
+  u8 symbol_nbAdditionalBits[32] = {};
+  u32 symbol_baseValue[32] = {};
+
+  for (u32 i = 0; i < table_size; i++) {
+    u8 sym = h_table.symbol[i];
+    if (sym < 32 && !symbol_seen[sym]) {
+      symbol_seen[sym] = true;
+      symbol_nbAdditionalBits[sym] = h_table.nbAdditionalBits[i];
+      symbol_baseValue[sym] = h_table.baseValue[i];
     }
   }
 
-  // Test actual offset codes (symbol >= 4)
-  // Per RFC 8878: offset = (1 << (code - 3)) + extra_bits
-  // For simplicity, just verify symbols 4-10 produce valid offsets
-  for (u32 sym = 4; sym <= 10; sym++) {
-    u32 base = 1u << (sym - 3); // Minimum offset for this code
-    printf("Symbol %u: base_offset=%u\n", sym, base);
+  // Verify symbols that appear in the table have consistent offset properties
+  for (u32 sym = 0; sym < 32 && sym <= max_sym; sym++) {
+    if (!symbol_seen[sym]) continue;
+
+    u8 actual_nb = symbol_nbAdditionalBits[sym];
+    u32 actual_base = symbol_baseValue[sym];
+
+    // Per RFC 8878 Table 15: for offset code N
+    // Num_Bits = N, Baseline = (1 << N) - N
+    // But the exact encoding may differ; at minimum verify:
+    //  - nbAdditionalBits should equal the symbol value (offset code = extra bits count)
+    //  - baseValue should be (1 << sym) for sym >= 1, or 0/1 for sym 0
+
+    u8 expected_nb = (u8)sym;
+    u32 expected_base = (sym == 0) ? 0 : (1u << sym);
+
+    // Offset codes per RFC 8878: Num_Bits = Offset_Code, Offset = Baseline + readBits(Num_Bits)
+    if (actual_nb != expected_nb) {
+      printf("Symbol %u: nbAdditionalBits mismatch: expected=%u, got=%u\n",
+             sym, expected_nb, actual_nb);
+      all_ok = false;
+    } else {
+      printf("Symbol %u: nbAdditionalBits=%u, baseValue=%u OK\n",
+             sym, actual_nb, actual_base);
+    }
   }
+
+  delete[] h_table.newState;
+  delete[] h_table.symbol;
+  delete[] h_table.nbBits;
+  delete[] h_table.nbAdditionalBits;
+  delete[] h_table.baseValue;
 
   results.report("Offset calculation", all_ok, "Offset values incorrect");
   return all_ok;

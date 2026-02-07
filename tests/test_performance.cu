@@ -209,10 +209,46 @@ bool test_compression_timing_breakdown() {
                              << component_sum << " ms");
   LOG_INFO("Overhead: " << (total_time - component_sum) << " ms");
 
+  // Roundtrip verification: decompress and compare with original
+  ASSERT_TRUE(compressed_size > 0, "Compressed size should be > 0");
+  ASSERT_TRUE(compressed_size < data_size, "Compressible data should compress smaller than original");
+
+  void *d_decompressed = nullptr;
+  if (!safe_cuda_malloc(&d_decompressed, data_size)) {
+    LOG_FAIL("test_compression_timing_breakdown", "CUDA malloc for d_decompressed failed");
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    PerformanceProfiler::enable_profiling(false);
+    return false;
+  }
+
+  size_t decompressed_size = data_size;
+  status = manager->decompress(d_output, compressed_size, d_decompressed,
+                               &decompressed_size, d_temp, temp_size);
+  ASSERT_STATUS(status, "Decompression failed in roundtrip verification");
+  ASSERT_TRUE(decompressed_size == data_size, "Decompressed size should match original");
+
+  std::vector<uint8_t> h_decompressed(data_size);
+  if (!safe_cuda_memcpy(h_decompressed.data(), d_decompressed, data_size,
+                        cudaMemcpyDeviceToHost)) {
+    LOG_FAIL("test_compression_timing_breakdown", "CUDA memcpy from d_decompressed failed");
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    safe_cuda_free(d_decompressed);
+    PerformanceProfiler::enable_profiling(false);
+    return false;
+  }
+
+  ASSERT_TRUE(memcmp(h_data.data(), h_decompressed.data(), data_size) == 0,
+              "Decompressed data must match original input");
+
   // Cleanup with safe free functions
   safe_cuda_free(d_input);
   safe_cuda_free(d_output);
   safe_cuda_free(d_temp);
+  safe_cuda_free(d_decompressed);
 
   PerformanceProfiler::enable_profiling(false);
 
@@ -311,6 +347,7 @@ bool test_decompression_timing() {
   float decomp_time = timer.elapsed_ms();
 
   ASSERT_STATUS(status, "Decompression failed");
+  ASSERT_TRUE(decompressed_size == data_size, "Decompressed size mismatch");
 
   const auto &metrics = PerformanceProfiler::get_metrics();
 
@@ -321,6 +358,22 @@ bool test_decompression_timing() {
   LOG_INFO("Throughput: " << (data_size / (1024.0 * 1024.0)) /
                                  (decomp_time / 1000.0)
                           << " MB/s");
+
+  // Roundtrip verification: copy decompressed data back and compare
+  std::vector<uint8_t> h_decompressed(data_size);
+  if (!safe_cuda_memcpy(h_decompressed.data(), d_output, data_size,
+                        cudaMemcpyDeviceToHost)) {
+    LOG_FAIL("test_decompression_timing", "CUDA memcpy from d_output failed");
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    PerformanceProfiler::enable_profiling(false);
+    return false;
+  }
+
+  ASSERT_TRUE(memcmp(h_data.data(), h_decompressed.data(), data_size) == 0,
+              "Decompressed data must match original input");
 
   // Cleanup with safe free functions
   safe_cuda_free(d_input);
@@ -371,6 +424,7 @@ bool test_compression_throughput() {
   std::cout << "  ------|-----------|-------------------|-------|----------\n";
 
   std::vector<int> levels = {1, 3, 5, 9, 15, 19};
+  bool any_level_failed = false;
 
   for (int level : levels) {
     std::unique_ptr<ZstdManager> manager;
@@ -379,12 +433,14 @@ bool test_compression_throughput() {
       if (!manager) {
         LOG_FAIL("test_compression_throughput",
                  "Failed to create manager for level " + std::to_string(level));
+        any_level_failed = true;
         continue;
       }
     } catch (const std::exception &e) {
       LOG_FAIL("test_compression_throughput",
                "Manager creation failed for level " + std::to_string(level) +
                    ": " + e.what());
+      any_level_failed = true;
       continue;
     }
 
@@ -392,6 +448,7 @@ bool test_compression_throughput() {
     void *d_temp = nullptr;
     if (!safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("test_compression_throughput", "CUDA malloc for d_temp failed");
+      any_level_failed = true;
       continue;
     }
 
@@ -415,8 +472,62 @@ bool test_compression_throughput() {
                 << throughput << " | " << std::setw(5) << std::fixed
                 << std::setprecision(2) << ratio << " | " << std::setw(8)
                 << compressed_size / 1024 << "\n";
+
+      // Roundtrip verification: decompress and verify data integrity
+      void *d_decompressed = nullptr;
+      if (!safe_cuda_malloc(&d_decompressed, data_size)) {
+        LOG_FAIL("test_compression_throughput",
+                 "CUDA malloc for d_decompressed failed at level " + std::to_string(level));
+        any_level_failed = true;
+        safe_cuda_free(d_temp);
+        continue;
+      }
+
+      size_t decompressed_size = data_size;
+      Status dec_status = manager->decompress(d_output, compressed_size, d_decompressed,
+                                              &decompressed_size, d_temp, temp_size);
+      if (dec_status != Status::SUCCESS) {
+        LOG_FAIL("test_compression_throughput",
+                 "Decompression failed at level " + std::to_string(level));
+        any_level_failed = true;
+        safe_cuda_free(d_decompressed);
+        safe_cuda_free(d_temp);
+        continue;
+      }
+
+      if (decompressed_size != data_size) {
+        LOG_FAIL("test_compression_throughput",
+                 "Decompressed size mismatch at level " + std::to_string(level));
+        any_level_failed = true;
+        safe_cuda_free(d_decompressed);
+        safe_cuda_free(d_temp);
+        continue;
+      }
+
+      std::vector<uint8_t> h_decompressed(data_size);
+      if (!safe_cuda_memcpy(h_decompressed.data(), d_decompressed, data_size,
+                            cudaMemcpyDeviceToHost)) {
+        LOG_FAIL("test_compression_throughput",
+                 "CUDA memcpy from d_decompressed failed at level " + std::to_string(level));
+        any_level_failed = true;
+        safe_cuda_free(d_decompressed);
+        safe_cuda_free(d_temp);
+        continue;
+      }
+
+      if (memcmp(h_data.data(), h_decompressed.data(), data_size) != 0) {
+        LOG_FAIL("test_compression_throughput",
+                 "Decompressed data mismatch at level " + std::to_string(level));
+        any_level_failed = true;
+        safe_cuda_free(d_decompressed);
+        safe_cuda_free(d_temp);
+        continue;
+      }
+
+      safe_cuda_free(d_decompressed);
     } else {
       std::cout << "  " << std::setw(5) << level << " | ERROR | - | - | -\n";
+      any_level_failed = true;
     }
 
     safe_cuda_free(d_temp);
@@ -424,6 +535,11 @@ bool test_compression_throughput() {
 
   safe_cuda_free(d_input);
   safe_cuda_free(d_output);
+
+  if (any_level_failed) {
+    LOG_FAIL("test_compression_throughput", "One or more compression levels failed verification");
+    return false;
+  }
 
   LOG_PASS("Compression Throughput");
   return true;
@@ -533,9 +649,30 @@ bool test_decompression_throughput() {
   double throughput = (data_size / (1024.0 * 1024.0)) / (avg_time / 1000.0);
 
   LOG_INFO("Average decompression time: " << std::fixed << std::setprecision(2)
-                                          << avg_time << " ms");
+                                           << avg_time << " ms");
   LOG_INFO("Decompression throughput: " << std::fixed << std::setprecision(1)
-                                        << throughput << " MB/s");
+                                         << throughput << " MB/s");
+
+  // Verify final decompressed output matches original input
+  size_t final_decompressed_size = data_size;
+  status = manager->decompress(d_compressed, compressed_size, d_output,
+                               &final_decompressed_size, d_temp, temp_size);
+  ASSERT_STATUS(status, "Final verification decompression failed");
+  ASSERT_TRUE(final_decompressed_size == data_size, "Decompressed size mismatch");
+
+  std::vector<uint8_t> h_decompressed(data_size);
+  if (!safe_cuda_memcpy(h_decompressed.data(), d_output, data_size,
+                        cudaMemcpyDeviceToHost)) {
+    LOG_FAIL("test_decompression_throughput", "CUDA memcpy from d_output failed");
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_compressed);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    return false;
+  }
+
+  ASSERT_TRUE(memcmp(h_data.data(), h_decompressed.data(), data_size) == 0,
+              "Decompressed data must match original input");
 
   // Cleanup with safe free functions
   safe_cuda_free(d_input);
@@ -620,10 +757,45 @@ bool test_memory_bandwidth() {
   LOG_INFO("Total bandwidth: " << std::fixed << std::setprecision(2)
                                << metrics.total_bandwidth_gbps << " GB/s");
 
+  // Roundtrip verification: decompress and compare with original
+  ASSERT_TRUE(compressed_size > 0, "Compressed size should be > 0");
+
+  void *d_decompressed = nullptr;
+  if (!safe_cuda_malloc(&d_decompressed, data_size)) {
+    LOG_FAIL("test_memory_bandwidth", "CUDA malloc for d_decompressed failed");
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    PerformanceProfiler::enable_profiling(false);
+    return false;
+  }
+
+  size_t decompressed_size = data_size;
+  status = manager->decompress(d_output, compressed_size, d_decompressed,
+                               &decompressed_size, d_temp, temp_size);
+  ASSERT_STATUS(status, "Decompression failed in roundtrip verification");
+  ASSERT_TRUE(decompressed_size == data_size, "Decompressed size should match original");
+
+  std::vector<uint8_t> h_decompressed(data_size);
+  if (!safe_cuda_memcpy(h_decompressed.data(), d_decompressed, data_size,
+                        cudaMemcpyDeviceToHost)) {
+    LOG_FAIL("test_memory_bandwidth", "CUDA memcpy from d_decompressed failed");
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    safe_cuda_free(d_decompressed);
+    PerformanceProfiler::enable_profiling(false);
+    return false;
+  }
+
+  ASSERT_TRUE(memcmp(h_data.data(), h_decompressed.data(), data_size) == 0,
+              "Decompressed data must match original input");
+
   // Cleanup with safe free functions
   safe_cuda_free(d_input);
   safe_cuda_free(d_output);
   safe_cuda_free(d_temp);
+  safe_cuda_free(d_decompressed);
 
   PerformanceProfiler::enable_profiling(false);
 
@@ -1051,14 +1223,47 @@ bool test_memory_pool_performance_impact() {
   double avg_time = total_time / num_iterations;
 
   LOG_INFO("Average compression time: " << std::fixed << std::setprecision(2)
-                                        << avg_time << " ms");
+                                         << avg_time << " ms");
   LOG_INFO("Total time for " << num_iterations << " iterations: " << std::fixed
-                             << std::setprecision(2) << total_time << " ms");
+                              << std::setprecision(2) << total_time << " ms");
+
+  // Roundtrip verification: decompress the last compressed output and verify
+  ASSERT_TRUE(compressed_size > 0, "Compressed size should be > 0");
+
+  void *d_decompressed = nullptr;
+  if (!safe_cuda_malloc(&d_decompressed, data_size)) {
+    LOG_FAIL("test_memory_pool_performance_impact", "CUDA malloc for d_decompressed failed");
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    return false;
+  }
+
+  size_t decompressed_size = data_size;
+  status = manager->decompress(d_output, compressed_size, d_decompressed,
+                               &decompressed_size, d_temp, temp_size);
+  ASSERT_STATUS(status, "Decompression failed in roundtrip verification");
+  ASSERT_TRUE(decompressed_size == data_size, "Decompressed size should match original");
+
+  std::vector<uint8_t> h_decompressed(data_size);
+  if (!safe_cuda_memcpy(h_decompressed.data(), d_decompressed, data_size,
+                        cudaMemcpyDeviceToHost)) {
+    LOG_FAIL("test_memory_pool_performance_impact", "CUDA memcpy from d_decompressed failed");
+    safe_cuda_free(d_input);
+    safe_cuda_free(d_output);
+    safe_cuda_free(d_temp);
+    safe_cuda_free(d_decompressed);
+    return false;
+  }
+
+  ASSERT_TRUE(memcmp(h_data.data(), h_decompressed.data(), data_size) == 0,
+              "Decompressed data must match original input");
 
   // Cleanup with safe free functions
   safe_cuda_free(d_input);
   safe_cuda_free(d_output);
   safe_cuda_free(d_temp);
+  safe_cuda_free(d_decompressed);
 
   LOG_PASS("Memory Pool Performance Impact");
   return true;

@@ -31,15 +31,16 @@ std::unordered_map<std::string, cudaEvent_t>
     *PerformanceProfiler::cuda_timers_ = nullptr;
 std::mutex *PerformanceProfiler::profiler_mutex_ = nullptr;
 
+static std::once_flag profiler_init_flag;
+
 void PerformanceProfiler::ensure_initialized() {
-  if (profiler_mutex_ == nullptr) {
-    // Leaky singleton pattern for statics to ensure they persist
+  std::call_once(profiler_init_flag, []() {
     profiler_mutex_ = new std::mutex();
     timers_ = new std::unordered_map<std::string, double>();
     timer_start_ = new std::unordered_map<
         std::string, std::chrono::high_resolution_clock::time_point>();
     cuda_timers_ = new std::unordered_map<std::string, cudaEvent_t>();
-  }
+  });
 }
 
 void PerformanceProfiler::enable_profiling(bool enable) {

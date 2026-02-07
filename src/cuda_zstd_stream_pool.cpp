@@ -17,16 +17,10 @@ StreamPool::StreamPool(size_t pool_size) {
   // Pre-allocate vector capacity but don't resize yet
   resources_.reserve(pool_size);
 
-  const char *dbg = getenv("CUDA_ZSTD_DEBUG_POOL");
-  bool debug = (dbg && std::atoi(dbg) != 0);
-
   // Verify CUDA context is initialized before creating streams
   int device_count = 0;
   cudaError_t ctx_err = cudaGetDeviceCount(&device_count);
   if (ctx_err != cudaSuccess || device_count == 0) {
-    // fprintf(stderr,
-    //         "[CRITICAL] StreamPool: CUDA not available or no devices
-    //         found\n");
     // Create a minimal pool with null streams - will fail gracefully later
     resources_.clear();
     return;
@@ -36,13 +30,8 @@ StreamPool::StreamPool(size_t pool_size) {
   int current_device = 0;
   cudaError_t dev_err = cudaGetDevice(&current_device);
   if (dev_err != cudaSuccess) {
-    // fprintf(
-    //     stderr,
-    //     "[WARN] StreamPool: Cannot get current CUDA device, trying device
-    //     0\n");
     cudaError_t set_err = cudaSetDevice(0);
     if (set_err != cudaSuccess) {
-      // fprintf(stderr, "[CRITICAL] StreamPool: Cannot set CUDA device 0\n");
       resources_.clear();
       return;
     }
@@ -59,20 +48,11 @@ StreamPool::StreamPool(size_t pool_size) {
         cudaStreamCreateWithFlags(&r.stream, cudaStreamNonBlocking);
 
     if (err != cudaSuccess) {
-      // fprintf(
-      //     stderr,
-      //     "[CRITICAL] StreamPool: cudaStreamCreate failed at index %zu:
-      //     %s\n", i, cudaGetErrorString(err));
-
       // If we haven't created any streams yet, this is fatal
       if (created_count == 0) {
         // Try one more time with default stream flags
         err = cudaStreamCreate(&r.stream);
         if (err != cudaSuccess) {
-          // fprintf(stderr,
-          //         "[CRITICAL] StreamPool: Fallback stream creation also "
-          //         "failed: %s\n",
-          //         cudaGetErrorString(err));
           resources_.clear();
           return;
         }
@@ -89,9 +69,6 @@ StreamPool::StreamPool(size_t pool_size) {
     resources_.push_back(r);
     free_idx_.push(static_cast<int>(resources_.size() - 1));
     created_count++;
-  }
-
-  if (debug) {
   }
 }
 
@@ -124,17 +101,11 @@ StreamPool::~StreamPool() {
       cudaError_t sync_err = cudaStreamSynchronize(r.stream);
       if (sync_err != cudaSuccess && sync_err != cudaErrorCudartUnloading) {
         // Log error but continue cleanup
-        // fprintf(stderr, "[WARN] StreamPool: cudaStreamSynchronize failed "
-        //                 "during destruction\n");
       }
 
       cudaError_t destroy_err = cudaStreamDestroy(r.stream);
       if (destroy_err != cudaSuccess &&
           destroy_err != cudaErrorCudartUnloading) {
-        // fprintf(
-        //     stderr,
-        //     "[WARN] StreamPool: cudaStreamDestroy failed during
-        //     destruction\n");
       }
       r.stream = nullptr;
     }

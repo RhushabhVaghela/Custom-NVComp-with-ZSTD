@@ -302,9 +302,6 @@ __global__ void compute_sequence_details_kernel(
   }
 
   *d_total_output_size = total_output;
-  // printf("[SEQ_COMPUTE] Final: num_sequences=%u, total_literals=%u/%u,
-  // total_output=%u\n",
-  //        num_sequences, total_literals, total_literal_count, total_output);
 
   // NEW: Write back persistent rep-codes for the next block
   if (d_rep_codes_in) {
@@ -440,11 +437,6 @@ __global__ void sequential_block_execute_sequences_kernel(
   // Copy remaining literals (or ALL literals if num_sequences == 0)
   if (total_literal_count > used_literals) {
     u32 trailing_count = total_literal_count - used_literals;
-    if (tid == 0) {
-      // printf("[SEQ_KER] TotalLit=%u, UsedLit=%u, Trailing=%u, UsedOut=%u\n",
-      //        total_literal_count, used_literals, trailing_count,
-      //        used_output);
-    }
 
     for (u32 j = tid; j < trailing_count; j += block_dim) {
       if (used_output + j < output_max_size) {
@@ -518,9 +510,6 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   }
 
   // --- Pass 1: Compute sizes and rep-codes (Sequential) ---
-  // printf("[SEQ_CALL] About to launch compute_sequence_details_kernel:
-  // num_sequences=%u, literal_count=%u\n",
-  //        num_sequences, literal_count);
   compute_sequence_details_kernel<<<1, 1, 0, stream>>>(
       d_sequences, num_sequences, literal_count, d_actual_offsets,
       d_literals_lengths, d_match_lengths,
@@ -530,7 +519,6 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
       d_error_flag    // NEW: Pass error flag
   );
   cudaStreamSynchronize(stream);
-  // printf("[SEQ_CALL] Kernel completed, checking error flag\n");
 
   // Check for validation errors
   u32 h_error_flag = 0;

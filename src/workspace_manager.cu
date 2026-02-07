@@ -3,7 +3,7 @@
 // ==============================================================================
 
 #include "workspace_manager.h"
-#include "common_types.h"
+#include "cuda_zstd_types.h"
 #include <cuda_runtime.h>
 #include <iostream>
 

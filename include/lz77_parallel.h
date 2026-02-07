@@ -5,7 +5,7 @@
 #ifndef LZ77_PARALLEL_H
 #define LZ77_PARALLEL_H
 
-#include "common_types.h"
+#include "cuda_zstd_types.h"
 #include "error_context.h"
 #include "lz77_types.h"
 #include "workspace_manager.h"
@@ -40,6 +40,7 @@ Status find_matches_parallel(const u8 *d_input, u32 input_size,
                              u32 *d_chain_table_persistent = nullptr);
 
 // V2: Optimized multi-pass algorithm (10-100x faster!)
+[[deprecated("No-op stub. Use lz77_cpu_pipeline instead.")]]
 Status compute_optimal_parse_v2(const u8 *d_input, u32 input_size,
                                 CompressionWorkspace *workspace,
                                 const LZ77Config &config, cudaStream_t stream);

@@ -397,7 +397,7 @@ bool test_advanced_statistics() {
     
     // Get detailed statistics
     PoolStats stats;
-    pool.get_detailed_statistics(stats);
+    stats = pool.get_statistics();
     
     LOG_INFO("=== Advanced Statistics ===");
     // LOG_INFO("Enhanced allocations: " << stats.enhanced_allocations);
@@ -554,7 +554,7 @@ bool test_alternative_strategy_stress_test() {
     
     // Get final statistics
     PoolStats stats;
-    pool.get_detailed_statistics(stats);
+    stats = pool.get_statistics();
     
     LOG_INFO("Final statistics:");
     // LOG_INFO("  Smart allocations: " << stats.enhanced_allocations);
@@ -643,7 +643,7 @@ int main() {
     
     MemoryPoolManager final_pool;
     PoolStats final_stats;
-    final_pool.get_detailed_statistics(final_stats);
+    final_stats = final_pool.get_statistics();
     
     std::cout << "=== Allocation Statistics ===" << std::endl;
     std::cout << "Total Allocations: " << final_stats.total_allocations << std::endl;

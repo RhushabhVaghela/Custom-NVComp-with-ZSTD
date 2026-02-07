@@ -1905,11 +1905,11 @@ size_t MemoryPoolManager::calculate_optimal_allocation_size(
 }
 
 Status MemoryPoolManager::perform_resource_balance() {
-  // Placeholder for rebalancing logic (e.g. migrating host to device if
-  // pressure drops)
+  // Intentionally a no-op: rebalancing (e.g. migrating host-fallback
+  // allocations back to GPU when pressure drops) is deferred until
+  // profiling shows it is a bottleneck.
   if (get_memory_pressure_percentage() < 50) {
     // Could trigger migration of host fallbacks to GPU
-    // For now just return success
   }
   return Status::SUCCESS;
 }
@@ -1941,13 +1941,13 @@ void MemoryPoolManager::update_allocation_latency(uint64_t latency_ns) {
 // ============================================================================
 
 static MemoryPoolManager *g_pool_instance = nullptr;
-// CRITICAL FIX: Use pointer to avoid static initialization heap corruption
 static std::mutex *g_pool_mutex = nullptr;
+static std::once_flag g_pool_mutex_flag;
 
 static std::mutex &get_pool_mutex() {
-  if (!g_pool_mutex) {
+  std::call_once(g_pool_mutex_flag, []() {
     g_pool_mutex = new std::mutex();
-  }
+  });
   return *g_pool_mutex;
 }
 

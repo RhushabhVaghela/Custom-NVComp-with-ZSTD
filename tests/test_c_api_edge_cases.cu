@@ -158,14 +158,52 @@ bool test_very_small_input() {
 bool test_invalid_compression_level() {
   printf("=== Test: Invalid Compression Level ===\n");
 
-  ZstdBatchManager manager;
+  bool passed = true;
+  const size_t data_size = 1024;
 
-  // Try invalid levels
-  manager.set_compression_level(-100); // Too low
-  manager.set_compression_level(100);  // Too high
+  u8 *d_input = nullptr, *d_output = nullptr;
+  cudaMalloc(&d_input, data_size);
+  cudaMalloc(&d_output, data_size * 2);
+  cudaMemset(d_input, 0xAB, data_size);
 
-  // Should clamp to valid range quietly
-  bool passed = true; // No crash = pass
+  // Test with level clamped from -100
+  {
+    ZstdBatchManager manager;
+    manager.set_compression_level(-100); // Should clamp to valid range
+
+    size_t output_size = 0;
+    Status status = manager.compress(d_input, data_size, d_output, &output_size,
+                                     nullptr, 0, nullptr, 0);
+    if (status != Status::SUCCESS || output_size == 0) {
+      printf("  FAIL: Compression with clamped level -100 failed (status=%d, size=%zu)\n",
+             (int)status, output_size);
+      passed = false;
+    } else {
+      printf("  OK: Level -100 clamped, compressed %zu -> %zu bytes\n",
+             data_size, output_size);
+    }
+  }
+
+  // Test with level clamped from 100
+  {
+    ZstdBatchManager manager;
+    manager.set_compression_level(100); // Should clamp to valid range
+
+    size_t output_size = 0;
+    Status status = manager.compress(d_input, data_size, d_output, &output_size,
+                                     nullptr, 0, nullptr, 0);
+    if (status != Status::SUCCESS || output_size == 0) {
+      printf("  FAIL: Compression with clamped level 100 failed (status=%d, size=%zu)\n",
+             (int)status, output_size);
+      passed = false;
+    } else {
+      printf("  OK: Level 100 clamped, compressed %zu -> %zu bytes\n",
+             data_size, output_size);
+    }
+  }
+
+  cudaFree(d_input);
+  cudaFree(d_output);
 
   record_test("Invalid Compression Level", passed);
   return passed;
@@ -214,13 +252,38 @@ bool test_manager_destruction() {
 bool test_multiple_managers() {
   printf("=== Test: Multiple Managers ===\n");
 
+  const size_t data_size = 1024;
+  u8 *d_input = nullptr, *d_output = nullptr;
+  cudaMalloc(&d_input, data_size);
+  cudaMalloc(&d_output, data_size * 2);
+  cudaMemset(d_input, 0xCD, data_size);
+
   ZstdBatchManager manager1, manager2, manager3;
 
   manager1.set_compression_level(1);
   manager2.set_compression_level(5);
   manager3.set_compression_level(9);
 
-  bool passed = true; // Multiple instances should work
+  bool passed = true;
+  ZstdBatchManager *managers[] = {&manager1, &manager2, &manager3};
+  int levels[] = {1, 5, 9};
+
+  for (int i = 0; i < 3; i++) {
+    size_t output_size = 0;
+    Status status = managers[i]->compress(d_input, data_size, d_output,
+                                          &output_size, nullptr, 0, nullptr, 0);
+    if (status != Status::SUCCESS || output_size == 0) {
+      printf("  FAIL: Manager at level %d failed (status=%d, size=%zu)\n",
+             levels[i], (int)status, output_size);
+      passed = false;
+    } else {
+      printf("  OK: Manager at level %d compressed %zu -> %zu bytes\n",
+             levels[i], data_size, output_size);
+    }
+  }
+
+  cudaFree(d_input);
+  cudaFree(d_output);
 
   record_test("Multiple Managers", passed);
   return passed;

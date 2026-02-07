@@ -279,20 +279,22 @@ bool test_zero_byte_input() {
       encode_fse_batch((const byte_t **)d_inputs_arr, input_sizes_arr,
                        (byte_t **)d_outputs_arr, d_output_sizes, 1, 0);
 
+  // Only SUCCESS or ERROR_INVALID_PARAMETER are acceptable for 0-byte input
+  bool passed = (status == Status::SUCCESS || status == Status::ERROR_INVALID_PARAMETER);
   if (status == Status::SUCCESS) {
     printf("✅ 0-Byte Input handled (Status::SUCCESS)\n");
+  } else if (status == Status::ERROR_INVALID_PARAMETER) {
+    printf("✅ 0-Byte Input correctly rejected (Status::ERROR_INVALID_PARAMETER)\n");
   } else {
-    printf("⚠️ 0-Byte Input returned status: %d (Might be expected if not "
-           "supported)\n",
-           (int)status);
+    printf("❌ 0-Byte Input returned unexpected status: %d\n", (int)status);
   }
 
-  printf("✅ 0-Byte Input Test Completed (No Crash)\n\n");
+  printf("%s 0-Byte Input Test Completed (No Crash)\n\n", passed ? "✅" : "❌");
 
   cudaFree(d_input);
   cudaFree(d_output);
   cudaFree(d_output_sizes);
-  return true;
+  return passed;
 }
 
 int main() {

@@ -109,9 +109,8 @@ bool test_backtracking_integrity(const char *pattern_name,
   lz77_config.search_depth = (1u << config.search_log);
   lz77_config.min_match = 3;
 
-  // Run passes 1 and 2
+  // Run pass 1 (match finding)
   find_matches_parallel(d_input, input_size, &workspace, lz77_config, 0);
-  compute_optimal_parse_v2(d_input, input_size, &workspace, lz77_config, 0);
   cudaDeviceSynchronize();
 
   auto start = std::chrono::high_resolution_clock::now();

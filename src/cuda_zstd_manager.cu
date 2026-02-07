@@ -46,9 +46,6 @@
 
 namespace cuda_zstd {
 
-namespace lz77 {
-} // namespace lz77
-
 // Add alignment constants
 constexpr u32 GPU_MEMORY_ALIGNMENT = 256; // Most GPU requirements
 
@@ -1042,8 +1039,8 @@ public:
     config.window_log = 22; // 4MB window
     config.chain_log = 17;  // 128K entries
     config.hash_log = 18;   // 256K entries
-    config.cpu_threshold =
-        0; // Usage of GPU is enforced for debugging/correctness verification
+    // cpu_threshold uses the struct default (1MB) — select_execution_path
+    // routes small inputs to CPU, large inputs to GPU.
 
     reset_stats();
     memset(&ctx, 0, sizeof(CompressionContext));
@@ -2333,11 +2330,7 @@ public:
 
       cudaError_t ws_setup_err = cudaGetLastError();
       if (ws_setup_err != cudaSuccess) {
-        // printf("[ERROR] compress: Error during Phase 1 Loop Setup
-        // (Block %u):
-        // "
-        //        "%s\n",
-        //        block_idx, cudaGetErrorString(ws_setup_err));
+        return Status::ERROR_CUDA_ERROR;
       }
 
       // Block sums (3 slots per block)
@@ -3709,10 +3702,7 @@ private:
       bool *is_single_segment, // Output: single segment flag
       bool *has_checksum       // Output: checksum flag
   ) {
-    // input_size=%u\n", input_size);
     if (input_size < 5) {
-      //             fprintf(stderr, "[ERROR] parse_frame_header: input too
-      //             small (%u < 5)\n", input_size);
       return Status::ERROR_CORRUPT_DATA;
     }
 
@@ -3722,19 +3712,13 @@ private:
     unsigned char h_header[18];
     CUDA_CHECK(cudaMemcpy(h_header, input, std::min(18u, input_size),
                           cudaMemcpyDeviceToHost));
-    
-    //        h_header[1], h_header[2], h_header[3], h_header[4]);
 
     // RFC 8878 Literals Section Header:
-    // copied, first bytes: %02X %02X %02X %02X %02X\n",
-    // //                 h_header[0], h_header[1], h_header[2], h_header[3],
-    // h_header[4]);
 
     u32 offset = 4; // Skip magic number (already validated)
 
     // === Parse Frame Header Descriptor (1 byte) ===
     unsigned char fhd = h_header[offset++];
-    // offset now=%u\n", fhd, offset);
 
     bool single_segment = (fhd >> 5) & 0x01;
     bool has_dict_id = (fhd & 0x03) != 0;
@@ -3930,21 +3914,10 @@ private:
     // Sync after literals
     cudaError_t lit_sync_err = cudaStreamSynchronize(stream);
     if (lit_sync_err != cudaSuccess) {
-      //             printf("[ERROR] decompress_literals failed: %s\n",
-      //             cudaGetErrorString(lit_sync_err));
-      //       return Status::ERROR_CUDA_ERROR;
+      return Status::ERROR_CUDA_ERROR;
     }
 
-    //        literals_header_size, literals_compressed_size,
-    //        literals_decompressed_size);
-
-    
-
     // === Decompress Sequences ===
-    // {
-    //   cudaError_t e = cudaGetLastError();
-    //   if (e)
-    //         // }
     
     u32 sequences_offset = literals_header_size + literals_compressed_size;
     
@@ -6074,9 +6047,9 @@ Status ZstdStreamingManager::decompress_chunk(const void *input,
 
 ZstdManager::ExecutionPath
 ZstdManager::select_execution_path(size_t size, int cpu_threshold) {
-  // Use GPU path for all data to ensure RFC 8878 consistency
-  // and maximum performance. The GPU implementation is now robust
-  // for all sizes.
+  if (cpu_threshold > 0 && size < static_cast<size_t>(cpu_threshold)) {
+    return ExecutionPath::CPU;
+  }
   return ExecutionPath::GPU_BATCH;
 }
 
@@ -6088,7 +6061,6 @@ std::unique_ptr<ZstdManager> create_manager(const CompressionConfig &config) {
 
 std::unique_ptr<ZstdManager> create_manager(int compression_level) {
   auto config = CompressionConfig::from_level(compression_level);
-  config.cpu_threshold = 0; // FORCE GPU
   return create_manager(config);
 }
 

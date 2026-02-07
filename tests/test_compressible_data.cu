@@ -228,8 +228,15 @@ bool test_json_pattern() {
   auto data = generate_json_pattern(64 * 1024); // 64KB
   auto result = test_compression(data, "JSON Pattern (64KB)");
 
-  // assert(result.success && "Compression should succeed");
-  // assert(result.compression_ratio > 1.3f && "Should compress reasonably");
+  if (!result.success) {
+    printf("❌ JSON pattern test FAILED: compression unsuccessful\n");
+    return false;
+  }
+  if (result.compression_ratio <= 1.3f) {
+    printf("❌ JSON pattern test FAILED: ratio too low %.2f (expected > 1.3)\n",
+           result.compression_ratio);
+    return false;
+  }
   printf("✅ JSON pattern test PASSED\n");
   return true;
 }
@@ -260,8 +267,15 @@ bool test_periodic_pattern() {
   auto data = generate_periodic_pattern(64 * 1024); // 64KB
   auto result = test_compression(data, "Periodic Pattern (64KB)");
 
-  // assert(result.success && "Compression should succeed");
-  // assert(result.compression_ratio > 1.5f && "Should compress well");
+  if (!result.success) {
+    printf("❌ Periodic pattern test FAILED: compression unsuccessful\n");
+    return false;
+  }
+  if (result.compression_ratio <= 1.5f) {
+    printf("❌ Periodic pattern test FAILED: ratio too low %.2f (expected > 1.5)\n",
+           result.compression_ratio);
+    return false;
+  }
   printf("✅ Periodic pattern test PASSED\n");
   return true;
 }
@@ -275,10 +289,9 @@ bool test_zeros() {
       printf("✅ Zeros pattern test PASSED\n");
       return true;
     } else {
-      printf("[WARN] Zeros Compression Ratio too low: %.2f (Size: %zu)\n",
+      printf("❌ Zeros Compression Ratio too low: %.2f (Size: %zu, expected > 10.0)\n",
              result.compression_ratio, result.compressed_size);
-      // return false; // Relaxed for debugging RLE
-      return true;
+      return false;
     }
   } else {
     printf("❌ Zero-filled test FAILED\n");
@@ -314,10 +327,9 @@ bool test_all_ones() {
       printf("✅ All Ones test PASSED\n");
       return true;
     } else {
-      printf("[WARN] All Ones Ratio too low: %.2f (Size: %zu)\n",
+      printf("❌ All Ones Ratio too low: %.2f (Size: %zu, expected > 500.0)\n",
              result.compression_ratio, result.compressed_size);
-      // Relaxing assertion for now until feature is implemented
-      return true;
+      return false;
     }
   } else {
     printf("❌ All Ones test FAILED\n");
@@ -348,6 +360,7 @@ bool test_comparison_all_patterns() {
   printf(
       "-------------------------------------------------------------------\n");
 
+  bool all_succeeded = true;
   for (const auto &tc : test_cases) {
     auto data = tc.generator(1024 * 1024); // 1MB each
     auto result = test_compression(data, tc.name);
@@ -355,9 +368,16 @@ bool test_comparison_all_patterns() {
     printf("%-20s | %12zu | %12zu | %10.2f:1\n", tc.name, result.input_size,
            result.compressed_size, result.compression_ratio);
 
-    // assert(result.success && "All compressions should succeed");
+    if (!result.success) {
+      printf("❌ Compression failed for pattern: %s\n", tc.name);
+      all_succeeded = false;
+    }
   }
 
+  if (!all_succeeded) {
+    printf("\n❌ Comparison test FAILED: one or more patterns failed\n");
+    return false;
+  }
   printf("\n✅ Comparison test PASSED\n");
   return true;
 }
@@ -380,9 +400,12 @@ int main() {
     bool all_passed = true;
     bool full_suite = true; // Set to false to run only basic tests
 
-    // all_passed &= test_json_pattern();
-    // all_passed &= test_rle_pattern();
-    // all_passed &= test_periodic_pattern();
+    printf("--- Running JSON Pattern ---\n");
+    all_passed &= test_json_pattern();
+    printf("--- Running RLE Pattern ---\n");
+    all_passed &= test_rle_pattern();
+    printf("--- Running Periodic Pattern ---\n");
+    all_passed &= test_periodic_pattern();
 
     printf("--- Running Zeros ---\n");
     all_passed &= test_zeros();

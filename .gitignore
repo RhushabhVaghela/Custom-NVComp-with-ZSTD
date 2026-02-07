@@ -47,12 +47,15 @@ install_manifest.txt
 # ── Project-specific ignores ────────────────────────────────────
 # Conversation logs (from Claude Code sessions)
 Conversation-*
+session-*.md
 
 # Reference zstd source (not part of this project)
 official-zstd/
 
 # Personal workflow notes
 nvcomp-zstd-instructions.txt
+instructions.md
+DEBUGLOG.md
 
 # Audit reports (generated, not source)
 DOCUMENTATION_AUDIT_REPORT.md

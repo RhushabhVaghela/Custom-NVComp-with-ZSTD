@@ -117,13 +117,6 @@ void run_benchmark(size_t size, int iterations, bool add_noise = true) {
     exit(1);
   }
 
-  s = lz77::compute_optimal_parse_v2(d_input, size, &workspace, lz77_config,
-                                     stream);
-  if (s != Status::SUCCESS) {
-    std::cerr << "Warmup compute_optimal_parse failed: " << (int)s << std::endl;
-    exit(1);
-  }
-
   u32 has_dummy = 0;
   s = lz77::backtrack_sequences(size, workspace, &h_num_sequences, &has_dummy,
                                 stream);
@@ -135,7 +128,7 @@ void run_benchmark(size_t size, int iterations, bool add_noise = true) {
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   // Benchmark each phase separately
-  double find_matches_ms = 0, compute_costs_ms = 0, backtrack_ms = 0;
+  double find_matches_ms = 0, backtrack_ms = 0;
 
   for (int i = 0; i < iterations; ++i) {
     // Pass 1: Find matches
@@ -144,14 +137,7 @@ void run_benchmark(size_t size, int iterations, bool add_noise = true) {
     CUDA_CHECK(cudaStreamSynchronize(stream));
     find_matches_ms += t1.elapsed_ms();
 
-    // Pass 2: Compute optimal parse
-    Timer t2;
-    lz77::compute_optimal_parse_v2(d_input, size, &workspace, lz77_config,
-                                   stream);
-    CUDA_CHECK(cudaStreamSynchronize(stream));
-    compute_costs_ms += t2.elapsed_ms();
-
-    // Pass 3: Backtrack sequences
+    // Pass 2: Backtrack sequences
     Timer t3;
     u32 has_dummy = 0;
     lz77::backtrack_sequences(size, workspace, &h_num_sequences, &has_dummy,
@@ -161,18 +147,15 @@ void run_benchmark(size_t size, int iterations, bool add_noise = true) {
   }
 
   find_matches_ms /= iterations;
-  compute_costs_ms /= iterations;
   backtrack_ms /= iterations;
-  double total_ms = find_matches_ms + compute_costs_ms + backtrack_ms;
+  double total_ms = find_matches_ms + backtrack_ms;
 
   double backtrack_pct = (backtrack_ms / total_ms) * 100.0;
   double throughput = (size / 1e6) / (total_ms / 1000.0);
 
   std::cout << "  Pass 1 (Find Matches):  " << find_matches_ms << " ms ("
             << ((find_matches_ms / total_ms) * 100.0) << "%)" << std::endl;
-  std::cout << "  Pass 2 (Compute Costs): " << compute_costs_ms << " ms ("
-            << ((compute_costs_ms / total_ms) * 100.0) << "%)" << std::endl;
-  std::cout << "  Pass 3 (Backtrack):     " << backtrack_ms << " ms ("
+  std::cout << "  Pass 2 (Backtrack):     " << backtrack_ms << " ms ("
             << backtrack_pct << "%)" << std::endl;
   std::cout << "  Total LZ77 Time:        " << total_ms << " ms" << std::endl;
   std::cout << "  Throughput:             " << throughput << " MB/s"
