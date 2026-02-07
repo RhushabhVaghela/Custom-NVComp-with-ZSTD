@@ -82,28 +82,8 @@ __host__ Status FSE_buildTableRFC(
     cudaStream_t stream
 );
 
-/**
- * @brief Encode symbols using FSE (RFC 8878 compliant)
- * 
- * Encodes symbol sequence into bitstream.
- * 
- * @param symbols Input symbol array
- * @param numSymbols Number of symbols
- * @param table FSE table (built with FSE_buildTableRFC)
- * @param bitstream Output bitstream buffer
- * @param bitstreamCapacity Max output size
- * @param outputSize Actual output size (written by kernel)
- * @return Status SUCCESS or error code
- */
-__host__ Status FSE_encodeRFC(
-    const u8 *d_symbols,
-    u32 numSymbols,
-    const FSETableRFC &table,
-    u8 *d_bitstream,
-    size_t bitstreamCapacity,
-    size_t *d_outputSize,
-    cudaStream_t stream
-);
+// FSE_encodeRFC removed — used broken k_fse_encode kernel.
+// Production encoder: k_encode_fse_interleaved in cuda_zstd_fse_encoding_kernel.cu.
 
 /**
  * @brief Decode FSE bitstream (RFC 8878 compliant)
@@ -169,37 +149,13 @@ __host__ void FSE_freeTableRFC(
 // WRAPPER: Backward-compatible API
 // =============================================================================
 
-/**
- * @brief RFC-compliant FSE encoding wrapper (drop-in replacement for old API)
- * 
- * This function has the same signature as the old launch_fse_encoding_kernel
- * but implements RFC 8878 compliant encoding logic using existing table data.
- * 
- * To migrate: Change line 4462 in cuda_zstd_manager.cu from:
- *   fse::launch_fse_encoding_kernel(...)
- * to:
- *   fse::launch_fse_encoding_kernel_rfc(...)
- * 
- * The function reads from existing FSEEncodeTable structures but uses
- * corrected encoding logic that follows RFC 8878 specification.
- */
-__host__ Status launch_fse_encoding_kernel_rfc(
-    const u8 *d_ll_codes, const u32 *d_ll_extras, const u8 *d_ll_bits,
-    const u8 *d_of_codes, const u32 *d_of_extras, const u8 *d_of_bits,
-    const u8 *d_ml_codes, const u32 *d_ml_extras, const u8 *d_ml_bits,
-    u32 num_symbols,
-    unsigned char *d_bitstream,
-    size_t *d_output_pos,
-    size_t bitstream_capacity,
-    const FSEEncodeTable *d_tables,
-    cudaStream_t stream
-);
+// launch_fse_encoding_kernel_rfc removed — dead code (never called).
+// Production encoder: k_encode_fse_interleaved in cuda_zstd_fse_encoding_kernel.cu.
 
 /**
  * @brief RFC-compliant FSE decoding wrapper
  *
- * Decodes bitstream produced by launch_fse_encoding_kernel_rfc.
- * Use this to replace the old decoder that had bitstream reading bugs.
+ * Decodes bitstream produced by the production FSE encoder.
  * 
  * @param d_bitstream Device pointer to bitstream data
  * @param bitstream_size Size of bitstream in bytes

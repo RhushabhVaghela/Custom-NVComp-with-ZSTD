@@ -21,21 +21,8 @@
 
 using namespace cuda_zstd;
 
-// Forward declarations from simple implementation
-namespace cuda_zstd {
-namespace huffman {
-Status encode_huffman_simple(const byte_t *d_input, u32 input_size,
-                             const HuffmanTable &table, byte_t *d_output,
-                             size_t *output_size,
-                             CompressionWorkspace *workspace,
-                             cudaStream_t stream);
-
-Status decode_huffman_simple(const byte_t *d_input, size_t input_size,
-                             const HuffmanTable &table, byte_t *d_output,
-                             size_t *d_output_size, u32 decompressed_size,
-                             cudaStream_t stream);
-} // namespace huffman
-} // namespace cuda_zstd
+// Note: This test exercises the production encode_huffman/decode_huffman path.
+// The original _simple variants were superseded and removed from the build.
 
 bool test_simple_roundtrip(const char *input_str) {
   size_t input_size = strlen(input_str);

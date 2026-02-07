@@ -201,7 +201,7 @@ __device__ __forceinline__ u32 get_actual_offset(
  */
 __global__ void set_value_kernel(u32 *ptr, u32 value) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    //     *ptr = value;
+    *ptr = value;
   }
 }
 
