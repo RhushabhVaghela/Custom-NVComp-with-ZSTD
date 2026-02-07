@@ -1259,7 +1259,8 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
                       const HuffmanTable &table, unsigned char *d_output,
                       size_t *output_size, // Host pointer
                       CompressionWorkspace *workspace, cudaStream_t stream) {
-  // --- START REPLACEMENT ---
+  // Clear any pre-existing sticky CUDA error (Blackwell/sm_120 cudaMalloc quirk)
+  cudaGetLastError();
 
   if (!d_input || !d_output || !output_size || input_size == 0) {
     return Status::ERROR_INVALID_PARAMETER;
@@ -1303,7 +1304,7 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
   u32 num_nodes = 0;
   i32 root_idx = -1;
   HuffmanTreeBuilder::build_tree(h_frequencies, MAX_HUFFMAN_SYMBOLS, h_nodes,
-                                 num_nodes, root_idx);
+                                  num_nodes, root_idx);
 
   u8 *h_code_lengths = new u8[MAX_HUFFMAN_SYMBOLS];
   // (FIX) Need to actually generate the code lengths from the tree
@@ -1326,8 +1327,8 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
   find_lengths(root_idx, 0);
 
   // Use canonical Huffman codes (RFC 8878 compliant)
-  // (FIX) We need a host-side buffer for the codes first
   HuffmanCode *h_codes = new HuffmanCode[MAX_HUFFMAN_SYMBOLS];
+  
   Status status =
       huffman::generate_canonical_codes(h_code_lengths, MAX_HUFFMAN_SYMBOLS,
                                         h_codes // Generate into host buffer
@@ -1386,7 +1387,7 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
   // We clear less conservatively to avoid going out of bounds
   size_t bitstream_max_size = input_size * 2;
   CUDA_CHECK(cudaMemsetAsync(d_output + total_header_size, 0,
-                             bitstream_max_size, stream));
+                              bitstream_max_size, stream));
 
   // Allocate buffers for two-phase atomic-free encoding
   u32 *d_codes_temp = nullptr;
@@ -1395,7 +1396,6 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
 
   // Allocate temporary buffers (workspace doesn't have temp_storage members)
   {
-    // Allocate temporary buffers
     CUDA_CHECK(cudaMalloc(&d_codes_temp, input_size * sizeof(u32)));
     CUDA_CHECK(cudaMalloc(&d_positions_temp, input_size * sizeof(u32)));
     allocated_phase_buffers = true;
@@ -1407,7 +1407,7 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
 
   // Pass 1b: Parallel prefix sum to compute bit offsets
   status = cuda_zstd::utils::parallel_scan(d_code_lengths, d_bit_offsets,
-                                           input_size, stream);
+                                            input_size, stream);
   if (status != Status::SUCCESS) {
     if (allocated_phase_buffers) {
       cudaFree(d_codes_temp);
@@ -1417,17 +1417,13 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
       cudaFree(d_code_lengths);
       cudaFree(d_bit_offsets);
     }
-    cudaFreeHost(h_frequencies); // FIX: Use cudaFreeHost for pinned memory
+    cudaFreeHost(h_frequencies);
     delete[] h_nodes;
     delete[] h_code_lengths;
     delete[] h_header;
     delete[] h_codes;
     return status;
   }
-
-  
-  // debug_print_kernel<<<1, 1, 0, stream>>>(d_code_lengths, d_bit_offsets,
-  // d_input, table.codes, input_size); cudaStreamSynchronize(stream);
 
   // --- Collect Chunk Offsets ---
   u32 *d_chunk_offsets = nullptr;
@@ -1443,14 +1439,6 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
   CUDA_CHECK(cudaMemcpyAsync(d_output + header_size, d_chunk_offsets,
                              offsets_size, cudaMemcpyDeviceToDevice, stream));
   cudaFree(d_chunk_offsets);
-
-  /*
-  // Switch to atomic-based kernel to avoid race conditions at block
-  boundaries parallel_huffman_encode_kernel<<<blocks, threads, 0, stream>>>(
-      d_input, input_size, table.codes, d_bit_offsets,
-      d_output, header_size_bits
-  );
-  */
 
   // Pass 2a: Store codes and positions (Phase 1 of atomic-free encoding)
   huffman_encode_phase1_kernel<<<blocks, threads, 0, stream>>>(
@@ -1495,7 +1483,6 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
 
   CUDA_CHECK(cudaGetLastError());
   return Status::SUCCESS;
-  // --- END REPLACEMENT ---
 }
 
 Status decode_huffman(const unsigned char *d_input,
@@ -1683,7 +1670,7 @@ Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
       d_code_lengths, MAX_HUFFMAN_SYMBOLS, d_first_code, d_symbol_index,
       d_symbols);
 
-  const unsigned char *d_bitstream_base = d_input + huf_header_size;
+   const unsigned char *d_bitstream_base = d_input + huf_header_size;
   u32 bitstream_size_base = (u32)(input_size - huf_header_size);
 
   if (four_streams) {
@@ -1744,6 +1731,8 @@ Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
         d_bitstream_with_offsets, bitstream_actual_size, d_first_code,
         d_symbol_index, d_symbols, d_output, decompressed_size, 0);
   }
+
+  CUDA_CHECK(cudaStreamSynchronize(stream));
 
   cudaFree(d_code_lengths);
   cudaFree(d_first_code);

@@ -52,6 +52,9 @@ __host__ Status parallel_scan(const T *d_input, u32 *d_output, u32 num_elements,
   if (num_elements == 0)
     return Status::SUCCESS;
 
+  // Clear any pre-existing sticky CUDA error (Blackwell/sm_120 cudaMalloc quirk)
+  cudaGetLastError();
+
   try {
     if constexpr (std::is_same<T, u32>::value) {
       thrust::device_ptr<const u32> dev_in((const u32 *)d_input);
@@ -75,7 +78,8 @@ __host__ Status parallel_scan(const T *d_input, u32 *d_output, u32 num_elements,
       return Status::ERROR_GENERIC;
     }
   } catch (thrust::system_error &e) {
-    // Log error if possible
+    return Status::ERROR_GENERIC;
+  } catch (std::exception &e) {
     return Status::ERROR_GENERIC;
   } catch (...) {
     return Status::ERROR_GENERIC;

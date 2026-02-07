@@ -304,7 +304,7 @@ bool test_decompression_timing() {
   CudaTimer timer;
   timer.start();
 
-  size_t decompressed_size;
+  size_t decompressed_size = data_size; // Must init to output buffer capacity
   status = manager->decompress(d_compressed, compressed_size, d_output,
                                &decompressed_size, d_temp, temp_size);
 
@@ -512,7 +512,7 @@ bool test_decompression_throughput() {
     CudaTimer timer;
     timer.start();
 
-    size_t decompressed_size;
+    size_t decompressed_size = data_size; // Must init to output buffer capacity
     status = manager->decompress(d_compressed, compressed_size, d_output,
                                  &decompressed_size, d_temp, temp_size);
 

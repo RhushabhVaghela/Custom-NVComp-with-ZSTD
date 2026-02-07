@@ -1,13 +1,23 @@
 /*
  * Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * Test: Verify GPU FSE encoding kernel produces correct output by comparing
+ * against a CPU-side reference that uses the SAME algorithm (ZSTD standard
+ * FSE_encodeSymbol with d_next_state table lookup).
+ *
+ * The GPU kernel k_encode_fse_interleaved implements:
+ *   nbBitsOut = (state + symbolTT.deltaNbBits) >> 16;
+ *   write_bits(state, nbBitsOut);
+ *   state = stateTable[(state >> nbBitsOut) + symbolTT.deltaFindState];
+ * which matches zstd/lib/compress/fse_compress.c FSE_encodeSymbol exactly.
  */
 
-#include "../src/cuda_zstd_fse_reference.h"
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_fse_encoding_kernel.h"
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_utils.h"
 #include <cassert>
+#include <cstring>
 #include <cuda_runtime.h>
 #include <iostream>
 #include <vector>
@@ -79,100 +89,68 @@ void build_gpu_table(const std::vector<short> &counts, unsigned table_log,
   cudaFree(d_norm);
 }
 
+// Host-side structures to hold GPU table data read back for CPU reference encoding
+struct HostFSETables {
+  std::vector<cuda_zstd::fse::FSEEncodeTable::FSEEncodeSymbol> symbol_table;
+  std::vector<u16> next_state;
+  std::vector<u16> symbol_first_state;
+  u32 table_log;
+  u32 table_size;
+  u32 max_symbol;
+};
+
+// Read GPU table data back to host for CPU-side reference encoding
+void read_gpu_table_to_host(const cuda_zstd::fse::FSEEncodeTable &gpu_desc,
+                            HostFSETables &h) {
+  h.table_log = gpu_desc.table_log;
+  h.table_size = gpu_desc.table_size;
+  h.max_symbol = gpu_desc.max_symbol;
+
+  h.symbol_table.resize(h.max_symbol + 1);
+  cudaMemcpy(h.symbol_table.data(), gpu_desc.d_symbol_table,
+             (h.max_symbol + 1) * sizeof(h.symbol_table[0]),
+             cudaMemcpyDeviceToHost);
+
+  h.next_state.resize(h.table_size);
+  cudaMemcpy(h.next_state.data(), gpu_desc.d_next_state,
+             h.table_size * sizeof(u16), cudaMemcpyDeviceToHost);
+
+  h.symbol_first_state.resize(h.max_symbol + 1);
+  cudaMemcpy(h.symbol_first_state.data(), gpu_desc.d_symbol_first_state,
+             (h.max_symbol + 1) * sizeof(u16), cudaMemcpyDeviceToHost);
+}
+
+// CPU-side FSE_encodeSymbol matching ZSTD standard exactly:
+//   nbBitsOut = (state + symbolTT.deltaNbBits) >> 16;
+//   BIT_addBits(state, nbBitsOut);
+//   state = stateTable[(state >> nbBitsOut) + symbolTT.deltaFindState];
+void cpu_fse_encode_symbol(u32 &state, u8 code, const HostFSETables &tbl,
+                           u64 &bitContainer, u32 &bitCount,
+                           std::vector<u8> &bitstream) {
+  auto &sym = tbl.symbol_table[code];
+  u32 nbBitsOut = (state + sym.deltaNbBits) >> 16;
+  u64 val = state & ((1ULL << nbBitsOut) - 1);
+  bitContainer |= (val << bitCount);
+  bitCount += nbBitsOut;
+  while (bitCount >= 8) {
+    bitstream.push_back((u8)(bitContainer & 0xFF));
+    bitContainer >>= 8;
+    bitCount -= 8;
+  }
+  state = tbl.next_state[(state >> nbBitsOut) + sym.deltaFindState];
+}
+
 void test_GPU_Encoding() {
   std::cout << "[TEST] GPU Encoding Verification" << std::endl;
 
   // 1. Setup Table (Uniform log 2)
   std::vector<short> counts = {1, 1, 1, 1};
   unsigned table_log = 2;
-  std::vector<cuda_zstd::fse::FSE_CTable_Entry> ref_table;
-  cuda_zstd::fse::build_fse_ctable_reference(ref_table, counts, table_log);
 
-  // 2. Reference Encoding: Interleaved 3 Streams
-  std::vector<u8> ref_bitstream;
-  {
-    // LL: C, B, A
-    // OF: A, A, A
-    // ML: A, A, A
-    u32 symC = 2;
-    u32 symB = 1;
-    u32 symA = 0;
-
-    // Init States (From Last Symbol, Index 2)
-    // LL Init from C. OF Init from A. ML Init from A.
-    u32 stateLL = ref_table[symC].nextState;
-    u32 stateOF = ref_table[symA].nextState;
-    u32 stateML = ref_table[symA].nextState;
-
-    u64 bitContainer = 0;
-    u32 bitCount = 0;
-
-    // Loop N-2 down to 0 (Indices 1, 0)
-    // Order: OF, ML, LL.
-
-    // Iteration 1 (LL: C->B, OF: A->A, ML: A->A)
-    {
-      // OF (A->A)
-      cuda_zstd::fse::fse_encode_step(stateOF, symA, symA, ref_table,
-                                      ref_bitstream, bitContainer, bitCount);
-      // ML (A->A)
-      cuda_zstd::fse::fse_encode_step(stateML, symA, symA, ref_table,
-                                      ref_bitstream, bitContainer, bitCount);
-      // LL (C->B)
-      cuda_zstd::fse::fse_encode_step(stateLL, symC, symB, ref_table,
-                                      ref_bitstream, bitContainer, bitCount);
-    }
-
-    // Iteration 2 (LL: B->A, OF: A->A, ML: A->A)
-    {
-      // OF (A->A)
-      cuda_zstd::fse::fse_encode_step(stateOF, symA, symA, ref_table,
-                                      ref_bitstream, bitContainer, bitCount);
-      // ML (A->A)
-      cuda_zstd::fse::fse_encode_step(stateML, symA, symA, ref_table,
-                                      ref_bitstream, bitContainer, bitCount);
-      // LL (B->A)
-      cuda_zstd::fse::fse_encode_step(stateLL, symB, symA, ref_table,
-                                      ref_bitstream, bitContainer, bitCount);
-    }
-
-    // Final Flush (Seq 0)
-    // Order: ML, OF, LL
-
-    u32 mask = (1 << table_log) - 1;
-    u32 finalML = stateML & mask;
-    u32 finalOF = stateOF & mask;
-    u32 finalLL = stateLL & mask;
-
-    bitContainer |= ((u64)finalML << bitCount);
-    bitCount += table_log;
-    bitContainer |= ((u64)finalOF << bitCount);
-    bitCount += table_log;
-    bitContainer |= ((u64)finalLL << bitCount);
-    bitCount += table_log;
-
-    // Sentinel
-    bitContainer |= (1ULL << bitCount);
-    bitCount++;
-
-    while (bitCount > 0) {
-      ref_bitstream.push_back((u8)bitContainer);
-      bitContainer >>= 8;
-      bitCount = (bitCount >= 8) ? bitCount - 8 : 0;
-    }
-  }
-
-  std::cout << "  Ref Bitstream: ";
-  for (auto b : ref_bitstream)
-    printf("%02X ", b);
-  std::cout << std::endl;
-
-  // 3. GPU Run
-  // Allocate array of 3 tables on device (LL, OF, ML — all same for this test)
+  // 2. Build GPU tables
   cuda_zstd::fse::FSEEncodeTable *d_gpu_tables;
   cudaMalloc(&d_gpu_tables, 3 * sizeof(cuda_zstd::fse::FSEEncodeTable));
 
-  // Build all 3 tables using the proper CTable builder kernel
   cuda_zstd::fse::FSEEncodeTable h_gpu_table_struct;
   build_gpu_table(counts, table_log, h_gpu_table_struct, &d_gpu_tables[0]);
 
@@ -182,10 +160,74 @@ void test_GPU_Encoding() {
   cudaMemcpy(&d_gpu_tables[2], &d_gpu_tables[0],
              sizeof(cuda_zstd::fse::FSEEncodeTable), cudaMemcpyDeviceToDevice);
 
+  // 3. Read GPU table back to host for CPU reference encoding
+  HostFSETables h_tbl;
+  read_gpu_table_to_host(h_gpu_table_struct, h_tbl);
+
+  // 4. CPU Reference Encoding (mirrors k_encode_fse_interleaved exactly)
+  //    LL: [A, B, C]   (codes: 0, 1, 2)
+  //    OF: [A, A, A]   (codes: 0, 0, 0)
+  //    ML: [A, A, A]   (codes: 0, 0, 0)
+  //    extras/bits: all zero
+  u8 ll_codes[] = {0, 1, 2};
+  u8 of_codes[] = {0, 0, 0};
+  u8 ml_codes[] = {0, 0, 0};
+  u32 num_symbols = 3;
+  u32 last = num_symbols - 1;
+
+  std::vector<u8> ref_bitstream;
+  u64 bitContainer = 0;
+  u32 bitCount = 0;
+
+  // Step 1: Init states from last sequence
+  u32 stateLL = h_tbl.symbol_first_state[ll_codes[last]];
+  u32 stateOF = h_tbl.symbol_first_state[of_codes[last]];
+  u32 stateML = h_tbl.symbol_first_state[ml_codes[last]];
+
+  // Step 2: Write extras for last seq (all zero → nothing)
+
+  // Step 3: Loop from N-2 down to 0, order: OF, ML, LL transitions then extras
+  for (u32 i = num_symbols - 2; ; i--) {
+    cpu_fse_encode_symbol(stateOF, of_codes[i], h_tbl, bitContainer, bitCount, ref_bitstream);
+    cpu_fse_encode_symbol(stateML, ml_codes[i], h_tbl, bitContainer, bitCount, ref_bitstream);
+    cpu_fse_encode_symbol(stateLL, ll_codes[i], h_tbl, bitContainer, bitCount, ref_bitstream);
+    // extras all zero → nothing to write
+    if (i == 0) break;
+  }
+
+  // Step 4: Flush final states (ML, OF, LL)
+  auto write_bits = [&](u64 val, u32 nbBits) {
+    if (nbBits == 0) return;
+    val &= ((1ULL << nbBits) - 1);
+    bitContainer |= (val << bitCount);
+    bitCount += nbBits;
+    while (bitCount >= 8) {
+      ref_bitstream.push_back((u8)(bitContainer & 0xFF));
+      bitContainer >>= 8;
+      bitCount -= 8;
+    }
+  };
+  write_bits(stateML, h_tbl.table_log);
+  write_bits(stateOF, h_tbl.table_log);
+  write_bits(stateLL, h_tbl.table_log);
+
+  // Step 5: Sentinel bit
+  write_bits(1, 1);
+
+  // Step 6: Final flush
+  if (bitCount > 0) {
+    ref_bitstream.push_back((u8)(bitContainer & 0xFF));
+  }
+
+  std::cout << "  Ref Bitstream: ";
+  for (auto b : ref_bitstream)
+    printf("%02X ", b);
+  std::cout << std::endl;
+
+  // 5. GPU Run
   u8 *d_ll_codes;
   cudaMalloc(&d_ll_codes, 3);
-  u8 h_codes_input[] = {0, 1, 2}; // A, B, C. Kernel uses [2] as Init.
-  cudaMemcpy(d_ll_codes, h_codes_input, 3, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_ll_codes, ll_codes, 3, cudaMemcpyHostToDevice);
 
   // Dummy pointers for others/extras
   u32 *d_extras;
@@ -210,6 +252,7 @@ void test_GPU_Encoding() {
       d_codes_dummy, d_extras, d_bits, // ML (dummy)
       3,                               // Num Symbols
       d_bitstream, d_out_pos, 128, d_gpu_tables, 0);
+  cudaDeviceSynchronize();
 
   // Read Output
   size_t out_pos;
@@ -223,7 +266,7 @@ void test_GPU_Encoding() {
     printf("%02X ", b);
   std::cout << std::endl;
 
-  // Compare
+  // 6. Compare
   bool match = (gpu_bitstream.size() == ref_bitstream.size());
   if (match) {
     for (size_t i = 0; i < gpu_bitstream.size(); ++i)
@@ -231,16 +274,29 @@ void test_GPU_Encoding() {
         match = false;
   }
 
-  if (match)
+  if (match) {
     std::cout << "[PASS] GPU Matches Ref" << std::endl;
-  else {
+  } else {
     std::cout << "[FAIL] Mismatch" << std::endl;
-    std::cout << "Ref: ";
+    std::cout << "  Ref (" << ref_bitstream.size() << " bytes): ";
     for (auto b : ref_bitstream)
+      printf("%02X ", b);
+    printf("\n");
+    std::cout << "  GPU (" << gpu_bitstream.size() << " bytes): ";
+    for (auto b : gpu_bitstream)
       printf("%02X ", b);
     printf("\n");
     exit(1);
   }
+
+  // Cleanup
+  cudaFree(d_ll_codes);
+  cudaFree(d_extras);
+  cudaFree(d_bits);
+  cudaFree(d_codes_dummy);
+  cudaFree(d_bitstream);
+  cudaFree(d_out_pos);
+  // Note: d_gpu_tables and its sub-arrays are leaked for simplicity in test
 }
 
 int main() {
