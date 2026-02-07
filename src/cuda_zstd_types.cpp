@@ -7,8 +7,10 @@
 #include "cuda_zstd_memory_pool.h"
 #include "cuda_zstd_stacktrace.h"
 #include <cstdio>
+#include <cstring>
 #include <iostream>
 #include <mutex>
+#include <zstd.h>
 
 namespace cuda_zstd {
 
@@ -1047,6 +1049,120 @@ u32 get_optimal_block_size(u32 input_size, u32 compression_level) {
 
     return block_size;
   }
+}
+
+// ============================================================================
+// Utility Functions (used by Python bindings and nvComp interface)
+// ============================================================================
+
+Status get_decompressed_size(const void *compressed_data,
+                             size_t compressed_size,
+                             size_t *decompressed_size) {
+  if (!compressed_data || !decompressed_size)
+    return Status::ERROR_INVALID_PARAMETER;
+  if (compressed_size < 4)
+    return Status::ERROR_INVALID_PARAMETER;
+
+  *decompressed_size = 0;
+
+  // Copy enough of the frame header from device to host.
+  // ZSTD frame header is at most 18 bytes (magic 4 + descriptor 1 + window 1
+  // + FCS 0-8 + DID 0-4), but we copy a generous amount to handle skippable
+  // frames or concatenated frames.
+  constexpr size_t PROBE_SIZE = 64;
+  unsigned char h_header[PROBE_SIZE];
+  size_t probe = std::min(compressed_size, PROBE_SIZE);
+
+  // Determine whether the pointer is host or device memory.
+  cudaPointerAttributes attrs;
+  cudaError_t err = cudaPointerGetAttributes(&attrs, compressed_data);
+  if (err != cudaSuccess)
+    cudaGetLastError(); // clear error
+
+  bool is_device = (err == cudaSuccess &&
+                    (attrs.type == cudaMemoryTypeDevice ||
+                     attrs.type == cudaMemoryTypeManaged));
+
+  if (is_device) {
+    err = cudaMemcpy(h_header, compressed_data, probe, cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess)
+      return Status::ERROR_CUDA_ERROR;
+  } else {
+    std::memcpy(h_header, compressed_data, probe);
+  }
+
+  // Use libzstd to parse the frame content size.
+  unsigned long long content_size = ZSTD_getFrameContentSize(h_header, probe);
+  if (content_size == ZSTD_CONTENTSIZE_ERROR)
+    return Status::ERROR_CORRUPT_DATA;
+  if (content_size == ZSTD_CONTENTSIZE_UNKNOWN) {
+    // Frame does not declare its content size — caller must use a fallback.
+    *decompressed_size = 0;
+    return Status::SUCCESS;
+  }
+
+  *decompressed_size = static_cast<size_t>(content_size);
+  return Status::SUCCESS;
+}
+
+Status validate_compressed_data(const void *compressed_data,
+                                size_t compressed_size,
+                                bool check_checksum) {
+  if (!compressed_data)
+    return Status::ERROR_INVALID_PARAMETER;
+  if (compressed_size < 4)
+    return Status::ERROR_CORRUPT_DATA;
+
+  // Copy header from device to host.
+  constexpr size_t PROBE_SIZE = 64;
+  unsigned char h_header[PROBE_SIZE];
+  size_t probe = std::min(compressed_size, PROBE_SIZE);
+
+  cudaPointerAttributes attrs;
+  cudaError_t err = cudaPointerGetAttributes(&attrs, compressed_data);
+  if (err != cudaSuccess)
+    cudaGetLastError();
+
+  bool is_device = (err == cudaSuccess &&
+                    (attrs.type == cudaMemoryTypeDevice ||
+                     attrs.type == cudaMemoryTypeManaged));
+
+  if (is_device) {
+    err = cudaMemcpy(h_header, compressed_data, probe, cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess)
+      return Status::ERROR_CUDA_ERROR;
+  } else {
+    std::memcpy(h_header, compressed_data, probe);
+  }
+
+  // Check ZSTD magic number (0xFD2FB528) or skippable frame (0x184D2A5x).
+  u32 magic = 0;
+  std::memcpy(&magic, h_header, 4);
+
+  constexpr u32 ZSTD_MAGIC = 0xFD2FB528u;
+  constexpr u32 SKIPPABLE_MAGIC_LOW = 0x184D2A50u;
+  constexpr u32 SKIPPABLE_MAGIC_HIGH = 0x184D2A5Fu;
+
+  if (magic != ZSTD_MAGIC &&
+      (magic < SKIPPABLE_MAGIC_LOW || magic > SKIPPABLE_MAGIC_HIGH)) {
+    return Status::ERROR_INVALID_MAGIC;
+  }
+
+  // For full validation with checksum, we would need to decompress the
+  // entire frame.  For a lightweight check, verify the frame header parses.
+  if (check_checksum && compressed_size > PROBE_SIZE) {
+    // Full checksum validation requires decompression — for now, we only
+    // validate the header structure.  This matches the level of validation
+    // that libzstd's ZSTD_getFrameContentSize provides.
+    (void)check_checksum;
+  }
+
+  // Verify libzstd can parse the frame header.
+  unsigned long long content_size = ZSTD_getFrameContentSize(h_header, probe);
+  if (content_size == ZSTD_CONTENTSIZE_ERROR)
+    return Status::ERROR_CORRUPT_DATA;
+
+  return Status::SUCCESS;
 }
 
 } // namespace cuda_zstd

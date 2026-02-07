@@ -68,6 +68,16 @@ struct DeviceBuffer {
         o.ptr = nullptr;
         o.size = 0;
     }
+    DeviceBuffer &operator=(DeviceBuffer &&o) noexcept {
+        if (this != &o) {
+            if (ptr) cudaFree(ptr);
+            ptr = o.ptr;
+            size = o.size;
+            o.ptr = nullptr;
+            o.size = 0;
+        }
+        return *this;
+    }
 };
 
 /// Copy host → device.

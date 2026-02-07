@@ -1574,6 +1574,10 @@ public:
       CUDA_CHECK(cudaStreamSynchronize(stream)); // Wait for output copy
 
       *compressed_size = cSize;
+      stats.input_bytes += uncompressed_size;
+      stats.output_bytes += cSize;
+      stats.bytes_produced += cSize;
+      stats.blocks_processed += 1;
       return Status::SUCCESS;
     }
 
@@ -2948,6 +2952,8 @@ public:
     // before the caller accesses the output buffer
     // Final synchronization to ensure all async operations complete
     // before the caller accesses the output buffer
+    stats.input_bytes += uncompressed_size;
+    stats.output_bytes += *compressed_size;
     stats.bytes_produced += *compressed_size;
     stats.blocks_processed += num_blocks;
 
@@ -3178,6 +3184,9 @@ public:
             CUDA_CHECK(cudaStreamSynchronize(stream));
 
             *uncompressed_size = dSize;
+            stats.input_bytes += compressed_size;
+            stats.output_bytes += dSize;
+            stats.bytes_decompressed += dSize;
             return Status::SUCCESS;
           }
         }
@@ -3527,6 +3536,8 @@ public:
     *uncompressed_size = write_offset;
 
     // === Update statistics ===
+    stats.input_bytes += compressed_size;
+    stats.output_bytes += write_offset;
     stats.bytes_decompressed += write_offset;
 
     //  Clear borrowed pointers from ctx to prevent
@@ -5511,9 +5522,11 @@ Status ZstdBatchManager::compress(const void *uncompressed_data,
                                   size_t temp_size, const void *dict_buffer,
                                   size_t dict_size, cudaStream_t stream,
                                   void *streaming_context) {
-  return pimpl_->manager->compress(
+  auto status = pimpl_->manager->compress(
       uncompressed_data, uncompressed_size, compressed_data, compressed_size,
       temp_workspace, temp_size, dict_buffer, dict_size, stream, streaming_context);
+  pimpl_->batch_stats = pimpl_->manager->get_stats();
+  return status;
 }
 
 Status ZstdBatchManager::decompress(const void *compressed_data,
@@ -5522,9 +5535,11 @@ Status ZstdBatchManager::decompress(const void *compressed_data,
                                     size_t *uncompressed_size,
                                     void *temp_workspace, size_t temp_size,
                                     cudaStream_t stream) {
-  return pimpl_->manager->decompress(compressed_data, compressed_size,
+  auto status = pimpl_->manager->decompress(compressed_data, compressed_size,
                                      uncompressed_data, uncompressed_size,
                                      temp_workspace, temp_size, stream);
+  pimpl_->batch_stats = pimpl_->manager->get_stats();
+  return status;
 }
 
 Status ZstdBatchManager::compress_batch(const std::vector<BatchItem> &items,

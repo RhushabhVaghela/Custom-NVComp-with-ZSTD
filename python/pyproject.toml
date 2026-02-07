@@ -87,7 +87,6 @@ wheel.packages = ["cuda_zstd"]
 
 build.verbose = true
 
-[tool.scikit-build.cmake.define]
 # Consumers can override zstd location:
 #   pip install . -C cmake.define.ZSTD_ROOT="/path/to/zstd"
 
