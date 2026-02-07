@@ -1703,13 +1703,6 @@ public:
       // Input is already on device, use it directly
       d_input = const_cast<unsigned char *>(
           static_cast<const unsigned char *>(uncompressed_data));
-
-      
-      if (uncompressed_size >= 129) {
-        unsigned char check[130];
-        cudaMemcpy(check, d_input, 129, cudaMemcpyDeviceToHost);
-      }
-
     } else {
       // Input is on host (or managed/unrecognized), allocate space in workspace
       d_input = workspace_ptr;
@@ -1943,16 +1936,14 @@ public:
     // ...
 
     if (call_workspace.d_hash_table == nullptr) {
-      
-      return Status::ERROR_INVALID_PARAMETER;
       if (device_workspace)
         cudaFree(device_workspace);
+      return Status::ERROR_INVALID_PARAMETER;
     }
     if (call_workspace.d_chain_table == nullptr) {
-      
-      return Status::ERROR_INVALID_PARAMETER;
       if (device_workspace)
         cudaFree(device_workspace);
+      return Status::ERROR_INVALID_PARAMETER;
     }
 
     // Hash/chain tables already initialized during allocation

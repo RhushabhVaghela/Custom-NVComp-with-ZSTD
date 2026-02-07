@@ -482,6 +482,7 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   const u32 blocks = (num_sequences + threads - 1) / threads;
 
   // --- Allocate temporary buffers ---
+  // TODO: pool these allocations
   u32 *d_actual_offsets;
   u32 *d_literals_lengths;
   u32 *d_match_lengths;
@@ -527,6 +528,11 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
   if (h_error_flag != 0) {
+    cudaFree(d_actual_offsets);
+    cudaFree(d_literals_lengths);
+    cudaFree(d_match_lengths);
+    cudaFree(d_literal_offsets);
+    cudaFree(d_match_offsets);
     cudaFree(d_output_offsets);
     if (d_rep_codes_local)
       cudaFree(d_rep_codes_local);

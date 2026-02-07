@@ -1426,84 +1426,9 @@ void MemoryPoolManager::reset_statistics() {
 }
 
 void MemoryPoolManager::print_statistics() const {
-  PoolStats stats = get_statistics();
-
-  //     std::cout << "\n========================================\n";
-  //     std::cout << "Memory Pool Statistics\n";
-  //     std::cout << "========================================\n";
-  //     std::cout << "Total Allocations:    " << stats.total_allocations <<
-  //     "\n"; std::cout << "Total Deallocations:  " <<
-  //     stats.total_deallocations << "\n"; std::cout << "Cache Hits: " <<
-  //     stats.cache_hits << "\n"; std::cout << "Cache Misses:         " <<
-  //     stats.cache_misses << "\n"; std::cout << "Hit Rate:             " <<
-  //     std::fixed << std::setprecision(2)
-  //               << (stats.get_hit_rate() * 100.0) << "%\n";
-  //     std::cout << "Pool Grows:           " << stats.pool_grows << "\n";
-  //     std::cout << "Fallback Allocations: " << stats.fallback_allocations <<
-  //     "\n"; std::cout << "Host Memory Allocs:   " <<
-  //     stats.host_memory_allocations << "\n"; std::cout << "Degraded
-  //     Allocations: " << stats.degraded_allocations << "\n"; std::cout <<
-  //     "Allocation Failures:  " << stats.allocation_failures << "\n";
-  //     std::cout << "Rollback Operations:  " << stats.rollback_operations <<
-  //     "\n"; std::cout << "Fallback Rate:        " << std::fixed <<
-  //     std::setprecision(2)
-  //               << (stats.get_fallback_rate() * 100.0) << "%\n";
-  //     std::cout << "Degradation Rate:     " << std::fixed <<
-  //     std::setprecision(2)
-  //               << (stats.get_degradation_rate() * 100.0) << "%\n";
-  //     std::cout << "Current Usage:        " << (stats.current_memory_usage /
-  //     1024.0 / 1024.0)
-  //               << " MB (GPU)\n";
-  //     std::cout << "Host Memory Usage:    " << (stats.host_memory_usage /
-  //     1024.0 / 1024.0)
-  //               << " MB (Host)\n";
-  //     std::cout << "Peak Usage:           " << (stats.peak_memory_usage /
-  //     1024.0 / 1024.0)
-  //               << " MB\n";
-  //     std::cout << "Total Pool Capacity:  " << (stats.total_pool_capacity /
-  //     1024.0 / 1024.0)
-  //               << " MB\n";
-  //     std::cout << "Degradation Mode:     ";
-
-  switch (stats.current_mode) {
-    //         case DegradationMode::NORMAL: std::cout << "NORMAL"; break;
-    //         case DegradationMode::CONSERVATIVE: std::cout << "CONSERVATIVE";
-    //         break; case DegradationMode::AGGRESSIVE: std::cout <<
-    //         "AGGRESSIVE"; break; case DegradationMode::EMERGENCY: std::cout
-    //         << "EMERGENCY"; break;
-  }
-  //     std::cout << "\n";
-
-  // Memory pressure information
-  size_t available_memory = get_available_gpu_memory();
-  //     std::cout << "Available GPU Memory: " << (available_memory / 1024.0 /
-  //     1024.0) << " MB\n"; std::cout << "Memory Pressure:      " <<
-  //     get_memory_pressure_percentage() << "%\n";
-
-  //     std::cout << "\nPool Details:\n";
-  for (int i = 0; i < NUM_POOL_SIZES; ++i) {
-    std::unique_lock<std::timed_mutex> lock(pool_mutexes_[i]);
-    size_t total = pools_[i].size();
-    size_t in_use = 0;
-    size_t host_fallbacks = 0;
-    for (const auto &entry : pools_[i]) {
-      if (entry.in_use)
-        in_use++;
-      if (entry.is_host_fallback)
-        host_fallbacks++;
-    }
-
-    //         std::cout << "  " << std::setw(8) << (POOL_SIZES[i] / 1024) << "
-    //         KB: "
-    //                   << std::setw(4) << in_use << " / " << std::setw(4) <<
-    //                   total
-    //                   << " in use";
-    if (host_fallbacks > 0) {
-      //             std::cout << " (" << host_fallbacks << " host fallbacks)";
-    }
-    //         std::cout << "\n";
-  }
-  //     std::cout << "========================================\n\n";
+  // No-op: statistics printing not implemented
+  // Use get_statistics() to retrieve pool stats programmatically.
+  (void)get_statistics();
 }
 
 // ============================================================================

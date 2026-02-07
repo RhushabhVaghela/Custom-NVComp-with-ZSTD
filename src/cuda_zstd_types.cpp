@@ -856,7 +856,8 @@ Status validate_config(const CompressionConfig &config) {
 }
 
 void apply_level_parameters(CompressionConfig &config) {
-  // Stub: Level parameters are already applied in from_level()
+  // TODO: implement level-specific parameter tuning
+  // Currently a no-op: level parameters are already applied in from_level().
   // This function is called by DefaultZstdManager but doesn't need to do
   // anything since config is already populated with level-appropriate values
 }

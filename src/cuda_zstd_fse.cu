@@ -1018,7 +1018,7 @@ __host__ Status FSE_buildCTable_Host(
     u32 table_log,           // Table log (NOT table_size)
     FSEEncodeTable &h_table  // Output table reference
 ) {
-  if (!h_normalized || &h_table == nullptr) {
+  if (!h_normalized) {
     return Status::ERROR_INVALID_PARAMETER;
   }
 

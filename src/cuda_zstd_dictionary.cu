@@ -409,10 +409,6 @@ Status train_dictionary_gpu(const std::vector<const unsigned char *> &h_samples,
   }
 
   // Memory will be automatically freed by guards
-  d_all_samples_guard.release();
-  d_frequencies_guard.release();
-  d_ngram_hashes_guard.release();
-  d_ngram_counts_guard.release();
 
   return Status::SUCCESS;
 }

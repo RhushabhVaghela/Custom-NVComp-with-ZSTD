@@ -957,8 +957,6 @@ __host__ Status deserialize_huffman_table_rfc8878(const unsigned char *h_input,
   }
 #endif
 
-  if (status == Status::SUCCESS) {
-  }
   return status;
 }
 
