@@ -944,6 +944,12 @@ __host__ Status create_multi_table_fse(MultiTableFSE &multi_table,
                                        u32 input_size, cudaStream_t stream) {
   multi_table.active_tables = 0;
 
+  // BUG FIX: Zero-size input would launch kernel with 0 grid blocks
+  // (cudaErrorInvalidConfiguration). Return early with empty table.
+  if (input_size == 0) {
+    return Status::SUCCESS;
+  }
+
   u32 *d_frequencies;
   CUDA_CHECK(cudaMalloc(&d_frequencies, 256 * sizeof(u32)));
   cudaMemset(d_frequencies, 0, 256 * sizeof(u32));
@@ -2025,6 +2031,9 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
 
   // === Stage 1: Batch Analysis (GPU) ===
   for (u32 i = 0; i < num_blocks; i++) {
+    // BUG FIX: Skip zero-size blocks to avoid launching kernel with 0 grid
+    // blocks (cudaErrorInvalidConfiguration)
+    if (input_sizes[i] == 0) continue;
     const u32 threads = 256;
     const u32 blocks =
         std::min((input_sizes[i] + threads - 1) / threads, 1024u);
@@ -2390,11 +2399,15 @@ __host__ Status analyze_block_statistics(const unsigned char *d_input,
   CUDA_CHECK(cudaMalloc(&d_frequencies, 256 * sizeof(u32)));
   CUDA_CHECK(cudaMemset(d_frequencies, 0, 256 * sizeof(u32)));
 
-  const u32 threads = 256;
-  const u32 blocks = std::min((input_size + threads - 1) / threads, 1024u);
+  // BUG FIX: Zero-size input would launch kernel with 0 grid blocks
+  // (cudaErrorInvalidConfiguration). Only launch if input_size > 0.
+  if (input_size > 0) {
+    const u32 threads = 256;
+    const u32 blocks = std::min((input_size + threads - 1) / threads, 1024u);
 
-  count_frequencies_kernel<<<blocks, threads, 0, stream>>>(d_input, input_size,
-                                                           d_frequencies);
+    count_frequencies_kernel<<<blocks, threads, 0, stream>>>(d_input, input_size,
+                                                              d_frequencies);
+  }
 
   cudaMemcpyAsync(stats->frequencies, d_frequencies, 256 * sizeof(u32),
                   cudaMemcpyDeviceToHost, stream);

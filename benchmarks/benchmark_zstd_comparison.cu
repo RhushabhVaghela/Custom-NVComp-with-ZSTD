@@ -169,9 +169,13 @@ GpuMemorySnapshot get_gpu_memory_snapshot() {
 
 // Compute XXH64 checksum
 uint64_t compute_checksum(void *data, size_t size, cudaStream_t stream = 0) {
-  u64 h_hash;
-  cuda_zstd::xxhash::compute_xxhash64(data, size, 0, &h_hash, stream);
+  u64 h_hash = 0;
+  u64 *d_hash = nullptr;
+  cudaMalloc(&d_hash, sizeof(u64));
+  cuda_zstd::xxhash::compute_xxhash64(data, size, 0, d_hash, stream);
   cudaStreamSynchronize(stream ? stream : 0);
+  cudaMemcpy(&h_hash, d_hash, sizeof(u64), cudaMemcpyDeviceToHost);
+  cudaFree(d_hash);
   return h_hash;
 }
 

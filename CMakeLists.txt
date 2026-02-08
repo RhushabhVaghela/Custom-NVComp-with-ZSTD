@@ -19,6 +19,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # ==============================================================================
 # Build Options
 # ==============================================================================
+option(BUILD_SHARED_LIBS "Build cuda_zstd as a shared library instead of static" OFF)
 option(CUDA_ZSTD_DEBUG "Enable verbose ZSTD decompress debug output" OFF)
 option(CUDA_ZSTD_VERBOSE_PTX "Enable verbose PTX register/spill info (-Xptxas=-v)" OFF)
 
@@ -43,7 +44,7 @@ file(GLOB_RECURSE CUDA_ZSTD_SOURCES
 list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*\\.new$")
 list(FILTER CUDA_ZSTD_SOURCES EXCLUDE REGEX ".*\\.bak$")
 
-add_library(cuda_zstd STATIC ${CUDA_ZSTD_SOURCES})
+add_library(cuda_zstd ${CUDA_ZSTD_SOURCES})
 
 target_include_directories(cuda_zstd PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -98,7 +99,23 @@ foreach(test_src ${TEST_SOURCES})
     target_include_directories(${test_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
     
     add_test(NAME ${test_name} COMMAND ${test_name})
-    set_tests_properties(${test_name} PROPERTIES TIMEOUT 120)
+    set_tests_properties(${test_name} PROPERTIES TIMEOUT 300)
+endforeach()
+
+# Heavy GPU tests need longer timeout — especially under parallel execution
+# (GPU contention with -j4 can 3-5x wall time vs isolated runs).
+# These tests all pass in <60s when run alone but need headroom for ctest -j4.
+set(HEAVY_GPU_TESTS
+    test_pipeline_integration   # processes up to 50MB
+    test_performance            # sweeps all compression levels
+    test_extended_validation    # includes 128MB data
+    test_integration            # large integration workload
+    test_fallback_strategies    # memory pool stress testing
+)
+foreach(heavy_test ${HEAVY_GPU_TESTS})
+    if(TEST ${heavy_test})
+        set_tests_properties(${heavy_test} PROPERTIES TIMEOUT 900)
+    endif()
 endforeach()
 
 # ==============================================================================

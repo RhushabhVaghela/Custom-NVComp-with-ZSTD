@@ -2806,9 +2806,14 @@ public:
       
       // Partition ws_base for d_matches and d_lz77_temp
       // Max possible sequences per block (128KB) is around 43K.
-      // d_matches needs 6 bytes per seq. d_lz77_temp needs 16 bytes per seq.
-      // We assume worst case num_sequences = ZSTD_BLOCKSIZE_MAX.
-      size_t matches_size = ZSTD_BLOCKSIZE_MAX * 6; // 6 bytes per seq
+      // d_matches needs 6 bytes per seq. d_lz77_temp needs 12 bytes per seq + 4.
+      // BUG FIX: Use actual block sequence count instead of ZSTD_BLOCKSIZE_MAX
+      // to prevent workspace overlap. With ZSTD_BLOCKSIZE_MAX (131072), the
+      // codes region alone consumes 786,432 bytes, leaving only 262,144 for
+      // extras — which overflows at >21,845 sequences. Using actual count
+      // sizes both regions tightly.
+      u32 actual_num_seqs = block_num_sequences[block_idx];
+      size_t matches_size = actual_num_seqs * 6; // 6 bytes per seq (codes)
       matches_size = align_to_boundary(matches_size, 256);
       
       seq_ws.d_matches = (void*)ws_base;
@@ -4379,6 +4384,11 @@ private:
     fse::FSEEncodeTable *d_tables;
     bool using_cache = (d_cached_fse_tables != nullptr);
 
+    // BUG FIX: Track all sub-allocations so they can be freed after encoding.
+    // Previously, d_norm (3 ptrs) and 5 sub-table pointers per table (15 ptrs)
+    // were leaked on every non-cached compress_sequences call.
+    std::vector<void *> table_sub_allocs;
+
     if (using_cache) {
       d_tables = d_cached_fse_tables;
     } else {
@@ -4397,6 +4407,7 @@ private:
         CUDA_CHECK(cudaMallocAsync(&d_norm, (max_s + 1) * sizeof(u32), stream));
         cudaMemcpyAsync(d_norm, h_norm_u32.data(), (max_s + 1) * sizeof(u32),
                         cudaMemcpyHostToDevice, stream);
+        table_sub_allocs.push_back(d_norm); // Track for cleanup
 
         fse::FSEEncodeTable h_desc;
         h_desc.max_symbol = max_s;
@@ -4407,13 +4418,18 @@ private:
         CUDA_CHECK(cudaMallocAsync(
             &h_desc.d_symbol_table,
             (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream));
+        table_sub_allocs.push_back(h_desc.d_symbol_table);
         CUDA_CHECK(cudaMallocAsync(&h_desc.d_next_state, table_size * sizeof(u16), stream));
+        table_sub_allocs.push_back(h_desc.d_next_state);
         CUDA_CHECK(cudaMallocAsync(&h_desc.d_nbBits_table, table_size * sizeof(u8),
                         stream));
+        table_sub_allocs.push_back(h_desc.d_nbBits_table);
         CUDA_CHECK(cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
                         stream));
+        table_sub_allocs.push_back(h_desc.d_symbol_first_state);
         CUDA_CHECK(cudaMallocAsync(&h_desc.d_state_to_symbol, table_size * sizeof(u8),
                         stream));
+        table_sub_allocs.push_back(h_desc.d_state_to_symbol);
 
         // CRITICAL: Zero-initialize all table memory before kernel runs
         cudaMemsetAsync(h_desc.d_symbol_table, 0, 
@@ -4431,7 +4447,6 @@ private:
         fse::FSE_buildCTable_Device(d_norm, max_s, t_log, &d_tables[idx],
                                     nullptr, 0, stream);
 
-        // Note: d_norm leaked for Phase 2a prototype
         return Status::SUCCESS;
       };
 
@@ -4484,9 +4499,13 @@ private:
       *output_size = header_len + h_pos_val;
 
     if (!using_cache) {
-      if (!using_cache) {
-        cudaFreeAsync(d_tables, stream);
+      // BUG FIX: Free all sub-table allocations (d_norm, d_symbol_table,
+      // d_next_state, d_nbBits_table, d_symbol_first_state, d_state_to_symbol)
+      // that were previously leaked. 18 allocations total (6 per table × 3).
+      for (void *ptr : table_sub_allocs) {
+        cudaFreeAsync(ptr, stream);
       }
+      cudaFreeAsync(d_tables, stream);
     }
     cudaFreeAsync(d_pos, stream);
     cudaFreeAsync(d_bitstream, stream);

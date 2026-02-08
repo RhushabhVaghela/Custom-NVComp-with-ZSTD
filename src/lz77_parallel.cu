@@ -199,11 +199,16 @@ greedy_parse_kernel(const Match *matches, u32 input_size,
 }
 
 // GPU Kernel: Build sequences directly on GPU (avoids 128KB D2H copy)
+// max_sequences: capacity of ll_out/ml_out/of_out arrays (must include +1 for
+//                potential dummy sequence). Caller passes input_size which is
+//                the allocation size; the dummy slot at [num_seqs] is safe as
+//                long as num_seqs < max_sequences.
 __global__ void build_sequences_gpu_kernel(const u32 *decisions,
                                            const u32 *offsets_in,
                                            u32 input_size, u32 *ll_out,
                                            u32 *ml_out, u32 *of_out,
-                                           u32 *seq_count, u32 *has_dummy) {
+                                           u32 *seq_count, u32 *has_dummy,
+                                           u32 max_sequences) {
 
   // Single thread builds sequences (sequential on GPU but no D2H transfer!)
   if (threadIdx.x != 0 || blockIdx.x != 0)
@@ -220,9 +225,15 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
       literal_run++;
       pos++;
     } else {
-      if (num_seqs < 5) {
-          
+      // BUG FIX: Bounds check — stop emitting sequences if buffer is full.
+      // Reserve 1 slot for potential dummy trailing-literal sequence.
+      if (num_seqs >= max_sequences - 1) {
+        // Treat remaining input as trailing literals
+        for (u32 p = pos; p < input_size; p++)
+          literal_run++;
+        break;
       }
+
       ll_out[num_seqs] = literal_run;
       ml_out[num_seqs] = decision;
       of_out[num_seqs] = offsets_in[pos];
@@ -237,9 +248,12 @@ __global__ void build_sequences_gpu_kernel(const u32 *decisions,
   if (literal_run > 0 || num_seqs == 0) {
     // If no sequences were found, or there are leftover literals after the last
     // match, they are stored as a 'dummy' sequence for the literal copy kernel.
-    ll_out[num_seqs] = literal_run;
-    ml_out[num_seqs] = 0;
-    of_out[num_seqs] = 0;
+    // BUG FIX: Bounds check before dummy write
+    if (num_seqs < max_sequences) {
+      ll_out[num_seqs] = literal_run;
+      ml_out[num_seqs] = 0;
+      of_out[num_seqs] = 0;
+    }
     // (FIX) Do NOT increment num_seqs for trailing literals.
     // They are not ZSTD sequences. They are handled by has_dummy.
     if (has_dummy)
@@ -266,10 +280,11 @@ Status build_sequences_from_greedy(const u32 *d_decisions, const u32 *d_offsets,
   u32 *d_has_dummy_dev = (u32 *)(d_seq_count + 1);
 
   // Build sequences entirely on GPU - no large D2H transfer!
+  // max_sequences = input_size (allocation size of output arrays)
   build_sequences_gpu_kernel<<<1, 1, 0, stream>>>(
       d_decisions, d_offsets, input_size, workspace.d_literal_lengths_reverse,
       workspace.d_match_lengths_reverse, workspace.d_offsets_reverse,
-      d_seq_count, d_has_dummy_dev);
+      d_seq_count, d_has_dummy_dev, input_size);
 
   // Only copy 4 bytes (seq count) instead of 128KB!
   // (OPTIMIZATION) Use sync copy to ensure we have the count
@@ -293,10 +308,11 @@ Status build_sequences_from_greedy_async(
     cudaStream_t stream) {
 
   // Build sequences entirely on GPU - no sync!
+  // max_sequences = input_size (allocation size of output arrays)
   build_sequences_gpu_kernel<<<1, 1, 0, stream>>>(
       d_decisions, d_offsets, input_size, workspace.d_literal_lengths_reverse,
       workspace.d_match_lengths_reverse, workspace.d_offsets_reverse,
-      d_num_sequences, d_has_dummy);
+      d_num_sequences, d_has_dummy, input_size);
 
   // Note: has_dummy check is deferred to batch sync phase
   // The caller must handle this after batch sync
