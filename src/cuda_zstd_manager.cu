@@ -966,12 +966,9 @@ Status parse_zstd_frame_header(const unsigned char *compressed_data,
       break;
     case 2:
       metadata->content_size = (read_u32_le(compressed_data + offset) & 0xFFFF);
-      // RFC 8878 Section 3.1.1.1.2: When FCS_Field_Size is 2 and
-      // Single_Segment_flag is set, the stored value has a +256 offset.
-      // The writer subtracts 256 before storing, so we add it back.
-      if (fhd_parser.is_single_segment()) {
-        metadata->content_size += 256;
-      }
+      // RFC 8878 Section 3.1.1.1.1.2: 2-byte FCS always has +256 offset
+      // regardless of Single_Segment_flag.
+      metadata->content_size += 256;
       break;
     case 4:
       metadata->content_size = read_u32_le(compressed_data + offset);
@@ -4062,10 +4059,12 @@ private:
       if (content_size == 0) {
         fcs_flag = 0;
         fcs_field_size = 0;
-      } else if (content_size < 65536) {
+      } else if (content_size >= 256 && content_size < 65536 + 256) {
+        // RFC 8878: 2-byte FCS stores (value - 256), so content_size must be >= 256
         fcs_flag = 1;
         fcs_field_size = 2;
       } else {
+        // content_size 1-255 or >= 65792: use 4-byte FCS
         fcs_flag = 2;
         fcs_field_size = 4;
       }
@@ -4089,7 +4088,7 @@ private:
     if (fcs_field_size == 1) {
       h_header[offset++] = (unsigned char)content_size;
     } else if (fcs_field_size == 2) {
-      u32 val = single_segment ? (content_size - 256) : content_size;
+      u32 val = content_size - 256;  // RFC 8878: 2-byte FCS always has +256 offset
       h_header[offset++] = (unsigned char)(val & 0xFF);
       h_header[offset++] = (unsigned char)((val >> 8) & 0xFF);
     } else if (fcs_field_size == 4) {
@@ -4206,7 +4205,7 @@ private:
       if (csf == 1) {
         u16 size_val;
         memcpy(&size_val, h_header + offset, 2);
-        h_content_size = size_val;
+        h_content_size = (u32)size_val + 256; // RFC 8878: 2-byte FCS always has +256 offset
         offset += 2;
       } else if (csf == 2) {
         memcpy(&h_content_size, h_header + offset, 4);
@@ -4442,10 +4441,10 @@ private:
       header[0] = (unsigned char)((num_literals << 3) | 0x00); 
       header_len = 1;
     } else if (num_literals <= 4095) {
-      // RFC 8878 Section 3.1.1.3.1: SF=10 (2-byte header)
+      // RFC 8878 Section 3.1.1.3.1: SF=01 (2-byte header)
       // regenerated_size = (byte0 >> 4) | (byte1 << 4) — 12 bits
-      // byte0 bits 1:0 = type (00=raw), bits 3:2 = SF (10), bits 7:4 = size[3:0]
-      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) | 0x08);
+      // byte0 bits 1:0 = type (00=raw), bits 3:2 = SF (01), bits 7:4 = size[3:0]
+      header[0] = (unsigned char)(((num_literals & 0x0F) << 4) | 0x04);
       header[1] = (unsigned char)((num_literals >> 4) & 0xFF);
       header_len = 2;
     } else if (num_literals <= 1048575) {
@@ -5017,10 +5016,14 @@ private:
       //   SF=2:         2-byte header, Regenerated_Size = Byte0[7:4] + Byte1<<4 (12 bits, 0-4095)
       //   SF=3:         3-byte header, Regenerated_Size = Byte0[7:4] + Byte1<<4 + Byte2<<12 (20 bits, 0-1048575)
       u32 lhl_code = size_format;
-      if (lhl_code == 0 || lhl_code == 1) {
+      // RFC 8878 Section 3.1.1.3.1: Raw/RLE Literals Block Header
+      // SF=00 (0) or SF=10 (2): 1-byte header, Regenerated_Size = Byte0[7:3]
+      // SF=01 (1):              2-byte header, Regenerated_Size = Byte0[7:4] | (Byte1 << 4)
+      // SF=11 (3):              3-byte header, Regenerated_Size = Byte0[7:4] | (Byte1 << 4) | (Byte2 << 12)
+      if (lhl_code == 0 || lhl_code == 2) {
         *h_header_size = 1;
         *h_decompressed_size = h_header[0] >> 3;
-      } else if (lhl_code == 2) {
+      } else if (lhl_code == 1) {
         if (input_size < 2)
           return Status::ERROR_CORRUPT_DATA;
         *h_header_size = 2;

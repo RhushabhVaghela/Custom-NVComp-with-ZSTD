@@ -310,6 +310,133 @@ constexpr u32 MAX_WINDOW_LOG = 31;
 constexpr u32 DEFAULT_BLOCK_SIZE = 128 * 1024;
 
 // ============================================================================
+// Hybrid CPU/GPU Execution System
+// ============================================================================
+
+/**
+ * @brief Controls how the hybrid system routes operations between CPU and GPU.
+ *
+ * The hybrid system automatically selects the best execution path based on
+ * data characteristics, location, and available resources. Users can override
+ * the automatic selection with explicit mode preferences.
+ */
+enum class HybridMode : u32 {
+  AUTO = 0,        ///< System decides best path based on heuristics (default)
+  PREFER_CPU = 1,  ///< CPU unless data is already on GPU and output stays on GPU
+  PREFER_GPU = 2,  ///< GPU unless data is on host and result stays on host
+  FORCE_CPU = 3,   ///< Always use CPU path (libzstd)
+  FORCE_GPU = 4,   ///< Always use GPU path (CUDA kernels)
+  ADAPTIVE = 5     ///< Learn from profiling data to improve routing over time
+};
+
+/**
+ * @brief Describes where data resides in the memory hierarchy.
+ */
+enum class DataLocation : u32 {
+  HOST = 0,       ///< System RAM (host memory)
+  DEVICE = 1,     ///< GPU VRAM (device memory)
+  MANAGED = 2,    ///< CUDA managed/unified memory
+  UNKNOWN = 3     ///< Auto-detect via cudaPointerGetAttributes
+};
+
+/**
+ * @brief Which execution backend was used for an operation.
+ */
+enum class ExecutionBackend : u32 {
+  CPU_LIBZSTD = 0,     ///< CPU path using reference libzstd
+  GPU_KERNELS = 1,     ///< GPU path using CUDA kernels
+  CPU_PARALLEL = 2,    ///< CPU with multi-threaded libzstd (batch)
+  GPU_BATCH = 3        ///< GPU batch processing (multiple items)
+};
+
+/**
+ * @brief Configuration for the hybrid CPU/GPU routing engine.
+ *
+ * Controls thresholds, preferences, and profiling behavior for the
+ * automatic routing system. Default values are tuned for RTX 5080-class GPUs.
+ */
+struct HybridConfig {
+  /// Routing mode
+  HybridMode mode = HybridMode::AUTO;
+
+  /// Size threshold below which CPU is always preferred (bytes).
+  /// Default 1MB — GPU overhead exceeds benefit for small data.
+  size_t cpu_size_threshold = 1024 * 1024;
+
+  /// Size threshold above which data-on-device stays on GPU (bytes).
+  /// Below this, it may be cheaper to transfer to host for CPU processing.
+  size_t gpu_device_threshold = 64 * 1024;
+
+  /// Enable profiling to track per-call timing for adaptive mode.
+  bool enable_profiling = false;
+
+  /// Compression level (1-22) passed through to both CPU and GPU backends.
+  int compression_level = 3;
+
+  /// Number of parallel threads for CPU batch operations.
+  /// 0 = auto-detect (hardware_concurrency).
+  u32 cpu_thread_count = 0;
+
+  /// If true, use pinned (page-locked) host memory for transfers.
+  bool use_pinned_memory = true;
+
+  /// If true, overlap CPU computation with GPU transfers where possible.
+  bool overlap_transfers = true;
+};
+
+/**
+ * @brief Result metadata returned after a hybrid compress/decompress operation.
+ *
+ * Provides timing breakdown and path selection information for diagnostics.
+ */
+struct HybridResult {
+  /// Which backend was used
+  ExecutionBackend backend_used = ExecutionBackend::CPU_LIBZSTD;
+
+  /// Where the input data was located
+  DataLocation input_location = DataLocation::HOST;
+
+  /// Where the output data was placed
+  DataLocation output_location = DataLocation::HOST;
+
+  /// Total wall-clock time for the operation (milliseconds)
+  double total_time_ms = 0.0;
+
+  /// Time spent transferring data between host and device (milliseconds)
+  double transfer_time_ms = 0.0;
+
+  /// Time spent in actual compute (compression/decompression) (milliseconds)
+  double compute_time_ms = 0.0;
+
+  /// Throughput achieved (MB/s, based on uncompressed data size)
+  double throughput_mbps = 0.0;
+
+  /// Input size processed (bytes)
+  size_t input_bytes = 0;
+
+  /// Output size produced (bytes)
+  size_t output_bytes = 0;
+
+  /// Compression ratio (input/output, >1 means compressed)
+  float compression_ratio = 1.0f;
+
+  /// Reason the routing decision was made (for diagnostics)
+  const char *routing_reason = nullptr;
+};
+
+/**
+ * @brief Per-item routing result for batch operations.
+ */
+struct BatchRoutingResult {
+  size_t item_index = 0;
+  ExecutionBackend backend_used = ExecutionBackend::CPU_LIBZSTD;
+  Status status = Status::SUCCESS;
+  size_t input_bytes = 0;
+  size_t output_bytes = 0;
+  double compute_time_ms = 0.0;
+};
+
+// ============================================================================
 // Memory Safety Buffer Constants
 // ============================================================================
 // These constants define the minimum amount of free memory that must remain

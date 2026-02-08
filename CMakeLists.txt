@@ -111,6 +111,7 @@ set(HEAVY_GPU_TESTS
     test_extended_validation    # includes 128MB data
     test_integration            # large integration workload
     test_fallback_strategies    # memory pool stress testing
+    test_hybrid                 # exercises GPU+CPU paths with transfers
 )
 foreach(heavy_test ${HEAVY_GPU_TESTS})
     if(TEST ${heavy_test})

@@ -81,13 +81,13 @@ public:
 
   // Smart Path Selection
   enum class ExecutionPath {
-    CPU,       // Small payloads (< 64KB)
-    GPU_BATCH, // Standard Block Parallel (Default)
-    GPU_CHUNK  // Intra-Block Parallel (> 1MB)
+    CPU,       // Small payloads (< cpu_threshold, default 1MB)
+    GPU_BATCH, // Standard Block Parallel (Default for large payloads)
+    GPU_CHUNK  // Intra-Block Parallel (reserved for future use)
   };
 
-  static ExecutionPath select_execution_path(size_t size,
-                                             int cpu_threshold = 65536);
+  static ExecutionPath select_execution_path(
+      size_t size, int cpu_threshold = 1024 * 1024);
 
   // Optimization: Pre-allocate/Pre-compute tables for persistent reusable
   // managers
