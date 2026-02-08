@@ -1462,7 +1462,8 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   }
 
   // Step 6: Copy encoding table to device
-  // We need to allocate device memory for the table arrays
+  // Phase 15C-4: Pool allocations — use context buffers when available,
+  // otherwise allocate a single pooled device buffer for all 4 tables.
   FSEEncodeTable::FSEEncodeSymbol *d_dev_symbol_table;
   u16 *d_dev_next_state;
   u8 *d_dev_nbBits_table;     // 
@@ -1474,14 +1475,11 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   size_t next_state_bytes = table_size * sizeof(u16);
   size_t nbBits_bytes = table_size * sizeof(u8);
 
-  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_symbol_table, sym_size_bytes));
-  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_next_state, next_state_bytes));
-  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_nbBits_table, nbBits_bytes));
-  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_next_state_vals, next_state_bytes));
+  // Pooled allocation base (only used when ctx is null)
+  unsigned char *d_table_pool = nullptr;
 
-  // Context Reuse Logic for Tables (If context provided, use/alloc it)
   if (ctx) {
-    // Reuse or Allocate Symbol Table (with capacity check)
+    // Context Reuse Logic: use/alloc context-owned buffers
     size_t required_sym_capacity = stats.max_symbol + 1;
     if (!ctx->d_dev_symbol_table ||
         ctx->symbol_table_capacity < required_sym_capacity) {
@@ -1490,26 +1488,35 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
       CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_symbol_table, sym_size_bytes));
       ctx->symbol_table_capacity = required_sym_capacity;
     }
-    if (d_dev_symbol_table)
-      cudaFree(d_dev_symbol_table); // Free local if alloc
     d_dev_symbol_table =
         (FSEEncodeTable::FSEEncodeSymbol *)ctx->d_dev_symbol_table;
 
     if (!ctx->d_dev_next_state)
       CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_next_state, next_state_bytes));
-    if (d_dev_next_state)
-      cudaFree(d_dev_next_state);
     d_dev_next_state = (u16 *)ctx->d_dev_next_state;
 
     if (!ctx->d_dev_nbBits_table)
       CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_nbBits_table, nbBits_bytes));
-    if (d_dev_nbBits_table)
-      cudaFree(d_dev_nbBits_table);
     d_dev_nbBits_table = (u8 *)ctx->d_dev_nbBits_table;
-    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_next_state_vals, next_state_bytes));
-    if (d_dev_next_state_vals)
-      cudaFree(d_dev_next_state_vals);
+
+    if (!ctx->d_dev_next_state_vals)
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_next_state_vals, next_state_bytes));
     d_dev_next_state_vals = (u16 *)ctx->d_dev_next_state_vals;
+  } else {
+    // Phase 15C-4: Single pooled allocation for all 4 table buffers.
+    // Layout: [symbol_table | next_state | nbBits | next_state_vals]
+    // Each region 256-byte aligned.
+    size_t sym_aligned = (sym_size_bytes + 255) & ~255ULL;
+    size_t ns_aligned = (next_state_bytes + 255) & ~255ULL;
+    size_t nb_aligned = (nbBits_bytes + 255) & ~255ULL;
+    size_t nsv_aligned = (next_state_bytes + 255) & ~255ULL;
+    size_t pool_total = sym_aligned + ns_aligned + nb_aligned + nsv_aligned;
+
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table_pool, pool_total));
+    d_dev_symbol_table = (FSEEncodeTable::FSEEncodeSymbol *)d_table_pool;
+    d_dev_next_state = (u16 *)(d_table_pool + sym_aligned);
+    d_dev_nbBits_table = (u8 *)(d_table_pool + sym_aligned + ns_aligned);
+    d_dev_next_state_vals = (u16 *)(d_table_pool + sym_aligned + ns_aligned + nb_aligned);
   }
 
   // Allocate and Build Initial States (Side-Channel)
@@ -1702,6 +1709,12 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
     delete[] h_ctable.d_state_to_symbol;
     delete[] h_ctable.d_nbBits_table;
     delete[] h_ctable.d_next_state_vals;
+
+    // Phase 15C-4: Free pooled device tables (only when not using context)
+    if (!ctx) {
+      if (d_table_pool) cudaFree(d_table_pool);
+      cudaFree(d_dev_initial_states);
+    }
 
     return Status::SUCCESS;
   }
@@ -1918,11 +1931,8 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
     cudaFree(d_chunk_offsets); // Byte offsets always freed
     cudaFree(d_ctable_for_encoder);
 
-    // Also free table arrays (Sequential allocs above)
-    cudaFree(d_dev_symbol_table);
-    cudaFree(d_dev_next_state);
-    cudaFree(d_dev_nbBits_table);
-    cudaFree(d_dev_next_state_vals);
+    // Phase 15C-4: Free pooled table allocation + initial states
+    if (d_table_pool) cudaFree(d_table_pool);
     cudaFree(d_dev_initial_states);
   }
   //   // fflush(stdout);
@@ -2388,17 +2398,20 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
 
 __host__ Status analyze_block_statistics(const unsigned char *d_input,
                                          u32 input_size, FSEStats *stats,
-                                         cudaStream_t stream) {
-  // Debug: Check for pre-existing
-  // errors
-  cudaError_t pre_err = cudaGetLastError();
-  (void)pre_err;
-  CUDA_CHECK(cudaDeviceSynchronize()); // Strict
-                                       // sync
+                                         cudaStream_t stream,
+                                         u32 *d_freq_workspace) {
+  // Phase 15C: Removed cudaDeviceSynchronize() — was stalling entire GPU per
+  // block. Use stream-ordered operations only.
 
-  u32 *d_frequencies;
-  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_frequencies, 256 * sizeof(u32)));
-  CUDA_CHECK(cudaMemset(d_frequencies, 0, 256 * sizeof(u32)));
+  // Phase 15C: Use caller-provided workspace to avoid per-call cudaMalloc.
+  // Falls back to local allocation if no workspace provided.
+  u32 *d_frequencies = d_freq_workspace;
+  bool owns_freq = false;
+  if (!d_frequencies) {
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_frequencies, 256 * sizeof(u32)));
+    owns_freq = true;
+  }
+  CUDA_CHECK(cudaMemsetAsync(d_frequencies, 0, 256 * sizeof(u32), stream));
 
   // BUG FIX: Zero-size input would launch kernel with 0 grid blocks
   // (cudaErrorInvalidConfiguration). Only launch if input_size > 0.
@@ -2413,7 +2426,9 @@ __host__ Status analyze_block_statistics(const unsigned char *d_input,
   cudaMemcpyAsync(stats->frequencies, d_frequencies, 256 * sizeof(u32),
                   cudaMemcpyDeviceToHost, stream);
   CUDA_CHECK(cudaStreamSynchronize(stream));
-  CUDA_CHECK(cudaFree(d_frequencies));
+  if (owns_freq) {
+    CUDA_CHECK(cudaFree(d_frequencies));
+  }
 
   // u32 *freqs = stats->frequencies;
   // // unused

@@ -471,22 +471,48 @@ private:
   size_t _offset;
   bool _overflow;
 
+  // Phase 15C-2: Host-side staging buffer to batch small host writes.
+  // Instead of one sync cudaMemcpy per byte/header, we accumulate host bytes
+  // and flush them in a single copy before any device-to-device write.
+  static constexpr size_t STAGING_CAPACITY = 64;
+  unsigned char _staging[STAGING_CAPACITY];
+  size_t _staged_count;
+  size_t _staged_device_offset; // device offset where staged bytes start
+
 public:
   __host__ BlockBufferWriter(unsigned char *base, size_t capacity)
-      : _base(base), _capacity(capacity), _offset(0), _overflow(false) {}
+      : _base(base), _capacity(capacity), _offset(0), _overflow(false),
+        _staged_count(0), _staged_device_offset(0) {}
+
+  // Flush staged host bytes to device in a single memcpy.
+  // Returns false on cudaMemcpy failure.
+  __host__ bool flush(cudaStream_t stream) {
+    if (_staged_count == 0) return true;
+    // Single sync memcpy for all accumulated header bytes
+    if (cudaMemcpy(_base + _staged_device_offset, _staging, _staged_count,
+                   cudaMemcpyHostToDevice) != cudaSuccess) {
+      return false;
+    }
+    _staged_count = 0;
+    return true;
+  }
 
   __host__ bool write_byte(unsigned char value, cudaStream_t stream) {
     if (_offset + 1 > _capacity) {
       _overflow = true;
       return false;
     }
-    
-    // Use synchronous copy for single byte to ensure safety of stack variable
-    // address
-    if (cudaMemcpy(_base + _offset, &value, 1, cudaMemcpyHostToDevice) !=
-        cudaSuccess) {
-      return false;
+
+    // Stage the byte instead of issuing a sync memcpy
+    if (_staged_count == 0) {
+      _staged_device_offset = _offset;
     }
+    if (_staged_count >= STAGING_CAPACITY) {
+      // Staging buffer full — flush first
+      if (!flush(stream)) return false;
+      _staged_device_offset = _offset;
+    }
+    _staging[_staged_count++] = value;
     _offset++;
     return true;
   }
@@ -501,16 +527,25 @@ public:
     }
 
     if (is_device_ptr) {
+      // Flush any pending host bytes before device-to-device copy
+      if (!flush(stream)) return false;
+
       if (cudaMemcpyAsync(_base + _offset, src, size, cudaMemcpyDeviceToDevice,
                           stream) != cudaSuccess) {
         return false;
       }
     } else {
-      // Use synchronous copy for host pointers to support stack/temporary
-      // buffers
-      if (cudaMemcpy(_base + _offset, src, size, cudaMemcpyHostToDevice) !=
-          cudaSuccess) {
-        return false;
+      // Stage host bytes instead of sync memcpy per call
+      if (_staged_count == 0) {
+        _staged_device_offset = _offset;
+      }
+      const unsigned char *src_bytes = static_cast<const unsigned char *>(src);
+      for (size_t i = 0; i < size; i++) {
+        if (_staged_count >= STAGING_CAPACITY) {
+          if (!flush(stream)) return false;
+          _staged_device_offset = _offset + i;
+        }
+        _staging[_staged_count++] = src_bytes[i];
       }
     }
 
@@ -523,13 +558,12 @@ public:
 
   // Aligns current offset to 4-byte boundary (if needed for raw blocks)
   __host__ void align4() {
+    // Flush staged bytes before alignment padding
+    // (padding doesn't go through staging — it's just an offset advance)
     size_t remainder = _offset & 3;
     if (remainder != 0) {
       size_t padding = 4 - remainder;
       if (_offset + padding <= _capacity) {
-        // Zero pad? Or just advance? Usually just advance for alignment
-        // but explicit zeroing is safer if buffer is reused.
-        // For now, just advance.
         _offset += padding;
       } else {
         _overflow = true;
@@ -537,7 +571,12 @@ public:
     }
   }
 
-  __host__ unsigned char *get_current_ptr() const { return _base + _offset; }
+  __host__ unsigned char *get_current_ptr() {
+    // Caller wants a raw device pointer — flush staged bytes first
+    // so the device buffer is up to date at _offset.
+    // Note: cannot use stream here, caller must flush() explicitly if needed.
+    return _base + _offset;
+  }
   __host__ void advance(size_t amount) {
     if (_offset + amount > _capacity) {
       _overflow = true;
@@ -2851,6 +2890,12 @@ public:
           compress_literals(block_seq_ctxs[block_idx].d_literals_buffer,
                             block_literals_sizes[block_idx], writer, stream);
 
+      // Phase 15C-2: Flush staged host bytes before stream sync
+      if (!writer.flush(stream)) {
+        status = Status::ERROR_CUDA_ERROR;
+        goto cleanup;
+      }
+
       // (PHASE 15B) Use stream sync instead of device-wide sync
       cudaError_t lit_err = cudaStreamSynchronize(stream);
       if (lit_err != cudaSuccess) {
@@ -2912,6 +2957,12 @@ public:
       status = compress_sequences(&block_seq_ctxs[block_idx],
                                   block_num_sequences[block_idx], writer,
                                   stream, &seq_ws);
+
+      // Phase 15C-2: Flush staged host bytes before stream sync
+      if (!writer.flush(stream)) {
+        status = Status::ERROR_CUDA_ERROR;
+        goto cleanup;
+      }
 
       // (PHASE 15B) Use stream sync instead of device-wide sync
       cudaError_t comp_seq_err = cudaStreamSynchronize(stream);

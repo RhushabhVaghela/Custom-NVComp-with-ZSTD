@@ -350,7 +350,8 @@ __host__ Status decode_fse_predefined(
 
 __host__ Status analyze_block_statistics(const unsigned char *d_input, u32 input_size,
                                          FSEStats *stats,
-                                         cudaStream_t stream = 0);
+                                         cudaStream_t stream = 0,
+                                         u32 *d_freq_workspace = nullptr);
 
 // ==============================================================================
 // UTILITY FUNCTIONS

@@ -288,13 +288,17 @@ Status build_sequences_from_greedy(const u32 *d_decisions, const u32 *d_offsets,
       d_seq_count, d_has_dummy_dev, input_size);
 
   // Only copy 4 bytes (seq count) instead of 128KB!
-  // (OPTIMIZATION) Use sync copy to ensure we have the count
-  cudaMemcpy(h_num_sequences, d_seq_count, sizeof(u32), cudaMemcpyDeviceToHost);
+  // Phase 15C-5: Use async copy + single stream sync instead of 2 sync copies
+  cudaMemcpyAsync(h_num_sequences, d_seq_count, sizeof(u32),
+                  cudaMemcpyDeviceToHost, stream);
 
   if (out_has_dummy) {
-    cudaMemcpy(out_has_dummy, d_has_dummy_dev, sizeof(u32),
-               cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync(out_has_dummy, d_has_dummy_dev, sizeof(u32),
+                    cudaMemcpyDeviceToHost, stream);
   }
+
+  // Single sync to wait for both copies (and the preceding kernel)
+  cudaStreamSynchronize(stream);
 
   return Status::SUCCESS;
 }
