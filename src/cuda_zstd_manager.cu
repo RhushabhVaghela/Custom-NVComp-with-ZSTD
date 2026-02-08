@@ -551,87 +551,136 @@ public:
 // Internal Helper Functions
 // ============================================================================
 
+// ============================================================================
+// PARALLEL LITERAL EXTRACTION (Phase 15B)
+// Two-pass approach: Pass 1 computes per-sequence offsets via prefix scan,
+// Pass 2 copies literals in parallel using computed offsets.
+// ============================================================================
+
+// Pass 1: Compute input/output offsets for each sequence (prefix sum)
+// Launched with <<<1, 1>>> but only writes offset arrays, no byte copies.
+// This is O(num_sequences) which is negligible vs the O(block_size) byte copy.
 __global__ void
-copy_block_literals_kernel(const unsigned char *input,
-                           const u32 *literal_lengths, const u32 *match_lengths,
-                           u32 num_sequences, unsigned char *literals_buffer,
-                           u32 block_idx, u32 capacity, u32 input_size,
-                           u32 *d_extracted_size) {
-  // Simple sequential copy per block (launched with 1 thread)
-  // Optimization: Could be parallelized with prefix sums, but this is
-  // functional
+compute_literal_offsets_kernel(const u32 *literal_lengths,
+                               const u32 *match_lengths,
+                               u32 num_sequences,
+                               u32 *d_in_offsets,   // [num_sequences+1]
+                               u32 *d_out_offsets,   // [num_sequences+1]
+                               u32 input_size,
+                               u32 *d_extracted_size) {
   u32 in_pos = 0;
   u32 out_pos = 0;
 
   for (u32 i = 0; i < num_sequences; ++i) {
+    d_in_offsets[i] = in_pos;
+    d_out_offsets[i] = out_pos;
     u32 ll = literal_lengths[i];
     u32 ml = match_lengths[i];
-
-    // Safety Check
-    if (out_pos + ll > capacity) {
-#ifdef CUDA_ZSTD_DEBUG
-      printf("[FATAL GPU] Block %u: Literals Buffer OOB! Seq %u, LL %u, Out "
-             "%u, Cap %u\n",
-             block_idx, i, ll, out_pos, capacity);
-#endif
-      if (d_extracted_size) *d_extracted_size = out_pos;
-      return; // Prevent crash
-    }
-    // Note: in_pos check is harder without knowing input size, but we assume
-    // input valid
-
-    // Valid input bounds check
-    if (in_pos + ll > input_size) {
-#ifdef CUDA_ZSTD_DEBUG
-      printf("[FATAL GPU] Block %u: Input OOB! Seq %u, LL %u, In %u, Size %u\n",
-             block_idx, i, ll, in_pos, input_size);
-#endif
-      if (d_extracted_size) *d_extracted_size = out_pos;
-      return;
-    }
-
-    // Copy literals
-    for (u32 k = 0; k < ll; ++k) {
-      literals_buffer[out_pos + k] = input[in_pos + k];
-
-    }
-
     in_pos += ll + ml;
     out_pos += ll;
   }
 
-  // Copy trailing literals
+  // Trailing literals entry
+  d_in_offsets[num_sequences] = in_pos;
+  d_out_offsets[num_sequences] = out_pos;
+
+  // Add trailing literals size
   if (in_pos < input_size) {
-      u32 trailing = input_size - in_pos;
-      if (out_pos + trailing <= capacity) {
-          for(u32 k=0; k<trailing; ++k) {
-              literals_buffer[out_pos + k] = input[in_pos + k];
-          }
-          out_pos += trailing;
-      } else {
-#ifdef CUDA_ZSTD_DEBUG
-          printf("[FATAL GPU] Block %u: Literals Buffer OOB (Trailing)! Need %u, Cap %u\n",
-                 block_idx, out_pos + trailing, capacity);
-#endif
-      }
+    out_pos += (input_size - in_pos);
   }
 
   if (d_extracted_size) *d_extracted_size = out_pos;
 }
 
-// Helper to launch the kernel
+// Pass 2: Copy literals in parallel (one thread per byte)
+__global__ void
+copy_literals_parallel_kernel(const unsigned char *input,
+                              const u32 *literal_lengths,
+                              const u32 *match_lengths,
+                              const u32 *d_in_offsets,
+                              const u32 *d_out_offsets,
+                              u32 num_sequences,
+                              unsigned char *literals_buffer,
+                              u32 capacity,
+                              u32 input_size) {
+  // Total work items = num_sequences + 1 (including trailing literals segment)
+  u32 seg_idx = blockIdx.x;
+  u32 tid = threadIdx.x;
+
+  if (seg_idx > num_sequences) return;
+
+  u32 in_start, copy_len, out_start;
+
+  if (seg_idx < num_sequences) {
+    // Regular sequence: copy literal_lengths[seg_idx] bytes
+    in_start = d_in_offsets[seg_idx];
+    out_start = d_out_offsets[seg_idx];
+    copy_len = literal_lengths[seg_idx];
+  } else {
+    // Trailing literals segment
+    in_start = d_in_offsets[num_sequences];
+    out_start = d_out_offsets[num_sequences];
+    if (in_start < input_size) {
+      copy_len = input_size - in_start;
+    } else {
+      copy_len = 0;
+    }
+  }
+
+  // Bounds check
+  if (out_start + copy_len > capacity || in_start + copy_len > input_size) {
+    return;
+  }
+
+  // Each thread copies multiple bytes (grid-stride within the block)
+  for (u32 k = tid; k < copy_len; k += blockDim.x) {
+    literals_buffer[out_start + k] = input[in_start + k];
+  }
+}
+
+// Helper to launch the parallel literal extraction
 void launch_copy_literals(const unsigned char *input, u32 input_size,
                           const u32 *literal_lengths, const u32 *match_lengths,
                           u32 num_sequences, unsigned char *literals_buffer,
                           cudaStream_t stream, u32 block_idx,
                           u32 *d_extracted_size) {
-  copy_block_literals_kernel<<<1, 1, 0, stream>>>(
-      input, literal_lengths, match_lengths, num_sequences, literals_buffer,
-      block_idx, 131072, input_size, d_extracted_size);
-  cudaError_t err = cudaDeviceSynchronize();
-  if (err != cudaSuccess) {
-    // Log synchronization error silently
+  if (num_sequences == 0) {
+    // No sequences — entire block is literals, just memcpy
+    if (input_size > 0) {
+      cudaMemcpyAsync(literals_buffer, input, input_size,
+                      cudaMemcpyDeviceToDevice, stream);
+    }
+    // Set extracted size on device
+    if (d_extracted_size) {
+      k_record_size<<<1, 1, 0, stream>>>(d_extracted_size, input_size);
+    }
+    return;
   }
+
+  // Allocate offset arrays on device (num_sequences + 1 entries each)
+  // These are small: at most ~128K * 4 bytes = 512KB for a max-size block
+  u32 offset_count = num_sequences + 1;
+  u32 *d_in_offsets = nullptr;
+  u32 *d_out_offsets = nullptr;
+  cudaMallocAsync(&d_in_offsets, offset_count * sizeof(u32), stream);
+  cudaMallocAsync(&d_out_offsets, offset_count * sizeof(u32), stream);
+
+  // Pass 1: Compute offsets (sequential scan, but only integer adds — very fast)
+  compute_literal_offsets_kernel<<<1, 1, 0, stream>>>(
+      literal_lengths, match_lengths, num_sequences,
+      d_in_offsets, d_out_offsets, input_size, d_extracted_size);
+
+  // Pass 2: Parallel byte copy (one block per sequence segment, 256 threads)
+  u32 num_segments = num_sequences + 1; // +1 for trailing literals
+  u32 threads_per_segment = 256;
+  copy_literals_parallel_kernel<<<num_segments, threads_per_segment, 0, stream>>>(
+      input, literal_lengths, match_lengths,
+      d_in_offsets, d_out_offsets, num_sequences,
+      literals_buffer, 131072, input_size);
+
+  cudaFreeAsync(d_in_offsets, stream);
+  cudaFreeAsync(d_out_offsets, stream);
+  // No cudaDeviceSynchronize — stream ordering handles dependencies
 }
 
 // ==============================================================================
@@ -2187,6 +2236,12 @@ public:
     
     // event usage removed - causing invalid argument errors
 
+    // (PHASE 15B-3) Forward declarations for goto safety
+    // Must be declared before any goto cleanup
+    bool use_multi_stream = false;
+    u32 num_phase1_streams = 1;
+    std::vector<cudaStream_t> phase1_streams;
+
     cudaError_t post_sync_err = cudaGetLastError();
     if (post_sync_err != cudaSuccess) {
       status = Status::ERROR_CUDA_ERROR;
@@ -2199,13 +2254,40 @@ public:
     // malloc/free overhead and leaks.
     // Declarations moved to top of phase 1 for goto safety
 
-    // CUDA_CHECK(cuda_zstd::safe_cuda_malloc((void **)&d_lit_len_reuse, max_seq_bytes));
-    // // REMOVED LEAK CUDA_CHECK(cuda_zstd::safe_cuda_malloc((void
-    // **)&d_match_len_reuse, max_seq_bytes)); // REMOVED LEAK
-    // CUDA_CHECK(cuda_zstd::safe_cuda_malloc((void
-    // **)&d_off_reuse, max_seq_bytes)); // REMOVED LEAK
-    // CUDA_CHECK(cuda_zstd::safe_cuda_malloc((void **)&d_lit_buf_reuse,
-    // ZSTD_BLOCKSIZE_MAX)); // REMOVED LEAK
+    // =========================================================================
+    // (PHASE 15B-3) Multi-stream pool for Phase 1 block parallelism
+    // =========================================================================
+    // Per-block buffers (hash, chain, matches, sequences, workspace) are
+    // already partitioned, so blocks can run LZ77 concurrently on separate
+    // streams. Exception: streaming mode uses shared hash/chain state, so
+    // falls back to single-stream.
+    {
+      StreamingContext *s_ctx_check = static_cast<StreamingContext *>(streaming_context);
+      use_multi_stream = (s_ctx_check == nullptr) && (num_blocks > 1);
+      num_phase1_streams = use_multi_stream
+          ? std::min(num_blocks, (u32)8) // MAX_COMPRESS_STREAMS
+          : 1;
+      phase1_streams.resize(num_phase1_streams);
+      if (use_multi_stream) {
+        phase1_streams[0] = stream; // Reuse caller's stream as stream 0
+        for (u32 i = 1; i < num_phase1_streams; i++) {
+          cudaError_t stream_err = cudaStreamCreate(&phase1_streams[i]);
+          if (stream_err != cudaSuccess) {
+            // Fallback: destroy any created so far, use single stream
+            for (u32 j = 1; j < i; j++) {
+              cudaStreamDestroy(phase1_streams[j]);
+            }
+            num_phase1_streams = 1;
+            use_multi_stream = false;
+            phase1_streams.resize(1);
+            phase1_streams[0] = stream;
+            break;
+          }
+        }
+      } else {
+        phase1_streams[0] = stream;
+      }
+    }
 
     for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
       cudaError_t loop_start_err = cudaGetLastError();
@@ -2217,6 +2299,9 @@ public:
       u32 block_start = block_idx * block_size;
       u32 current_block_size_val =
           std::min(block_size, (u32)uncompressed_size - block_start);
+
+      // (PHASE 15B-3) Assign this block to a stream from the pool
+      cudaStream_t block_stream = phase1_streams[block_idx % num_phase1_streams];
 
       const unsigned char *block_input = d_input + block_start;
 
@@ -2240,7 +2325,7 @@ public:
       //  Initialize LZ77 decisions to 0 (Literals) to prevent
       // stale/garbage matches if the match finder doesn't write every
       // position compactly.
-      cudaMemsetAsync(block_ws.d_lz77_temp, 0, lz77_temp_size, stream);
+      cudaMemsetAsync(block_ws.d_lz77_temp, 0, lz77_temp_size, block_stream);
       ws_offset += align_to_boundary(lz77_temp_size, GPU_MEMORY_ALIGNMENT);
 
       // 2. Output Buffer (Part of per-block workspace)
@@ -2300,13 +2385,13 @@ public:
       // 5. FSE Tables
       block_ws.d_fse_tables = (fse::FSEEncodeTable *)(ws_base + ws_offset);
       // CLEAR FSE TABLE
-      cudaMemsetAsync(block_ws.d_fse_tables, 0, fse_table_size, stream);
+      cudaMemsetAsync(block_ws.d_fse_tables, 0, fse_table_size, block_stream);
       ws_offset += align_to_boundary(fse_table_size, GPU_MEMORY_ALIGNMENT);
 
       // 6. Huffman Table
       block_ws.d_huffman_table = (huffman::HuffmanTable *)(ws_base + ws_offset);
       // CLEAR HUFFMAN TABLE
-      cudaMemsetAsync(block_ws.d_huffman_table, 0, huff_size, stream);
+      cudaMemsetAsync(block_ws.d_huffman_table, 0, huff_size, block_stream);
       ws_offset += align_to_boundary(huff_size, GPU_MEMORY_ALIGNMENT);
 
       // + (block_idx * call_workspace.hash_table_size);
@@ -2317,7 +2402,7 @@ public:
           call_workspace.d_hash_table + (block_idx * hash_stride);
       size_t hash_reset_bytes = hash_stride * sizeof(u32);
       CUDA_CHECK(cudaMemsetAsync(block_ws.d_hash_table, 0xFF, hash_reset_bytes,
-                                 stream));
+                                 block_stream));
 
       if (call_workspace.d_chain_table) {
         u32 chain_stride = (1 << effective_config.chain_log);
@@ -2325,7 +2410,7 @@ public:
             call_workspace.d_chain_table + (block_idx * chain_stride);
         size_t chain_reset_bytes = chain_stride * sizeof(u32);
         CUDA_CHECK(cudaMemsetAsync(block_ws.d_chain_table, 0xFF,
-                                   chain_reset_bytes, stream));
+                                   chain_reset_bytes, block_stream));
       }
 
       // Global buffers (shared/partitioned logically)
@@ -2405,19 +2490,12 @@ public:
       // (REMOVED) Per-block event creation to avoid resource leak
       // cudaEvent_t start_event; ...
 
-      // Launch async task for this block
-      //  Execute synchronously to prevent race condition on O(1)
-      // buffers Since we reuse the SAME d_matches/d_hash_table for all
-      // blocks, we CANNOT run blocks in parallel (unless we have N sets
-      // of buffers). For O(1) memory, strict serialization is required.
+      // (PHASE 15B-3) Per-block buffers (hash, chain, matches, sequences)
+      // are fully partitioned — blocks can run concurrently on separate
+      // CUDA streams. block_stream was assigned from the stream pool above.
+      // In streaming mode, all blocks share the same stream (serialized).
       {
-        // Use the main stream (or a dedicated single stream)
-        cudaStream_t block_stream = stream;
-        // No need to create/destroy stream every block for sync
-        // execution
-
-        // Wait for input data copy (on main stream) to complete
-        // (Implicit if we use the same stream)
+        // block_stream already assigned from phase1_streams pool above
 
         // Initialize thread_block_ws with block_ws which already has
         // correct O(n) pointers
@@ -2527,14 +2605,11 @@ public:
           goto cleanup;
         }
 
-        
-        u32 ph1_num_seq = 0;
-        cudaMemcpyAsync(&ph1_num_seq, &d_block_num_sequences[block_idx],
-                        sizeof(u32), cudaMemcpyDeviceToHost, block_stream);
-        cudaStreamSynchronize(block_stream);
+        // (PHASE 15B-4) Removed per-block cudaStreamSynchronize and
+        // dead ph1_num_seq copy — seq counts are batch-copied at the
+        // sync point after all blocks complete Phase 1.
 
         // (TWO-PHASE OPTIMIZATION) Phase 1 complete for this block
-        // NO SYNC HERE - all blocks run LZ77 in parallel
         // Phase 2 processing deferred to batch loop after all blocks
         // complete
 
@@ -2544,21 +2619,33 @@ public:
     // =========================================================================
     // BATCH SYNC POINT - Wait for all LZ77 operations to complete
     // =========================================================================
-    //  Use cudaDeviceSynchronize to ensure ALL GPU operations finish
-    // cudaStreamSynchronize may not sync operations on other
-    // streams/contexts
-    cudaDeviceSynchronize();
+    // (PHASE 15B-3) Sync ALL Phase 1 streams before Phase 2
+    for (u32 i = 0; i < num_phase1_streams; i++) {
+      cudaStreamSynchronize(phase1_streams[i]);
+    }
+
+    // Destroy extra streams (stream 0 is the caller's, don't destroy it)
+    if (use_multi_stream) {
+      for (u32 i = 1; i < num_phase1_streams; i++) {
+        cudaStreamDestroy(phase1_streams[i]);
+      }
+    }
+    // Clear to prevent double-destroy at cleanup
+    phase1_streams.clear();
+    use_multi_stream = false;
 
     // Batch copy all seq counts from device to host
     cudaMemcpy(block_num_sequences.data(), d_block_num_sequences,
                num_blocks * sizeof(u32), cudaMemcpyDeviceToHost);
 
-    // Copy has_dummy flags
-    for (u32 i = 0; i < num_blocks; i++) {
-      u32 tmp;
-      cudaMemcpy(&tmp, &d_block_has_dummy[i], sizeof(u32),
-                 cudaMemcpyDeviceToHost);
-      h_has_dummy[i] = tmp;
+    // (PHASE 15B) Batch copy has_dummy flags in one call instead of N calls
+    {
+      std::vector<u32> h_has_dummy_u32(num_blocks);
+      cudaMemcpy(h_has_dummy_u32.data(), d_block_has_dummy,
+                 num_blocks * sizeof(u32), cudaMemcpyDeviceToHost);
+      for (u32 i = 0; i < num_blocks; i++) {
+        h_has_dummy[i] = h_has_dummy_u32[i];
+      }
     }
 
     // =========================================================================
@@ -2764,9 +2851,8 @@ public:
           compress_literals(block_seq_ctxs[block_idx].d_literals_buffer,
                             block_literals_sizes[block_idx], writer, stream);
 
-      // (OPTIMIZATION) Removed per-block sync
-      // cudaStreamSynchronize(stream);
-      cudaError_t lit_err = cudaDeviceSynchronize();
+      // (PHASE 15B) Use stream sync instead of device-wide sync
+      cudaError_t lit_err = cudaStreamSynchronize(stream);
       if (lit_err != cudaSuccess) {
         status = Status::ERROR_CUDA_ERROR;
         goto cleanup;
@@ -2785,7 +2871,8 @@ public:
             sequence::build_sequences(block_seq_ctxs[block_idx], num_sequences,
                                       seq_blocks, seq_threads, stream);
 
-        cudaError_t seq_err = cudaDeviceSynchronize();
+        // (PHASE 15B) Use stream sync instead of device-wide sync
+        cudaError_t seq_err = cudaStreamSynchronize(stream);
         if (seq_err != cudaSuccess) {
           status = Status::ERROR_CUDA_ERROR;
           goto cleanup;
@@ -2826,7 +2913,8 @@ public:
                                   block_num_sequences[block_idx], writer,
                                   stream, &seq_ws);
 
-      cudaError_t comp_seq_err = cudaDeviceSynchronize();
+      // (PHASE 15B) Use stream sync instead of device-wide sync
+      cudaError_t comp_seq_err = cudaStreamSynchronize(stream);
       if (comp_seq_err != cudaSuccess) {
         status = Status::ERROR_CUDA_ERROR;
         goto cleanup;
@@ -2964,6 +3052,14 @@ public:
     stats.blocks_processed += num_blocks;
 
   cleanup:
+    // (PHASE 15B-3) Destroy any remaining Phase 1 streams on error path
+    if (use_multi_stream) {
+      for (u32 i = 1; i < (u32)phase1_streams.size(); i++) {
+        cudaStreamDestroy(phase1_streams[i]);
+      }
+      phase1_streams.clear();
+    }
+
     // Final synchronization to ensure all async operations complete
     cudaStreamSynchronize(stream);
 
