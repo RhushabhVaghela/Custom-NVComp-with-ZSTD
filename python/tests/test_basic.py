@@ -481,3 +481,154 @@ class TestValidation:
         estimated = cuda_zstd.estimate_compressed_size(1_000_000, level=level)
         assert isinstance(estimated, int)
         assert estimated > 0
+
+
+# ===========================================================================
+# Hybrid Engine
+# ===========================================================================
+
+
+@requires_cuda
+class TestHybridEngine:
+    """Test the HybridEngine class lifecycle and methods."""
+
+    def test_roundtrip(self, small_data: bytes) -> None:
+        """Compress then decompress via HybridEngine."""
+        eng = cuda_zstd.HybridEngine(level=3)
+        compressed = eng.compress(small_data)
+        result = eng.decompress(compressed)
+        assert result == small_data
+        eng.close()
+
+    def test_context_manager(self, small_data: bytes) -> None:
+        """HybridEngine should work as a context manager."""
+        with cuda_zstd.HybridEngine(level=3) as eng:
+            compressed = eng.compress(small_data)
+            result = eng.decompress(compressed)
+            assert result == small_data
+        # After exiting, repr should indicate closed
+        assert "closed" in repr(eng)
+
+    def test_level_property(self) -> None:
+        """Level property should be readable and writable."""
+        with cuda_zstd.HybridEngine(level=5) as eng:
+            assert eng.level == 5
+            eng.level = 10
+            assert eng.level == 10
+
+    def test_query_routing(self) -> None:
+        """query_routing should return an ExecutionBackend enum value."""
+        with cuda_zstd.HybridEngine(level=3) as eng:
+            backend = eng.query_routing(100)
+            assert isinstance(backend, cuda_zstd.ExecutionBackend)
+            # Small data should route to CPU
+            assert backend == cuda_zstd.ExecutionBackend.CPU_LIBZSTD
+
+    def test_repr(self) -> None:
+        """repr should show level when open and [closed] when closed."""
+        eng = cuda_zstd.HybridEngine(level=7)
+        assert "level=7" in repr(eng)
+        assert "HybridEngine" in repr(eng)
+        eng.close()
+        assert "closed" in repr(eng)
+
+    def test_stats(self, small_data: bytes) -> None:
+        """Stats should track compression operations."""
+        with cuda_zstd.HybridEngine(level=3) as eng:
+            eng.compress(small_data)
+            stats = eng.stats
+            assert hasattr(stats, "input_bytes")
+            assert hasattr(stats, "output_bytes")
+            assert stats.input_bytes > 0
+
+    def test_reset_stats(self, small_data: bytes) -> None:
+        """reset_stats should zero out statistics."""
+        with cuda_zstd.HybridEngine(level=3) as eng:
+            eng.compress(small_data)
+            eng.reset_stats()
+            stats = eng.stats
+            assert stats.input_bytes == 0
+
+    def test_config(self) -> None:
+        """config property should return a HybridConfig."""
+        with cuda_zstd.HybridEngine(level=3) as eng:
+            cfg = eng.config
+            assert isinstance(cfg, cuda_zstd.HybridConfig)
+            assert cfg.compression_level == 3
+
+    def test_medium_data_roundtrip(self, medium_data: bytes) -> None:
+        """Medium-sized data should round-trip correctly."""
+        with cuda_zstd.HybridEngine(level=3) as eng:
+            compressed = eng.compress(medium_data)
+            assert len(compressed) < len(medium_data)
+            result = eng.decompress(compressed)
+            assert result == medium_data
+
+    def test_after_close(self) -> None:
+        """Using a closed HybridEngine should raise RuntimeError."""
+        eng = cuda_zstd.HybridEngine(level=3)
+        eng.close()
+        with pytest.raises(RuntimeError):
+            eng.compress(b"data")
+
+
+# ===========================================================================
+# Hybrid convenience functions
+# ===========================================================================
+
+
+@requires_cuda
+class TestHybridConvenience:
+    """Test module-level hybrid_compress and hybrid_decompress."""
+
+    def test_roundtrip(self, small_data: bytes) -> None:
+        """hybrid_compress/hybrid_decompress should round-trip."""
+        compressed = cuda_zstd.hybrid_compress(small_data)
+        result = cuda_zstd.hybrid_decompress(compressed)
+        assert result == small_data
+
+    def test_with_level(self, small_data: bytes) -> None:
+        """hybrid_compress should accept a level parameter."""
+        compressed = cuda_zstd.hybrid_compress(small_data, level=9)
+        result = cuda_zstd.hybrid_decompress(compressed)
+        assert result == small_data
+
+    def test_medium_data(self, medium_data: bytes) -> None:
+        """Medium data should compress smaller and round-trip."""
+        compressed = cuda_zstd.hybrid_compress(medium_data)
+        assert len(compressed) < len(medium_data)
+        result = cuda_zstd.hybrid_decompress(compressed)
+        assert result == medium_data
+
+
+# ===========================================================================
+# Hybrid enums
+# ===========================================================================
+
+
+@requires_cuda
+class TestHybridEnums:
+    """Test that hybrid-related enums are properly exposed."""
+
+    def test_hybrid_mode(self) -> None:
+        """HybridMode enum should have expected values."""
+        assert cuda_zstd.HybridMode.AUTO is not None
+        assert cuda_zstd.HybridMode.PREFER_CPU is not None
+        assert cuda_zstd.HybridMode.PREFER_GPU is not None
+        assert cuda_zstd.HybridMode.FORCE_CPU is not None
+        assert cuda_zstd.HybridMode.FORCE_GPU is not None
+        assert cuda_zstd.HybridMode.ADAPTIVE is not None
+
+    def test_data_location(self) -> None:
+        """DataLocation enum should have expected values."""
+        assert cuda_zstd.DataLocation.HOST is not None
+        assert cuda_zstd.DataLocation.DEVICE is not None
+        assert cuda_zstd.DataLocation.MANAGED is not None
+        assert cuda_zstd.DataLocation.UNKNOWN is not None
+
+    def test_execution_backend(self) -> None:
+        """ExecutionBackend enum should have expected values."""
+        assert cuda_zstd.ExecutionBackend.CPU_LIBZSTD is not None
+        assert cuda_zstd.ExecutionBackend.GPU_KERNELS is not None
+        assert cuda_zstd.ExecutionBackend.CPU_PARALLEL is not None
+        assert cuda_zstd.ExecutionBackend.GPU_BATCH is not None

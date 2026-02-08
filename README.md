@@ -14,10 +14,10 @@
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=c%2B%2B)](https://isocpp.org/)
 [![CMake](https://img.shields.io/badge/CMake-3.24%2B-064F8C?logo=cmake)](https://cmake.org/)
 [![RFC 8878](https://img.shields.io/badge/RFC-8878-orange.svg)](https://datatracker.ietf.org/doc/html/rfc8878)
-[![Tests](https://img.shields.io/badge/Tests-67%2F67%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-68%2F68%20passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A GPU-accelerated implementation of the Zstandard (RFC 8878) compression algorithm, built from the ground up in CUDA C++. The entire compression pipeline -- LZ77 match finding, optimal parsing, FSE entropy coding, Huffman coding, and frame assembly -- runs as native CUDA kernels. This library is a drop-in replacement for CPU `libzstd` with massive batch throughput gains, reaching **9.81 GB/s** batch compression on an RTX 5080 Laptop GPU.
+A GPU-accelerated implementation of the Zstandard (RFC 8878) compression algorithm, built from the ground up in CUDA C++. The entire compression pipeline -- LZ77 match finding, optimal parsing, FSE entropy coding, Huffman coding, and frame assembly -- runs as native CUDA kernels. A hybrid CPU/GPU routing engine automatically selects the fastest execution path: CPU `libzstd` for host-memory data (up to **6.3 GB/s** compression), GPU kernels for device-resident data, and **9.81 GB/s** batch throughput on an RTX 5080 Laptop GPU.
 
 ---
 
@@ -32,6 +32,7 @@ A GPU-accelerated implementation of the Zstandard (RFC 8878) compression algorit
   - [C++ Streaming](#c-streaming)
   - [C++ Dictionary Compression](#c-dictionary-compression)
   - [C API](#c-api-usage)
+  - [Hybrid Engine](#hybrid-engine-usage)
   - [Python](#python-usage)
 - [API Reference Summary](#api-reference-summary)
 - [Compression Levels](#compression-levels)
@@ -61,7 +62,7 @@ A GPU-accelerated implementation of the Zstandard (RFC 8878) compression algorit
 | **Full RFC 8878 Compliance** | Frame headers, magic numbers, block types, FSE state ordering, RepCode logic -- output is decompressible by standard `libzstd` |
 | **22 Compression Levels** | Complete level 1-22 range with configurable speed/ratio tradeoff |
 | **8 Compression Strategies** | FAST, DFAST, GREEDY, LAZY, LAZY2, BTLAZY2, BTOPT, BTULTRA |
-| **GPU/CPU Hybrid Routing** | Auto-selects execution path based on input size (CPU for small, GPU for large) |
+| **GPU/CPU Hybrid Routing** | HybridEngine auto-selects CPU or GPU based on data location and size; 6 routing modes (AUTO, PREFER_CPU, PREFER_GPU, FORCE_CPU, FORCE_GPU, ADAPTIVE) |
 | **Batch Processing** | Compress/decompress N independent items in parallel on the GPU |
 | **Streaming API** | Chunked frame compression for arbitrarily large data |
 | **Dictionary Compression** | COVER algorithm training on the GPU; per-dictionary ID tracking |
@@ -74,6 +75,7 @@ A GPU-accelerated implementation of the Zstandard (RFC 8878) compression algorit
 |---------|-------------|
 | **C++ API** | `ZstdManager`, `ZstdBatchManager`, `ZstdStreamingManager` with RAII resource management |
 | **C API (FFI-Ready)** | 11 `extern "C"` functions for calling from C, Python, Rust, Go, etc. |
+| **Hybrid Engine API** | `HybridEngine` C++/C API with 7 C functions — auto-routes between CPU `libzstd` and GPU kernels |
 | **NVCOMP v5 Compatible API** | `NvcompV5BatchManager` with 7 C functions for drop-in nvCOMP replacement |
 | **Inference API** | Pre-allocated buffers, zero-malloc decompression, async no-sync for ML pipelines |
 | **Python Package** | `cuda_zstd` module with `compress()`, `decompress()`, batch, and Manager class |
@@ -87,14 +89,14 @@ A GPU-accelerated implementation of the Zstandard (RFC 8878) compression algorit
 | **RAII Everywhere** | `CudaDevicePtr<T>`, `SequenceContext`, `StreamPool::Guard` prevent resource leaks |
 | **Performance Profiler** | Per-stage timing (LZ77, FSE, Huffman) with CSV and JSON export |
 | **29 Error Codes** | Detailed status reporting with `ErrorContext` (file, line, function, message) |
-| **67 Tests, 30 Benchmarks** | Comprehensive test suite with 100% pass rate |
+| **68 Tests, 30 Benchmarks** | Comprehensive test suite with 100% pass rate |
 | **Cross-Platform** | Linux, Windows, WSL2 |
 
 ---
 
 ## Architecture Overview
 
-CUDA-ZSTD is organized into three layers:
+CUDA-ZSTD is organized into four layers:
 
 ### Layer 1: Management
 
@@ -103,6 +105,7 @@ The management layer provides the public API surface. Users interact exclusively
 - **ZstdManager** -- Single-shot compression and decompression
 - **ZstdBatchManager** -- Parallel batch operations with inference API
 - **ZstdStreamingManager** -- Chunked streaming for large files
+- **HybridEngine** -- Auto-routing between CPU and GPU execution paths
 
 ### Layer 2: Compression Pipeline
 
@@ -145,6 +148,15 @@ LZ77 Match Finding --> Optimal Parsing --> Sequence Encoding --> FSE+Huffman Ent
 |  |  Adaptive    |  | Memory Pool |  |  Inference     |           |
 |  |  Selector    |  |   Manager   |  |    API         |           |
 |  +--------------+  +-------------+  +----------------+           |
++-------------------------------+----------------------------------+
+                                |
++-------------------------------+----------------------------------+
+|                      HYBRID ENGINE                                |
+|  +----------------+  +---------------+  +------------------+     |
+|  | Data Location  |  |    Routing    |  |   CPU libzstd    |     |
+|  |   Detection    |->|    Decision   |->|   or GPU Kernel  |     |
+|  +----------------+  +---------------+  +------------------+     |
+|  Modes: AUTO | PREFER_CPU | PREFER_GPU | FORCE_CPU | FORCE_GPU  |
 +-------------------------------+----------------------------------+
                                 |
 +-------------------------------+----------------------------------+
@@ -588,6 +600,49 @@ int main() {
 }
 ```
 
+### Hybrid Engine Usage
+
+The hybrid engine auto-routes between CPU `libzstd` and GPU kernels based on data location:
+
+```cpp
+#include <cuda_zstd_hybrid.h>
+
+int main() {
+    using namespace cuda_zstd;
+
+    // Create hybrid engine (AUTO mode, level 3)
+    HybridEngine engine;
+
+    // Compress host data -- automatically routed to CPU libzstd
+    std::vector<char> input(1 << 20, 'A');  // 1 MB
+    std::vector<char> output(engine.get_max_compressed_size(input.size()));
+    size_t compressed_size = output.size();
+    HybridResult result;
+
+    engine.compress(input.data(), input.size(),
+                    output.data(), &compressed_size,
+                    DataLocation::HOST, DataLocation::HOST,
+                    &result);
+
+    printf("Backend: %s, Throughput: %.1f MB/s\n",
+           result.routing_reason, result.throughput_mbps);
+
+    // Decompress
+    std::vector<char> decompressed(input.size());
+    size_t decompressed_size = decompressed.size();
+    engine.decompress(output.data(), compressed_size,
+                      decompressed.data(), &decompressed_size,
+                      DataLocation::HOST, DataLocation::HOST);
+
+    // Query routing without compressing
+    auto backend = engine.query_routing(1 << 20,
+                       DataLocation::HOST, DataLocation::HOST, true);
+    // backend == ExecutionBackend::CPU_LIBZSTD
+
+    return 0;
+}
+```
+
 ### Python Usage
 
 ```python
@@ -714,6 +769,67 @@ if cuda_zstd.is_cuda_available():
 | `nvcomp_zstd_get_decompress_temp_size_v5(handle, size)` | Query workspace |
 | `nvcomp_zstd_get_metadata_v5(data, size, meta, stream)` | Extract metadata |
 
+### Hybrid Engine API
+
+| Method / Function | Description |
+|-------------------|-------------|
+| `HybridEngine()` | Create engine with default config (AUTO mode, level 3) |
+| `HybridEngine(config)` | Create engine with custom `HybridConfig` |
+| `configure(config)` | Apply new `HybridConfig` |
+| `get_config()` | Return current configuration |
+| `set_compression_level(level)` | Change compression level (1-22) |
+| `compress(in, size, out, &out_size, in_loc, out_loc, result, stream)` | Compress with auto-routing |
+| `decompress(in, size, out, &out_size, in_loc, out_loc, result, stream)` | Decompress with auto-routing |
+| `get_max_compressed_size(size)` | Upper bound on compressed output |
+| `query_routing(size, in_loc, out_loc, is_compress)` | Preview which backend would be selected |
+| `get_stats()` | Return `CompressionStats` |
+| `reset_stats()` | Zero all statistics |
+| `detect_location(ptr)` | Detect if pointer is HOST, DEVICE, or MANAGED |
+
+### Hybrid C API Functions (7)
+
+| Function | Description |
+|----------|-------------|
+| `cuda_zstd_hybrid_create(config)` | Create hybrid engine with config |
+| `cuda_zstd_hybrid_create_default()` | Create hybrid engine with defaults |
+| `cuda_zstd_hybrid_destroy(engine)` | Destroy hybrid engine |
+| `cuda_zstd_hybrid_compress(engine, in, size, out, &size, in_loc, out_loc, result, stream)` | Compress |
+| `cuda_zstd_hybrid_decompress(engine, in, size, out, &size, in_loc, out_loc, result, stream)` | Decompress |
+| `cuda_zstd_hybrid_max_compressed_size(engine, size)` | Upper bound |
+| `cuda_zstd_hybrid_query_routing(engine, size, in_loc, out_loc, is_compress)` | Query routing decision |
+
+### Hybrid Configuration Types
+
+```cpp
+enum class HybridMode : u32 {
+    AUTO = 0,         // Auto-select CPU or GPU based on data location and size
+    PREFER_CPU = 1,   // Prefer CPU unless data is on GPU
+    PREFER_GPU = 2,   // Prefer GPU unless data is on host
+    FORCE_CPU = 3,    // Always use CPU libzstd
+    FORCE_GPU = 4,    // Always use GPU kernels
+    ADAPTIVE = 5      // Profile-guided, picks winner from rolling window
+};
+
+enum class DataLocation : u32 {
+    HOST = 0, DEVICE = 1, MANAGED = 2, UNKNOWN = 3
+};
+
+enum class ExecutionBackend : u32 {
+    CPU_LIBZSTD = 0, GPU_KERNELS = 1, CPU_PARALLEL = 2, GPU_BATCH = 3
+};
+
+struct HybridConfig {
+    HybridMode mode = HybridMode::AUTO;
+    size_t cpu_size_threshold = 1024 * 1024;  // 1 MB
+    size_t gpu_device_threshold = 64 * 1024;  // 64 KB
+    bool enable_profiling = false;
+    int compression_level = 3;
+    u32 cpu_thread_count = 0;     // 0 = auto
+    bool use_pinned_memory = true;
+    bool overlap_transfers = true;
+};
+```
+
 ### Configuration Types
 
 ```cpp
@@ -806,6 +922,22 @@ The GPU's primary advantage is **batch processing**. When compressing or decompr
 - **Batch advantage**: Up to 4x over 8-core CPU parallel compression
 - **Single-buffer parity**: For individual large buffers, GPU and CPU are comparable
 - **Small buffers**: Below ~4 KB, CPU is preferred due to kernel launch overhead (handled automatically by the hybrid router)
+
+### Hybrid Engine Performance
+
+The hybrid engine auto-routes between CPU `libzstd` and GPU kernels. For **host-memory** data, CPU compression is 100-790x faster than GPU due to CUDA API overhead:
+
+| Path | Pattern | Size | Compress | Decompress | Ratio |
+|------|---------|------|----------|------------|-------|
+| HOST→HOST (CPU) | Random | 1 MB | 895-1,853 MB/s | 3,652-20,738 MB/s | 1.0x |
+| HOST→HOST (CPU) | Random | 100 MB | 1,171-1,502 MB/s | 1,983-2,837 MB/s | 1.0x |
+| HOST→HOST (CPU) | Repetitive | 100 MB | 3,646-6,320 MB/s | 851-2,833 MB/s | 10,874x |
+| DEV→DEV (GPU) | Random | 1 MB | 6-9 MB/s | 254-486 MB/s | — |
+| DEV→DEV (GPU) | Random | 100 MB | 7.5 MB/s | 1,007 MB/s | — |
+| DEV→HOST (Hybrid) | Random | 1 MB | 783-1,272 MB/s | 1,692-4,675 MB/s | — |
+| DEV→HOST (Hybrid) | Random | 100 MB | 538-606 MB/s | 761-850 MB/s | — |
+
+**Key insight:** GPU compression is fundamentally limited by ~80,000 CUDA API calls/GB, serial block processing, and single-thread FSE. The hybrid engine detects this and routes host data to CPU `libzstd` automatically. See [HYBRID-ENGINE.md](docs/HYBRID-ENGINE.md) for full details.
 
 ### Throughput by Input Size (Single Buffer)
 
@@ -904,6 +1036,39 @@ cuda_zstd.__version__     # "1.0.0"
 | `ChecksumPolicy` | enum | Checksum options |
 | `is_cuda_available()` | function | Check GPU availability |
 | `get_cuda_device_info()` | function | GPU device information |
+| `HybridEngine(level=3, config=None)` | class | Hybrid CPU/GPU compression engine |
+| `hybrid_compress(data, level=3)` | function | Compress via hybrid engine (CPU routed for host data) |
+| `hybrid_decompress(data)` | function | Decompress via hybrid engine |
+| `HybridMode` | enum | Routing modes (AUTO, PREFER_CPU, PREFER_GPU, FORCE_CPU, FORCE_GPU, ADAPTIVE) |
+| `DataLocation` | enum | Memory location (HOST, DEVICE, MANAGED, UNKNOWN) |
+| `ExecutionBackend` | enum | Execution backend (CPU_LIBZSTD, GPU_KERNELS, CPU_PARALLEL, GPU_BATCH) |
+
+### Python Hybrid Engine Usage
+
+```python
+import cuda_zstd
+
+# --- One-shot hybrid functions (CPU-routed for host data) ---
+compressed = cuda_zstd.hybrid_compress(data, level=5)
+original   = cuda_zstd.hybrid_decompress(compressed)
+
+# --- HybridEngine for repeated use ---
+with cuda_zstd.HybridEngine(level=5) as engine:
+    c = engine.compress(data)
+    d = engine.decompress(c)
+    print(engine.stats)       # CompressionStats
+    engine.level = 10         # Change level on the fly
+
+    # Query what backend would be used
+    backend = engine.query_routing(len(data))
+    print(f"Would use: {backend}")  # ExecutionBackend.CPU_LIBZSTD
+
+# --- Routing modes ---
+print(cuda_zstd.HybridMode.AUTO)        # Default: auto-select
+print(cuda_zstd.HybridMode.FORCE_CPU)   # Always CPU
+print(cuda_zstd.DataLocation.HOST)       # Host memory
+print(cuda_zstd.ExecutionBackend.CPU_LIBZSTD)  # CPU libzstd backend
+```
 
 ---
 
@@ -1141,7 +1306,7 @@ build/
   lib/
     libcuda_zstd.a          # Static library
   bin/
-    test_correctness        # Test executables (67 total)
+    test_correctness        # Test executables (68 total)
     test_streaming
     test_roundtrip
     benchmark_batch_throughput  # Benchmark executables (30 total)
@@ -1157,7 +1322,7 @@ build/
 ### Running Tests
 
 ```bash
-# Run all 67 CTest targets
+# Run all 68 CTest targets
 ctest --test-dir build --output-on-failure
 
 # Parallel execution (recommended)
@@ -1176,7 +1341,7 @@ All tests have a 120-second timeout configured via CTest.
 
 ### Test Status
 
-**67 of 67 CTest targets pass (100%)**
+**68 of 68 CTest targets pass (100%)**
 
 ### Test Coverage Overview
 
@@ -1190,6 +1355,7 @@ All tests have a 120-second timeout configured via CTest.
 | Memory | `test_workspace_usage`, `test_workspace_patterns`, `test_alternative_allocation_strategies` | GPU memory management |
 | Error Handling | `test_error_handling`, `test_error_context` | Error codes, context, callbacks |
 | APIs | `test_c_api`, `test_c_api_edge_cases` | C API compatibility |
+| Hybrid Engine | `test_hybrid` | Hybrid CPU/GPU routing, all modes, fallback |
 | Validation | `test_data_integrity_comprehensive`, `test_checksum_validation` | Data integrity and checksums |
 | Edge Cases | `test_coverage_gaps`, `test_extended_validation`, `test_fallback_strategies` | Boundary conditions, fallbacks |
 | Concurrency | `test_stream_pool`, `test_concurrency_repro` | Multi-stream, concurrent access |
@@ -1233,6 +1399,7 @@ Comprehensive documentation is available in the `docs/` directory:
 | [BUILD-GUIDE.md](docs/BUILD-GUIDE.md) | Detailed build instructions |
 | [ARCHITECTURE-OVERVIEW.md](docs/ARCHITECTURE-OVERVIEW.md) | System architecture deep-dive |
 | [PERFORMANCE-TUNING.md](docs/PERFORMANCE-TUNING.md) | Optimization guide |
+| [HYBRID-ENGINE.md](docs/HYBRID-ENGINE.md) | Hybrid CPU/GPU routing engine guide |
 
 ### API Documentation
 
@@ -1311,7 +1478,7 @@ Custom-NVComp-with-ZSTD/
 |   |-- workspace_manager.h         #   Workspace allocation
 |   `-- ...                         #   (and more internal headers)
 |
-|-- src/                            # Implementation (33 files)
+|-- src/                            # Implementation (34 files)
 |   |-- cuda_zstd_manager.cu        #   Manager implementations
 |   |-- cuda_zstd_lz77.cu           #   LZ77 kernels
 |   |-- cuda_zstd_fse.cu            #   FSE kernels
@@ -1319,6 +1486,7 @@ Custom-NVComp-with-ZSTD/
 |   |-- cuda_zstd_sequence.cu       #   Sequence kernels
 |   |-- cuda_zstd_dictionary.cu     #   Dictionary training
 |   |-- cuda_zstd_xxhash.cu         #   XXHash kernels
+|   |-- cuda_zstd_hybrid.cu         #   Hybrid CPU/GPU engine
 |   |-- cuda_zstd_c_api.cpp         #   C API implementation
 |   |-- cuda_zstd_nvcomp.cpp        #   NVCOMP compatibility
 |   |-- cuda_zstd_stream_pool.cpp   #   Stream pool
@@ -1326,25 +1494,28 @@ Custom-NVComp-with-ZSTD/
 |   |-- workspace_manager.cu        #   Workspace management
 |   `-- ...                         #   (and more source files)
 |
-|-- tests/                          # Test suite (67 test files)
+|-- tests/                          # Test suite (68 test files)
 |   |-- test_correctness.cu
 |   |-- test_roundtrip.cu
 |   |-- test_streaming.cu
+|   |-- test_hybrid.cu              #   Hybrid engine tests (26 cases)
 |   |-- test_c_api.cpp
 |   |-- cuda_error_checking.h       #   Test utilities
 |   `-- ...
 |
 |-- benchmarks/                     # Benchmarks (30 files)
 |   |-- benchmark_batch_throughput.cu
+|   |-- benchmark_hybrid.cu         #   Hybrid engine benchmark
 |   |-- benchmark_fse.cu
 |   |-- benchmark_huffman.cu
 |   |-- benchmark_results.h         #   Benchmark utilities
 |   |-- throughput_display.h        #   Display helpers
 |   `-- ...
 |
-|-- docs/                           # Documentation (31 files)
+|-- docs/                           # Documentation (32 files)
 |   |-- INDEX.md
 |   |-- ARCHITECTURE-OVERVIEW.md
+|   |-- HYBRID-ENGINE.md            #   Hybrid CPU/GPU routing guide
 |   |-- KERNEL-REFERENCE.md
 |   `-- ...
 |
@@ -1370,15 +1541,15 @@ Custom-NVComp-with-ZSTD/
 
 | Metric | Count |
 |--------|-------|
-| Lines of code (src + include) | ~31,000 |
-| Public header files | 29 |
-| Source files | 33 |
-| Test files | 67 |
+| Lines of code (src + include) | ~32,000 |
+| Public header files | 30 |
+| Source files | 34 |
+| Test files | 68 |
 | Benchmark files | 30 |
-| Documentation files | 31 |
+| Documentation files | 32 |
 | CUDA kernels | 47 |
-| CTest targets | 67 |
-| Tests passing | 67 (100%) |
+| CTest targets | 68 |
+| Tests passing | 68 (100%) |
 | Compression levels | 1-22 |
 | Error codes | 29 |
 
@@ -1452,7 +1623,7 @@ Contributions are welcome. To contribute:
 ### Development Guidelines
 
 - All new features should include tests
-- All 67 existing tests must continue to pass
+- All 68 existing tests must continue to pass
 - Follow the existing code style (C++17, CUDA C++)
 - Update documentation in `docs/` if you change public APIs
 - Run benchmarks before and after performance-sensitive changes

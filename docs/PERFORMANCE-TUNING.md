@@ -1,6 +1,6 @@
 # Performance Tuning Guide
 
-> *"The difference between good and great? About 50 GB/s."*
+> *"Measure first, optimize second. The hybrid engine does the rest."*
 
 ## Why Performance Matters
 
@@ -14,9 +14,11 @@ These numbers were measured on an RTX 5080 Laptop GPU (Blackwell sm_120):
 
 | Metric | Measured Value | Configuration |
 |:-------|:---------------|:--------------|
-| **Peak Compress Throughput** | 800.3 MB/s | Single stream, 256 KB blocks |
-| **Peak Decompress Throughput** | 1.77 GB/s | Single stream, 256 KB blocks |
-| **Peak Batch Throughput** | 9.81 GB/s | 250 x 256 KB blocks |
+| **Peak Compress Throughput (GPU)** | 800.3 MB/s | Single stream, 256 KB blocks |
+| **Peak Decompress Throughput (GPU)** | 1.77 GB/s | Single stream, 256 KB blocks |
+| **Peak Batch Throughput (GPU)** | 9.81 GB/s | 250 x 256 KB blocks |
+| **HOST→HOST Compress (CPU)** | 1,171-6,320 MB/s | Hybrid engine, CPU libzstd |
+| **HOST→HOST Decompress (CPU)** | 1,983-20,738 MB/s | Hybrid engine, CPU libzstd |
 | **GPU/CPU Crossover (FSE)** | ~64 KB | Below this, CPU is faster for FSE |
 | **Optimal Block Size** | 64-256 KB | Best throughput per item |
 | **Stream Pool Speedup** | 4.7x | vs. cudaStreamCreate per operation |
@@ -208,13 +210,68 @@ Before going to production, verify:
 - [ ] Using pinned memory for host buffers
 - [ ] Workspace is pre-allocated and reused
 - [ ] Using multiple streams, StreamPool, or OpenMP pattern
+- [ ] Using HybridEngine for automatic CPU/GPU routing
 - [ ] Debug logging is disabled (`CUDA_ZSTD_DEBUG_LEVEL=0`)
 - [ ] Built in Release mode (`-DCMAKE_BUILD_TYPE=Release`)
 
 ---
 
+## Hybrid Engine Tuning
+
+The `HybridEngine` automatically routes work to CPU or GPU based on data location and size. For host-memory data, CPU `libzstd` is **100-790x faster** than GPU due to CUDA API overhead.
+
+### When CPU Wins (HOST→HOST Path)
+
+| Size | CPU Compress | GPU Compress | CPU Advantage |
+|------|-------------|-------------|---------------|
+| 1 MB | 895-1,853 MB/s | 6-9 MB/s | **100-300x** |
+| 100 MB | 1,171-1,502 MB/s | 7.5 MB/s | **150-200x** |
+
+### When GPU Wins
+
+- **Batch processing**: Many small buffers already on GPU (DEV→DEV)
+- **Device-resident data**: Data that is already in GPU memory from prior CUDA operations
+- **Decompression**: GPU decompression is competitive for large buffers (1+ GB/s)
+
+### HybridConfig Tuning
+
+```cpp
+cuda_zstd::HybridConfig config;
+config.mode = HybridMode::AUTO;            // Auto-select (default)
+config.cpu_size_threshold = 1024 * 1024;   // CPU for host data above this (1 MB)
+config.gpu_device_threshold = 64 * 1024;   // GPU for device data above this (64 KB)
+config.compression_level = 3;               // Level 3 (default)
+config.use_pinned_memory = true;            // Pinned staging buffers
+config.overlap_transfers = true;            // Overlap D2H/H2D with compute
+
+HybridEngine engine(config);
+```
+
+### Routing Modes
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `AUTO` | Detect location, pick fastest | **Default -- use this** |
+| `PREFER_CPU` | CPU unless data is on GPU | Latency-sensitive host workloads |
+| `PREFER_GPU` | GPU unless data is on host | GPU-heavy pipelines |
+| `FORCE_CPU` | Always CPU `libzstd` | Baseline comparison, debugging |
+| `FORCE_GPU` | Always GPU kernels | Benchmark GPU path only |
+| `ADAPTIVE` | Profile-guided (64-sample window) | Long-running mixed workloads |
+
+### DataLocation Selection
+
+| Data Is In | Set `DataLocation` To | Engine Routes To |
+|------------|----------------------|-----------------|
+| `malloc()`/`new` | `HOST` | CPU libzstd |
+| `cudaMalloc()` | `DEVICE` | GPU kernels (or D2H→CPU→H2D if large) |
+| `cudaMallocManaged()` | `MANAGED` | CPU (direct access) |
+| Unknown | `UNKNOWN` | Auto-detected via `cudaPointerGetAttributes` |
+
+---
+
 ## Learn More
 
+- [Hybrid Engine](HYBRID-ENGINE.md) -- CPU/GPU routing engine deep dive
 - [Batch Processing](BATCH-PROCESSING.md) -- Process thousands of files at once
 - [Stream Optimization](STREAM-OPTIMIZATION.md) -- Deep dive on stream-based parallelism
 - [Memory Pool](MEMORY-POOL-IMPLEMENTATION.md) -- Optimize GPU memory usage

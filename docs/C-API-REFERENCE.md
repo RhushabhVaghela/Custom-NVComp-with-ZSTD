@@ -2,16 +2,18 @@
 
 ## Overview
 
-The C API provides a stable, ABI-compatible interface for integrating CUDA-ZSTD into C applications, dynamic language bindings (Python, Rust, etc.), and legacy systems. There are two C APIs:
+The C API provides a stable, ABI-compatible interface for integrating CUDA-ZSTD into C applications, dynamic language bindings (Python, Rust, etc.), and legacy systems. There are three C APIs (25 functions total):
 
 1. **CUDA-ZSTD C API** -- 11 functions in `cuda_zstd_manager.h` for direct compression/decompression with dictionary support.
 2. **NVComp v5 C API** -- 7 functions in `cuda_zstd_nvcomp.h` providing an NVComp-compatible interface.
+3. **Hybrid C API** -- 7 functions in `cuda_zstd_hybrid.h` for automatic CPU/GPU routing with zero-copy transfers.
 
 ## Header Files
 
 ```c
 #include "cuda_zstd_manager.h"  // CUDA-ZSTD C API (11 functions)
 #include "cuda_zstd_nvcomp.h"   // NVComp v5 C API (7 functions)
+#include "cuda_zstd_hybrid.h"   // Hybrid C API (7 functions)
 ```
 
 ---
@@ -35,6 +37,14 @@ typedef void* nvcompZstdManagerHandle;
 ```
 
 - `nvcompZstdManagerHandle` -- Opaque void pointer to an NVComp-compatible manager.
+
+### Hybrid Type
+
+```c
+typedef struct cuda_zstd_hybrid_engine_t cuda_zstd_hybrid_engine_t;
+```
+
+- `cuda_zstd_hybrid_engine_t` -- Opaque handle to a hybrid CPU/GPU compression engine.
 
 ---
 
@@ -561,12 +571,273 @@ int main() {
 }
 ```
 
+---
+
+## Hybrid C API (7 Functions)
+
+All functions are declared in `include/cuda_zstd_hybrid.h` (lines 296-359). This API provides automatic CPU/GPU routing: it selects the fastest execution backend (CPU libzstd or GPU kernels) based on data size, location, and operation type.
+
+### Configuration Structures
+
+```c
+typedef struct {
+    unsigned int mode;              // HybridMode: 0=AUTO, 1=PREFER_CPU, 2=PREFER_GPU,
+                                    //             3=FORCE_CPU, 4=FORCE_GPU, 5=ADAPTIVE
+    size_t cpu_size_threshold;      // Below this size, prefer CPU (default: 1MB)
+    size_t gpu_device_threshold;    // Device data below this size still uses GPU (default: 64KB)
+    int compression_level;          // ZSTD level 1-22 (default: 3)
+    int enable_profiling;           // Non-zero to enable timing/profiling (default: 0)
+    unsigned int cpu_thread_count;  // CPU threads for parallel compression (0 = auto)
+} cuda_zstd_hybrid_config_t;
+
+typedef struct {
+    unsigned int backend_used;      // ExecutionBackend: 0=CPU_LIBZSTD, 1=GPU_KERNELS,
+                                    //                  2=CPU_PARALLEL, 3=GPU_BATCH
+    unsigned int input_location;    // DataLocation of actual input
+    unsigned int output_location;   // DataLocation of actual output
+    double total_time_ms;           // Wall-clock time for the operation
+    double transfer_time_ms;        // Time spent on H2D/D2H transfers
+    double compute_time_ms;         // Time spent on compression/decompression
+    double throughput_mbps;          // Effective throughput in MB/s
+    size_t input_bytes;             // Input size in bytes
+    size_t output_bytes;            // Output size in bytes
+    float compression_ratio;        // input_bytes / output_bytes
+} cuda_zstd_hybrid_result_t;
+```
+
+### Engine Lifecycle
+
+#### cuda_zstd_hybrid_create
+
+```c
+cuda_zstd_hybrid_engine_t* cuda_zstd_hybrid_create(
+    const cuda_zstd_hybrid_config_t* config
+);
+```
+
+Creates a hybrid engine with the specified configuration.
+
+**Parameters:**
+- `config`: Pointer to a configuration struct. Must not be `NULL`.
+
+**Returns:** Pointer to a new engine, or `NULL` on failure.
+
+---
+
+#### cuda_zstd_hybrid_create_default
+
+```c
+cuda_zstd_hybrid_engine_t* cuda_zstd_hybrid_create_default(void);
+```
+
+Creates a hybrid engine with default settings (AUTO mode, level 3, 1MB CPU threshold).
+
+**Returns:** Pointer to a new engine, or `NULL` on failure.
+
+---
+
+#### cuda_zstd_hybrid_destroy
+
+```c
+void cuda_zstd_hybrid_destroy(cuda_zstd_hybrid_engine_t* engine);
+```
+
+Destroys a hybrid engine and frees all associated resources.
+
+**Parameters:**
+- `engine`: Engine to destroy. Safe to pass `NULL`.
+
+---
+
+### Compression & Decompression
+
+#### cuda_zstd_hybrid_compress
+
+```c
+int cuda_zstd_hybrid_compress(
+    cuda_zstd_hybrid_engine_t* engine,
+    const void* input,
+    size_t input_size,
+    void* output,
+    size_t* output_size,
+    unsigned int input_location,
+    unsigned int output_location,
+    cuda_zstd_hybrid_result_t* result,
+    cudaStream_t stream
+);
+```
+
+Compresses data using the optimal backend (CPU or GPU) based on the engine's configuration and data characteristics.
+
+**Parameters:**
+- `engine`: Active hybrid engine handle.
+- `input`: Pointer to uncompressed input data (host or device, as indicated by `input_location`).
+- `input_size`: Size of input data in bytes.
+- `output`: Pointer to output buffer (host or device, as indicated by `output_location`).
+- `output_size`: On input, maximum output buffer size. On output, actual compressed size.
+- `input_location`: DataLocation of input: `0` = HOST, `1` = DEVICE, `2` = MANAGED.
+- `output_location`: DataLocation of output: `0` = HOST, `1` = DEVICE, `2` = MANAGED.
+- `result`: Optional pointer to a result struct to receive profiling data. May be `NULL`.
+- `stream`: CUDA stream for async GPU execution. Use `0` for default stream.
+
+**Returns:** `0` on success, non-zero error code on failure.
+
+---
+
+#### cuda_zstd_hybrid_decompress
+
+```c
+int cuda_zstd_hybrid_decompress(
+    cuda_zstd_hybrid_engine_t* engine,
+    const void* input,
+    size_t input_size,
+    void* output,
+    size_t* output_size,
+    unsigned int input_location,
+    unsigned int output_location,
+    cuda_zstd_hybrid_result_t* result,
+    cudaStream_t stream
+);
+```
+
+Decompresses data using the optimal backend.
+
+**Parameters:**
+- Same as `cuda_zstd_hybrid_compress`, except `input` is compressed data and `output` receives the decompressed result.
+
+**Returns:** `0` on success, non-zero error code on failure.
+
+---
+
+### Utilities
+
+#### cuda_zstd_hybrid_max_compressed_size
+
+```c
+size_t cuda_zstd_hybrid_max_compressed_size(
+    cuda_zstd_hybrid_engine_t* engine,
+    size_t input_size
+);
+```
+
+Returns the maximum possible compressed output size for a given input size. Use this to allocate the output buffer before calling `cuda_zstd_hybrid_compress`.
+
+**Parameters:**
+- `engine`: Active hybrid engine handle.
+- `input_size`: Size of uncompressed input in bytes.
+
+**Returns:** Maximum compressed output size in bytes.
+
+---
+
+#### cuda_zstd_hybrid_query_routing
+
+```c
+unsigned int cuda_zstd_hybrid_query_routing(
+    cuda_zstd_hybrid_engine_t* engine,
+    size_t data_size,
+    unsigned int input_location,
+    unsigned int output_location,
+    int is_compression
+);
+```
+
+Queries which execution backend would be selected for the given parameters, without actually performing the operation.
+
+**Parameters:**
+- `engine`: Active hybrid engine handle.
+- `data_size`: Size of the data in bytes.
+- `input_location`: DataLocation of input (`0`=HOST, `1`=DEVICE, `2`=MANAGED).
+- `output_location`: DataLocation of output.
+- `is_compression`: Non-zero for compression, `0` for decompression.
+
+**Returns:** ExecutionBackend enum value: `0` = CPU_LIBZSTD, `1` = GPU_KERNELS, `2` = CPU_PARALLEL, `3` = GPU_BATCH.
+
+---
+
+### Hybrid C API Example
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <cuda_runtime.h>
+#include "cuda_zstd_hybrid.h"
+
+int main() {
+    // 1. Create engine with default settings (AUTO mode, level 3)
+    cuda_zstd_hybrid_engine_t* engine = cuda_zstd_hybrid_create_default();
+    if (!engine) {
+        fprintf(stderr, "Failed to create hybrid engine\n");
+        return 1;
+    }
+
+    // 2. Prepare host data
+    size_t input_size = 1024 * 1024;  // 1MB
+    char* input = (char*)malloc(input_size);
+    memset(input, 'A', input_size);
+
+    // 3. Allocate output buffer
+    size_t max_out = cuda_zstd_hybrid_max_compressed_size(engine, input_size);
+    char* output = (char*)malloc(max_out);
+
+    // 4. Compress (HOST → HOST, engine routes to CPU automatically)
+    size_t output_size = max_out;
+    cuda_zstd_hybrid_result_t result;
+    int status = cuda_zstd_hybrid_compress(
+        engine, input, input_size,
+        output, &output_size,
+        0, 0,       // HOST input, HOST output
+        &result, 0  // result struct, default stream
+    );
+
+    if (status != 0) {
+        fprintf(stderr, "Compression failed\n");
+    } else {
+        printf("Compressed %zu -> %zu bytes (%.2fx) via %s in %.2f ms\n",
+               input_size, output_size,
+               (float)input_size / output_size,
+               result.backend_used == 0 ? "CPU" : "GPU",
+               result.total_time_ms);
+    }
+
+    // 5. Decompress
+    char* decompressed = (char*)malloc(input_size);
+    size_t dec_size = input_size;
+    status = cuda_zstd_hybrid_decompress(
+        engine, output, output_size,
+        decompressed, &dec_size,
+        0, 0, &result, 0
+    );
+
+    if (status == 0 && dec_size == input_size) {
+        printf("Decompressed successfully: %zu bytes\n", dec_size);
+    }
+
+    // 6. Query routing (without compressing)
+    unsigned int backend = cuda_zstd_hybrid_query_routing(
+        engine, 512, 0, 0, 1  // 512 bytes, HOST→HOST, compression
+    );
+    printf("512 bytes HOST→HOST would use: %s\n",
+           backend == 0 ? "CPU_LIBZSTD" : "GPU_KERNELS");
+
+    // 7. Cleanup
+    free(input);
+    free(output);
+    free(decompressed);
+    cuda_zstd_hybrid_destroy(engine);
+
+    return 0;
+}
+```
+
 ## Thread Safety
 
-- Manager instances are **NOT** thread-safe.
-- Create separate managers for each thread.
+- Manager and HybridEngine instances are **NOT** thread-safe.
+- Create separate managers/engines for each thread.
 - CUDA streams provide async safety within a single manager.
 - Dictionary objects are read-only after training and can be shared across managers.
+- HybridEngine routing decisions are stateless and deterministic for the same configuration.
 
 ## Source Files
 
@@ -574,9 +845,12 @@ int main() {
 |:-----|:------------|
 | `include/cuda_zstd_manager.h` | C API declarations (lines 433-479) |
 | `include/cuda_zstd_nvcomp.h` | NVComp v5 C API declarations (lines 276-336) |
+| `include/cuda_zstd_hybrid.h` | Hybrid C API declarations (lines 296-359) |
 | `src/cuda_zstd_c_api.cpp` | C API implementation (212 lines) |
+| `src/cuda_zstd_hybrid.cu` | Hybrid engine implementation (~1200 lines) |
 | `tests/test_c_api.cpp` | C API test suite |
 | `tests/test_c_api_edge_cases.cu` | Edge case tests |
+| `tests/test_hybrid.cu` | Hybrid engine test suite (26 tests) |
 
 ## Related Documentation
 

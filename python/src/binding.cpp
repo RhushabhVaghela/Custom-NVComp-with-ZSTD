@@ -11,6 +11,8 @@
 
 #include <cuda_runtime.h>
 
+#include <zstd.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -20,6 +22,7 @@
 
 // Parent library headers
 #include "cuda_zstd.h"
+#include "cuda_zstd_hybrid.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_safe_alloc.h"
 #include "cuda_zstd_types.h"
@@ -408,6 +411,135 @@ private:
 };
 
 // ============================================================================
+// Python wrapper for HybridEngine
+// ============================================================================
+
+/// Thin wrapper that owns a HybridEngine and handles HOST→HOST compression
+/// transparently so the Python user just passes bytes in and gets bytes out.
+class PyHybridEngine {
+public:
+    /// Construct with compression level (default 3).
+    explicit PyHybridEngine(int level = 3) {
+        cuda_zstd::HybridConfig cfg;
+        cfg.compression_level = level;
+        engine_ = std::make_unique<cuda_zstd::HybridEngine>(cfg);
+    }
+
+    /// Construct from a HybridConfig.
+    explicit PyHybridEngine(const cuda_zstd::HybridConfig &cfg) {
+        engine_ = std::make_unique<cuda_zstd::HybridEngine>(cfg);
+    }
+
+    // ------------------------------------------------------------------
+    // Compress: bytes in → bytes out  (HOST→HOST, auto-routed)
+    // ------------------------------------------------------------------
+
+    py::bytes compress(py::buffer input) {
+        BufferInfo buf(input);
+        if (buf.size == 0) return py::bytes("", 0);
+
+        size_t max_out = engine_->get_max_compressed_size(buf.size);
+        std::string output(max_out, '\0');
+        size_t out_size = max_out;
+
+        cuda_zstd::Status st = engine_->compress(
+            buf.data, buf.size,
+            output.data(), &out_size,
+            cuda_zstd::DataLocation::HOST,
+            cuda_zstd::DataLocation::HOST);
+        check_status(st, "hybrid compress");
+
+        output.resize(out_size);
+        return py::bytes(output);
+    }
+
+    // ------------------------------------------------------------------
+    // Decompress: bytes in → bytes out  (HOST→HOST, auto-routed)
+    // ------------------------------------------------------------------
+
+    py::bytes decompress(py::buffer input) {
+        BufferInfo buf(input);
+        if (buf.size == 0) return py::bytes("", 0);
+
+        // Use ZSTD_getFrameContentSize for exact decompressed size when
+        // available.  This avoids allocation guessing and fixes small-data
+        // decompression where the hybrid engine's cpu_decompress path
+        // receives a non-zero output_size and skips its own frame-header
+        // check.
+        size_t out_size;
+        unsigned long long frame_size =
+            ZSTD_getFrameContentSize(buf.data, buf.size);
+        if (frame_size != ZSTD_CONTENTSIZE_UNKNOWN &&
+            frame_size != ZSTD_CONTENTSIZE_ERROR) {
+            out_size = static_cast<size_t>(frame_size);
+        } else {
+            out_size = buf.size * 16;
+            if (out_size < 1024) out_size = 1024;
+        }
+
+        // Try up to 3 times with increasing buffer sizes
+        for (int attempt = 0; attempt < 3; ++attempt) {
+            std::string output(out_size, '\0');
+            size_t actual_size = out_size;
+
+            cuda_zstd::Status st = engine_->decompress(
+                buf.data, buf.size,
+                output.data(), &actual_size,
+                cuda_zstd::DataLocation::HOST,
+                cuda_zstd::DataLocation::HOST);
+
+            if (st == cuda_zstd::Status::SUCCESS) {
+                output.resize(actual_size);
+                return py::bytes(output);
+            }
+
+            if (st == cuda_zstd::Status::ERROR_BUFFER_TOO_SMALL) {
+                out_size *= 4;
+                continue;
+            }
+
+            // Other error — throw immediately
+            check_status(st, "hybrid decompress");
+        }
+
+        throw std::runtime_error("hybrid decompress: buffer too small after 3 attempts");
+    }
+
+    // ------------------------------------------------------------------
+    // Accessors
+    // ------------------------------------------------------------------
+
+    int get_level() const { return engine_->get_config().compression_level; }
+
+    void set_level(int level) {
+        check_status(engine_->set_compression_level(level),
+                     "set_compression_level");
+    }
+
+    cuda_zstd::CompressionStats get_stats() const {
+        return engine_->get_stats();
+    }
+
+    void reset_stats() { engine_->reset_stats(); }
+
+    cuda_zstd::HybridConfig get_config() const {
+        return engine_->get_config();
+    }
+
+    /// Query which backend would be chosen for a given data size.
+    cuda_zstd::ExecutionBackend query_routing(size_t data_size) const {
+        return engine_->query_routing(
+            data_size,
+            cuda_zstd::DataLocation::HOST,
+            cuda_zstd::DataLocation::HOST,
+            /*is_compression=*/true);
+    }
+
+private:
+    std::unique_ptr<cuda_zstd::HybridEngine> engine_;
+};
+
+// ============================================================================
 // Free functions (convenience — create a temporary manager per call)
 // ============================================================================
 
@@ -431,6 +563,18 @@ std::vector<py::bytes> compress_batch_py(std::vector<py::buffer> inputs, int lev
 std::vector<py::bytes> decompress_batch_py(std::vector<py::buffer> inputs) {
     PyManager mgr(3);
     return mgr.decompress_batch(inputs);
+}
+
+/// Hybrid convenience: compress bytes using HybridEngine.
+py::bytes hybrid_compress_py(py::buffer input, int level) {
+    PyHybridEngine engine(level);
+    return engine.compress(input);
+}
+
+/// Hybrid convenience: decompress bytes using HybridEngine.
+py::bytes hybrid_decompress_py(py::buffer input) {
+    PyHybridEngine engine(3);
+    return engine.decompress(input);
 }
 
 } // anonymous namespace
@@ -542,6 +686,29 @@ PYBIND11_MODULE(_core, m) {
         .value("COMPUTE_AND_VERIFY", cuda_zstd::ChecksumPolicy::COMPUTE_AND_VERIFY)
         .export_values();
 
+    py::enum_<cuda_zstd::HybridMode>(m, "HybridMode")
+        .value("AUTO", cuda_zstd::HybridMode::AUTO)
+        .value("PREFER_CPU", cuda_zstd::HybridMode::PREFER_CPU)
+        .value("PREFER_GPU", cuda_zstd::HybridMode::PREFER_GPU)
+        .value("FORCE_CPU", cuda_zstd::HybridMode::FORCE_CPU)
+        .value("FORCE_GPU", cuda_zstd::HybridMode::FORCE_GPU)
+        .value("ADAPTIVE", cuda_zstd::HybridMode::ADAPTIVE)
+        .export_values();
+
+    py::enum_<cuda_zstd::DataLocation>(m, "DataLocation")
+        .value("HOST", cuda_zstd::DataLocation::HOST)
+        .value("DEVICE", cuda_zstd::DataLocation::DEVICE)
+        .value("MANAGED", cuda_zstd::DataLocation::MANAGED)
+        .value("UNKNOWN", cuda_zstd::DataLocation::UNKNOWN)
+        .export_values();
+
+    py::enum_<cuda_zstd::ExecutionBackend>(m, "ExecutionBackend")
+        .value("CPU_LIBZSTD", cuda_zstd::ExecutionBackend::CPU_LIBZSTD)
+        .value("GPU_KERNELS", cuda_zstd::ExecutionBackend::GPU_KERNELS)
+        .value("CPU_PARALLEL", cuda_zstd::ExecutionBackend::CPU_PARALLEL)
+        .value("GPU_BATCH", cuda_zstd::ExecutionBackend::GPU_BATCH)
+        .export_values();
+
     // ------------------------------------------------------------------
     // CompressionConfig
     // ------------------------------------------------------------------
@@ -566,6 +733,25 @@ PYBIND11_MODULE(_core, m) {
         .def("__repr__", [](const cuda_zstd::CompressionConfig &c) {
             return "<CompressionConfig level=" + std::to_string(c.level) +
                    " block_size=" + std::to_string(c.block_size) + ">";
+        });
+
+    // ------------------------------------------------------------------
+    // HybridConfig
+    // ------------------------------------------------------------------
+
+    py::class_<cuda_zstd::HybridConfig>(m, "HybridConfig")
+        .def(py::init<>())
+        .def_readwrite("mode", &cuda_zstd::HybridConfig::mode)
+        .def_readwrite("cpu_size_threshold", &cuda_zstd::HybridConfig::cpu_size_threshold)
+        .def_readwrite("gpu_device_threshold", &cuda_zstd::HybridConfig::gpu_device_threshold)
+        .def_readwrite("enable_profiling", &cuda_zstd::HybridConfig::enable_profiling)
+        .def_readwrite("compression_level", &cuda_zstd::HybridConfig::compression_level)
+        .def_readwrite("cpu_thread_count", &cuda_zstd::HybridConfig::cpu_thread_count)
+        .def_readwrite("use_pinned_memory", &cuda_zstd::HybridConfig::use_pinned_memory)
+        .def_readwrite("overlap_transfers", &cuda_zstd::HybridConfig::overlap_transfers)
+        .def("__repr__", [](const cuda_zstd::HybridConfig &c) {
+            return "<HybridConfig mode=" + std::to_string(static_cast<int>(c.mode)) +
+                   " level=" + std::to_string(c.compression_level) + ">";
         });
 
     // ------------------------------------------------------------------
@@ -647,6 +833,57 @@ PYBIND11_MODULE(_core, m) {
         });
 
     // ------------------------------------------------------------------
+    // PyHybridEngine (CPU/GPU auto-routing compression)
+    // ------------------------------------------------------------------
+
+    py::class_<PyHybridEngine>(m, "HybridEngine")
+        .def(py::init<int>(), py::arg("level") = 3,
+             "Create a hybrid CPU/GPU compression engine.\n\n"
+             "The hybrid engine automatically routes work to CPU (libzstd)\n"
+             "or GPU kernels based on data size and location.\n\n"
+             "Args:\n"
+             "    level: Compression level 1-22 (default 3).")
+        .def(py::init<const cuda_zstd::HybridConfig &>(),
+             py::arg("config"),
+             "Create a hybrid engine from a HybridConfig.")
+        .def("compress", &PyHybridEngine::compress, py::arg("data"),
+             "Compress data using automatic CPU/GPU routing.\n\n"
+             "Args:\n"
+             "    data: bytes, bytearray, or numpy array.\n\n"
+             "Returns:\n"
+             "    Compressed data as bytes.")
+        .def("decompress", &PyHybridEngine::decompress, py::arg("data"),
+             "Decompress data using automatic CPU/GPU routing.\n\n"
+             "Args:\n"
+             "    data: Compressed bytes/buffer.\n\n"
+             "Returns:\n"
+             "    Decompressed data as bytes.")
+        .def_property("level", &PyHybridEngine::get_level, &PyHybridEngine::set_level,
+                      "Compression level (1-22).")
+        .def("get_stats", &PyHybridEngine::get_stats,
+             "Return compression statistics since last reset.")
+        .def("reset_stats", &PyHybridEngine::reset_stats,
+             "Reset compression/decompression statistics.")
+        .def("get_config", &PyHybridEngine::get_config,
+             "Return the current HybridConfig.")
+        .def("query_routing", &PyHybridEngine::query_routing,
+             py::arg("data_size"),
+             "Query which backend would handle data of the given size.\n\n"
+             "Args:\n"
+             "    data_size: Size in bytes.\n\n"
+             "Returns:\n"
+             "    ExecutionBackend enum value.")
+        .def("__enter__", [](PyHybridEngine &self) -> PyHybridEngine & { return self; })
+        .def("__exit__",
+             [](PyHybridEngine & /*self*/, py::object /*exc_type*/,
+                py::object /*exc_val*/, py::object /*exc_tb*/) {
+                 // Resources freed by destructor.
+             })
+        .def("__repr__", [](const PyHybridEngine &e) {
+            return "<cuda_zstd.HybridEngine level=" + std::to_string(e.get_level()) + ">";
+        });
+
+    // ------------------------------------------------------------------
     // Free functions
     // ------------------------------------------------------------------
 
@@ -685,6 +922,25 @@ PYBIND11_MODULE(_core, m) {
           "    inputs: list of compressed bytes/buffers.\n\n"
           "Returns:\n"
           "    list[bytes] of decompressed data.");
+
+    m.def("hybrid_compress", &hybrid_compress_py,
+          py::arg("data"), py::arg("level") = 3,
+          "Compress data using the hybrid CPU/GPU engine (convenience).\n\n"
+          "Creates a temporary HybridEngine. For repeated calls,\n"
+          "create a HybridEngine and reuse it.\n\n"
+          "Args:\n"
+          "    data: bytes, bytearray, or numpy array.\n"
+          "    level: Compression level 1-22 (default 3).\n\n"
+          "Returns:\n"
+          "    Compressed bytes.");
+
+    m.def("hybrid_decompress", &hybrid_decompress_py,
+          py::arg("data"),
+          "Decompress data using the hybrid CPU/GPU engine (convenience).\n\n"
+          "Args:\n"
+          "    data: Compressed bytes/buffer.\n\n"
+          "Returns:\n"
+          "    Decompressed bytes.");
 
     // ------------------------------------------------------------------
     // Validation & estimation utilities

@@ -67,7 +67,7 @@ if (cuda_zstd_is_error(status)) {
 }
 ```
 
-See [C-API-REFERENCE.md](C-API-REFERENCE.md) for all 11 C API functions and 7 NVComp v5 functions.
+See [C-API-REFERENCE.md](C-API-REFERENCE.md) for all 11 C API + 7 NVComp + 7 Hybrid = 25 total C functions.
 
 ---
 
@@ -139,6 +139,62 @@ bm->compress_batch(
 
 ---
 
+## Hybrid Engine (Fastest for Host Data)
+
+The hybrid engine automatically routes work to CPU or GPU based on data size and location.
+
+### C++ Quick Start
+
+```cpp
+#include "cuda_zstd_hybrid.h"
+
+// Create with default config (AUTO routing, level 3)
+cuda_zstd::HybridEngine engine;
+
+// Compress host data (bytes in, bytes out)
+std::vector<uint8_t> input = load_data();
+std::vector<uint8_t> output(engine.get_max_compressed_size(input.size()));
+size_t out_size = output.size();
+
+engine.compress(input.data(), input.size(),
+                output.data(), &out_size,
+                cuda_zstd::DataLocation::HOST,
+                cuda_zstd::DataLocation::HOST);
+output.resize(out_size);
+```
+
+### C API Quick Start
+
+```c
+#include "cuda_zstd_hybrid.h"
+
+cuda_zstd_hybrid_engine_t *engine = cuda_zstd_hybrid_create_default();
+size_t out_size = cuda_zstd_hybrid_max_compressed_size(engine, input_size);
+
+cuda_zstd_hybrid_compress(engine, input, input_size,
+                          output, &out_size,
+                          0 /*HOST*/, 0 /*HOST*/, NULL, NULL);
+
+cuda_zstd_hybrid_destroy(engine);
+```
+
+### Python Quick Start
+
+```python
+import cuda_zstd
+
+# One-line convenience
+compressed = cuda_zstd.hybrid_compress(data)
+original = cuda_zstd.hybrid_decompress(compressed)
+
+# Reusable engine (recommended)
+with cuda_zstd.HybridEngine(level=3) as engine:
+    compressed = engine.compress(data)
+    original = engine.decompress(compressed)
+```
+
+---
+
 ## Error Checking
 
 ```cpp
@@ -189,6 +245,7 @@ ctest --output-on-failure
 | Many files fast | [Batch Processing](BATCH-PROCESSING.md) |
 | Large files | [Streaming API](STREAMING-API.md) |
 | Go faster | [Performance Tuning](PERFORMANCE-TUNING.md) |
+| CPU/GPU routing | [Hybrid Engine](HYBRID-ENGINE.md) |
 | C API details | [C API Reference](C-API-REFERENCE.md) |
 | Something broke | [Error Handling](ERROR-HANDLING.md) |
 

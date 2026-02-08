@@ -34,18 +34,27 @@ __all__ = [
     "decompress",
     "compress_batch",
     "decompress_batch",
+    # Hybrid functions
+    "hybrid_compress",
+    "hybrid_decompress",
     # Validation & estimation
     "validate_compressed_data",
     "estimate_compressed_size",
     # Manager class
     "Manager",
+    # Hybrid engine class
+    "HybridEngine",
     # Configuration
     "CompressionConfig",
     "CompressionStats",
+    "HybridConfig",
     # Enums
     "Status",
     "Strategy",
     "ChecksumPolicy",
+    "HybridMode",
+    "DataLocation",
+    "ExecutionBackend",
     # CUDA utilities
     "is_cuda_available",
     "get_cuda_device_info",
@@ -66,6 +75,11 @@ if TYPE_CHECKING:
         ChecksumPolicy as ChecksumPolicy,
         CompressionConfig as CompressionConfig,
         CompressionStats as CompressionStats,
+        DataLocation as DataLocation,
+        ExecutionBackend as ExecutionBackend,
+        HybridConfig as HybridConfig,
+        HybridEngine as _CHybridEngine,
+        HybridMode as HybridMode,
         Manager as _CManager,
         Status as Status,
         Strategy as Strategy,
@@ -83,6 +97,11 @@ try:
         ChecksumPolicy,  # noqa: F811
         CompressionConfig,  # noqa: F811
         CompressionStats,  # noqa: F811
+        DataLocation,  # noqa: F811
+        ExecutionBackend,  # noqa: F811
+        HybridConfig,  # noqa: F811
+        HybridEngine as _CHybridEngine,  # noqa: F811
+        HybridMode,  # noqa: F811
         Manager as _CManager,  # noqa: F811
         Status,  # noqa: F811
         Strategy,  # noqa: F811
@@ -90,6 +109,8 @@ try:
         compress_batch as _compress_batch,
         decompress as _decompress,
         decompress_batch as _decompress_batch,
+        hybrid_compress as _hybrid_compress,
+        hybrid_decompress as _hybrid_decompress,
         estimate_compressed_size,
         get_cuda_device_info,
         is_cuda_available,
@@ -318,6 +339,152 @@ class Manager:
         return f"<cuda_zstd.Manager level={self.level}>"
 
 
+class HybridEngine:
+    """CPU/GPU hybrid compression engine with automatic routing.
+
+    The ``HybridEngine`` transparently routes compression work to either the
+    CPU (libzstd) or GPU (CUDA kernels) depending on data size and the
+    selected :class:`HybridMode`.  For host-memory data smaller than the
+    CPU-size threshold the CPU path is faster; for larger payloads the GPU
+    path wins.
+
+    Parameters
+    ----------
+    level : int, default 3
+        Compression level (1–22).
+    config : HybridConfig, optional
+        Fine-grained configuration.  If provided, ``level`` is ignored.
+
+    Examples
+    --------
+    >>> with cuda_zstd.HybridEngine(level=3) as eng:
+    ...     compressed = eng.compress(b"hello " * 10000)
+    ...     original = eng.decompress(compressed)
+    ...     print(f"ratio: {len(original) / len(compressed):.1f}x")
+    """
+
+    _engine: _CHybridEngine | None
+
+    def __init__(
+        self,
+        level: int = 3,
+        *,
+        config: HybridConfig | None = None,
+    ) -> None:
+        _ensure_core()
+
+        if config is not None:
+            self._engine = _CHybridEngine(config)  # type: ignore[misc]
+        else:
+            self._engine = _CHybridEngine(level)  # type: ignore[misc]
+
+    # -- Internal helper ----------------------------------------------------
+
+    def _require_open(self) -> _CHybridEngine:
+        """Return the underlying C++ engine, or raise if closed."""
+        if self._engine is None:
+            raise RuntimeError("HybridEngine has been closed")
+        return self._engine  # type: ignore[return-value]
+
+    # -- Compression --------------------------------------------------------
+
+    def compress(self, data: BufferLike) -> bytes:
+        """Compress *data* using the hybrid CPU/GPU engine.
+
+        Parameters
+        ----------
+        data : bytes, bytearray, or buffer
+            Uncompressed input (host memory).
+
+        Returns
+        -------
+        bytes
+            Compressed payload.
+        """
+        return self._require_open().compress(data)
+
+    def decompress(self, data: BufferLike) -> bytes:
+        """Decompress *data* using the hybrid CPU/GPU engine.
+
+        Parameters
+        ----------
+        data : bytes or buffer
+            ZSTD-compressed payload.
+
+        Returns
+        -------
+        bytes
+            Decompressed output.
+        """
+        return self._require_open().decompress(data)
+
+    # -- Properties ---------------------------------------------------------
+
+    @property
+    def level(self) -> int:
+        """Current compression level (1–22)."""
+        return self._require_open().level
+
+    @level.setter
+    def level(self, value: int) -> None:
+        self._require_open().level = value
+
+    @property
+    def stats(self) -> CompressionStats:
+        """Compression statistics since last :meth:`reset_stats` call."""
+        return self._require_open().get_stats()
+
+    def reset_stats(self) -> None:
+        """Reset accumulated compression/decompression statistics."""
+        self._require_open().reset_stats()
+
+    @property
+    def config(self) -> HybridConfig:
+        """Current hybrid configuration (read-only snapshot)."""
+        return self._require_open().get_config()
+
+    def query_routing(self, data_size: int) -> ExecutionBackend:
+        """Query which backend will be used for a given data size.
+
+        Parameters
+        ----------
+        data_size : int
+            Size of the input data in bytes.
+
+        Returns
+        -------
+        ExecutionBackend
+            The backend that would be selected (CPU_LIBZSTD, GPU_KERNELS, etc.).
+        """
+        return self._require_open().query_routing(data_size)
+
+    # -- Context manager ----------------------------------------------------
+
+    def __enter__(self) -> HybridEngine:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
+    def close(self) -> None:
+        """Release resources held by this engine.
+
+        After calling ``close()``, the engine must not be used.  Prefer
+        using the engine as a context manager instead::
+
+            with cuda_zstd.HybridEngine() as eng:
+                ...
+        """
+        self._engine = None
+
+    # -- Dunder methods -----------------------------------------------------
+
+    def __repr__(self) -> str:
+        if self._engine is None:
+            return "<cuda_zstd.HybridEngine [closed]>"
+        return f"<cuda_zstd.HybridEngine level={self.level}>"
+
+
 # ===========================================================================
 # Module-level convenience functions
 # ===========================================================================
@@ -406,3 +573,50 @@ def decompress_batch(inputs: list[BufferLike]) -> list[bytes]:
     """
     _ensure_core()
     return _decompress_batch(inputs)  # type: ignore[name-defined]
+
+
+def hybrid_compress(data: BufferLike, *, level: int = 3) -> bytes:
+    """Compress *data* using the hybrid CPU/GPU engine.
+
+    This convenience function creates a temporary :class:`HybridEngine`
+    for each call.  For repeated compression, create a :class:`HybridEngine`
+    and reuse it.
+
+    Parameters
+    ----------
+    data : bytes, bytearray, or buffer
+        Uncompressed input (host memory).
+    level : int, default 3
+        Compression level (1–22).
+
+    Returns
+    -------
+    bytes
+        Compressed output.
+
+    Examples
+    --------
+    >>> import cuda_zstd
+    >>> compressed = cuda_zstd.hybrid_compress(b"hello world" * 1000)
+    >>> cuda_zstd.hybrid_decompress(compressed) == b"hello world" * 1000
+    True
+    """
+    _ensure_core()
+    return _hybrid_compress(data, level)  # type: ignore[name-defined]
+
+
+def hybrid_decompress(data: BufferLike) -> bytes:
+    """Decompress data using the hybrid CPU/GPU engine.
+
+    Parameters
+    ----------
+    data : bytes or buffer
+        ZSTD-compressed payload.
+
+    Returns
+    -------
+    bytes
+        Decompressed output.
+    """
+    _ensure_core()
+    return _hybrid_decompress(data)  # type: ignore[name-defined]
