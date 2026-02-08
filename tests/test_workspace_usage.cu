@@ -3,6 +3,7 @@
 // memory reuse
 
 #include "workspace_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -88,8 +89,8 @@ bool test_workspace_reuse() {
     // Allocate test data
     u8 *d_input = nullptr;
     u8 *d_output = nullptr;
-    cudaMalloc(&d_input, max_block_size);
-    cudaMalloc(&d_output, max_block_size * 2);
+    cuda_zstd::safe_cuda_malloc(&d_input, max_block_size);
+    cuda_zstd::safe_cuda_malloc(&d_output, max_block_size * 2);
 
     // Run multiple compressions reusing workspace
     for (int i = 0; i < 5 && passed; ++i) {

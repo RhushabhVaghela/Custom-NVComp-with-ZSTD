@@ -8,6 +8,7 @@
 #include "cuda_error_checking.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cstring>
 #include <cuda_runtime.h>
@@ -95,9 +96,9 @@ bool test_decompress_to_preallocated_basic() {
 
   // Allocate GPU memory
   void *d_input, *d_compressed, *d_output, *d_temp;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_compressed, data_size * 2);
-  cudaMalloc(&d_output, data_size); // Pre-allocated output buffer
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size); // Pre-allocated output buffer
 
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
@@ -105,7 +106,7 @@ bool test_decompress_to_preallocated_basic() {
 
   // Compress first
   size_t temp_size = manager.get_compress_temp_size(data_size);
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   size_t compressed_size = data_size * 2;
   Status status =
@@ -153,7 +154,7 @@ bool test_decompress_to_preallocated_buffer_reuse() {
 
   // Allocate a single "Zipper Buffer" that will be reused
   void *d_zipper_buffer;
-  cudaMalloc(&d_zipper_buffer, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_zipper_buffer, data_size);
   LOG_INFO("Allocated single Zipper Buffer: " << data_size << " bytes");
 
   ZstdBatchManager manager(CompressionConfig{.level = 3});
@@ -165,15 +166,15 @@ bool test_decompress_to_preallocated_buffer_reuse() {
 
   void *d_temp;
   size_t temp_size = manager.get_compress_temp_size(data_size);
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   void *d_input;
-  cudaMalloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
 
   for (int i = 0; i < num_layers; i++) {
     generate_model_weight_data(original_data[i], data_size);
 
-    cudaMalloc(&compressed_buffers[i], data_size * 2);
+    cuda_zstd::safe_cuda_malloc(&compressed_buffers[i], data_size * 2);
     cudaMemcpy(d_input, original_data[i].data(), data_size,
                cudaMemcpyHostToDevice);
 
@@ -238,17 +239,17 @@ bool test_decompress_batch_preallocated_basic() {
 
   void *d_temp;
   size_t temp_size = manager.get_compress_temp_size(item_size);
-  cudaMalloc(&d_temp, temp_size * num_items);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size * num_items);
 
   void *d_input;
-  cudaMalloc(&d_input, item_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, item_size);
 
   // Compress each item first
   for (int i = 0; i < num_items; i++) {
     generate_compressible_data(original_data[i], item_size);
 
-    cudaMalloc(&compressed_buffers[i], item_size * 2);
-    cudaMalloc(&output_buffers[i], item_size); // Pre-allocate output!
+    cuda_zstd::safe_cuda_malloc(&compressed_buffers[i], item_size * 2);
+    cuda_zstd::safe_cuda_malloc(&output_buffers[i], item_size); // Pre-allocate output!
 
     cudaMemcpy(d_input, original_data[i].data(), item_size,
                cudaMemcpyHostToDevice);
@@ -311,16 +312,16 @@ bool test_decompress_async_no_sync_basic() {
   generate_compressible_data(h_input, data_size);
 
   void *d_input, *d_compressed, *d_output, *d_temp;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_compressed, data_size * 2);
-  cudaMalloc(&d_output, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size);
 
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
   ZstdBatchManager manager(CompressionConfig{.level = 3});
 
   size_t temp_size = manager.get_compress_temp_size(data_size);
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   // Compress first
   size_t compressed_size = data_size * 2;
@@ -335,7 +336,7 @@ bool test_decompress_async_no_sync_basic() {
 
   // Device pointer for async size write
   size_t *d_actual_size;
-  cudaMalloc(&d_actual_size, sizeof(size_t));
+  cuda_zstd::safe_cuda_malloc(&d_actual_size, sizeof(size_t));
 
   // Launch async decompress (should return immediately after launch)
   auto start = std::chrono::high_resolution_clock::now();
@@ -438,8 +439,8 @@ bool test_full_inference_simulation() {
 
   // Allocate double buffer (Zipper Buffers A and B)
   void *buffer_a, *buffer_b;
-  cudaMalloc(&buffer_a, layer_weight_size);
-  cudaMalloc(&buffer_b, layer_weight_size);
+  cuda_zstd::safe_cuda_malloc(&buffer_a, layer_weight_size);
+  cuda_zstd::safe_cuda_malloc(&buffer_b, layer_weight_size);
   LOG_INFO("Allocated double buffer (2 x " << layer_weight_size << " bytes)");
 
   // Pre-compress all layers
@@ -448,17 +449,17 @@ bool test_full_inference_simulation() {
   std::vector<size_t> compressed_sizes(num_layers);
 
   void *d_input;
-  cudaMalloc(&d_input, layer_weight_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, layer_weight_size);
 
   // (FIX) Allocate separate workspace for compression - inference workspace
   // is sized for decompression only and is too small for compress()
   size_t compress_temp_size = manager.get_compress_temp_size(layer_weight_size);
   void *compress_workspace;
-  cudaMalloc(&compress_workspace, compress_temp_size);
+  cuda_zstd::safe_cuda_malloc(&compress_workspace, compress_temp_size);
 
   for (int i = 0; i < num_layers; i++) {
     generate_model_weight_data(original_data[i], layer_weight_size);
-    cudaMalloc(&compressed_buffers[i], layer_weight_size * 2);
+    cuda_zstd::safe_cuda_malloc(&compressed_buffers[i], layer_weight_size * 2);
 
     cudaMemcpy(d_input, original_data[i].data(), layer_weight_size,
                cudaMemcpyHostToDevice);
@@ -531,11 +532,11 @@ bool test_null_parameter_handling() {
   ZstdBatchManager manager(CompressionConfig{.level = 3});
 
   void *dummy_ptr;
-  cudaMalloc(&dummy_ptr, 1024);
+  cuda_zstd::safe_cuda_malloc(&dummy_ptr, 1024);
 
   size_t actual_size;
   void *workspace;
-  cudaMalloc(&workspace, 1024);
+  cuda_zstd::safe_cuda_malloc(&workspace, 1024);
 
   // Test null compressed_data
   Status status = manager.decompress_to_preallocated(
@@ -574,7 +575,7 @@ bool test_buffer_too_small() {
   ZstdBatchManager manager(CompressionConfig{.level = 3});
 
   void *dummy_ptr;
-  cudaMalloc(&dummy_ptr, 1024);
+  cuda_zstd::safe_cuda_malloc(&dummy_ptr, 1024);
   size_t actual_size;
 
   // Test zero capacity

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 
@@ -46,15 +47,15 @@ void benchmark_adaptive_level_selection() {
     }
 
     void *d_input, *d_output, *d_temp;
-    cudaMalloc(&d_input, size);
-    cudaMalloc(&d_output, size * 2);
+    cuda_zstd::safe_cuda_malloc(&d_input, size);
+    cuda_zstd::safe_cuda_malloc(&d_output, size * 2);
     cudaMemcpy(d_input, h_data.data(), size, cudaMemcpyHostToDevice);
 
     for (int level : levels) {
       ZstdBatchManager manager(CompressionConfig{.level = level});
 
       size_t temp_size = manager.get_compress_temp_size(size);
-      cudaMalloc(&d_temp, temp_size);
+      cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
       // Warmup
       size_t compressed_size = size * 2;

@@ -3,6 +3,7 @@
 
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cstdio>
 #include <random>
@@ -50,8 +51,8 @@ bool test_parallel_scan_basic() {
   u32 *d_input = nullptr;
   u32 *d_output = nullptr;
 
-  cudaMalloc(&d_input, num_elements * sizeof(u32));
-  cudaMalloc(&d_output, num_elements * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_input, num_elements * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_output, num_elements * sizeof(u32));
 
   // Create input: [1, 1, 1, ... 1]
   std::vector<u32> h_input(num_elements, 1);
@@ -111,8 +112,8 @@ bool test_parallel_scan_large() {
   u32 *d_input = nullptr;
   u32 *d_output = nullptr;
 
-  cudaMalloc(&d_input, num_elements * sizeof(u32));
-  cudaMalloc(&d_output, num_elements * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_input, num_elements * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_output, num_elements * sizeof(u32));
 
   // Create input: [1, 2, 3, ..., n]
   std::vector<u32> h_input(num_elements);
@@ -159,7 +160,7 @@ bool test_parallel_sort_dmers_basic() {
   const u32 num_dmers = 100;
 
   dictionary::Dmer *d_dmers = nullptr;
-  cudaMalloc(&d_dmers, num_dmers * sizeof(dictionary::Dmer));
+  cuda_zstd::safe_cuda_malloc(&d_dmers, num_dmers * sizeof(dictionary::Dmer));
 
   // Create unsorted dmers
   std::vector<dictionary::Dmer> h_dmers(num_dmers);
@@ -222,7 +223,7 @@ bool test_parallel_sort_dmers_large() {
   const u32 num_dmers = 100000; // 100K dmers
 
   dictionary::Dmer *d_dmers = nullptr;
-  cudaMalloc(&d_dmers, num_dmers * sizeof(dictionary::Dmer));
+  cuda_zstd::safe_cuda_malloc(&d_dmers, num_dmers * sizeof(dictionary::Dmer));
 
   // Create random dmers
   std::vector<dictionary::Dmer> h_dmers(num_dmers);

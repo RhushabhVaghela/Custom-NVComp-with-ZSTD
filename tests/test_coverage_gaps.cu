@@ -5,6 +5,7 @@
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -43,9 +44,9 @@ bool test_rle_roundtrip() {
   byte_t *d_output = nullptr;
   u32 *d_output_sizes = nullptr;
 
-  CUDA_CHECK(cudaMalloc(&d_input, data_size));
-  CUDA_CHECK(cudaMalloc(&d_output, data_size * 2)); // Plenty of space
-  CUDA_CHECK(cudaMalloc(&d_output_sizes, sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, data_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2)); // Plenty of space
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output_sizes, sizeof(u32)));
 
   CUDA_CHECK(
       cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
@@ -100,7 +101,7 @@ bool test_rle_roundtrip() {
   // Decode
   printf("Decoding RLE data...\n");
   byte_t *d_decoded = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_decoded, data_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_decoded, data_size));
   u32 decoded_size = 0;
 
   status = decode_fse(d_output,
@@ -166,10 +167,10 @@ bool test_zstd_roundtrip(u32 data_size, const char* test_name) {
   byte_t *d_decompressed = nullptr;
   byte_t *d_temp = nullptr;
 
-  CUDA_CHECK(cudaMalloc(&d_input, data_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, data_size));
   size_t max_compressed = data_size * 2;
-  CUDA_CHECK(cudaMalloc(&d_compressed, max_compressed));
-  CUDA_CHECK(cudaMalloc(&d_decompressed, data_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_decompressed, data_size));
 
   CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
 
@@ -177,7 +178,7 @@ bool test_zstd_roundtrip(u32 data_size, const char* test_name) {
   auto manager = create_manager(5); // Level 5
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  CUDA_CHECK(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   // Compress
   size_t compressed_size = max_compressed;
@@ -267,9 +268,9 @@ bool test_zero_byte_input() {
   byte_t *d_output = nullptr;
   u32 *d_output_sizes = nullptr;
 
-  CUDA_CHECK(cudaMalloc(&d_input, 1)); // Alloc 1 byte just in case
-  CUDA_CHECK(cudaMalloc(&d_output, 100));
-  CUDA_CHECK(cudaMalloc(&d_output_sizes, sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, 1)); // Alloc 1 byte just in case
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, 100));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output_sizes, sizeof(u32)));
 
   const byte_t *d_inputs_arr[] = {d_input};
   u32 input_sizes_arr[] = {data_size};

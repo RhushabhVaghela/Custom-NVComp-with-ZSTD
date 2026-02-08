@@ -89,18 +89,18 @@ bool test_single_block_roundtrip() {
     // Allocate device memory
     void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
     
-    if (!safe_cuda_malloc(&d_input, data_size)) {
+    if (!test_safe_cuda_malloc(&d_input, data_size)) {
         printf("❌ Failed to allocate d_input\n");
         return false;
     }
     
-    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+    if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
         printf("❌ Failed to allocate d_compressed\n");
         safe_cuda_free(d_input);
         return false;
     }
     
-    if (!safe_cuda_malloc(&d_output, data_size)) {
+    if (!test_safe_cuda_malloc(&d_output, data_size)) {
         printf("❌ Failed to allocate d_output\n");
         safe_cuda_free(d_input);
         safe_cuda_free(d_compressed);
@@ -120,7 +120,7 @@ bool test_single_block_roundtrip() {
     
     // Get temp size and allocate
     temp_size = manager->get_compress_temp_size(data_size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
         printf("❌ Failed to allocate temp buffer\n");
         goto cleanup;
     }
@@ -206,7 +206,7 @@ bool test_batch_operations() {
     for (size_t i = 0; i < num_chunks; ++i) {
         generate_test_data(h_chunks[i], chunk_size);
         
-        if (!safe_cuda_malloc(&d_input_ptrs[i], chunk_size)) {
+        if (!test_safe_cuda_malloc(&d_input_ptrs[i], chunk_size)) {
             printf("❌ Failed to allocate chunk %zu\n", i);
             for (size_t j = 0; j < i; ++j) {
                 safe_cuda_free(d_input_ptrs[j]);
@@ -229,7 +229,7 @@ bool test_batch_operations() {
     std::vector<size_t> compressed_sizes(num_chunks, chunk_size * 2);
     
     for (size_t i = 0; i < num_chunks; ++i) {
-        if (!safe_cuda_malloc(&d_compressed_ptrs[i], chunk_size * 2)) {
+        if (!test_safe_cuda_malloc(&d_compressed_ptrs[i], chunk_size * 2)) {
             printf("❌ Failed to allocate compressed buffer %zu\n", i);
             goto cleanup_batch;
         }
@@ -247,7 +247,7 @@ bool test_batch_operations() {
         size_t temp_size = batch_mgr.get_compress_temp_size(chunk_sizes.data(), num_chunks, 0);
         void* d_temp = nullptr;
         
-        if (!safe_cuda_malloc(&d_temp, temp_size)) {
+        if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
             printf("❌ Failed to allocate temp buffer\n");
             goto cleanup_batch;
         }
@@ -284,7 +284,7 @@ bool test_batch_operations() {
         std::vector<size_t> output_sizes(num_chunks, chunk_size);
         
         for (size_t i = 0; i < num_chunks; ++i) {
-            if (!safe_cuda_malloc(&d_output_ptrs[i], chunk_size)) {
+            if (!test_safe_cuda_malloc(&d_output_ptrs[i], chunk_size)) {
                 printf("❌ Failed to allocate output buffer %zu\n", i);
                 safe_cuda_free(d_temp);
                 for (size_t j = 0; j < i; ++j) {
@@ -387,9 +387,9 @@ bool test_c_api() {
     size_t decompressed_size = 0;
     std::vector<byte_t> h_output;
     
-    if (!safe_cuda_malloc(&d_input, data_size) ||
-        !safe_cuda_malloc(&d_compressed, data_size * 2) ||
-        !safe_cuda_malloc(&d_output, data_size)) {
+    if (!test_safe_cuda_malloc(&d_input, data_size) ||
+        !test_safe_cuda_malloc(&d_compressed, data_size * 2) ||
+        !test_safe_cuda_malloc(&d_output, data_size)) {
         printf("❌ Memory allocation failed\n");
         return false;
     }
@@ -408,7 +408,7 @@ bool test_c_api() {
     
     // Get temp size
     temp_size = nvcomp_zstd_get_compress_temp_size_v5(handle, data_size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
         printf("❌ Failed to allocate temp buffer\n");
         nvcomp_zstd_destroy_manager_v5(handle);
         goto cleanup_c_api;
@@ -494,7 +494,7 @@ bool test_error_handling() {
         auto manager = create_nvcomp_v5_manager(NvcompV5Options());
         size_t temp_size = manager->get_compress_temp_size(1024);
         void* d_temp = nullptr;
-        safe_cuda_malloc(&d_temp, temp_size);
+        test_safe_cuda_malloc(&d_temp, temp_size);
         
         size_t compressed_size = 2048;
         Status status = manager->compress(
@@ -560,9 +560,9 @@ bool test_metadata_and_format_helpers() {
         return false;
     };
 
-    if (!safe_cuda_malloc(&d_input, data_size) ||
-        !safe_cuda_malloc(&d_compressed, data_size * 2) ||
-        !safe_cuda_malloc(&d_output, data_size)) {
+    if (!test_safe_cuda_malloc(&d_input, data_size) ||
+        !test_safe_cuda_malloc(&d_compressed, data_size * 2) ||
+        !test_safe_cuda_malloc(&d_output, data_size)) {
         return fail("❌ Memory allocation failed");
     }
 
@@ -573,7 +573,7 @@ bool test_metadata_and_format_helpers() {
     // Create manager and compress
     manager = create_nvcomp_v5_manager(opts);
     temp_size = manager->get_compress_temp_size(data_size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
         return fail("❌ Failed to allocate temp buffer");
     }
 

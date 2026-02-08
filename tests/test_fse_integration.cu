@@ -1,6 +1,7 @@
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_fse_encoding_kernel.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <cstring>
 #include <cuda_runtime.h>
@@ -35,7 +36,7 @@ int main() {
 
   // 1. Build Tables on GPU
   fse::FSEEncodeTable *d_tables;
-  CHECK_CUDA(cudaMalloc(&d_tables, 3 * sizeof(fse::FSEEncodeTable)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_tables, 3 * sizeof(fse::FSEEncodeTable)));
 
   u32 valid_max_ll = 0, valid_max_of = 0, valid_max_ml = 0;
   std::vector<u32> ll_norm_vec, of_norm_vec, ml_norm_vec;
@@ -55,7 +56,7 @@ int main() {
     }
 
     u32 *d_norm;
-    CHECK_CUDA(cudaMalloc(&d_norm, (max_s + 1) * sizeof(u32)));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_norm, (max_s + 1) * sizeof(u32)));
     CHECK_CUDA(cudaMemcpy(d_norm, h_norm_u32.data(), (max_s + 1) * sizeof(u32),
                           cudaMemcpyHostToDevice));
 
@@ -66,13 +67,13 @@ int main() {
     h_desc.table_size = table_size;
 
     CHECK_CUDA(
-        cudaMalloc(&h_desc.d_symbol_table,
+        cuda_zstd::safe_cuda_malloc(&h_desc.d_symbol_table,
                    (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol)));
-    CHECK_CUDA(cudaMalloc(&h_desc.d_next_state, table_size * sizeof(u16)));
-    CHECK_CUDA(cudaMalloc(&h_desc.d_nbBits_table, table_size * sizeof(u8)));
-    CHECK_CUDA(cudaMalloc(&h_desc.d_state_to_symbol, table_size * sizeof(u8)));
-    CHECK_CUDA(cudaMalloc(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16)));
-    CHECK_CUDA(cudaMalloc(&h_desc.d_next_state_vals, table_size * sizeof(u16)));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&h_desc.d_next_state, table_size * sizeof(u16)));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&h_desc.d_nbBits_table, table_size * sizeof(u8)));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&h_desc.d_state_to_symbol, table_size * sizeof(u8)));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16)));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&h_desc.d_next_state_vals, table_size * sizeof(u16)));
 
     // Copy descriptor to array
     CHECK_CUDA(cudaMemcpy(&d_tables[idx], &h_desc, sizeof(fse::FSEEncodeTable),
@@ -118,20 +119,20 @@ int main() {
   u32 *d_ll_extras, *d_of_extras, *d_ml_extras;
   u8 *d_ll_bits, *d_of_bits, *d_ml_bits;
 
-  CHECK_CUDA(cudaMalloc(&d_ll, num_refs));
-  CHECK_CUDA(cudaMalloc(&d_of, num_refs));
-  CHECK_CUDA(cudaMalloc(&d_ml, num_refs));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_ll, num_refs));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_of, num_refs));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_ml, num_refs));
 
-  CHECK_CUDA(cudaMalloc(&d_ll_extras, num_refs * 4));
-  CHECK_CUDA(cudaMalloc(&d_of_extras, num_refs * 4));
-  CHECK_CUDA(cudaMalloc(&d_ml_extras, num_refs * 4));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_ll_extras, num_refs * 4));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_of_extras, num_refs * 4));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_ml_extras, num_refs * 4));
   CHECK_CUDA(cudaMemset(d_ll_extras, 0, num_refs * 4));
   CHECK_CUDA(cudaMemset(d_of_extras, 0, num_refs * 4));
   CHECK_CUDA(cudaMemset(d_ml_extras, 0, num_refs * 4));
 
-  CHECK_CUDA(cudaMalloc(&d_ll_bits, num_refs));
-  CHECK_CUDA(cudaMalloc(&d_of_bits, num_refs));
-  CHECK_CUDA(cudaMalloc(&d_ml_bits, num_refs));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_ll_bits, num_refs));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_of_bits, num_refs));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_ml_bits, num_refs));
   CHECK_CUDA(cudaMemset(d_ll_bits, 0, num_refs));
   CHECK_CUDA(cudaMemset(d_of_bits, 0, num_refs));
   CHECK_CUDA(cudaMemset(d_ml_bits, 0, num_refs));
@@ -155,12 +156,12 @@ int main() {
 
   // 3. Launch Encoding
   size_t *d_pos;
-  CHECK_CUDA(cudaMalloc(&d_pos, sizeof(size_t)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_pos, sizeof(size_t)));
   CHECK_CUDA(cudaMemset(d_pos, 0, sizeof(size_t)));
 
   size_t capacity = num_refs * 8 + 512;
   byte_t *d_bitstream;
-  CHECK_CUDA(cudaMalloc(&d_bitstream, capacity));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_bitstream, capacity));
 
   Status launchStatus = fse::launch_fse_encoding_kernel(
       d_ll, d_ll_extras, d_ll_bits, d_of, d_of_extras, d_of_bits, d_ml,

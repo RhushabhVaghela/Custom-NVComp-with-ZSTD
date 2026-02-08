@@ -17,6 +17,7 @@
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_sequence.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
@@ -310,9 +311,9 @@ bool test_device_table_copy(TestResults &results) {
   FSEDecodeTable d_table = {};
 
   // Allocate device memory
-  CHECK_CUDA(cudaMalloc(&d_table.newState, table_size * sizeof(u16)));
-  CHECK_CUDA(cudaMalloc(&d_table.symbol, table_size * sizeof(u8)));
-  CHECK_CUDA(cudaMalloc(&d_table.nbBits, table_size * sizeof(u8)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_table.newState, table_size * sizeof(u16)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_table.symbol, table_size * sizeof(u8)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_table.nbBits, table_size * sizeof(u8)));
 
   CHECK_CUDA(cudaMemcpy(d_table.newState, h_table.newState,
                         table_size * sizeof(u16), cudaMemcpyHostToDevice));

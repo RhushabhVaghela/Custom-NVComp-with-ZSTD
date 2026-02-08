@@ -20,6 +20,7 @@
 #include <cuda_runtime.h>
 #include <cstddef>
 #include <utility> // std::exchange
+#include "cuda_zstd_safe_alloc.h"
 
 namespace cuda_zstd {
 
@@ -97,7 +98,7 @@ public:
   /// Returns a null CudaDevicePtr if cudaMalloc fails.
   static CudaDevicePtr alloc(size_t count) {
     T *p = nullptr;
-    cudaError_t err = cudaMalloc(&p, count * sizeof(T));
+    cudaError_t err = safe_cuda_malloc(&p, count * sizeof(T));
     if (err != cudaSuccess) {
       return CudaDevicePtr{};
     }

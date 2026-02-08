@@ -1,6 +1,7 @@
 #include "benchmark_results.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <chrono>
 #include <cuda_runtime.h>
@@ -52,16 +53,16 @@ void run_benchmark(size_t size, int iterations, const char *gpu_name) {
   generate_fse_data(h_input, size);
 
   void *d_input, *d_compressed, *d_output, *d_temp;
-  CUDA_CHECK(cudaMalloc(&d_input, size));
-  CUDA_CHECK(cudaMalloc(&d_compressed, size * 2));
-  CUDA_CHECK(cudaMalloc(&d_output, size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, size * 2));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, size));
 
   CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice));
 
   auto manager = cuda_zstd::create_manager();
   size_t temp_size = manager->get_compress_temp_size(size);
   std::cout << "Temp size: " << temp_size << std::endl;
-  CUDA_CHECK(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   // Clear any previous errors
   cudaGetLastError();

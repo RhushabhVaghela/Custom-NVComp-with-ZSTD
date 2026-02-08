@@ -2,6 +2,7 @@
 // verification Tests 100% data integrity across all implemented features
 
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "lz77_parallel.h"
 #include "workspace_manager.h"
 #include <chrono>
@@ -90,7 +91,7 @@ bool test_backtracking_integrity(const char *pattern_name,
   printf("  Testing %s (%zu bytes)...\n", pattern_name, input_size);
 
   u8 *d_input = nullptr;
-  cudaMalloc(&d_input, input_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, input_size);
   cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
 
   CompressionWorkspace workspace;

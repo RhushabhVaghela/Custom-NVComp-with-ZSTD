@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <cuda_runtime.h>
 #include <iostream>
@@ -49,7 +50,7 @@ bool test_api_validation() {
 
   // Test 2: Null output buffer
   void *d_dummy;
-  cudaMalloc(&d_dummy, 100);
+  cuda_zstd::safe_cuda_malloc(&d_dummy, 100);
   status =
       manager.compress_chunk(d_dummy, 100, nullptr, &compressed_size, true);
   if (status == Status::SUCCESS) {
@@ -100,9 +101,9 @@ bool test_basic_single_chunk() {
     h_input[i] = (uint8_t)i;
 
   void *d_input, *d_output, *d_compressed;
-  cudaMalloc(&d_input, size);
-  cudaMalloc(&d_output, size);
-  cudaMalloc(&d_compressed, size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_input, size);
+  cuda_zstd::safe_cuda_malloc(&d_output, size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, size * 2);
 
   cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice);
 

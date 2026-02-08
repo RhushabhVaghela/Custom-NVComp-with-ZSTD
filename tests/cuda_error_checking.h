@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string>
 
+#include "cuda_zstd_safe_alloc.h"
+
 // ============================================================================
 // CUDA Error Checking Macros
 // ============================================================================
@@ -111,14 +113,22 @@
 // Memory Management Utilities
 // ============================================================================
 
-// Safe CUDA malloc with error checking
-bool safe_cuda_malloc(void** ptr, size_t size) {
-    CUDA_CHECK(cudaMalloc(ptr, size));
+// Safe CUDA malloc with error checking (bool-returning test helper).
+// Named test_safe_cuda_malloc to avoid ambiguity with cuda_zstd::safe_cuda_malloc
+// in test files that use 'using namespace cuda_zstd'.
+static inline bool test_safe_cuda_malloc(void** ptr, size_t size) {
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(ptr, size));
     if (*ptr == nullptr) {
         std::cerr << "CUDA MALLOC returned null pointer at " << __FILE__ << ":" << __LINE__ << std::endl;
         return false;
     }
     return true;
+}
+
+// Convenience overload for typed pointers
+template <typename T>
+static inline bool test_safe_cuda_malloc(T** ptr, size_t size) {
+    return test_safe_cuda_malloc(reinterpret_cast<void**>(ptr), size);
 }
 
 // Safe CUDA free (doesn't fail if pointer is null)

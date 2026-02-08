@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "cuda_zstd_stream_pool.h"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 
@@ -126,7 +127,7 @@ void benchmark_concurrent_work() {
   // Allocate test data
   void *d_data;
   const size_t data_size = 1024 * 1024; // 1MB
-  cudaMalloc(&d_data, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_data, data_size);
 
   auto start = std::chrono::high_resolution_clock::now();
 

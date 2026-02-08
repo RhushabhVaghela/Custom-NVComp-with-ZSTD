@@ -1,4 +1,5 @@
 #include "cuda_zstd_fse.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -72,9 +73,9 @@ int main() {
   uint8_t *d_input, *d_output;
   uint32_t *d_output_size;
 
-  SIMPLE_CUDA_CHECK(cudaMalloc(&d_input, input_size));
-  SIMPLE_CUDA_CHECK(cudaMalloc(&d_output, input_size * 2)); // Conservative
-  SIMPLE_CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(uint32_t)));
+  SIMPLE_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
+  SIMPLE_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, input_size * 2)); // Conservative
+  SIMPLE_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output_size, sizeof(uint32_t)));
 
   SIMPLE_CUDA_CHECK(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));

@@ -1,5 +1,6 @@
 // Test for Parallel Compression (GPU Path)
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <iostream>
 #include <vector>
 #include <random>
@@ -27,18 +28,18 @@ int main() {
     
     // 3. Allocate Buffers
     void* d_input;
-    if (cudaMalloc(&d_input, input_size) != cudaSuccess) return 1;
+    if (cuda_zstd::safe_cuda_malloc(&d_input, input_size) != cudaSuccess) return 1;
     if (cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice) != cudaSuccess) return 1;
     
     size_t max_compressed_size = manager.get_max_compressed_size(input_size);
     void* d_compressed;
-    if (cudaMalloc(&d_compressed, max_compressed_size) != cudaSuccess) return 1;
+    if (cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed_size) != cudaSuccess) return 1;
     
     size_t compressed_size = max_compressed_size;
     
     size_t temp_size = manager.get_compress_temp_size(input_size);
     void* d_temp;
-    if (cudaMalloc(&d_temp, temp_size) != cudaSuccess) return 1;
+    if (cuda_zstd::safe_cuda_malloc(&d_temp, temp_size) != cudaSuccess) return 1;
     
     std::cout << "Allocated Workspace: " << temp_size / (1024.0 * 1024.0) << " MB\n";
     
@@ -63,7 +64,7 @@ int main() {
     // 5. Decompress
     std::cout << "Decompressing...\n";
     void* d_decompressed;
-    if (cudaMalloc(&d_decompressed, input_size) != cudaSuccess) return 1;
+    if (cuda_zstd::safe_cuda_malloc(&d_decompressed, input_size) != cudaSuccess) return 1;
     size_t decompressed_size = input_size;
     
     status = manager.decompress(

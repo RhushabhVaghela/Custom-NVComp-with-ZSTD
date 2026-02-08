@@ -9,6 +9,7 @@
 #include "cuda_zstd_hash.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_xxhash.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -201,13 +202,13 @@ void generate_test_data(void *ptr, size_t size, DataPattern pattern) {
 }
 
 size_t compute_max_data_size() {
-  size_t free_bytes = 0;
-  size_t total_bytes = 0;
-  if (cudaMemGetInfo(&free_bytes, &total_bytes) != cudaSuccess) {
+  // Use safety-buffer-aware VRAM query to prevent system instability
+  size_t usable_vram = cuda_zstd::get_usable_vram();
+  if (usable_vram == 0) {
     return MAX_SAFE_DATA_SIZE;
   }
 
-  size_t vram_budget = std::min(free_bytes, (size_t)MAX_VRAM_PER_BENCHMARK);
+  size_t vram_budget = std::min(usable_vram, (size_t)MAX_VRAM_PER_BENCHMARK);
   size_t per_test_budget = (size_t)(vram_budget * 0.6);
   size_t max_by_budget = per_test_budget / 3;
 
@@ -218,7 +219,7 @@ size_t compute_max_data_size() {
 uint64_t compute_checksum(void *data, size_t size, cudaStream_t stream = 0) {
   u64 h_hash = 0;
   u64 *d_hash = nullptr;
-  cudaMalloc(&d_hash, sizeof(u64));
+  cuda_zstd::safe_cuda_malloc(&d_hash, sizeof(u64));
   cuda_zstd::xxhash::compute_xxhash64(data, size, 0, d_hash, stream);
   cudaStreamSynchronize(stream ? stream : 0);
   cudaMemcpy(&h_hash, d_hash, sizeof(u64), cudaMemcpyDeviceToHost);
@@ -276,8 +277,8 @@ BenchmarkResult benchmark_encoding_only(int level, size_t data_size,
   size_t max_output_size =
       static_cast<size_t>(data_size * MAX_OUTPUT_MULTIPLIER);
 
-  CHECK_CUDA(cudaMalloc(&d_input, data_size));
-  CHECK_CUDA(cudaMalloc(&d_output, max_output_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_input, data_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, max_output_size));
 
   // Generate and copy test data
   void *h_input = malloc(data_size);
@@ -299,7 +300,7 @@ BenchmarkResult benchmark_encoding_only(int level, size_t data_size,
   // Get workspace size and allocate
   size_t workspace_size = manager->get_compress_temp_size(data_size);
   void *workspace = nullptr;
-  CHECK_CUDA(cudaMalloc(&workspace, workspace_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&workspace, workspace_size));
 
   // Warmup run
   size_t compressed_size = max_output_size;
@@ -373,8 +374,8 @@ BenchmarkResult benchmark_decoding_only(int level, size_t data_size,
 
   // Allocate device memory
   void *d_compressed, *d_output;
-  CHECK_CUDA(cudaMalloc(&d_compressed, max_output_size));
-  CHECK_CUDA(cudaMalloc(&d_output, data_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_compressed, max_output_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, data_size));
 
   // Generate test data on host, compress, then copy to device
   void *h_input = malloc(data_size);
@@ -395,7 +396,7 @@ BenchmarkResult benchmark_decoding_only(int level, size_t data_size,
   // Allocate workspace
   size_t workspace_size = manager->get_compress_temp_size(data_size);
   void *workspace = nullptr;
-  CHECK_CUDA(cudaMalloc(&workspace, workspace_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&workspace, workspace_size));
 
   // Compress first (needed for decoding benchmark)
   CHECK_CUDA(
@@ -430,7 +431,7 @@ BenchmarkResult benchmark_decoding_only(int level, size_t data_size,
   size_t workspace_decomp =
       decomp_manager->get_decompress_temp_size(compressed_size);
   CHECK_CUDA(cudaFree(workspace));
-  CHECK_CUDA(cudaMalloc(&workspace, workspace_decomp));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&workspace, workspace_decomp));
 
   // Warmup
   size_t decompressed_size = data_size;
@@ -510,9 +511,9 @@ BenchmarkResult benchmark_full_pipeline(int level, size_t data_size,
 
   // Allocate device memory
   void *d_input, *d_compressed, *d_output;
-  CHECK_CUDA(cudaMalloc(&d_input, data_size));
-  CHECK_CUDA(cudaMalloc(&d_compressed, max_output_size));
-  CHECK_CUDA(cudaMalloc(&d_output, data_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_input, data_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_compressed, max_output_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, data_size));
 
   // Generate test data
   void *h_input = malloc(data_size);
@@ -538,7 +539,7 @@ BenchmarkResult benchmark_full_pipeline(int level, size_t data_size,
   size_t enc_workspace = enc_manager->get_compress_temp_size(data_size);
   size_t dec_workspace = dec_manager->get_decompress_temp_size(max_output_size);
   void *workspace = nullptr;
-  CHECK_CUDA(cudaMalloc(&workspace, std::max(enc_workspace, dec_workspace)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&workspace, std::max(enc_workspace, dec_workspace)));
 
   // Warmup
   size_t compressed_size = max_output_size;

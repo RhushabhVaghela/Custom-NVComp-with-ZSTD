@@ -1,6 +1,7 @@
 // test_parallel_backtracking.cu - Validate parallel backtracking correctness
 
 #include "cuda_error_checking.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "lz77_parallel.h"
 #include "workspace_manager.h"
 #include <chrono>
@@ -224,7 +225,7 @@ bool test_small_input_threshold() {
   generate_repeated_pattern(h_input, input_size);
 
   u8 *d_input = nullptr;
-  cudaMalloc(&d_input, input_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, input_size);
   cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
 
   CompressionWorkspace workspace;
@@ -273,7 +274,7 @@ bool test_correctness_1mb() {
   generate_repeated_pattern(h_input, input_size);
 
   u8 *d_input = nullptr;
-  cudaMalloc(&d_input, input_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, input_size);
   cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
 
   CompressionWorkspace workspace;
@@ -319,7 +320,7 @@ bool test_correctness_10mb() {
   generate_json_pattern(h_input, input_size);
 
   u8 *d_input = nullptr;
-  cudaMalloc(&d_input, input_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, input_size);
   cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
 
   CompressionWorkspace workspace;
@@ -366,7 +367,7 @@ bool test_performance_100mb() {
   generate_repeated_pattern(h_input, input_size);
 
   u8 *d_input = nullptr;
-  cudaMalloc(&d_input, input_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, input_size);
   cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
 
   CompressionWorkspace workspace;
@@ -422,7 +423,7 @@ bool test_random_data_correctness() {
   generate_random_data(h_input, input_size);
 
   u8 *d_input = nullptr;
-  cudaMalloc(&d_input, input_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, input_size);
   cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
 
   CompressionWorkspace workspace;
@@ -496,7 +497,7 @@ void run_benchmark_case(u32 size_mb, const char *pattern_name) {
   }
 
   u8 *d_input = nullptr;
-  cudaMalloc(&d_input, input_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, input_size);
   cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice);
 
   CompressionWorkspace workspace;

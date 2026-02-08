@@ -17,6 +17,7 @@
 #include "cuda_zstd_stream_pool.h"
 #include "cuda_zstd_types.h" // Also include for workspace struct
 #include "cuda_zstd_xxhash.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "lz77_parallel.h" // For V2 pipeline
 #include "workspace_manager.h"
 #include <algorithm>
@@ -1594,7 +1595,7 @@ public:
     if (temp_attr_err != cudaSuccess ||
         temp_attrs.type != cudaMemoryTypeDevice) {
       // Allocate device buffer if not already device memory
-      cudaError_t alloc_err = cudaMalloc(&device_workspace, temp_size);
+      cudaError_t alloc_err = cuda_zstd::safe_cuda_malloc(&device_workspace, temp_size);
       if (alloc_err != cudaSuccess) {
       
         return Status::ERROR_CUDA_ERROR; // Early return OK here
@@ -2198,12 +2199,12 @@ public:
     // malloc/free overhead and leaks.
     // Declarations moved to top of phase 1 for goto safety
 
-    // CUDA_CHECK(cudaMalloc((void **)&d_lit_len_reuse, max_seq_bytes));
-    // // REMOVED LEAK CUDA_CHECK(cudaMalloc((void
+    // CUDA_CHECK(cuda_zstd::safe_cuda_malloc((void **)&d_lit_len_reuse, max_seq_bytes));
+    // // REMOVED LEAK CUDA_CHECK(cuda_zstd::safe_cuda_malloc((void
     // **)&d_match_len_reuse, max_seq_bytes)); // REMOVED LEAK
-    // CUDA_CHECK(cudaMalloc((void
+    // CUDA_CHECK(cuda_zstd::safe_cuda_malloc((void
     // **)&d_off_reuse, max_seq_bytes)); // REMOVED LEAK
-    // CUDA_CHECK(cudaMalloc((void **)&d_lit_buf_reuse,
+    // CUDA_CHECK(cuda_zstd::safe_cuda_malloc((void **)&d_lit_buf_reuse,
     // ZSTD_BLOCKSIZE_MAX)); // REMOVED LEAK
 
     for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
@@ -2635,8 +2636,8 @@ public:
     // =========================================================================
 
     // Allocate RLE detection buffers (reused across blocks)
-    CUDA_CHECK(cudaMalloc(&d_is_rle, sizeof(int)));
-    CUDA_CHECK(cudaMalloc(&d_rle_byte, sizeof(unsigned char)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_is_rle, sizeof(int)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_rle_byte, sizeof(unsigned char)));
 
     for (u32 block_idx = 0; block_idx < num_blocks; block_idx++) {
       // Re-read state
@@ -3769,35 +3770,35 @@ private:
 
       // Granular checks
       CUDA_CHECK(
-          cudaMalloc(&ctx.seq_ctx->d_literals_buffer, ZSTD_BLOCKSIZE_MAX));
+          cuda_zstd::safe_cuda_malloc(&ctx.seq_ctx->d_literals_buffer, ZSTD_BLOCKSIZE_MAX));
       {
         cudaError_t e = cudaGetLastError();
       }
 
-      CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_literal_lengths,
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx.seq_ctx->d_literal_lengths,
                             ZSTD_BLOCKSIZE_MAX * sizeof(u32)));
       {
         cudaError_t e = cudaGetLastError();
       }
 
-      CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_match_lengths,
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx.seq_ctx->d_match_lengths,
                             ZSTD_BLOCKSIZE_MAX * sizeof(u32)));
       {
         cudaError_t e = cudaGetLastError();
       }
 
-      CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_offsets,
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx.seq_ctx->d_offsets,
                             ZSTD_BLOCKSIZE_MAX * sizeof(u32)));
       {
         cudaError_t e = cudaGetLastError();
       }
 
-      CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_num_sequences, sizeof(u32)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx.seq_ctx->d_num_sequences, sizeof(u32)));
       {
         cudaError_t e = cudaGetLastError();
       }
 
-      CUDA_CHECK(cudaMalloc(&ctx.seq_ctx->d_sequences,
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx.seq_ctx->d_sequences,
                             ZSTD_BLOCKSIZE_MAX * sizeof(sequence::Sequence)));
       {
         cudaError_t e = cudaGetLastError();
@@ -3822,7 +3823,7 @@ private:
     if (!ctx.huff_ctx) {
       ctx.huff_ctx = new huffman::HuffmanTable();
       CUDA_CHECK(
-          cudaMalloc(&ctx.huff_ctx->codes, 256 * sizeof(huffman::HuffmanCode)));
+          cuda_zstd::safe_cuda_malloc(&ctx.huff_ctx->codes, 256 * sizeof(huffman::HuffmanCode)));
       {
         cudaError_t e = cudaGetLastError();
       }
@@ -4231,7 +4232,7 @@ private:
 
     // === Execute Sequences ===
     u32 *d_output_size;
-    CUDA_CHECK(cudaMalloc(&d_output_size, sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output_size, sizeof(u32)));
     CUDA_CHECK(cudaMemsetAsync(d_output_size, 0, sizeof(u32), stream));
 
     status = sequence::execute_sequences(
@@ -4624,9 +4625,9 @@ private:
 
       // Allocate device memory and copy filtered data
       u32 *d_valid_ll, *d_valid_of, *d_valid_ml;
-      CUDA_CHECK(cudaMalloc(&d_valid_ll, valid_count * sizeof(u32)));
-      CUDA_CHECK(cudaMalloc(&d_valid_of, valid_count * sizeof(u32)));
-      CUDA_CHECK(cudaMalloc(&d_valid_ml, valid_count * sizeof(u32)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_valid_ll, valid_count * sizeof(u32)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_valid_of, valid_count * sizeof(u32)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_valid_ml, valid_count * sizeof(u32)));
 
       CUDA_CHECK(cudaMemcpy(d_valid_ll, h_valid_ll, valid_count * sizeof(u32),
                             cudaMemcpyHostToDevice));
@@ -4672,9 +4673,9 @@ private:
     // Always write from corrected host arrays (validation may have
     // modified them) Allocate device memory and copy corrected data
     u32 *d_corrected_ll, *d_corrected_of, *d_corrected_ml;
-    CUDA_CHECK(cudaMalloc(&d_corrected_ll, num_sequences * sizeof(u32)));
-    CUDA_CHECK(cudaMalloc(&d_corrected_of, num_sequences * sizeof(u32)));
-    CUDA_CHECK(cudaMalloc(&d_corrected_ml, num_sequences * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_corrected_ll, num_sequences * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_corrected_of, num_sequences * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_corrected_ml, num_sequences * sizeof(u32)));
 
     CUDA_CHECK(cudaMemcpy(d_corrected_ll, h_literal_lengths,
                           num_sequences * sizeof(u32), cudaMemcpyHostToDevice));
@@ -5864,7 +5865,7 @@ Status ZstdBatchManager::allocate_inference_workspace(
   size_t required_size =
       get_inference_workspace_size(max_compressed_size, max_output_size);
 
-  cudaError_t err = cudaMalloc(workspace_ptr, required_size);
+  cudaError_t err = cuda_zstd::safe_cuda_malloc(workspace_ptr, required_size);
   if (err != cudaSuccess) {
     *workspace_ptr = nullptr;
     *workspace_size = 0;
@@ -5969,7 +5970,7 @@ public:
     }
 
     workspace_size = required_size;
-    CUDA_CHECK(cudaMalloc(&d_workspace, workspace_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_workspace, workspace_size));
     return Status::SUCCESS;
   }
 };
@@ -6040,7 +6041,7 @@ Status ZstdStreamingManager::init_compression_with_history(cudaStream_t stream,
     pimpl_->streaming_ctx.d_window_history = nullptr;
   }
 
-  if (cudaMalloc(&pimpl_->streaming_ctx.d_window_history, window_size) !=
+  if (cuda_zstd::safe_cuda_malloc(&pimpl_->streaming_ctx.d_window_history, window_size) !=
       cudaSuccess) {
     return Status::ERROR_OUT_OF_MEMORY;
   }
@@ -6049,9 +6050,9 @@ Status ZstdStreamingManager::init_compression_with_history(cudaStream_t stream,
   size_t hash_size = (1ULL << pimpl_->config.hash_log) * sizeof(u32);
   size_t chain_size = (1ULL << pimpl_->config.chain_log) * sizeof(u32);
 
-  if (cudaMalloc(&pimpl_->streaming_ctx.d_hash_table_state, hash_size) != cudaSuccess)
+  if (cuda_zstd::safe_cuda_malloc(&pimpl_->streaming_ctx.d_hash_table_state, hash_size) != cudaSuccess)
     return Status::ERROR_OUT_OF_MEMORY;
-  if (cudaMalloc(&pimpl_->streaming_ctx.d_chain_table_state, chain_size) != cudaSuccess)
+  if (cuda_zstd::safe_cuda_malloc(&pimpl_->streaming_ctx.d_chain_table_state, chain_size) != cudaSuccess)
     return Status::ERROR_OUT_OF_MEMORY;
 
   // Clear state
@@ -6141,7 +6142,7 @@ Status ZstdStreamingManager::compress_chunk(const void *input,
       pimpl_->d_workspace = nullptr;
     }
     pimpl_->workspace_size = required_temp;
-    if (cudaMalloc(&pimpl_->d_workspace, pimpl_->workspace_size) !=
+    if (cuda_zstd::safe_cuda_malloc(&pimpl_->d_workspace, pimpl_->workspace_size) !=
         cudaSuccess) {
       return Status::ERROR_OUT_OF_MEMORY;
     }
@@ -6206,7 +6207,7 @@ Status ZstdStreamingManager::compress_chunk_with_history(
       pimpl_->d_workspace = nullptr;
     }
     pimpl_->workspace_size = required_temp;
-    if (cudaMalloc(&pimpl_->d_workspace, pimpl_->workspace_size) !=
+    if (cuda_zstd::safe_cuda_malloc(&pimpl_->d_workspace, pimpl_->workspace_size) !=
         cudaSuccess) {
       return Status::ERROR_OUT_OF_MEMORY;
     }

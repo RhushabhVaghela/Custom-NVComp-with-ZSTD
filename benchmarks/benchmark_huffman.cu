@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 #include "cuda_zstd_huffman.h"
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "workspace_manager.h"
 
 // Helper to measure time
@@ -53,12 +54,12 @@ void run_benchmark(size_t size, int iterations) {
     generate_huffman_data(h_input, size);
 
     void *d_input, *d_compressed, *d_output;
-    CUDA_CHECK(cudaMalloc(&d_input, size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, size));
     // For Indexed Huffman: need space for data + header + chunk offsets
     // Worst case: full expansion (size*2) + 257B header + (size/4096)*4B offsets
     size_t max_offsets = ((size + 4095) / 4096) * 4;
-    CUDA_CHECK(cudaMalloc(&d_compressed, size * 2 + 512 + max_offsets));
-    CUDA_CHECK(cudaMalloc(&d_output, size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, size * 2 + 512 + max_offsets));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, size));
     
     CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice));
 
@@ -71,7 +72,7 @@ void run_benchmark(size_t size, int iterations) {
 
     // Huffman Table
     cuda_zstd::huffman::HuffmanTable table;
-    CUDA_CHECK(cudaMalloc(&table.codes, cuda_zstd::huffman::MAX_HUFFMAN_SYMBOLS * sizeof(cuda_zstd::huffman::HuffmanCode)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&table.codes, cuda_zstd::huffman::MAX_HUFFMAN_SYMBOLS * sizeof(cuda_zstd::huffman::HuffmanCode)));
 
     // 2. Benchmark Encode
     size_t compressed_size = 0;

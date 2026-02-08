@@ -17,6 +17,7 @@
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_utils.h"
 #include "cuda_zstd_xxhash.h"
+#include "cuda_zstd_safe_alloc.h"
 
 #include <chrono>
 #include <cstring>
@@ -171,7 +172,7 @@ GpuMemorySnapshot get_gpu_memory_snapshot() {
 uint64_t compute_checksum(void *data, size_t size, cudaStream_t stream = 0) {
   u64 h_hash = 0;
   u64 *d_hash = nullptr;
-  cudaMalloc(&d_hash, sizeof(u64));
+  cuda_zstd::safe_cuda_malloc(&d_hash, sizeof(u64));
   cuda_zstd::xxhash::compute_xxhash64(data, size, 0, d_hash, stream);
   cudaStreamSynchronize(stream ? stream : 0);
   cudaMemcpy(&h_hash, d_hash, sizeof(u64), cudaMemcpyDeviceToHost);
@@ -253,8 +254,8 @@ ZstdBenchmarkResult benchmark_cuda_zstd(const void *h_input, size_t input_size,
       static_cast<size_t>(input_size * MAX_OUTPUT_MULTIPLIER);
 
   auto alloc_start = std::chrono::high_resolution_clock::now();
-  CHECK_CUDA(cudaMalloc(&d_input, input_size));
-  CHECK_CUDA(cudaMalloc(&d_output, max_output_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, max_output_size));
   auto alloc_end = std::chrono::high_resolution_clock::now();
 
   result.gpu_memory_alloc_time_ms =
@@ -278,7 +279,7 @@ ZstdBenchmarkResult benchmark_cuda_zstd(const void *h_input, size_t input_size,
   // Get workspace size and allocate
   size_t workspace_size = manager->get_compress_temp_size(input_size);
   void *workspace = nullptr;
-  CHECK_CUDA(cudaMalloc(&workspace, workspace_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&workspace, workspace_size));
 
   // Track peak VRAM usage
   GpuMemorySnapshot mem_after_alloc = get_gpu_memory_snapshot();
@@ -330,14 +331,14 @@ ZstdBenchmarkResult benchmark_cuda_zstd(const void *h_input, size_t input_size,
 
     // Verify integrity by decompressing and checking checksum
     void *d_decompressed = nullptr;
-    CHECK_CUDA(cudaMalloc(&d_decompressed, input_size));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_decompressed, input_size));
 
     size_t decompressed_size = input_size;
     auto decomp_manager = create_batch_manager(compression_level);
     size_t decomp_workspace =
         decomp_manager->get_decompress_temp_size(compressed_size);
     void *decomp_workspace_ptr = nullptr;
-    CHECK_CUDA(cudaMalloc(&decomp_workspace_ptr, decomp_workspace));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&decomp_workspace_ptr, decomp_workspace));
 
     Status dec_status = decomp_manager->decompress(
         d_output, compressed_size, d_decompressed, &decompressed_size,

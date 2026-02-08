@@ -11,6 +11,7 @@
 
 #include "cuda_zstd_nvcomp.h"
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 
 #include <algorithm> // For std::min
 #include <cmath>     // For log2f
@@ -855,9 +856,9 @@ NvcompV5BenchmarkResult benchmark_level(const void *d_input, size_t input_size,
   void *d_temp;
   void *d_compressed;
   void *d_decompressed;
-  cudaMalloc(&d_temp, temp_size);
-  cudaMalloc(&d_compressed, max_comp_size);
-  cudaMalloc(&d_decompressed, input_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, max_comp_size);
+  cuda_zstd::safe_cuda_malloc(&d_decompressed, input_size);
 
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
@@ -885,7 +886,7 @@ NvcompV5BenchmarkResult benchmark_level(const void *d_input, size_t input_size,
       manager->get_decompress_temp_size(result.compressed_size);
   if (decomp_temp_size > temp_size) {
     cudaFree(d_temp);
-    cudaMalloc(&d_temp, decomp_temp_size);
+    cuda_zstd::safe_cuda_malloc(&d_temp, decomp_temp_size);
   }
 
   size_t decompressed_size = input_size;

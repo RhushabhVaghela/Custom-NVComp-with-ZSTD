@@ -1,5 +1,6 @@
 #include "lz77_parallel.h"
 #include "workspace_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cuda_runtime.h>
 #include <iostream>
@@ -75,7 +76,7 @@ void run_benchmark(size_t size, int iterations, bool add_noise = true) {
   generate_test_data(h_input, size, add_noise);
 
   uint8_t *d_input;
-  CUDA_CHECK(cudaMalloc(&d_input, size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, size));
   CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice));
 
   cudaStream_t stream;

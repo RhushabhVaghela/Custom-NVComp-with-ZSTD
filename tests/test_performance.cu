@@ -123,13 +123,13 @@ bool test_compression_timing_breakdown() {
   void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_compression_timing_breakdown",
              "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size * 2)) {
     LOG_FAIL("test_compression_timing_breakdown",
              "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
@@ -165,7 +165,7 @@ bool test_compression_timing_breakdown() {
   }
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_compression_timing_breakdown",
              "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
@@ -214,7 +214,7 @@ bool test_compression_timing_breakdown() {
   ASSERT_TRUE(compressed_size < data_size, "Compressible data should compress smaller than original");
 
   void *d_decompressed = nullptr;
-  if (!safe_cuda_malloc(&d_decompressed, data_size)) {
+  if (!test_safe_cuda_malloc(&d_decompressed, data_size)) {
     LOG_FAIL("test_compression_timing_breakdown", "CUDA malloc for d_decompressed failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
@@ -266,19 +266,19 @@ bool test_decompression_timing() {
   void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr,
        *d_temp = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_decompression_timing", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
     LOG_FAIL("test_decompression_timing",
              "CUDA malloc for d_compressed failed");
     safe_cuda_free(d_input);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size)) {
     LOG_FAIL("test_decompression_timing", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -315,7 +315,7 @@ bool test_decompression_timing() {
   }
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_decompression_timing", "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -400,12 +400,12 @@ bool test_compression_throughput() {
 
   void *d_input = nullptr, *d_output = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_compression_throughput", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size * 2)) {
     LOG_FAIL("test_compression_throughput", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     return false;
@@ -446,7 +446,7 @@ bool test_compression_throughput() {
 
     size_t temp_size = manager->get_compress_temp_size(data_size);
     void *d_temp = nullptr;
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("test_compression_throughput", "CUDA malloc for d_temp failed");
       any_level_failed = true;
       continue;
@@ -475,7 +475,7 @@ bool test_compression_throughput() {
 
       // Roundtrip verification: decompress and verify data integrity
       void *d_decompressed = nullptr;
-      if (!safe_cuda_malloc(&d_decompressed, data_size)) {
+      if (!test_safe_cuda_malloc(&d_decompressed, data_size)) {
         LOG_FAIL("test_compression_throughput",
                  "CUDA malloc for d_decompressed failed at level " + std::to_string(level));
         any_level_failed = true;
@@ -555,19 +555,19 @@ bool test_decompression_throughput() {
   void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr,
        *d_temp = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_decompression_throughput", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
     LOG_FAIL("test_decompression_throughput",
              "CUDA malloc for d_compressed failed");
     safe_cuda_free(d_input);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size)) {
     LOG_FAIL("test_decompression_throughput",
              "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
@@ -605,7 +605,7 @@ bool test_decompression_throughput() {
   }
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_decompression_throughput", "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -693,12 +693,12 @@ bool test_memory_bandwidth() {
 
   void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_memory_bandwidth", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size * 2)) {
     LOG_FAIL("test_memory_bandwidth", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     return false;
@@ -731,7 +731,7 @@ bool test_memory_bandwidth() {
   }
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_memory_bandwidth", "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
@@ -761,7 +761,7 @@ bool test_memory_bandwidth() {
   ASSERT_TRUE(compressed_size > 0, "Compressed size should be > 0");
 
   void *d_decompressed = nullptr;
-  if (!safe_cuda_malloc(&d_decompressed, data_size)) {
+  if (!test_safe_cuda_malloc(&d_decompressed, data_size)) {
     LOG_FAIL("test_memory_bandwidth", "CUDA malloc for d_decompressed failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
@@ -866,12 +866,12 @@ bool test_metrics_reset() {
 
   void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_metrics_reset", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size * 2)) {
     LOG_FAIL("test_metrics_reset", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     return false;
@@ -904,7 +904,7 @@ bool test_metrics_reset() {
   }
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_metrics_reset", "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
@@ -955,12 +955,12 @@ bool test_csv_export() {
 
   void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_csv_export", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size * 2)) {
     LOG_FAIL("test_csv_export", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     return false;
@@ -993,7 +993,7 @@ bool test_csv_export() {
   }
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_csv_export", "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
@@ -1048,12 +1048,12 @@ bool test_json_export() {
 
   void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_json_export", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size * 2)) {
     LOG_FAIL("test_json_export", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     return false;
@@ -1086,7 +1086,7 @@ bool test_json_export() {
   }
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_json_export", "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
@@ -1144,13 +1144,13 @@ bool test_memory_pool_performance_impact() {
 
   void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_memory_pool_performance_impact",
              "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size * 2)) {
     LOG_FAIL("test_memory_pool_performance_impact",
              "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
@@ -1186,7 +1186,7 @@ bool test_memory_pool_performance_impact() {
   }
 
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_memory_pool_performance_impact",
              "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
@@ -1231,7 +1231,7 @@ bool test_memory_pool_performance_impact() {
   ASSERT_TRUE(compressed_size > 0, "Compressed size should be > 0");
 
   void *d_decompressed = nullptr;
-  if (!safe_cuda_malloc(&d_decompressed, data_size)) {
+  if (!test_safe_cuda_malloc(&d_decompressed, data_size)) {
     LOG_FAIL("test_memory_pool_performance_impact", "CUDA malloc for d_decompressed failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);

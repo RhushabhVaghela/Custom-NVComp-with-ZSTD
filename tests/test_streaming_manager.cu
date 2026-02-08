@@ -6,6 +6,7 @@
 
 #include "cuda_error_checking.h"
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cuda_runtime.h>
 #include <cstring>
 #include <iostream>
@@ -146,8 +147,8 @@ bool test_single_chunk_compression() {
     
     // Allocate device memory
     void *d_input = nullptr, *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_input, input_data.size()));
-    CUDA_CHECK(cudaMalloc(&d_output, input_data.size() * 2));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_data.size()));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, input_data.size() * 2));
     CUDA_CHECK(cudaMemcpy(d_input, input_data.data(), input_data.size(), cudaMemcpyHostToDevice));
     
     // Compress
@@ -179,8 +180,8 @@ bool test_single_chunk_with_history() {
     
     // Allocate device memory
     void *d_input = nullptr, *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_input, input_data.size()));
-    CUDA_CHECK(cudaMalloc(&d_output, input_data.size() * 2));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_data.size()));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, input_data.size() * 2));
     CUDA_CHECK(cudaMemcpy(d_input, input_data.data(), input_data.size(), cudaMemcpyHostToDevice));
     
     // Compress with history
@@ -216,8 +217,8 @@ bool test_multiple_chunks_basic() {
     
     // Allocate device memory
     void *d_input = nullptr, *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_input, chunk_size));
-    CUDA_CHECK(cudaMalloc(&d_output, chunk_size * 2));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size * 2));
     
     size_t total_compressed = 0;
     
@@ -268,9 +269,9 @@ bool test_roundtrip_basic() {
     
     // Allocate device memory
     void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_input, input_data.size()));
-    CUDA_CHECK(cudaMalloc(&d_compressed, input_data.size() * 2));
-    CUDA_CHECK(cudaMalloc(&d_output, input_data.size()));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_data.size()));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, input_data.size() * 2));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, input_data.size()));
     CUDA_CHECK(cudaMemcpy(d_input, input_data.data(), input_data.size(), cudaMemcpyHostToDevice));
     
     // Compress
@@ -337,9 +338,9 @@ bool test_roundtrip_multiple_chunks() {
     
     // Allocate device memory
     void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_input, chunk_size));
-    CUDA_CHECK(cudaMalloc(&d_compressed, chunk_size * 2));
-    CUDA_CHECK(cudaMalloc(&d_output, chunk_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, chunk_size * 2));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size));
     
     // Compress all chunks
     std::vector<size_t> compressed_sizes(num_chunks);
@@ -425,8 +426,8 @@ bool test_history_comparison() {
     
     size_t total_basic = 0;
     void *d_input = nullptr, *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_input, chunk_size));
-    CUDA_CHECK(cudaMalloc(&d_output, chunk_size * 2));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size * 2));
     
     for (int i = 0; i < num_chunks; ++i) {
         CUDA_CHECK(cudaMemcpy(d_input, chunks[i].data(), chunk_size, cudaMemcpyHostToDevice));
@@ -474,7 +475,7 @@ bool test_invalid_parameters() {
     generate_compressible_data(data, 1024);
     
     void *d_output = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_output, 2048));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, 2048));
     
     size_t output_size = 0;
     

@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include "cuda_zstd_nvcomp.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cassert>
 #include <cuda_runtime.h>
@@ -99,7 +100,7 @@ void run_test(const std::string &name, const std::vector<uint8_t> &input,
   void *d_temp;
 
   size_t input_size = input.size();
-  CHECK_CUDA(cudaMalloc(&d_input, input_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
   CHECK_CUDA(
       cudaMemcpy(d_input, input.data(), input_size, cudaMemcpyHostToDevice));
 
@@ -108,18 +109,18 @@ void run_test(const std::string &name, const std::vector<uint8_t> &input,
   NvcompV5BatchManager manager(opts);
 
   size_t max_out = manager.get_max_compressed_chunk_size(input_size);
-  CHECK_CUDA(cudaMalloc(&d_output, max_out));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, max_out));
 
   size_t temp_size = manager.get_compress_temp_size(&input_size, 1);
-  CHECK_CUDA(cudaMalloc(&d_temp, temp_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   void *h_uncompressed_ptrs[] = {d_input};
   void *h_compressed_ptrs[] = {d_output};
 
   void **d_uncompressed_ptrs_array;
   void **d_compressed_ptrs_array;
-  CHECK_CUDA(cudaMalloc(&d_uncompressed_ptrs_array, sizeof(void *)));
-  CHECK_CUDA(cudaMalloc(&d_compressed_ptrs_array, sizeof(void *)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_uncompressed_ptrs_array, sizeof(void *)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_compressed_ptrs_array, sizeof(void *)));
   CHECK_CUDA(cudaMemcpy(d_uncompressed_ptrs_array, h_uncompressed_ptrs,
                         sizeof(void *), cudaMemcpyHostToDevice));
   CHECK_CUDA(cudaMemcpy(d_compressed_ptrs_array, h_compressed_ptrs,
@@ -127,7 +128,7 @@ void run_test(const std::string &name, const std::vector<uint8_t> &input,
 
   size_t d_compressed_size_val = max_out;
   size_t *d_compressed_size;
-  CHECK_CUDA(cudaMalloc(&d_compressed_size, sizeof(size_t)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_compressed_size, sizeof(size_t)));
   CHECK_CUDA(cudaMemcpy(d_compressed_size, &d_compressed_size_val,
                         sizeof(size_t), cudaMemcpyHostToDevice));
 
@@ -148,16 +149,16 @@ void run_test(const std::string &name, const std::vector<uint8_t> &input,
   }
 
   // Decompress
-  CHECK_CUDA(cudaMalloc(&d_decomp, input_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_decomp, input_size));
   void *h_decomp_ptrs[] = {d_decomp};
   void **d_decomp_ptrs_array;
-  CHECK_CUDA(cudaMalloc(&d_decomp_ptrs_array, sizeof(void *)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_decomp_ptrs_array, sizeof(void *)));
   CHECK_CUDA(cudaMemcpy(d_decomp_ptrs_array, h_decomp_ptrs, sizeof(void *),
                         cudaMemcpyHostToDevice));
 
   size_t d_decomp_size_val = input_size; // Capacity
   size_t *d_decomp_size;
-  CHECK_CUDA(cudaMalloc(&d_decomp_size, sizeof(size_t)));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_decomp_size, sizeof(size_t)));
   CHECK_CUDA(cudaMemcpy(d_decomp_size, &d_decomp_size_val, sizeof(size_t),
                         cudaMemcpyHostToDevice));
 
@@ -165,7 +166,7 @@ void run_test(const std::string &name, const std::vector<uint8_t> &input,
       manager.get_decompress_temp_size(&compressed_size, 1);
   if (decomp_temp_size > temp_size) {
     CHECK_CUDA(cudaFree(d_temp));
-    CHECK_CUDA(cudaMalloc(&d_temp, decomp_temp_size));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_temp, decomp_temp_size));
     temp_size = decomp_temp_size;
   }
 

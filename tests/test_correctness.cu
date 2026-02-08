@@ -132,18 +132,18 @@ bool test_identity_property() {
        *d_temp = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_identity_property", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
     LOG_FAIL("test_identity_property", "CUDA malloc for d_compressed failed");
     safe_cuda_free(d_input);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size)) {
     LOG_FAIL("test_identity_property", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -162,7 +162,7 @@ bool test_identity_property() {
 
   auto manager = create_manager(5);
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_identity_property", "CUDA malloc for temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -238,20 +238,20 @@ bool test_random_inputs_roundtrip() {
          *d_temp = nullptr;
 
     // Allocate GPU memory with error checking
-    if (!safe_cuda_malloc(&d_input, size)) {
+    if (!test_safe_cuda_malloc(&d_input, size)) {
       LOG_FAIL("test_random_inputs_roundtrip",
                "CUDA malloc for d_input failed");
       continue;
     }
 
-    if (!safe_cuda_malloc(&d_compressed, std::max(size * 2, (size_t)1024))) {
+    if (!test_safe_cuda_malloc(&d_compressed, std::max(size * 2, (size_t)1024))) {
       LOG_FAIL("test_random_inputs_roundtrip",
                "CUDA malloc for d_compressed failed");
       safe_cuda_free(d_input);
       continue;
     }
 
-    if (!safe_cuda_malloc(&d_output, size)) {
+    if (!test_safe_cuda_malloc(&d_output, size)) {
       LOG_FAIL("test_random_inputs_roundtrip",
                "CUDA malloc for d_output failed");
       safe_cuda_free(d_input);
@@ -271,7 +271,7 @@ bool test_random_inputs_roundtrip() {
 
     auto manager = create_manager(1 + (test % 22));
     size_t temp_size = manager->get_compress_temp_size(size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("test_random_inputs_roundtrip", "CUDA malloc for temp failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -338,19 +338,19 @@ bool test_all_compression_levels() {
   void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_all_compression_levels", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
     LOG_FAIL("test_all_compression_levels",
              "CUDA malloc for d_compressed failed");
     safe_cuda_free(d_input);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size)) {
     LOG_FAIL("test_all_compression_levels", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -376,7 +376,7 @@ bool test_all_compression_levels() {
     auto manager = create_manager(level);
     size_t temp_size = manager->get_compress_temp_size(data_size);
     void *d_temp = nullptr;
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("test_all_compression_levels", "CUDA malloc for temp failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -472,20 +472,20 @@ bool test_various_sizes_roundtrip() {
          *d_temp = nullptr;
 
     // Allocate GPU memory with error checking
-    if (!safe_cuda_malloc(&d_input, size)) {
+    if (!test_safe_cuda_malloc(&d_input, size)) {
       LOG_FAIL("test_various_sizes_roundtrip",
                "CUDA malloc for d_input failed");
       continue;
     }
 
-    if (!safe_cuda_malloc(&d_compressed, std::max(size * 2, (size_t)1024))) {
+    if (!test_safe_cuda_malloc(&d_compressed, std::max(size * 2, (size_t)1024))) {
       LOG_FAIL("test_various_sizes_roundtrip",
                "CUDA malloc for d_compressed failed");
       safe_cuda_free(d_input);
       continue;
     }
 
-    if (!safe_cuda_malloc(&d_output, size)) {
+    if (!test_safe_cuda_malloc(&d_output, size)) {
       LOG_FAIL("test_various_sizes_roundtrip",
                "CUDA malloc for d_output failed");
       safe_cuda_free(d_input);
@@ -504,7 +504,7 @@ bool test_various_sizes_roundtrip() {
     }
 
     size_t temp_size = manager->get_compress_temp_size(size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("test_various_sizes_roundtrip", "CUDA malloc for temp failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -582,12 +582,12 @@ bool test_frame_format_validation() {
   void *d_input = nullptr, *d_compressed = nullptr, *d_temp = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_frame_format_validation", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
     LOG_FAIL("test_frame_format_validation",
              "CUDA malloc for d_compressed failed");
     safe_cuda_free(d_input);
@@ -605,7 +605,7 @@ bool test_frame_format_validation() {
 
   auto manager = create_manager(3);
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_frame_format_validation", "CUDA malloc for temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -670,18 +670,18 @@ bool test_checksum_validation() {
        *d_temp = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_checksum_validation", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
     LOG_FAIL("test_checksum_validation", "CUDA malloc for d_compressed failed");
     safe_cuda_free(d_input);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size)) {
     LOG_FAIL("test_checksum_validation", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -700,7 +700,7 @@ bool test_checksum_validation() {
 
   auto manager = create_manager(5);
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_checksum_validation", "CUDA malloc for temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -807,18 +807,18 @@ bool test_special_patterns() {
          *d_temp = nullptr;
 
     // Allocate GPU memory with error checking
-    if (!safe_cuda_malloc(&d_input, data_size)) {
+    if (!test_safe_cuda_malloc(&d_input, data_size)) {
       LOG_FAIL("test_special_patterns", "CUDA malloc for d_input failed");
       continue;
     }
 
-    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+    if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
       LOG_FAIL("test_special_patterns", "CUDA malloc for d_compressed failed");
       safe_cuda_free(d_input);
       continue;
     }
 
-    if (!safe_cuda_malloc(&d_output, data_size)) {
+    if (!test_safe_cuda_malloc(&d_output, data_size)) {
       LOG_FAIL("test_special_patterns", "CUDA malloc for d_output failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -836,7 +836,7 @@ bool test_special_patterns() {
     }
 
     size_t temp_size = manager->get_compress_temp_size(data_size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("test_special_patterns", "CUDA malloc for temp failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -902,18 +902,18 @@ bool test_byte_alignment() {
          *d_temp = nullptr;
 
     // Allocate GPU memory with error checking
-    if (!safe_cuda_malloc(&d_input, 1024)) {
+    if (!test_safe_cuda_malloc(&d_input, 1024)) {
       LOG_FAIL("test_byte_alignment", "CUDA malloc for d_input failed");
       return false;
     }
 
-    if (!safe_cuda_malloc(&d_compressed, 1024)) {
+    if (!test_safe_cuda_malloc(&d_compressed, 1024)) {
       LOG_FAIL("test_byte_alignment", "CUDA malloc for d_compressed failed");
       safe_cuda_free(d_input);
       return false;
     }
 
-    if (!safe_cuda_malloc(&d_output, 1024)) {
+    if (!test_safe_cuda_malloc(&d_output, 1024)) {
       LOG_FAIL("test_byte_alignment", "CUDA malloc for d_output failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -931,7 +931,7 @@ bool test_byte_alignment() {
     }
 
     size_t temp_size = manager->get_compress_temp_size(size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("test_byte_alignment", "CUDA malloc for temp failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -989,20 +989,20 @@ bool test_deterministic_compression() {
        *d_temp = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_input, data_size)) {
+  if (!test_safe_cuda_malloc(&d_input, data_size)) {
     LOG_FAIL("test_deterministic_compression",
              "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed1, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed1, data_size * 2)) {
     LOG_FAIL("test_deterministic_compression",
              "CUDA malloc for d_compressed1 failed");
     safe_cuda_free(d_input);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed2, data_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed2, data_size * 2)) {
     LOG_FAIL("test_deterministic_compression",
              "CUDA malloc for d_compressed2 failed");
     safe_cuda_free(d_input);
@@ -1022,7 +1022,7 @@ bool test_deterministic_compression() {
 
   auto manager = create_manager(5);
   size_t temp_size = manager->get_compress_temp_size(data_size);
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     LOG_FAIL("test_deterministic_compression", "CUDA malloc for temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed1);

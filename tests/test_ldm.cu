@@ -6,6 +6,7 @@
  */
 
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <vector>
@@ -187,10 +188,10 @@ bool test_ldm_process_block() {
         // Try to process a block
         std::vector<u8> data(1024);
         void* d_data = nullptr;
-        cudaMalloc(&d_data, 1024);
+        cuda_zstd::safe_cuda_malloc(&d_data, 1024);
         
         lz77::Match* d_matches = nullptr;
-        cudaMalloc(&d_matches, 1024 * sizeof(lz77::Match));
+        cuda_zstd::safe_cuda_malloc(&d_matches, 1024 * sizeof(lz77::Match));
         
         status = ldm_process_block(ctx, d_data, 1024, d_matches, 0, 0);
         

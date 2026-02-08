@@ -9,6 +9,7 @@
  */
 
 #include "cuda_zstd_huffman.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -109,25 +110,25 @@ bool test_gpu_to_cpu(const char *input_str) {
 
   // Allocate GPU memory
   byte_t *d_input, *d_compressed, *d_decompressed;
-  TEST_CUDA_CHECK(cudaMalloc(&d_input, input_size));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
   size_t max_compressed = input_size * 2 + 1024;
-  TEST_CUDA_CHECK(cudaMalloc(&d_compressed, max_compressed));
-  TEST_CUDA_CHECK(cudaMalloc(&d_decompressed, input_size));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_decompressed, input_size));
 
   TEST_CUDA_CHECK(
       cudaMemcpy(d_input, input_str, input_size, cudaMemcpyHostToDevice));
 
   huffman::HuffmanTable table;
-  TEST_CUDA_CHECK(cudaMalloc(&table.codes, huffman::MAX_HUFFMAN_SYMBOLS *
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&table.codes, huffman::MAX_HUFFMAN_SYMBOLS *
                                                sizeof(huffman::HuffmanCode)));
 
   cuda_zstd::CompressionWorkspace workspace;
-  TEST_CUDA_CHECK(cudaMalloc(&workspace.d_frequencies,
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&workspace.d_frequencies,
                              huffman::MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
   TEST_CUDA_CHECK(
-      cudaMalloc(&workspace.d_code_lengths, input_size * sizeof(u32)));
+      cuda_zstd::safe_cuda_malloc(&workspace.d_code_lengths, input_size * sizeof(u32)));
   TEST_CUDA_CHECK(
-      cudaMalloc(&workspace.d_bit_offsets, input_size * sizeof(u32)));
+      cuda_zstd::safe_cuda_malloc(&workspace.d_bit_offsets, input_size * sizeof(u32)));
 
   size_t compressed_size = 0;
   Status status =
@@ -170,25 +171,25 @@ bool test_gpu_to_gpu(const char *input_str) {
 
   // Allocate GPU memory
   byte_t *d_input, *d_compressed, *d_decompressed;
-  TEST_CUDA_CHECK(cudaMalloc(&d_input, input_size));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
   size_t max_compressed = input_size * 2 + 1024;
-  TEST_CUDA_CHECK(cudaMalloc(&d_compressed, max_compressed));
-  TEST_CUDA_CHECK(cudaMalloc(&d_decompressed, input_size));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_decompressed, input_size));
 
   TEST_CUDA_CHECK(
       cudaMemcpy(d_input, input_str, input_size, cudaMemcpyHostToDevice));
 
   huffman::HuffmanTable table;
-  TEST_CUDA_CHECK(cudaMalloc(&table.codes, huffman::MAX_HUFFMAN_SYMBOLS *
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&table.codes, huffman::MAX_HUFFMAN_SYMBOLS *
                                                sizeof(huffman::HuffmanCode)));
 
   cuda_zstd::CompressionWorkspace workspace;
-  TEST_CUDA_CHECK(cudaMalloc(&workspace.d_frequencies,
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&workspace.d_frequencies,
                              huffman::MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
   TEST_CUDA_CHECK(
-      cudaMalloc(&workspace.d_code_lengths, input_size * sizeof(u32)));
+      cuda_zstd::safe_cuda_malloc(&workspace.d_code_lengths, input_size * sizeof(u32)));
   TEST_CUDA_CHECK(
-      cudaMalloc(&workspace.d_bit_offsets, input_size * sizeof(u32)));
+      cuda_zstd::safe_cuda_malloc(&workspace.d_bit_offsets, input_size * sizeof(u32)));
 
   // Encode
   size_t compressed_size = 0;

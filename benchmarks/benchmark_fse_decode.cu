@@ -1,5 +1,6 @@
 #include "../include/cuda_zstd_manager.h"
 #include "../include/cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cuda_runtime.h>
 #include <iostream>
@@ -53,9 +54,9 @@ void benchmark_decode(size_t input_size, int iterations) {
 
   // Allocate device memory
   byte_t *d_input, *d_compressed, *d_output;
-  CHECK(cudaMalloc(&d_input, input_size));
-  CHECK(cudaMalloc(&d_compressed, input_size * 2));
-  CHECK(cudaMalloc(&d_output, input_size));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, input_size * 2));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_output, input_size));
   CHECK(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
   printf("[BENCH] d_compressed: %p\n", d_compressed);
@@ -83,7 +84,7 @@ void benchmark_decode(size_t input_size, int iterations) {
   // Allocate workspace for compression
   size_t compress_temp_size = manager->get_compress_temp_size(input_size);
   void *d_temp;
-  CHECK(cudaMalloc(&d_temp, compress_temp_size));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_temp, compress_temp_size));
   CHECK(cudaMemset(d_temp, 0, compress_temp_size));
 
   // First compress the data
@@ -117,7 +118,7 @@ void benchmark_decode(size_t input_size, int iterations) {
   CHECK(cudaFree(d_temp));
   size_t decompress_temp_size =
       manager->get_decompress_temp_size(compressed_size);
-  CHECK(cudaMalloc(&d_temp, decompress_temp_size));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_temp, decompress_temp_size));
   CHECK(cudaMemset(d_temp, 0, decompress_temp_size));
 
   // Warmup decompression

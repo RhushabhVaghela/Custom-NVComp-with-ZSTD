@@ -9,6 +9,7 @@
 
 #include "cuda_zstd_internal.h" // For dictionary::Dmer
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cstdlib>
 #include <cuda_runtime.h>
@@ -50,8 +51,8 @@ bool test_parallel_scan_u32() {
     h_expected[i] = h_expected[i - 1] + h_input[i - 1];
 
   u32 *d_input, *d_output;
-  TEST_CUDA_CHECK(cudaMalloc(&d_input, N * sizeof(u32)));
-  TEST_CUDA_CHECK(cudaMalloc(&d_output, N * sizeof(u32)));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, N * sizeof(u32)));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, N * sizeof(u32)));
   TEST_CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), N * sizeof(u32),
                              cudaMemcpyHostToDevice));
 
@@ -128,7 +129,7 @@ bool test_parallel_sort_dmers() {
   }
 
   dictionary::Dmer *d_dmers;
-  TEST_CUDA_CHECK(cudaMalloc(&d_dmers, N * sizeof(dictionary::Dmer)));
+  TEST_CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dmers, N * sizeof(dictionary::Dmer)));
   TEST_CUDA_CHECK(cudaMemcpy(d_dmers, h_dmers.data(),
                              N * sizeof(dictionary::Dmer),
                              cudaMemcpyHostToDevice));

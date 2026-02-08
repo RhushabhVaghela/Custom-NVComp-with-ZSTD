@@ -10,6 +10,7 @@
 
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_xxhash.h"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 
@@ -35,10 +36,9 @@ void benchmark_xxhash_throughput() {
   const int benchmark_runs = 10;
 
   for (size_t size : sizes) {
-    // Check if we have enough GPU memory
-    size_t free_mem, total_mem;
-    cudaMemGetInfo(&free_mem, &total_mem);
-    if (size > free_mem * 0.8) {
+    // Check if we have enough GPU memory (respecting VRAM safety buffer)
+    size_t usable_vram = cuda_zstd::get_usable_vram();
+    if (size > usable_vram * 0.8) {
       std::cout << "Skipping size " << (size / 1024 / 1024)
                 << " MB - insufficient GPU memory" << std::endl;
       continue;
@@ -47,13 +47,13 @@ void benchmark_xxhash_throughput() {
     // Allocate and initialize device memory
     byte_t *d_data;
     u64 *d_hash_out;
-    cudaError_t err = cudaMalloc(&d_data, size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, size);
     if (err != cudaSuccess) {
       std::cout << "Failed to allocate " << (size / 1024 / 1024) << " MB"
                 << std::endl;
       continue;
     }
-    cudaMalloc(&d_hash_out, sizeof(u64));
+    cuda_zstd::safe_cuda_malloc(&d_hash_out, sizeof(u64));
 
     // Initialize with random data
     std::vector<byte_t> h_data(size);

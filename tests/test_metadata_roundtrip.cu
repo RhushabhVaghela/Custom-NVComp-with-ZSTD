@@ -40,18 +40,18 @@ Status test_metadata_roundtrip() {
     std::cout << "    Pattern: 0x00, 0x01, 0x02, ..., 0xFF (repeating)\n\n";
 
     // === Step 2: Allocate GPU memory with safe error handling ===
-    if (!safe_cuda_malloc((void **)&d_input, DATA_SIZE)) {
+    if (!test_safe_cuda_malloc((void **)&d_input, DATA_SIZE)) {
       std::cerr << " ✗ FAILED: Failed to allocate input buffer\n";
       return Status::ERROR_CUDA_ERROR;
     }
 
-    if (!safe_cuda_malloc((void **)&d_compressed, DATA_SIZE * 2)) {
+    if (!test_safe_cuda_malloc((void **)&d_compressed, DATA_SIZE * 2)) {
       std::cerr << " ✗ FAILED: Failed to allocate compressed buffer\n";
       safe_cuda_free(d_input);
       return Status::ERROR_CUDA_ERROR;
     }
 
-    if (!safe_cuda_malloc((void **)&d_decompressed, DATA_SIZE)) {
+    if (!test_safe_cuda_malloc((void **)&d_decompressed, DATA_SIZE)) {
       std::cerr << " ✗ FAILED: Failed to allocate decompressed buffer\n";
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -99,7 +99,7 @@ Status test_metadata_roundtrip() {
     // === Step 5: Calculate workspace size ===
     size_t compress_workspace_size = manager->get_compress_temp_size(DATA_SIZE);
 
-    if (!safe_cuda_malloc(&d_compress_workspace, compress_workspace_size)) {
+    if (!test_safe_cuda_malloc(&d_compress_workspace, compress_workspace_size)) {
       std::cerr << " ✗ FAILED: Failed to allocate compression workspace\n";
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -244,7 +244,7 @@ Status test_metadata_roundtrip() {
     size_t decompress_workspace_size =
         manager->get_decompress_temp_size(compressed_size);
 
-    if (!safe_cuda_malloc(&d_decompress_workspace, decompress_workspace_size)) {
+    if (!test_safe_cuda_malloc(&d_decompress_workspace, decompress_workspace_size)) {
       std::cerr << " ✗ FAILED: Failed to allocate decompression workspace\n";
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);

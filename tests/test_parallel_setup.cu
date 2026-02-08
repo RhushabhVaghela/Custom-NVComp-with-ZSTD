@@ -1,6 +1,7 @@
 
 #include "../include/cuda_zstd_types.h"
 #include "../src/cuda_zstd_fse_chunk_kernel.cuh" // Access internal kernels directly
+#include "cuda_zstd_safe_alloc.h"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <random>
@@ -67,7 +68,7 @@ int main() {
   generate_random_data(h_input, input_size);
 
   byte_t *d_input;
-  CHECK(cudaMalloc(&d_input, input_size));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
   CHECK(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
 
@@ -78,8 +79,8 @@ int main() {
 
   u16 *d_stateTable;
   cuda_zstd::fse::GPU_FSE_SymbolTransform *d_symbolTT;
-  CHECK(cudaMalloc(&d_stateTable, h_stateTable.size() * sizeof(u16)));
-  CHECK(cudaMalloc(&d_symbolTT,
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_stateTable, h_stateTable.size() * sizeof(u16)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_symbolTT,
                    h_symbolTT.size() *
                        sizeof(cuda_zstd::fse::GPU_FSE_SymbolTransform)));
   CHECK(cudaMemcpy(d_stateTable, h_stateTable.data(),
@@ -95,10 +96,10 @@ int main() {
   u16 *d_par_states;
   u32 *d_par_bits;
 
-  CHECK(cudaMalloc(&d_seq_states, num_chunks * sizeof(u16)));
-  CHECK(cudaMalloc(&d_seq_bits, num_chunks * sizeof(u32)));
-  CHECK(cudaMalloc(&d_par_states, num_chunks * sizeof(u16)));
-  CHECK(cudaMalloc(&d_par_bits, num_chunks * sizeof(u32)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_seq_states, num_chunks * sizeof(u16)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_seq_bits, num_chunks * sizeof(u32)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_par_states, num_chunks * sizeof(u16)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_par_bits, num_chunks * sizeof(u32)));
 
   CHECK(cudaMemset(d_seq_states, 0, num_chunks * sizeof(u16)));
   CHECK(cudaMemset(d_par_states, 0, num_chunks * sizeof(u16)));

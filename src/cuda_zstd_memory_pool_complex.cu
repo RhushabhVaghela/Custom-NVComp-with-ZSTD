@@ -4,6 +4,7 @@
 // ============================================================================
 
 #include "cuda_zstd_memory_pool.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "cuda_zstd_stacktrace.h"
 #include <algorithm>
 #include <chrono>
@@ -17,6 +18,10 @@
 #include <random>
 #include <thread>
 #include <unordered_map>
+
+#ifdef __linux__
+#include <sys/sysinfo.h>
+#endif
 
 // Logging macro for fallback events
 
@@ -107,7 +112,17 @@ void *MemoryPoolManager::allocate_from_cuda(size_t size) {
     return nullptr;
   }
 
-  cudaError_t err = cudaMalloc(&ptr, size);
+  // Check actual VRAM: refuse if allocation would leave less than the
+  // safety buffer free. This prevents WSL crashes and driver OOM.
+  size_t free_mem = 0, total_mem = 0;
+  if (cudaMemGetInfo(&free_mem, &total_mem) == cudaSuccess) {
+    if (free_mem < size + VRAM_SAFETY_BUFFER_BYTES) {
+      allocation_failures_.fetch_add(1, std::memory_order_relaxed);
+      return nullptr;
+    }
+  }
+
+  cudaError_t err = cuda_zstd::safe_cuda_malloc(&ptr, size);
 
   if (err != cudaSuccess) {
     // Log CUDA allocation failure for monitoring
@@ -123,13 +138,28 @@ void *MemoryPoolManager::allocate_from_cuda(size_t size) {
 }
 
 void *MemoryPoolManager::allocate_from_host(size_t size) {
-  // Check host memory limit
+  // Check host memory limit (soft, per-pool config)
   size_t current_host_usage =
       host_memory_usage_.load(std::memory_order_relaxed);
   if (current_host_usage + size >
       fallback_config_.host_memory_limit_mb * 1024 * 1024) {
     return nullptr;
   }
+
+  // Check actual system RAM: refuse if allocation would leave less than
+  // the safety buffer free. Prevents WSL OOM and system instability.
+#ifdef __linux__
+  {
+    struct sysinfo si;
+    if (sysinfo(&si) == 0) {
+      size_t available_ram =
+          static_cast<size_t>(si.freeram) * static_cast<size_t>(si.mem_unit);
+      if (available_ram < size + RAM_SAFETY_BUFFER_BYTES) {
+        return nullptr;
+      }
+    }
+  }
+#endif
 
   // Use regular malloc instead of cudaMallocHost for compatibility
   // Tests expect to free with free(), not cudaFreeHost()
@@ -282,7 +312,7 @@ void *MemoryPoolManager::migrate_host_to_device(void *host_ptr, size_t size,
 
   // Allocate device memory
   void *d_ptr = nullptr;
-  cudaError_t err = cudaMalloc(&d_ptr, size);
+  cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_ptr, size);
   if (err != cudaSuccess) {
 
     return nullptr;

@@ -3,6 +3,7 @@
 
 #include "cuda_error_checking.h"
 #include "cuda_zstd_fse.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cstdio>
 #include <iomanip>
@@ -53,8 +54,8 @@ BenchmarkResult run_batch_benchmark(u32 num_blocks, u32 block_size,
     h_inputs[i].resize(block_size);
     fill_random(h_inputs[i], i);
     input_sizes[i] = block_size;
-    cudaMalloc(&d_inputs_ptrs[i], block_size);
-    cudaMalloc(&d_outputs_ptrs[i], block_size * 2);
+    cuda_zstd::safe_cuda_malloc(&d_inputs_ptrs[i], block_size);
+    cuda_zstd::safe_cuda_malloc(&d_outputs_ptrs[i], block_size * 2);
     cudaMemcpy(d_inputs_ptrs[i], h_inputs[i].data(), block_size,
                cudaMemcpyHostToDevice);
   }

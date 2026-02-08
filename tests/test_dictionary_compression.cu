@@ -6,6 +6,7 @@
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <cstring>
 #include <iomanip>
@@ -128,7 +129,7 @@ int main() {
   std::cout << "  VRAM: " << (vram_free / (1024*1024)) << " MB free / "
             << (vram_total / (1024*1024)) << " MB total\n";
 
-  err = cudaMalloc(&d_input, test_data_size);
+  err = cuda_zstd::safe_cuda_malloc(&d_input, test_data_size);
   if (err != cudaSuccess) {
     std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMalloc d_input failed: "
               << cudaGetErrorString(err) << " (need " << test_data_size << " bytes)\n";
@@ -136,14 +137,14 @@ int main() {
   }
   // Calculate max compressed size - use 2x input to handle worst-case expansion
   size_t max_compressed = test_data_size * 2;
-  err = cudaMalloc(&d_compressed, max_compressed);
+  err = cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed);
   if (err != cudaSuccess) {
     std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMalloc d_compressed failed: "
               << cudaGetErrorString(err) << " (need " << max_compressed << " bytes)\n";
     cudaFree(d_input);
     return 1;
   }
-  err = cudaMalloc(&d_decompressed, test_data_size);
+  err = cuda_zstd::safe_cuda_malloc(&d_decompressed, test_data_size);
   if (err != cudaSuccess) {
     std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMalloc d_decompressed failed: "
               << cudaGetErrorString(err) << " (need " << test_data_size << " bytes)\n";
@@ -174,7 +175,7 @@ int main() {
     return 0; // Skip, not fail
   }
 
-  err = cudaMalloc(&d_temp, temp_size);
+  err = cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
   if (err != cudaSuccess) {
     std::cerr << "  \033[1;31m\u2717 FAILED\033[0m: cudaMalloc d_temp failed: "
               << cudaGetErrorString(err) << " (need " << (temp_size / (1024*1024)) << " MB)\n";

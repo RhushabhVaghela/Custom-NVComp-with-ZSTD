@@ -14,6 +14,7 @@
 #include "cuda_zstd_sequence.h" // <-- Matches the header
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -489,7 +490,7 @@ Status execute_sequences(const unsigned char *d_literals, u32 literal_count,
   const size_t total_pool_size = 6 * seq_buf_size + err_buf_size + rep_buf_size;
 
   u8 *d_pool = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_pool, total_pool_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_pool, total_pool_size));
 
   // Compute sub-buffer offsets within the single allocation
   u32 *d_actual_offsets   = reinterpret_cast<u32 *>(d_pool + 0 * seq_buf_size);
@@ -648,7 +649,7 @@ compute_sequence_statistics(const Sequence *d_sequences, u32 num_sequences,
   }
 
   SequenceStats *d_stats;
-  CUDA_CHECK(cudaMalloc(&d_stats, sizeof(SequenceStats)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_stats, sizeof(SequenceStats)));
   CUDA_CHECK(cudaMemsetAsync(d_stats, 0, sizeof(SequenceStats), stream));
 
   const u32 threads = 256;
@@ -680,7 +681,7 @@ Status validate_sequences(const Sequence *d_sequences, u32 num_sequences,
   }
 
   u32 *d_validation_errors;
-  CUDA_CHECK(cudaMalloc(&d_validation_errors, sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_validation_errors, sizeof(u32)));
   CUDA_CHECK(cudaMemsetAsync(d_validation_errors, 0, sizeof(u32), stream));
 
   const u32 threads = 256;

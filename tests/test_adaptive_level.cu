@@ -6,6 +6,7 @@
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cuda_runtime.h>
 #include "cuda_error_checking.h"
 #include <iostream>
@@ -112,7 +113,7 @@ bool test_random_data_detection() {
     generate_random_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -154,7 +155,7 @@ bool test_repetitive_data_detection() {
     generate_repetitive_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -200,7 +201,7 @@ bool test_text_data_detection() {
     generate_text_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -235,7 +236,7 @@ bool test_binary_data_analysis() {
     generate_binary_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -269,7 +270,7 @@ bool test_mixed_data_analysis() {
     generate_mixed_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -307,7 +308,7 @@ bool test_speed_preference() {
     generate_text_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -338,7 +339,7 @@ bool test_balanced_preference() {
     generate_text_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -369,7 +370,7 @@ bool test_ratio_preference() {
     generate_text_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -418,7 +419,7 @@ bool test_preference_override() {
     generate_random_data(h_data, data_size); // Incompressible
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -474,7 +475,7 @@ bool test_compressibility_accuracy() {
         test_case.generator(h_data, data_size);
         
         void* d_data;
-        cudaError_t err = cudaMalloc(&d_data, data_size);
+        cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
         ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
         err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
         ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -501,7 +502,7 @@ bool test_compressibility_accuracy() {
         float random_comp;
         {
             std::vector<uint8_t> rand_data; generate_random_data(rand_data, data_size);
-            void* d_rand; CUDA_CHECK(cudaMalloc(&d_rand, data_size)); CUDA_CHECK(cudaMemcpy(d_rand, rand_data.data(), data_size, cudaMemcpyHostToDevice));
+            void* d_rand; CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_rand, data_size)); CUDA_CHECK(cudaMemcpy(d_rand, rand_data.data(), data_size, cudaMemcpyHostToDevice));
             AdaptiveResult rand_result; selector.select_level(d_rand, data_size, rand_result);
             random_comp = rand_result.characteristics.compressibility;
             CUDA_CHECK(cudaFree(d_rand));
@@ -532,7 +533,7 @@ bool test_actual_vs_predicted_ratio() {
     generate_text_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -591,7 +592,7 @@ bool test_analysis_performance() {
         generate_text_data(h_data, size);
         
         void* d_data;
-        cudaError_t err = cudaMalloc(&d_data, size);
+        cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, size);
         ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
         err = cudaMemcpy(d_data, h_data.data(), size, cudaMemcpyHostToDevice);
         ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -627,7 +628,7 @@ bool test_sample_size_impact() {
     generate_text_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");
@@ -661,7 +662,7 @@ bool test_quick_vs_thorough_mode() {
     generate_mixed_data(h_data, data_size);
     
     void* d_data;
-    cudaError_t err = cudaMalloc(&d_data, data_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, data_size);
     ASSERT_TRUE(err == cudaSuccess, "cudaMalloc failed");
     err = cudaMemcpy(d_data, h_data.data(), data_size, cudaMemcpyHostToDevice);
     ASSERT_TRUE(err == cudaSuccess, "cudaMemcpy failed");

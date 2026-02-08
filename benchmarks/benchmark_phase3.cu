@@ -12,6 +12,7 @@
 #include "benchmark_results.h"
 #include "../include/cuda_zstd_fse.h"
 #include "../include/cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 
 // INTERNAL: We need access to the internal FSE encoder to benchmark it directly
 // skipping the LZ77 stage which currently limits block sizes.
@@ -76,19 +77,19 @@ void benchmark_phase3_fse(const std::string &gpu_name,
   uint32_t *d_output_size;
 
   cudaError_t err;
-  err = cudaMalloc(&d_input, input_size);
+  err = cuda_zstd::safe_cuda_malloc(&d_input, input_size);
   if (err != cudaSuccess) {
     printf("Malloc d_input failed: %s\n", cudaGetErrorString(err));
     return;
   }
 
-  err = cudaMalloc(&d_output, input_size * 2);
+  err = cuda_zstd::safe_cuda_malloc(&d_output, input_size * 2);
   if (err != cudaSuccess) {
     printf("Malloc d_output failed: %s\n", cudaGetErrorString(err));
     return;
   }
 
-  err = cudaMalloc(&d_output_size, sizeof(uint32_t));
+  err = cuda_zstd::safe_cuda_malloc(&d_output_size, sizeof(uint32_t));
   if (err != cudaSuccess) {
     printf("Malloc d_output_size failed: %s\n", cudaGetErrorString(err));
     return;

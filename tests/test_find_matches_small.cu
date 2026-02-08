@@ -1,6 +1,7 @@
 // Minimal reproducer for find_matches kernel
 #include "cuda_zstd_debug.h"
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <iostream>
 #include <vector>
@@ -17,13 +18,13 @@ int main() {
     h_input[i] = (uint8_t)((i * 7) & 0xff);
 
   void *d_input;
-  if (cudaMalloc(&d_input, data_size) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_input, data_size) != cudaSuccess) {
     std::cerr << "cudaMalloc d_input failed\n";
     return 1;
   }
 
   void *d_compressed;
-  if (cudaMalloc(&d_compressed, data_size * 2) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_compressed, data_size * 2) != cudaSuccess) {
     std::cerr << "cudaMalloc d_compressed failed\n";
     cudaFree(d_input);
     return 1;
@@ -38,7 +39,7 @@ int main() {
   size_t comp_temp_size = manager.get_compress_temp_size(data_size);
 
   void *d_temp;
-  if (cudaMalloc(&d_temp, comp_temp_size) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_temp, comp_temp_size) != cudaSuccess) {
     std::cerr << "cudaMalloc d_temp failed\n";
     cudaFree(d_input);
     cudaFree(d_compressed);

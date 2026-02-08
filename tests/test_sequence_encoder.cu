@@ -3,6 +3,7 @@
 
 #include "cuda_zstd_sequence.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -41,10 +42,10 @@ bool test_build_sequences() {
   u32 *d_offsets = nullptr;
   Sequence *d_sequences = nullptr;
 
-  cudaMalloc(&d_literal_lengths, num_sequences * sizeof(u32));
-  cudaMalloc(&d_match_lengths, num_sequences * sizeof(u32));
-  cudaMalloc(&d_offsets, num_sequences * sizeof(u32));
-  cudaMalloc(&d_sequences, num_sequences * sizeof(Sequence));
+  cuda_zstd::safe_cuda_malloc(&d_literal_lengths, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_match_lengths, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_offsets, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_sequences, num_sequences * sizeof(Sequence));
 
   // Create test data on host
   std::vector<u32> h_ll(num_sequences), h_ml(num_sequences),
@@ -136,11 +137,11 @@ bool test_sequence_validation() {
   u32 *d_total_output_size = nullptr;
   u32 *d_error_flag = nullptr;
 
-  cudaMalloc(&d_sequences, num_sequences * sizeof(Sequence));
-  cudaMalloc(&d_actual_offsets, num_sequences * sizeof(u32));
-  cudaMalloc(&d_output_offsets, num_sequences * sizeof(u32));
-  cudaMalloc(&d_total_output_size, sizeof(u32));
-  cudaMalloc(&d_error_flag, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_sequences, num_sequences * sizeof(Sequence));
+  cuda_zstd::safe_cuda_malloc(&d_actual_offsets, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_output_offsets, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_total_output_size, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_error_flag, sizeof(u32));
 
   // Create valid sequences
   std::vector<Sequence> h_seqs(num_sequences);
@@ -190,9 +191,9 @@ bool test_repeat_offset_encoding() {
   u32 *d_rep_codes = nullptr;
   u32 *d_actual_offsets = nullptr;
 
-  cudaMalloc(&d_sequences, num_sequences * sizeof(Sequence));
-  cudaMalloc(&d_rep_codes, 3 * sizeof(u32));
-  cudaMalloc(&d_actual_offsets, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_sequences, num_sequences * sizeof(Sequence));
+  cuda_zstd::safe_cuda_malloc(&d_rep_codes, 3 * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_actual_offsets, num_sequences * sizeof(u32));
 
   // Initialize rep codes: [1000, 2000, 3000]
   u32 h_rep_codes[3] = {1000, 2000, 3000};
@@ -244,10 +245,10 @@ bool test_large_sequence_count() {
   u32 *d_offsets = nullptr;
   Sequence *d_sequences = nullptr;
 
-  cudaMalloc(&d_literal_lengths, num_sequences * sizeof(u32));
-  cudaMalloc(&d_match_lengths, num_sequences * sizeof(u32));
-  cudaMalloc(&d_offsets, num_sequences * sizeof(u32));
-  cudaMalloc(&d_sequences, num_sequences * sizeof(Sequence));
+  cuda_zstd::safe_cuda_malloc(&d_literal_lengths, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_match_lengths, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_offsets, num_sequences * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_sequences, num_sequences * sizeof(Sequence));
 
   // Initialize with pattern
   std::vector<u32> h_ll(num_sequences), h_ml(num_sequences),

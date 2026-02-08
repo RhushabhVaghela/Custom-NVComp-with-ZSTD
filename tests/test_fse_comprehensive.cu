@@ -20,6 +20,7 @@
 #include "cuda_zstd_fse.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -137,10 +138,10 @@ bool test_fse_roundtrip_small() {
   void *d_input, *d_output, *d_decoded;
   u32 *d_output_size;
 
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2 + 1024);
-  cudaMalloc(&d_output_size, sizeof(u32));
-  cudaMalloc(&d_decoded, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2 + 1024);
+  cuda_zstd::safe_cuda_malloc(&d_output_size, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_decoded, data_size);
 
   cudaMemcpy(d_input, test_data, data_size, cudaMemcpyHostToDevice);
   cudaMemset(d_output, 0, data_size * 2 + 1024);
@@ -232,10 +233,10 @@ bool test_fse_roundtrip_large() {
   void *d_input, *d_output, *d_decoded;
   u32 *d_output_size;
 
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
-  cudaMalloc(&d_output_size, sizeof(u32));
-  cudaMalloc(&d_decoded, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output_size, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_decoded, data_size);
 
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
@@ -323,9 +324,9 @@ bool test_fse_single_symbol() {
   void *d_input, *d_output;
   u32 *d_output_size;
 
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
-  cudaMalloc(&d_output_size, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output_size, sizeof(u32));
 
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
@@ -363,9 +364,9 @@ bool test_fse_two_symbols() {
   void *d_input, *d_output;
   u32 *d_output_size;
 
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
-  cudaMalloc(&d_output_size, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output_size, sizeof(u32));
 
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
@@ -401,9 +402,9 @@ bool test_fse_full_alphabet() {
   void *d_input, *d_output;
   u32 *d_output_size;
 
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
-  cudaMalloc(&d_output_size, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output_size, sizeof(u32));
 
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
@@ -446,11 +447,11 @@ bool test_fse_manager_integration() {
   ZstdBatchManager mgr(config);
 
   void *d_input, *d_output, *d_temp;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, mgr.get_max_compressed_size(data_size));
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, mgr.get_max_compressed_size(data_size));
 
   size_t temp_size = mgr.get_compress_temp_size(data_size);
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 

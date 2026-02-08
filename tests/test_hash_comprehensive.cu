@@ -3,6 +3,7 @@
 
 #include "cuda_zstd_hash.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 #include <random>
 #include <vector>
@@ -37,7 +38,7 @@ bool test_hash_table_init() {
   const u32 hash_size = 1 << 16; // 64K entries
 
   u32 *d_hash_table = nullptr;
-  cudaMalloc(&d_hash_table, hash_size * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_hash_table, hash_size * sizeof(u32));
 
   // Initialize to -1 (empty)
   cudaMemset(d_hash_table, 0xFF, hash_size * sizeof(u32));
@@ -73,7 +74,7 @@ bool test_chain_table_init() {
   const u32 chain_size = 1 << 16; // 64K entries
 
   u32 *d_chain_table = nullptr;
-  cudaMalloc(&d_chain_table, chain_size * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_chain_table, chain_size * sizeof(u32));
 
   // Initialize to 0
   cudaMemset(d_chain_table, 0, chain_size * sizeof(u32));
@@ -183,8 +184,8 @@ bool test_hash_collision_handling() {
   u32 *d_hash_table = nullptr;
   u32 *d_chain_table = nullptr;
 
-  cudaMalloc(&d_hash_table, hash_size * sizeof(u32));
-  cudaMalloc(&d_chain_table, num_inserts * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_hash_table, hash_size * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_chain_table, num_inserts * sizeof(u32));
 
   // Initialize
   cudaMemset(d_hash_table, 0xFF, hash_size * sizeof(u32));
@@ -211,7 +212,7 @@ bool test_large_hash_table() {
   const u32 hash_size = 1 << 20; // 1M entries
 
   u32 *d_hash_table = nullptr;
-  cudaError_t err = cudaMalloc(&d_hash_table, hash_size * sizeof(u32));
+  cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_hash_table, hash_size * sizeof(u32));
 
   bool passed = (err == cudaSuccess);
 

@@ -6,6 +6,7 @@
 #include "cuda_zstd_huffman.h"
 #include "cuda_zstd_utils.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 using namespace cuda_zstd::huffman;
@@ -46,15 +47,15 @@ void test_huffman_roundtrip(size_t input_size) {
     u8 *d_input, *d_compressed, *d_decompressed;
     size_t max_compressed_size = (input_size * 2) + 65536; // Header + slack (64KB for safety)
     
-    CUDA_CHECK(cudaMalloc(&d_input, input_size));
-    CUDA_CHECK(cudaMalloc(&d_compressed, max_compressed_size));
-    CUDA_CHECK(cudaMalloc(&d_decompressed, input_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_decompressed, input_size));
     
     CUDA_CHECK(cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
     
     // 3. Prepare Huffman Table
     HuffmanTable table;
-    CUDA_CHECK(cudaMalloc(&table.codes, 256 * sizeof(HuffmanCode)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&table.codes, 256 * sizeof(HuffmanCode)));
     
     // 4. Encode
     size_t compressed_size = 0;

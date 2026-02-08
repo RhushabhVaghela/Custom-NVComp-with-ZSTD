@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <iostream>
 #include <vector>
 #include <cstring>
@@ -46,16 +47,16 @@ int main() {
     
     // 2. Allocate GPU buffers
     void *d_input, *d_compressed, *d_decompressed, *d_temp_comp, *d_temp_decomp;
-    if (cudaMalloc(&d_input, data_size) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&d_input, data_size) != cudaSuccess) {
         std::cerr << "  ✗ FAILED: cudaMalloc d_input\n";
         return 1;
     }
-    if (cudaMalloc(&d_compressed, data_size * 2) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&d_compressed, data_size * 2) != cudaSuccess) {
         std::cerr << "  ✗ FAILED: cudaMalloc d_compressed\n";
         cudaFree(d_input);
         return 1;
     }
-    if (cudaMalloc(&d_decompressed, data_size) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&d_decompressed, data_size) != cudaSuccess) {
         std::cerr << "  ✗ FAILED: cudaMalloc d_decompressed\n";
         cudaFree(d_input);
         cudaFree(d_compressed);
@@ -67,7 +68,7 @@ int main() {
     size_t comp_temp_size = manager.get_compress_temp_size(data_size);
     size_t decomp_temp_size = manager.get_decompress_temp_size(data_size * 2);
     size_t temp_size = std::max(comp_temp_size, decomp_temp_size);
-    if (cudaMalloc(&d_temp_comp, temp_size) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&d_temp_comp, temp_size) != cudaSuccess) {
         std::cerr << "  ✗ FAILED: cudaMalloc d_temp_comp\n";
         cudaFree(d_input);
         cudaFree(d_compressed);

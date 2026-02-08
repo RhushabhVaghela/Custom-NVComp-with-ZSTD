@@ -4,6 +4,7 @@
 
 #include "cuda_zstd_memory_pool.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "cuda_error_checking.h"
 #include <cuda_runtime.h>
 #include <iostream>
@@ -304,7 +305,7 @@ bool test_rollback_protection() {
     // Phase 1: Large chunks
     while (true) {
         void* ptr = nullptr;
-        cudaError_t err = cudaMalloc(&ptr, chunk_size);
+        cudaError_t err = cuda_zstd::safe_cuda_malloc(&ptr, chunk_size);
         if (err == cudaSuccess && ptr != nullptr) {
             pressure_allocs.push_back(ptr);
             allocated += chunk_size;
@@ -317,7 +318,7 @@ bool test_rollback_protection() {
     chunk_size = 10 * 1024 * 1024; // 10MB chunks
     while (true) {
         void* ptr = nullptr;
-        cudaError_t err = cudaMalloc(&ptr, chunk_size);
+        cudaError_t err = cuda_zstd::safe_cuda_malloc(&ptr, chunk_size);
         if (err == cudaSuccess && ptr != nullptr) {
             pressure_allocs.push_back(ptr);
             allocated += chunk_size;

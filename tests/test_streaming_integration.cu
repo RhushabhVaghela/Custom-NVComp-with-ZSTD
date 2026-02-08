@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -84,9 +85,9 @@ bool test_multi_chunk_streaming() {
 
   // Allocate GPU memory
   void *d_input, *d_compressed, *d_output;
-  cudaMalloc(&d_input, chunk_size);
-  cudaMalloc(&d_compressed, chunk_size * 2);
-  cudaMalloc(&d_output, chunk_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, chunk_size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, chunk_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output, chunk_size);
 
   ZstdStreamingManager manager(CompressionConfig{.level = 5});
   manager.init_compression();
@@ -156,8 +157,8 @@ bool test_large_streaming() {
   (void)(chunk_size * num_chunks);      // ~10MB total
 
   void *d_input, *d_compressed;
-  cudaMalloc(&d_input, chunk_size);
-  cudaMalloc(&d_compressed, chunk_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_input, chunk_size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, chunk_size * 2);
 
   std::vector<uint8_t> h_input(chunk_size);
   generate_test_data(h_input, chunk_size, "repetitive");

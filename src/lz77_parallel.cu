@@ -4,6 +4,7 @@
 
 #include "cuda_zstd_lz77.h" // For V2 kernel
 #include "lz77_parallel.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cstdio>
 #include <iostream>
@@ -642,8 +643,8 @@ Status backtrack_sequences_parallel(const ParseCost *d_costs, u32 input_size,
   // Allocate segment info on device
   SegmentInfo *d_segments = nullptr;
   u32 *d_segment_seq_counts = nullptr;
-  cudaMalloc(&d_segments, config.num_segments * sizeof(SegmentInfo));
-  cudaMalloc(&d_segment_seq_counts, config.num_segments * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_segments, config.num_segments * sizeof(SegmentInfo));
+  cuda_zstd::safe_cuda_malloc(&d_segment_seq_counts, config.num_segments * sizeof(u32));
 
   // Prepare segments on host
   std::vector<SegmentInfo> h_segments(config.num_segments);

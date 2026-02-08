@@ -8,6 +8,7 @@
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_lz77.h"
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cuda_runtime.h>
 
 namespace cuda_zstd {
@@ -147,7 +148,7 @@ __host__ Status ldm_init_context(LDMContext& ctx, u32 window_log) {
     ctx.max_distance = ctx.window_size;
     
     size_t hash_table_size = LDM_HASH_SIZE * LDM_BUCKET_SIZE * sizeof(LDMHashEntry);
-    if (cudaMalloc(&ctx.d_hash_table, hash_table_size) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&ctx.d_hash_table, hash_table_size) != cudaSuccess) {
         return Status::ERROR_OUT_OF_MEMORY;
     }
     

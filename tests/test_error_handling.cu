@@ -172,18 +172,18 @@ bool test_invalid_size_parameters() {
   void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_input, 1024)) {
+  if (!test_safe_cuda_malloc(&d_input, 1024)) {
     LOG_FAIL("test_invalid_size_parameters", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, 1024)) {
+  if (!test_safe_cuda_malloc(&d_output, 1024)) {
     LOG_FAIL("test_invalid_size_parameters", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_temp, 1024)) {
+  if (!test_safe_cuda_malloc(&d_temp, 1024)) {
     LOG_FAIL("test_invalid_size_parameters", "CUDA malloc for d_temp failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);
@@ -287,12 +287,12 @@ bool test_invalid_workspace_size() {
     void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
     // Allocate GPU memory with error checking
-    if (!safe_cuda_malloc(&d_input, input_size)) {
+    if (!test_safe_cuda_malloc(&d_input, input_size)) {
       LOG_FAIL("test_invalid_workspace_size", "CUDA malloc for d_input failed");
       return false;
     }
 
-    if (!safe_cuda_malloc(&d_output, input_size * 2)) {
+    if (!test_safe_cuda_malloc(&d_output, input_size * 2)) {
       LOG_FAIL("test_invalid_workspace_size", "CUDA malloc for d_output failed");
       safe_cuda_free(d_input);
       return false;
@@ -303,7 +303,7 @@ bool test_invalid_workspace_size() {
 
     // Allocate too small workspace
     size_t small_size = required_size / 2;
-    if (!safe_cuda_malloc(&d_temp, small_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, small_size)) {
       LOG_FAIL("test_invalid_workspace_size",
                "CUDA malloc for small d_temp failed");
       safe_cuda_free(d_input);
@@ -323,7 +323,7 @@ bool test_invalid_workspace_size() {
     d_temp = nullptr;
 
     // Allocate sufficient workspace
-    if (!safe_cuda_malloc(&d_temp, required_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, required_size)) {
       LOG_FAIL("test_invalid_workspace_size", "CUDA malloc for d_temp failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_output);
@@ -366,19 +366,19 @@ bool test_corrupted_frame_headers() {
   void *d_compressed = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_compressed, data_size)) {
+  if (!test_safe_cuda_malloc(&d_compressed, data_size)) {
     LOG_FAIL("test_corrupted_frame_headers",
              "CUDA malloc for d_compressed failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, data_size)) {
+  if (!test_safe_cuda_malloc(&d_output, data_size)) {
     LOG_FAIL("test_corrupted_frame_headers", "CUDA malloc for d_output failed");
     safe_cuda_free(d_compressed);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_temp, data_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, data_size)) {
     LOG_FAIL("test_corrupted_frame_headers", "CUDA malloc for d_temp failed");
     safe_cuda_free(d_compressed);
     safe_cuda_free(d_output);
@@ -531,7 +531,7 @@ bool test_cuda_error_detection() {
   // behavior. A better approach would be to trigger a known CUDA error, e.g.,
   // by trying to copy to an invalid address.
   void *d_buf = nullptr;
-  if (!safe_cuda_malloc(&d_buf, 1024)) {
+  if (!test_safe_cuda_malloc(&d_buf, 1024)) {
     LOG_FAIL("test_cuda_error_detection", "CUDA malloc failed");
     return false;
   }
@@ -570,12 +570,12 @@ bool test_initialization_state() {
   // Try to compress before initialization
   void *d_input = nullptr, *d_output = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, 1024)) {
+  if (!test_safe_cuda_malloc(&d_input, 1024)) {
     LOG_FAIL("test_initialization_state", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, 1024)) {
+  if (!test_safe_cuda_malloc(&d_output, 1024)) {
     LOG_FAIL("test_initialization_state", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     return false;
@@ -644,13 +644,13 @@ bool test_buffer_overflow_prevention() {
     void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
     // Allocate GPU memory with error checking
-    if (!safe_cuda_malloc(&d_input, input_size)) {
+    if (!test_safe_cuda_malloc(&d_input, input_size)) {
       LOG_FAIL("test_buffer_overflow_prevention",
                "CUDA malloc for d_input failed");
       return false;
     }
 
-    if (!safe_cuda_malloc(&d_output, 512)) {
+    if (!test_safe_cuda_malloc(&d_output, 512)) {
       LOG_FAIL("test_buffer_overflow_prevention",
                "CUDA malloc for d_output failed");
       safe_cuda_free(d_input);
@@ -658,7 +658,7 @@ bool test_buffer_overflow_prevention() {
     }
 
     size_t temp_size = manager.get_compress_temp_size(input_size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("test_buffer_overflow_prevention",
                "CUDA malloc for d_temp failed");
       safe_cuda_free(d_input);

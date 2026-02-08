@@ -1,4 +1,5 @@
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cstdio>
 #include <cuda_runtime.h>
@@ -41,8 +42,8 @@ bool test_gpu_compress_cpu_decompress(size_t input_size, int level) {
 
 
   uint8_t *d_input, *d_output;
-  CUDA_CHECK_INT(cudaMalloc(&d_input, input_size));
-  CUDA_CHECK_INT(cudaMalloc(&d_output, input_size * 2));
+  CUDA_CHECK_INT(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
+  CUDA_CHECK_INT(cuda_zstd::safe_cuda_malloc(&d_output, input_size * 2));
   CUDA_CHECK_INT(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
 
@@ -56,7 +57,7 @@ bool test_gpu_compress_cpu_decompress(size_t input_size, int level) {
 
   size_t temp_size = manager.get_compress_temp_size(input_size);
   void *d_temp;
-  CUDA_CHECK_INT(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK_INT(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   size_t compressed_size = input_size * 2;
   status = manager.compress(d_input, input_size, d_output, &compressed_size,
@@ -151,8 +152,8 @@ bool test_cpu_compress_gpu_decompress(size_t input_size, int level) {
          compressed_size);
 
   uint8_t *d_input, *d_output;
-  CUDA_CHECK_INT(cudaMalloc(&d_input, compressed_size));
-  CUDA_CHECK_INT(cudaMalloc(&d_output, input_size));
+  CUDA_CHECK_INT(cuda_zstd::safe_cuda_malloc(&d_input, compressed_size));
+  CUDA_CHECK_INT(cuda_zstd::safe_cuda_malloc(&d_output, input_size));
   // Write compressed data to file for debugging
   {
     FILE *f = fopen("debug_1024_cpu.zst", "wb");
@@ -174,7 +175,7 @@ bool test_cpu_compress_gpu_decompress(size_t input_size, int level) {
 
   size_t temp_size = manager.get_decompress_temp_size(compressed_size);
   void *d_temp;
-  CUDA_CHECK_INT(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK_INT(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   size_t uncompressed_size = input_size;
   status = manager.decompress(d_input, compressed_size, d_output,

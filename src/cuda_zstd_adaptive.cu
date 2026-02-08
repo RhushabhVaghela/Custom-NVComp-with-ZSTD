@@ -4,6 +4,7 @@
 
 #include "cuda_zstd_adaptive.h"
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cmath>
 #include <algorithm>
 
@@ -123,7 +124,7 @@ Status AdaptiveLevelSelector::analyze_entropy(
     cudaStream_t stream
 ) {
     uint32_t* d_frequencies = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_frequencies, 256 * sizeof(uint32_t)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_frequencies, 256 * sizeof(uint32_t)));
     CUDA_CHECK(cudaMemsetAsync(d_frequencies, 0, 256 * sizeof(uint32_t), stream));
     
     uint32_t threads = 256;
@@ -165,8 +166,8 @@ Status AdaptiveLevelSelector::analyze_repetition(
     uint32_t* d_repeated_count = nullptr;
     uint32_t* d_max_run = nullptr;
     
-    CUDA_CHECK(cudaMalloc(&d_repeated_count, sizeof(uint32_t)));
-    CUDA_CHECK(cudaMalloc(&d_max_run, sizeof(uint32_t)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_repeated_count, sizeof(uint32_t)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_max_run, sizeof(uint32_t)));
     CUDA_CHECK(cudaMemsetAsync(d_repeated_count, 0, sizeof(uint32_t), stream));
     CUDA_CHECK(cudaMemsetAsync(d_max_run, 0, sizeof(uint32_t), stream));
     
@@ -218,7 +219,7 @@ Status AdaptiveLevelSelector::analyze_patterns(
     cudaStream_t stream
 ) {
     uint32_t* d_pattern_score = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_pattern_score, sizeof(uint32_t)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_pattern_score, sizeof(uint32_t)));
     CUDA_CHECK(cudaMemsetAsync(d_pattern_score, 0, sizeof(uint32_t), stream));
     
     uint32_t threads = 256;

@@ -5,6 +5,7 @@
 #include "cuda_error_checking.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <cstring>
 #include <cuda_runtime.h>
@@ -111,19 +112,19 @@ bool test_single_chunk_streaming() {
   // Allocate GPU memory with error checking
   void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr;
 
-  if (!safe_cuda_malloc(&d_input, chunk_size)) {
+  if (!test_safe_cuda_malloc(&d_input, chunk_size)) {
     LOG_FAIL("test_single_chunk_streaming", "CUDA malloc for d_input failed");
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_compressed, chunk_size * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed, chunk_size * 2)) {
     LOG_FAIL("test_single_chunk_streaming",
              "CUDA malloc for d_compressed failed");
     safe_cuda_free(d_input);
     return false;
   }
 
-  if (!safe_cuda_malloc(&d_output, chunk_size)) {
+  if (!test_safe_cuda_malloc(&d_output, chunk_size)) {
     LOG_FAIL("test_single_chunk_streaming", "CUDA malloc for d_output failed");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -212,11 +213,11 @@ bool test_multi_chunk_streaming() {
 
   // Allocate GPU memory
   void *d_input, *d_compressed, *d_output;
-  ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size) == cudaSuccess,
               "cudaMalloc d_input failed");
-  ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_compressed, chunk_size * 2) == cudaSuccess,
               "cudaMalloc d_compressed failed");
-  ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size) == cudaSuccess,
               "cudaMalloc d_output failed");
 
   ZstdStreamingManager manager(CompressionConfig{.level = 5});
@@ -306,11 +307,11 @@ bool test_variable_chunk_sizes() {
   // Allocate GPU memory (use max chunk size)
   size_t max_chunk = *std::max_element(chunk_sizes.begin(), chunk_sizes.end());
   void *d_input, *d_compressed, *d_output;
-  ASSERT_TRUE(cudaMalloc(&d_input, max_chunk) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_input, max_chunk) == cudaSuccess,
               "cudaMalloc d_input failed");
-  ASSERT_TRUE(cudaMalloc(&d_compressed, max_chunk * 2) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_compressed, max_chunk * 2) == cudaSuccess,
               "cudaMalloc d_compressed failed");
-  ASSERT_TRUE(cudaMalloc(&d_output, max_chunk) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_output, max_chunk) == cudaSuccess,
               "cudaMalloc d_output failed");
 
   ZstdStreamingManager manager(CompressionConfig{.level = 7});
@@ -404,11 +405,11 @@ bool test_cross_chunk_matching() {
   LOG_INFO("Chunk size: " << chunk_size << " bytes");
 
   void *d_input, *d_compressed, *d_output;
-  ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size) == cudaSuccess,
               "cudaMalloc d_input failed");
-  ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_compressed, chunk_size * 2) == cudaSuccess,
               "cudaMalloc d_compressed failed");
-  ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size) == cudaSuccess,
               "cudaMalloc d_output failed");
 
   ZstdStreamingManager manager(CompressionConfig{.level = 9});
@@ -485,11 +486,11 @@ bool test_very_small_chunks() {
       h_input[i] = static_cast<uint8_t>(i);
 
     void *d_input, *d_compressed, *d_output;
-    ASSERT_TRUE(cudaMalloc(&d_input, 1024) == cudaSuccess,
+    ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_input, 1024) == cudaSuccess,
                 "cudaMalloc d_input failed");
-    ASSERT_TRUE(cudaMalloc(&d_compressed, 1024) == cudaSuccess,
+    ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_compressed, 1024) == cudaSuccess,
                 "cudaMalloc d_compressed failed");
-    ASSERT_TRUE(cudaMalloc(&d_output, 1024) == cudaSuccess,
+    ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_output, 1024) == cudaSuccess,
                 "cudaMalloc d_output failed");
     cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice);
 
@@ -541,11 +542,11 @@ bool test_large_streaming() {
   // Generate large test data
   std::vector<uint8_t> h_input(chunk_size); // Reuse buffer
   void *d_input, *d_compressed, *d_output;
-  ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size) == cudaSuccess,
               "cudaMalloc d_input failed");
-  ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_compressed, chunk_size * 2) == cudaSuccess,
               "cudaMalloc d_compressed failed");
-  ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size) == cudaSuccess,
               "cudaMalloc d_output failed");
 
   ZstdStreamingManager manager(CompressionConfig{.level = 3});
@@ -596,11 +597,11 @@ bool test_incompressible_data_streaming() {
   LOG_INFO("Testing random (incompressible) data");
 
   void *d_input, *d_compressed, *d_output;
-  ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size) == cudaSuccess,
               "cudaMalloc d_input failed");
-  ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_compressed, chunk_size * 2) == cudaSuccess,
               "cudaMalloc d_compressed failed");
-  ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size) == cudaSuccess,
               "cudaMalloc d_output failed");
 
   ZstdStreamingManager manager(CompressionConfig{.level = 5});
@@ -651,11 +652,11 @@ bool test_mixed_compressibility() {
   LOG_INFO("Testing alternating data patterns");
 
   void *d_input, *d_compressed, *d_output;
-  ASSERT_TRUE(cudaMalloc(&d_input, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size) == cudaSuccess,
               "cudaMalloc d_input failed");
-  ASSERT_TRUE(cudaMalloc(&d_compressed, chunk_size * 2) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_compressed, chunk_size * 2) == cudaSuccess,
               "cudaMalloc d_compressed failed");
-  ASSERT_TRUE(cudaMalloc(&d_output, chunk_size) == cudaSuccess,
+  ASSERT_TRUE(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size) == cudaSuccess,
               "cudaMalloc d_output failed");
 
   ZstdStreamingManager manager(CompressionConfig{.level = 5});

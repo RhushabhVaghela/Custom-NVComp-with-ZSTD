@@ -10,6 +10,7 @@
 // ============================================================================
 
 #include "cuda_error_checking.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <iostream>
 #include <vector>
@@ -29,7 +30,7 @@ void benchmark_allocations(size_t size, int iterations) {
 
     cudaEventRecord(start);
 
-    cudaMalloc(&ptr, size);
+    cuda_zstd::safe_cuda_malloc(&ptr, size);
     cudaFree(ptr);
 
     cudaEventRecord(stop);

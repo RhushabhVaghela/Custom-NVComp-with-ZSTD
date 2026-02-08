@@ -9,6 +9,7 @@
 
 #include "../include/cuda_zstd_types.h"
 #include "../src/cuda_zstd_fse_chunk_kernel.cuh"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
@@ -59,7 +60,7 @@ int main() {
   u32 *d_seq_bits, *d_par_bits;
 
   CHECK(
-      cudaMalloc(&d_input, input_size)); // No data needed, just pointer access
+      cuda_zstd::safe_cuda_malloc(&d_input, input_size)); // No data needed, just pointer access
   // But we should fill it with random data to avoid 0s (which might end loop
   // early?) Actually current loop logic depends on symbols. Random is better.
   // Fill on device?
@@ -72,18 +73,18 @@ int main() {
   std::vector<GPU_FSE_SymbolTransform> h_symbolTT(256);
   build_dummy_table(h_stateTable.data(), h_symbolTT.data(), tableLog);
 
-  CHECK(cudaMalloc(&d_stateTable, tableSize * sizeof(u16)));
-  CHECK(cudaMalloc(&d_symbolTT, 256 * sizeof(GPU_FSE_SymbolTransform)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_stateTable, tableSize * sizeof(u16)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_symbolTT, 256 * sizeof(GPU_FSE_SymbolTransform)));
   CHECK(cudaMemcpy(d_stateTable, h_stateTable.data(), tableSize * sizeof(u16),
                    cudaMemcpyHostToDevice));
   CHECK(cudaMemcpy(d_symbolTT, h_symbolTT.data(),
                    256 * sizeof(GPU_FSE_SymbolTransform),
                    cudaMemcpyHostToDevice));
 
-  CHECK(cudaMalloc(&d_seq_states, num_chunks * sizeof(u16)));
-  CHECK(cudaMalloc(&d_seq_bits, num_chunks * sizeof(u32)));
-  CHECK(cudaMalloc(&d_par_states, num_chunks * sizeof(u16)));
-  CHECK(cudaMalloc(&d_par_bits, num_chunks * sizeof(u32)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_seq_states, num_chunks * sizeof(u16)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_seq_bits, num_chunks * sizeof(u32)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_par_states, num_chunks * sizeof(u16)));
+  CHECK(cuda_zstd::safe_cuda_malloc(&d_par_bits, num_chunks * sizeof(u32)));
 
   cudaStream_t stream;
   CHECK(cudaStreamCreate(&stream));

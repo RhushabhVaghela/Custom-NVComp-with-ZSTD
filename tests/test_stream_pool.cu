@@ -9,6 +9,7 @@
 // ==============================================================================
 
 #include "cuda_zstd_stream_pool.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <atomic>
 #include <cassert>
 #include <chrono>
@@ -223,7 +224,7 @@ bool test_stream_functionality() {
 
   // Test that the stream actually works
   int *d_data;
-  cudaError_t err = cudaMalloc(&d_data, sizeof(int));
+  cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_data, sizeof(int));
   TEST_ASSERT(err == cudaSuccess, "Should allocate device memory");
 
   err = cudaMemsetAsync(d_data, 0, sizeof(int), stream);

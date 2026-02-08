@@ -8,6 +8,7 @@
 
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_xxhash.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 
 namespace cuda_zstd {
@@ -267,7 +268,7 @@ Status xxhash64(const unsigned char *d_input, u32 input_size, u64 seed,
   }
 
   u64 *d_hash;
-  CUDA_CHECK(cudaMalloc(&d_hash, sizeof(u64)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_hash, sizeof(u64)));
 
   xxhash64_kernel<<<1, 1, 0, stream>>>(d_input, input_size, seed, d_hash);
 

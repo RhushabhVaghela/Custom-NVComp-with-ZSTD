@@ -1,6 +1,7 @@
 
 #include "cuda_zstd_fse_encoding_kernel.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <iostream>
 #include <vector>
@@ -32,7 +33,7 @@ void test_fse_interleaved_simple() {
   std::vector<u32> h_counts = {16, 16};
 
   u32 *d_counts;
-  cudaMalloc(&d_counts, h_counts.size() * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_counts, h_counts.size() * sizeof(u32));
   cudaMemcpy(d_counts, h_counts.data(), h_counts.size() * sizeof(u32),
              cudaMemcpyHostToDevice);
 
@@ -42,24 +43,24 @@ void test_fse_interleaved_simple() {
   h_table_desc.table_size = table_size;
 
   // Allocate device buffers for the table
-  cudaMalloc(&h_table_desc.d_symbol_table,
+  cuda_zstd::safe_cuda_malloc(&h_table_desc.d_symbol_table,
              (max_symbol + 1) * sizeof(FSEEncodeTable::FSEEncodeSymbol));
-  cudaMalloc(&h_table_desc.d_next_state, table_size * sizeof(u16));
-  cudaMalloc(&h_table_desc.d_nbBits_table, table_size * sizeof(u8));
-  cudaMalloc(&h_table_desc.d_symbol_first_state,
+  cuda_zstd::safe_cuda_malloc(&h_table_desc.d_next_state, table_size * sizeof(u16));
+  cuda_zstd::safe_cuda_malloc(&h_table_desc.d_nbBits_table, table_size * sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&h_table_desc.d_symbol_first_state,
              (max_symbol + 1) * sizeof(u16));
-  cudaMalloc(&h_table_desc.d_state_to_symbol, table_size * sizeof(u8));
-  cudaMalloc(&h_table_desc.d_next_state_vals, table_size * sizeof(u16));
-  cudaMalloc(&h_table_desc.d_next_state_vals, table_size * sizeof(u16));
+  cuda_zstd::safe_cuda_malloc(&h_table_desc.d_state_to_symbol, table_size * sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&h_table_desc.d_next_state_vals, table_size * sizeof(u16));
+  cuda_zstd::safe_cuda_malloc(&h_table_desc.d_next_state_vals, table_size * sizeof(u16));
 
   // We need 3 tables: LL, OF, ML. For simplicity, use same table for all.
   FSEEncodeTable *d_table_ptr;
-  cudaMalloc(&d_table_ptr, 3 * sizeof(FSEEncodeTable));
+  cuda_zstd::safe_cuda_malloc(&d_table_ptr, 3 * sizeof(FSEEncodeTable));
 
   // Build ONE table
   cudaStream_t stream = 0;
   FSEEncodeTable *d_single_table;
-  cudaMalloc(&d_single_table, sizeof(FSEEncodeTable));
+  cuda_zstd::safe_cuda_malloc(&d_single_table, sizeof(FSEEncodeTable));
   cudaMemcpy(d_single_table, &h_table_desc, sizeof(FSEEncodeTable),
              cudaMemcpyHostToDevice); // Copy desc
 
@@ -97,20 +98,20 @@ void test_fse_interleaved_simple() {
   u32 *d_ll_extras, *d_of_extras, *d_ml_extras;
   u8 *d_ll_bits, *d_of_bits, *d_ml_bits;
 
-  cudaMalloc(&d_ll, sizeof(u8));
-  cudaMalloc(&d_of, sizeof(u8));
-  cudaMalloc(&d_ml, sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&d_ll, sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&d_of, sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&d_ml, sizeof(u8));
 
-  cudaMalloc(&d_ll_extras, sizeof(u32));
-  cudaMalloc(&d_of_extras, sizeof(u32));
-  cudaMalloc(&d_ml_extras, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_ll_extras, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_of_extras, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_ml_extras, sizeof(u32));
   cudaMemset(d_ll_extras, 0, sizeof(u32));
   cudaMemset(d_of_extras, 0, sizeof(u32));
   cudaMemset(d_ml_extras, 0, sizeof(u32));
 
-  cudaMalloc(&d_ll_bits, sizeof(u8));
-  cudaMalloc(&d_of_bits, sizeof(u8));
-  cudaMalloc(&d_ml_bits, sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&d_ll_bits, sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&d_of_bits, sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&d_ml_bits, sizeof(u8));
   cudaMemset(d_ll_bits, 0, sizeof(u8));
   cudaMemset(d_of_bits, 0, sizeof(u8));
   cudaMemset(d_ml_bits, 0, sizeof(u8));
@@ -123,11 +124,11 @@ void test_fse_interleaved_simple() {
   // 3. Setup Bitstream
   size_t capacity = 32;
   byte_t *d_bitstream;
-  cudaMalloc(&d_bitstream, capacity);
+  cuda_zstd::safe_cuda_malloc(&d_bitstream, capacity);
   cudaMemset(d_bitstream, 0, capacity);
 
   size_t *d_pos;
-  cudaMalloc(&d_pos, sizeof(size_t));
+  cuda_zstd::safe_cuda_malloc(&d_pos, sizeof(size_t));
 
   // 4. Launch Encoding
   // 4. Launch Encoding

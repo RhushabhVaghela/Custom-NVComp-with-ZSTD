@@ -1,4 +1,5 @@
 #include "pipeline_manager.hpp"
+#include "cuda_zstd_safe_alloc.h"
 #include <atomic>
 #include <condition_variable>
 #include <iostream>
@@ -69,11 +70,11 @@ Status PipelinedBatchManager::init_resources() {
 
   // 3. Allocate Ring Buffer Slots
   for (int i = 0; i < num_slots_; ++i) {
-    if (cudaMalloc(&ring_buffer_[i].d_input, batch_size_) != cudaSuccess)
+    if (cuda_zstd::safe_cuda_malloc(&ring_buffer_[i].d_input, batch_size_) != cudaSuccess)
       return Status::ERROR_OUT_OF_MEMORY;
-    if (cudaMalloc(&ring_buffer_[i].d_output, output_bound) != cudaSuccess)
+    if (cuda_zstd::safe_cuda_malloc(&ring_buffer_[i].d_output, output_bound) != cudaSuccess)
       return Status::ERROR_OUT_OF_MEMORY;
-    if (cudaMalloc(&ring_buffer_[i].d_workspace, workspace_size) != cudaSuccess)
+    if (cuda_zstd::safe_cuda_malloc(&ring_buffer_[i].d_workspace, workspace_size) != cudaSuccess)
       return Status::ERROR_OUT_OF_MEMORY;
 
     // Host Pinned Allocation for maximum bandwidth

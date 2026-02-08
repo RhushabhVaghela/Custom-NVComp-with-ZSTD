@@ -5,6 +5,7 @@
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_xxhash.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cstring>
 #include <iostream>
@@ -207,7 +208,7 @@ Status train_dictionary_gpu(const std::vector<const unsigned char *> &h_samples,
         cudaFree(ptr);
     }
     cudaError_t alloc(size_t size) {
-      cudaError_t err = cudaMalloc(&ptr, size);
+      cudaError_t err = cuda_zstd::safe_cuda_malloc(&ptr, size);
       return err;
     }
     void *get() { return ptr; }

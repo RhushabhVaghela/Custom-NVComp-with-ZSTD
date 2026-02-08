@@ -1,6 +1,7 @@
 
 #include "cuda_error_checking.h"
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <atomic>
 #include <chrono>
 #include <iomanip>
@@ -52,9 +53,9 @@ bool test_concurrent_compression() {
 
       size_t temp_size = manager.get_compress_temp_size(data_size);
 
-      if (cudaMalloc(&d_input, data_size) != cudaSuccess ||
-          cudaMalloc(&d_output, data_size * 2) != cudaSuccess ||
-          cudaMalloc(&d_temp, temp_size) != cudaSuccess) {
+      if (cuda_zstd::safe_cuda_malloc(&d_input, data_size) != cudaSuccess ||
+          cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2) != cudaSuccess ||
+          cuda_zstd::safe_cuda_malloc(&d_temp, temp_size) != cudaSuccess) {
         printf("Test Allocation Failed!\\n");
         if (d_input)
           cudaFree(d_input);

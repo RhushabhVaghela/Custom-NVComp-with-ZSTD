@@ -12,6 +12,7 @@
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_utils.h"
 #include "cuda_zstd_xxhash.h"
+#include "cuda_zstd_safe_alloc.h"
 
 #include <algorithm>
 #include <cuda_runtime.h>
@@ -951,7 +952,7 @@ __host__ Status create_multi_table_fse(MultiTableFSE &multi_table,
   }
 
   u32 *d_frequencies;
-  CUDA_CHECK(cudaMalloc(&d_frequencies, 256 * sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_frequencies, 256 * sizeof(u32)));
   cudaMemset(d_frequencies, 0, 256 * sizeof(u32));
 
   const u32 threads = 256;
@@ -1473,10 +1474,10 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   size_t next_state_bytes = table_size * sizeof(u16);
   size_t nbBits_bytes = table_size * sizeof(u8);
 
-  CUDA_CHECK(cudaMalloc(&d_dev_symbol_table, sym_size_bytes));
-  CUDA_CHECK(cudaMalloc(&d_dev_next_state, next_state_bytes));
-  CUDA_CHECK(cudaMalloc(&d_dev_nbBits_table, nbBits_bytes));
-  CUDA_CHECK(cudaMalloc(&d_dev_next_state_vals, next_state_bytes));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_symbol_table, sym_size_bytes));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_next_state, next_state_bytes));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_nbBits_table, nbBits_bytes));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_next_state_vals, next_state_bytes));
 
   // Context Reuse Logic for Tables (If context provided, use/alloc it)
   if (ctx) {
@@ -1486,7 +1487,7 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
         ctx->symbol_table_capacity < required_sym_capacity) {
       if (ctx->d_dev_symbol_table)
         cudaFree(ctx->d_dev_symbol_table);
-      CUDA_CHECK(cudaMalloc(&ctx->d_dev_symbol_table, sym_size_bytes));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_symbol_table, sym_size_bytes));
       ctx->symbol_table_capacity = required_sym_capacity;
     }
     if (d_dev_symbol_table)
@@ -1495,17 +1496,17 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
         (FSEEncodeTable::FSEEncodeSymbol *)ctx->d_dev_symbol_table;
 
     if (!ctx->d_dev_next_state)
-      CUDA_CHECK(cudaMalloc(&ctx->d_dev_next_state, next_state_bytes));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_next_state, next_state_bytes));
     if (d_dev_next_state)
       cudaFree(d_dev_next_state);
     d_dev_next_state = (u16 *)ctx->d_dev_next_state;
 
     if (!ctx->d_dev_nbBits_table)
-      CUDA_CHECK(cudaMalloc(&ctx->d_dev_nbBits_table, nbBits_bytes));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_nbBits_table, nbBits_bytes));
     if (d_dev_nbBits_table)
       cudaFree(d_dev_nbBits_table);
     d_dev_nbBits_table = (u8 *)ctx->d_dev_nbBits_table;
-    CUDA_CHECK(cudaMalloc(&ctx->d_dev_next_state_vals, next_state_bytes));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_next_state_vals, next_state_bytes));
     if (d_dev_next_state_vals)
       cudaFree(d_dev_next_state_vals);
     d_dev_next_state_vals = (u16 *)ctx->d_dev_next_state_vals;
@@ -1519,10 +1520,10 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
 
   if (ctx) {
     if (!ctx->d_dev_initial_states)
-      CUDA_CHECK(cudaMalloc(&ctx->d_dev_initial_states, init_state_bytes));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_dev_initial_states, init_state_bytes));
     d_dev_initial_states = (u16 *)ctx->d_dev_initial_states;
   } else {
-    CUDA_CHECK(cudaMalloc(&d_dev_initial_states, init_state_bytes));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_initial_states, init_state_bytes));
   }
   CUDA_CHECK(cudaMemcpyAsync(d_dev_initial_states, h_initial_states.data(),
                              init_state_bytes, cudaMemcpyHostToDevice, stream));
@@ -1562,10 +1563,10 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
   u16 *d_ctable_for_encoder;
   if (ctx) {
     if (!ctx->d_ctable_for_encoder)
-      CUDA_CHECK(cudaMalloc(&ctx->d_ctable_for_encoder, 16384));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_ctable_for_encoder, 16384));
     d_ctable_for_encoder = (u16 *)ctx->d_ctable_for_encoder;
   } else {
-    CUDA_CHECK(cudaMalloc(&d_ctable_for_encoder, 16384));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_ctable_for_encoder, 16384));
   }
   CUDA_CHECK(cudaMemcpy(d_ctable_for_encoder, h_ctable_byte_buf.data(), 16384,
                         cudaMemcpyHostToDevice));
@@ -1685,7 +1686,7 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
 
     if (d_offsets_out) {
       u64 *d_offs;
-      CUDA_CHECK(cudaMalloc(&d_offs, sizeof(u64)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_offs, sizeof(u64)));
       u64 zero = 0;
       CUDA_CHECK(cudaMemcpyAsync(d_offs, &zero, sizeof(u64),
                                  cudaMemcpyHostToDevice, stream));
@@ -1738,10 +1739,10 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
         cudaFree(ctx->d_chunk_offsets); // Resize associated
 
       CUDA_CHECK(
-          cudaMalloc(&ctx->d_chunk_start_states, num_chunks * sizeof(u16)));
+          cuda_zstd::safe_cuda_malloc(&ctx->d_chunk_start_states, num_chunks * sizeof(u16)));
       CUDA_CHECK(
-          cudaMalloc(&ctx->d_chunk_bit_counts, num_chunks * sizeof(u32)));
-      CUDA_CHECK(cudaMalloc(&ctx->d_chunk_offsets, num_chunks * sizeof(u32)));
+          cuda_zstd::safe_cuda_malloc(&ctx->d_chunk_bit_counts, num_chunks * sizeof(u32)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_chunk_offsets, num_chunks * sizeof(u32)));
 
       ctx->num_chunks_capacity = num_chunks;
     }
@@ -1755,17 +1756,17 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
         ctx->bitstreams_capacity_bytes < required_bitstreams) {
       if (ctx->d_bitstreams)
         cudaFree(ctx->d_bitstreams);
-      CUDA_CHECK(cudaMalloc(&ctx->d_bitstreams, required_bitstreams));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_bitstreams, required_bitstreams));
       ctx->bitstreams_capacity_bytes = required_bitstreams;
     }
     d_bitstreams = (unsigned char *)ctx->d_bitstreams;
 
   } else {
-    CUDA_CHECK(cudaMalloc(&d_chunk_start_states, num_chunks * sizeof(u16)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_chunk_start_states, num_chunks * sizeof(u16)));
     CUDA_CHECK(
-        cudaMalloc(&d_bitstreams, (num_chunks * max_chunk_stream_size) + 4096));
-    CUDA_CHECK(cudaMalloc(&d_chunk_bit_counts, num_chunks * sizeof(u32)));
-    CUDA_CHECK(cudaMalloc(&d_chunk_offsets, num_chunks * sizeof(u32)));
+        cuda_zstd::safe_cuda_malloc(&d_bitstreams, (num_chunks * max_chunk_stream_size) + 4096));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_chunk_bit_counts, num_chunks * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_chunk_offsets, num_chunks * sizeof(u32)));
   }
 
   // Clear bit counts (required for setup kernel accumulation implicit
@@ -1836,7 +1837,7 @@ __host__ Status encode_fse_impl(const unsigned char *d_input, u32 input_size,
 
   // 3. Copy Offsets to Device (Use NEW buffer for Bit Offsets)
   u64 *d_chunk_bit_offsets;
-  CUDA_CHECK(cudaMalloc(&d_chunk_bit_offsets, num_chunks * sizeof(u64)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_chunk_bit_offsets, num_chunks * sizeof(u64)));
   CUDA_CHECK(cudaMemcpyAsync(d_chunk_bit_offsets, h_bit_offsets.data(),
                              num_chunks * sizeof(u64), cudaMemcpyHostToDevice,
                              stream));
@@ -1972,7 +1973,7 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
   // === Resource Allocation ===
   // 1. Frequencies (Host & Device)
   u32 *d_all_frequencies;
-  CUDA_CHECK(cudaMalloc(&d_all_frequencies, num_blocks * 256 * sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_all_frequencies, num_blocks * 256 * sizeof(u32)));
   CUDA_CHECK(cudaMemsetAsync(d_all_frequencies, 0,
                              num_blocks * 256 * sizeof(u32), stream));
 
@@ -1986,7 +1987,7 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
 
   FSEEncodeTable::FSEEncodeSymbol *d_all_symbol_tables;
   CUDA_CHECK(
-      cudaMalloc(&d_all_symbol_tables, num_blocks * max_table_size_bytes));
+      cuda_zstd::safe_cuda_malloc(&d_all_symbol_tables, num_blocks * max_table_size_bytes));
 
   std::vector<u8> h_all_symbol_tables(num_blocks * max_table_size_bytes);
 
@@ -1997,7 +1998,7 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
 
   u16 *d_all_next_states;
   CUDA_CHECK(
-      cudaMalloc(&d_all_next_states, num_blocks * max_next_state_size_bytes));
+      cuda_zstd::safe_cuda_malloc(&d_all_next_states, num_blocks * max_next_state_size_bytes));
 
   std::vector<u8> h_all_next_states(num_blocks * max_next_state_size_bytes);
 
@@ -2005,12 +2006,12 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
   size_t max_bits_table_size_bytes = 4096 * sizeof(u8);
   u8 *d_all_nbBits_tables;
   CUDA_CHECK(
-      cudaMalloc(&d_all_nbBits_tables, num_blocks * max_bits_table_size_bytes));
+      cuda_zstd::safe_cuda_malloc(&d_all_nbBits_tables, num_blocks * max_bits_table_size_bytes));
   std::vector<u8> h_all_nbBits_tables(num_blocks * max_bits_table_size_bytes);
 
   // 2d. Next State Vals (Host & Device) -  Explicit Values
   u16 *d_all_next_state_vals;
-  CUDA_CHECK(cudaMalloc(&d_all_next_state_vals,
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_all_next_state_vals,
                         num_blocks * max_next_state_size_bytes));
   std::vector<u8> h_all_next_state_vals(num_blocks * max_next_state_size_bytes);
 
@@ -2018,7 +2019,7 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
   // Max symbols is 256 for literals
   size_t max_init_states_size_bytes = 256 * sizeof(u16);
   u16 *d_all_initial_states;
-  CUDA_CHECK(cudaMalloc(&d_all_initial_states,
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_all_initial_states,
                         num_blocks * max_init_states_size_bytes));
   std::vector<u16> h_all_initial_states(num_blocks * 256);
 
@@ -2166,10 +2167,10 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
   // Conservative max size per chunk
   const u32 max_chunk_size = 8192 * 2;
 
-  CUDA_CHECK(cudaMalloc(&d_batch_chunk_states, max_chunks * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_batch_bitstreams, max_chunks * max_chunk_size));
-  CUDA_CHECK(cudaMalloc(&d_batch_bit_counts, max_chunks * sizeof(u32)));
-  CUDA_CHECK(cudaMalloc(&d_batch_bit_offsets, max_chunks * sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_batch_chunk_states, max_chunks * sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_batch_bitstreams, max_chunks * max_chunk_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_batch_bit_counts, max_chunks * sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_batch_bit_offsets, max_chunks * sizeof(u32)));
 
   // Batch collections for FSE blocks
   std::vector<const unsigned char *> batch_inputs;
@@ -2272,14 +2273,14 @@ __host__ Status encode_fse_batch(const unsigned char **d_inputs,
     fse::GPU_FSE_SymbolTransform **d_dev_symbol_ptrs;
     u32 *d_dev_logs;
 
-    CUDA_CHECK(cudaMalloc(&d_dev_inputs, num_batch * sizeof(unsigned char *)));
-    CUDA_CHECK(cudaMalloc(&d_dev_sizes, num_batch * sizeof(u32)));
-    CUDA_CHECK(cudaMalloc(&d_dev_outputs, num_batch * sizeof(unsigned char *)));
-    CUDA_CHECK(cudaMalloc(&d_dev_out_sizes,
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_inputs, num_batch * sizeof(unsigned char *)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_sizes, num_batch * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_outputs, num_batch * sizeof(unsigned char *)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_out_sizes,
                           num_batch * sizeof(u32))); // Dest for kernel
-    CUDA_CHECK(cudaMalloc(&d_dev_state_ptrs, num_batch * sizeof(u16 *)));
-    CUDA_CHECK(cudaMalloc(&d_dev_symbol_ptrs, num_batch * sizeof(void *)));
-    CUDA_CHECK(cudaMalloc(&d_dev_logs, num_batch * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_state_ptrs, num_batch * sizeof(u16 *)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_symbol_ptrs, num_batch * sizeof(void *)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dev_logs, num_batch * sizeof(u32)));
 
     // Copy Host Vectors to Device
     CUDA_CHECK(cudaMemcpyAsync(d_dev_inputs, batch_inputs.data(),
@@ -2396,7 +2397,7 @@ __host__ Status analyze_block_statistics(const unsigned char *d_input,
                                        // sync
 
   u32 *d_frequencies;
-  CUDA_CHECK(cudaMalloc(&d_frequencies, 256 * sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_frequencies, 256 * sizeof(u32)));
   CUDA_CHECK(cudaMemset(d_frequencies, 0, 256 * sizeof(u32)));
 
   // BUG FIX: Zero-size input would launch kernel with 0 grid blocks
@@ -3643,11 +3644,11 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
           cudaFree(ctx->d_nbAdditionalBits);
         if (ctx->d_baseValue)
           cudaFree(ctx->d_baseValue);
-        CUDA_CHECK(cudaMalloc(&ctx->d_newState, new_cap * sizeof(u16)));
-        CUDA_CHECK(cudaMalloc(&ctx->d_symbol, new_cap * sizeof(u8)));
-        CUDA_CHECK(cudaMalloc(&ctx->d_nbBits, new_cap * sizeof(u8)));
-        CUDA_CHECK(cudaMalloc(&ctx->d_nbAdditionalBits, new_cap * sizeof(u8)));
-        CUDA_CHECK(cudaMalloc(&ctx->d_baseValue, new_cap * sizeof(u32)));
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_newState, new_cap * sizeof(u16)));
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_symbol, new_cap * sizeof(u8)));
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_nbBits, new_cap * sizeof(u8)));
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_nbAdditionalBits, new_cap * sizeof(u8)));
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&ctx->d_baseValue, new_cap * sizeof(u32)));
         ctx->table_capacity = new_cap;
       }
       d_table.newState = (u16 *)ctx->d_newState;
@@ -3656,11 +3657,11 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
       d_table.nbAdditionalBits = (u8 *)ctx->d_nbAdditionalBits;
       d_table.baseValue = (u32 *)ctx->d_baseValue;
     } else {
-      CUDA_CHECK(cudaMalloc(&d_table.newState, table_size * sizeof(u16)));
-      CUDA_CHECK(cudaMalloc(&d_table.symbol, table_size * sizeof(u8)));
-      CUDA_CHECK(cudaMalloc(&d_table.nbBits, table_size * sizeof(u8)));
-      CUDA_CHECK(cudaMalloc(&d_table.nbAdditionalBits, table_size * sizeof(u8)));
-      CUDA_CHECK(cudaMalloc(&d_table.baseValue, table_size * sizeof(u32)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.newState, table_size * sizeof(u16)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.symbol, table_size * sizeof(u8)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.nbBits, table_size * sizeof(u8)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.nbAdditionalBits, table_size * sizeof(u8)));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.baseValue, table_size * sizeof(u32)));
     }
 
     // 4. Copy Host Table -> Device
@@ -3728,9 +3729,9 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
         size_t new_chunk_cap =
             std::max((size_t)num_chunks, (size_t)128); // Minimum 128 chunks
         CUDA_CHECK(
-            cudaMalloc(&ctx->d_chunk_counts, new_chunk_cap * sizeof(u32)));
+            cuda_zstd::safe_cuda_malloc(&ctx->d_chunk_counts, new_chunk_cap * sizeof(u32)));
         CUDA_CHECK(
-            cudaMalloc(&ctx->d_chunk_offsets, new_chunk_cap * sizeof(u32)));
+            cuda_zstd::safe_cuda_malloc(&ctx->d_chunk_offsets, new_chunk_cap * sizeof(u32)));
         ctx->chunk_capacity = new_chunk_cap;
       }
       d_chunk_counts = static_cast<u32 *>(ctx->d_chunk_counts);
@@ -4055,11 +4056,11 @@ Status copy_table_to_device(const FSEDecodeTable &h_table,
   if (size == 0)
     return Status::SUCCESS;
 
-  CUDA_CHECK(cudaMalloc(&d_table.symbol, size * sizeof(u8)));
-  CUDA_CHECK(cudaMalloc(&d_table.nbBits, size * sizeof(u8)));
-  CUDA_CHECK(cudaMalloc(&d_table.newState, size * sizeof(u16)));
-  CUDA_CHECK(cudaMalloc(&d_table.nbAdditionalBits, size * sizeof(u8)));
-  CUDA_CHECK(cudaMalloc(&d_table.baseValue, size * sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.symbol, size * sizeof(u8)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.nbBits, size * sizeof(u8)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.newState, size * sizeof(u16)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.nbAdditionalBits, size * sizeof(u8)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_table.baseValue, size * sizeof(u32)));
 
   CUDA_CHECK(cudaMemcpyAsync(d_table.symbol, h_table.symbol, size * sizeof(u8),
                              cudaMemcpyHostToDevice, stream));
@@ -4620,7 +4621,7 @@ Status build_fse_decoder_table(const i16 *h_normalized_counts, u32 num_counts,
   cudaError_t err = cudaMallocAsync(&d_table_out->d_table, table_bytes, stream);
   if (err != cudaSuccess) {
     
-    cudaError_t fallback_err = cudaMalloc(&d_table_out->d_table, table_bytes);
+    cudaError_t fallback_err = cuda_zstd::safe_cuda_malloc(&d_table_out->d_table, table_bytes);
     if (fallback_err != cudaSuccess) {
       
       return Status::ERROR_IO;

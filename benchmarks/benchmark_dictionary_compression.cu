@@ -5,6 +5,7 @@
  */
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cuda_runtime.h>
 #include <iomanip>
@@ -108,7 +109,7 @@ int main(int argc, char **argv) {
     // Let's rely on manager->train_dictionary functionality if exposed or
     // manual Replicating test logic:
     byte_t *d_samples;
-    CUDA_CHECK(cudaMalloc(&d_samples, total_samples));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_samples, total_samples));
     CUDA_CHECK(cudaMemcpy(d_samples, h_samples.data(), total_samples,
                           cudaMemcpyHostToDevice));
 
@@ -137,15 +138,15 @@ int main(int argc, char **argv) {
     // Allocate GPU memory
     byte_t *d_input, *d_output, *d_decompressed;
     void *d_workspace;
-    CUDA_CHECK(cudaMalloc(&d_input, size));
-    CUDA_CHECK(cudaMalloc(&d_output, size * 2)); // Safety
-    CUDA_CHECK(cudaMalloc(&d_decompressed, size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_output, size * 2)); // Safety
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_decompressed, size));
 
     size_t temp_size = manager.get_compress_temp_size(size);
     size_t decomp_temp_size = manager.get_decompress_temp_size(size);
     temp_size = std::max(temp_size, decomp_temp_size);
 
-    CUDA_CHECK(cudaMalloc(&d_workspace, temp_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_workspace, temp_size));
     CUDA_CHECK(
         cudaMemcpy(d_input, h_data.data(), size, cudaMemcpyHostToDevice));
 

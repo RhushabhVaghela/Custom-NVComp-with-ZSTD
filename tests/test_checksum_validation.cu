@@ -1,6 +1,7 @@
 #include "../include/cuda_zstd_types.h"
 #include "../include/cuda_zstd_xxhash.h"
 #include "cuda_error_checking.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -19,8 +20,8 @@ bool test_xxhash32() {
     // Allocate device memory
     byte_t* d_input;
     u32* d_hash;
-    CUDA_CHECK(cudaMalloc(&d_input, test_size));
-    CUDA_CHECK(cudaMalloc(&d_hash, sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, test_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_hash, sizeof(u32)));
     
     // Copy input to device
     CUDA_CHECK(cudaMemcpy(d_input, test_string, test_size, cudaMemcpyHostToDevice));
@@ -65,8 +66,8 @@ bool test_xxhash64() {
     // Allocate device memory
     byte_t* d_input;
     u64* d_hash;
-    CUDA_CHECK(cudaMalloc(&d_input, test_size));
-    CUDA_CHECK(cudaMalloc(&d_hash, sizeof(u64)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, test_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_hash, sizeof(u64)));
     
     // Copy input to device
     CUDA_CHECK(cudaMemcpy(d_input, test_string, test_size, cudaMemcpyHostToDevice));
@@ -112,8 +113,8 @@ bool test_hash_determinism() {
     
     byte_t* d_input;
     u64* d_hash;
-    CUDA_CHECK(cudaMalloc(&d_input, test_size));
-    CUDA_CHECK(cudaMalloc(&d_hash, sizeof(u64)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, test_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_hash, sizeof(u64)));
     CUDA_CHECK(cudaMemcpy(d_input, test_data.data(), test_size, cudaMemcpyHostToDevice));
     
     // Compute hash 5 times
@@ -150,8 +151,8 @@ bool test_seed_variation() {
     
     byte_t* d_input;
     u64* d_hash;
-    CUDA_CHECK(cudaMalloc(&d_input, test_size));
-    CUDA_CHECK(cudaMalloc(&d_hash, sizeof(u64)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_input, test_size));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_hash, sizeof(u64)));
     CUDA_CHECK(cudaMemcpy(d_input, test_string, test_size, cudaMemcpyHostToDevice));
     
     // Test with different seeds
@@ -199,7 +200,7 @@ bool test_invalid_input() {
     
     byte_t* d_input = nullptr;
     u64* d_hash;
-    CUDA_CHECK(cudaMalloc(&d_hash, sizeof(u64)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_hash, sizeof(u64)));
     
     // Empty input should fail
     Status status = compute_xxhash64(d_input, 0, 0, d_hash, 0);

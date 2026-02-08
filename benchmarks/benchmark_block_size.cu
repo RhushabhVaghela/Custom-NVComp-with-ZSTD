@@ -2,6 +2,7 @@
 // MODIFIED for RTX 5080 (16GB VRAM) - Safe memory limits
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -59,7 +60,7 @@ bool benchmark_block_size(size_t input_size, u32 block_size, BenchmarkResult& re
     ZstdBatchManager manager(config);
     
     void* d_input;
-    if (cudaMalloc(&d_input, input_size) != cudaSuccess) return false;
+    if (cuda_zstd::safe_cuda_malloc(&d_input, input_size) != cudaSuccess) return false;
     if (cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice) != cudaSuccess) {
         cudaFree(d_input);
         return false;
@@ -67,14 +68,14 @@ bool benchmark_block_size(size_t input_size, u32 block_size, BenchmarkResult& re
     
     size_t max_compressed_size = manager.get_max_compressed_size(input_size);
     void* d_compressed;
-    if (cudaMalloc(&d_compressed, max_compressed_size) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed_size) != cudaSuccess) {
         cudaFree(d_input);
         return false;
     }
     
     size_t temp_size = manager.get_compress_temp_size(input_size);
     void* d_temp;
-    if (cudaMalloc(&d_temp, temp_size) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&d_temp, temp_size) != cudaSuccess) {
         cudaFree(d_input);
         cudaFree(d_compressed);
         return false;

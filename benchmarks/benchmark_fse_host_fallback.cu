@@ -24,6 +24,7 @@
 
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_sequence.h"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 
@@ -58,15 +59,15 @@ void benchmark_compress_path(size_t input_size, int iterations = 5) {
   // Allocate device memory
   void *d_input, *d_compressed, *d_temp;
   size_t compressed_max = input_size * 2;
-  CUDA_CHECK_EXIT(cudaMalloc(&d_input, input_size));
-  CUDA_CHECK_EXIT(cudaMalloc(&d_compressed, compressed_max));
+  CUDA_CHECK_EXIT(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
+  CUDA_CHECK_EXIT(cuda_zstd::safe_cuda_malloc(&d_compressed, compressed_max));
   CUDA_CHECK_EXIT(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
 
   // Create manager
   auto manager = cuda_zstd::create_manager();
   size_t temp_size = manager->get_compress_temp_size(input_size);
-  CUDA_CHECK_EXIT(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK_EXIT(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   // Warmup
   size_t compressed_size = compressed_max;
@@ -122,15 +123,15 @@ void benchmark_decompress_path(size_t input_size, int iterations = 5) {
 
   void *d_input, *d_compressed, *d_output, *d_temp;
   size_t compressed_max = input_size * 2;
-  CUDA_CHECK_EXIT(cudaMalloc(&d_input, input_size));
-  CUDA_CHECK_EXIT(cudaMalloc(&d_compressed, compressed_max));
-  CUDA_CHECK_EXIT(cudaMalloc(&d_output, input_size));
+  CUDA_CHECK_EXIT(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
+  CUDA_CHECK_EXIT(cuda_zstd::safe_cuda_malloc(&d_compressed, compressed_max));
+  CUDA_CHECK_EXIT(cuda_zstd::safe_cuda_malloc(&d_output, input_size));
   CUDA_CHECK_EXIT(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
 
   auto manager = cuda_zstd::create_manager();
   size_t temp_size = manager->get_compress_temp_size(input_size);
-  CUDA_CHECK_EXIT(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK_EXIT(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   // Compress
   size_t compressed_size = compressed_max;

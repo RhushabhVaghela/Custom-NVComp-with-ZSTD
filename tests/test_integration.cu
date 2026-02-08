@@ -7,6 +7,7 @@
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_memory_pool.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <atomic>
 #include <chrono>
 #include <cstring>
@@ -102,20 +103,20 @@ bool test_complete_compression_pipeline() {
     void *d_input = nullptr, *d_compressed = nullptr, *d_output = nullptr,
          *d_temp = nullptr;
 
-    if (!safe_cuda_malloc(&d_input, data_size)) {
+    if (!test_safe_cuda_malloc(&d_input, data_size)) {
       LOG_FAIL("Complete Compression Pipeline",
                "CUDA malloc for d_input failed");
       return false;
     }
 
-    if (!safe_cuda_malloc(&d_compressed, data_size * 2)) {
+    if (!test_safe_cuda_malloc(&d_compressed, data_size * 2)) {
       LOG_FAIL("Complete Compression Pipeline",
                "CUDA malloc for d_compressed failed");
       safe_cuda_free(d_input);
       return false;
     }
 
-    if (!safe_cuda_malloc(&d_output, data_size)) {
+    if (!test_safe_cuda_malloc(&d_output, data_size)) {
       LOG_FAIL("Complete Compression Pipeline",
                "CUDA malloc for d_output failed");
       safe_cuda_free(d_input);
@@ -160,7 +161,7 @@ bool test_complete_compression_pipeline() {
     LOG_INFO("Getting temp size...");
     size_t temp_size = manager->get_compress_temp_size(data_size);
     LOG_INFO("Temp size: " << temp_size);
-    if (!safe_cuda_malloc(&d_temp, temp_size)) {
+    if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
       LOG_FAIL("Complete Compression Pipeline", "CUDA malloc for temp failed");
       safe_cuda_free(d_input);
       safe_cuda_free(d_compressed);
@@ -263,9 +264,9 @@ bool test_dictionary_integration() {
   generate_test_data(h_input, data_size, "text");
 
   void *d_input, *d_compressed, *d_output, *d_temp;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_compressed, data_size * 2);
-  cudaMalloc(&d_output, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size);
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
   ZstdBatchManager manager(CompressionConfig{.level = 5});
@@ -273,7 +274,7 @@ bool test_dictionary_integration() {
   manager.set_dictionary(dict);
 
   size_t temp_size = manager.get_compress_temp_size(data_size);
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   size_t compressed_size = data_size * 2; // Init to allocated buffer size
   status = manager.compress(d_input, data_size, d_compressed, &compressed_size,
@@ -389,8 +390,8 @@ bool test_large_file_compression() {
   streaming_mgr.init_compression();
 
   void *d_input, *d_output;
-  cudaMalloc(&d_input, chunk_size);
-  cudaMalloc(&d_output, chunk_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_input, chunk_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, chunk_size * 2);
 
   size_t total_compressed = 0;
   int num_chunks = (file_size + chunk_size - 1) / chunk_size;
@@ -458,8 +459,8 @@ bool test_memory_efficiency_large_file() {
     streaming_mgr.init_compression();
 
     void *d_input, *d_output;
-    cudaMalloc(&d_input, chunk_size);
-    cudaMalloc(&d_output, chunk_size * 2);
+    cuda_zstd::safe_cuda_malloc(&d_input, chunk_size);
+    cuda_zstd::safe_cuda_malloc(&d_output, chunk_size * 2);
 
     int num_chunks = (file_size + chunk_size - 1) / chunk_size;
 
@@ -524,12 +525,12 @@ bool test_concurrent_compression() {
       generate_test_data(h_data, data_size, "compressible");
 
       void *d_input, *d_output, *d_temp;
-      cudaMalloc(&d_input, data_size);
-      cudaMalloc(&d_output, data_size * 2);
+      cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+      cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2);
       cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);
 
       size_t temp_size = manager.get_compress_temp_size(data_size);
-      cudaMalloc(&d_temp, temp_size);
+      cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
       size_t compressed_size = data_size * 2; // Init to allocated buffer size
       Status status =
@@ -654,9 +655,9 @@ bool test_corrupt_data_handling() {
     LOG_INFO("Testing: " << name);
 
     void *d_compressed, *d_output, *d_temp;
-    cudaMalloc(&d_compressed, data.size());
-    cudaMalloc(&d_output, data_size);
-    cudaMalloc(&d_temp, data_size);
+    cuda_zstd::safe_cuda_malloc(&d_compressed, data.size());
+    cuda_zstd::safe_cuda_malloc(&d_output, data_size);
+    cuda_zstd::safe_cuda_malloc(&d_temp, data_size);
     cudaMemcpy(d_compressed, data.data(), data.size(), cudaMemcpyHostToDevice);
 
     size_t output_size;
@@ -698,13 +699,13 @@ bool test_buffer_boundary_conditions() {
     generate_test_data(h_data, size, "compressible");
 
     void *d_input, *d_output, *d_decompressed, *d_temp;
-    cudaMalloc(&d_input, size);
-    cudaMalloc(&d_output, size * 2);
-    cudaMalloc(&d_decompressed, size);
+    cuda_zstd::safe_cuda_malloc(&d_input, size);
+    cuda_zstd::safe_cuda_malloc(&d_output, size * 2);
+    cuda_zstd::safe_cuda_malloc(&d_decompressed, size);
     cudaMemcpy(d_input, h_data.data(), size, cudaMemcpyHostToDevice);
 
     size_t temp_size = manager.get_compress_temp_size(size);
-    cudaMalloc(&d_temp, temp_size);
+    cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
     size_t compressed_size = size * 2; // Init to allocated buffer size
     Status status = manager.compress(d_input, size, d_output, &compressed_size,

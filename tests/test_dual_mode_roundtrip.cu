@@ -1,5 +1,6 @@
 #include "../include/cuda_zstd_manager.h"
 #include "../include/cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cuda_runtime.h>
 #include <iostream>
@@ -51,9 +52,9 @@ bool test_dual_mode_roundtrip() {
   generate_test_data(h_input, size);
 
   byte_t *d_input, *d_compressed, *d_output;
-  CHECK_CUDA(cudaMalloc(&d_input, size));
-  CHECK_CUDA(cudaMalloc(&d_compressed, size * 2));
-  CHECK_CUDA(cudaMalloc(&d_output, size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_input, size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_compressed, size * 2));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, size));
   CHECK_CUDA(cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice));
 
   auto manager = create_manager(3);
@@ -61,7 +62,7 @@ bool test_dual_mode_roundtrip() {
   // Get workspace
   size_t compress_temp = manager->get_compress_temp_size(size);
   void *d_temp;
-  CHECK_CUDA(cudaMalloc(&d_temp, compress_temp));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_temp, compress_temp));
 
   // Test NATIVE mode (default - current implementation)
   std::cout << "\nBitstreamKind::NATIVE mode:" << std::endl;
@@ -81,7 +82,7 @@ bool test_dual_mode_roundtrip() {
       CHECK_CUDA(cudaFree(d_temp));
       size_t decompress_temp =
           manager->get_decompress_temp_size(compressed_size);
-      CHECK_CUDA(cudaMalloc(&d_temp, decompress_temp));
+      CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_temp, decompress_temp));
       CHECK_CUDA(cudaMemset(d_temp, 0, decompress_temp));
 
       size_t decompressed_size = size;
@@ -130,9 +131,9 @@ void benchmark_decode(size_t size, int iterations) {
   generate_test_data(h_input, size);
 
   byte_t *d_input, *d_compressed, *d_output;
-  CHECK_CUDA(cudaMalloc(&d_input, size));
-  CHECK_CUDA(cudaMalloc(&d_compressed, size * 2));
-  CHECK_CUDA(cudaMalloc(&d_output, size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_input, size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_compressed, size * 2));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, size));
   CHECK_CUDA(cudaMemcpy(d_input, h_input.data(), size, cudaMemcpyHostToDevice));
 
   auto manager = create_manager(3);
@@ -140,7 +141,7 @@ void benchmark_decode(size_t size, int iterations) {
   // Compress first
   size_t compress_temp = manager->get_compress_temp_size(size);
   void *d_temp;
-  CHECK_CUDA(cudaMalloc(&d_temp, compress_temp));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_temp, compress_temp));
   CHECK_CUDA(cudaMemset(d_temp, 0, compress_temp));
 
   size_t compressed_size = size * 2;
@@ -150,7 +151,7 @@ void benchmark_decode(size_t size, int iterations) {
 
   CHECK_CUDA(cudaFree(d_temp));
   size_t decompress_temp = manager->get_decompress_temp_size(compressed_size);
-  CHECK_CUDA(cudaMalloc(&d_temp, decompress_temp));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_temp, decompress_temp));
 
   // Warmup
   size_t decompressed_size = size;

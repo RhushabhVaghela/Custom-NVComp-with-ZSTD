@@ -21,6 +21,7 @@
 // Parent library headers
 #include "cuda_zstd.h"
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "cuda_zstd_types.h"
 
 namespace py = pybind11;
@@ -52,10 +53,10 @@ struct DeviceBuffer {
 
     explicit DeviceBuffer(size_t n) : size(n) {
         if (n == 0) return;
-        cudaError_t err = cudaMalloc(&ptr, n);
+        cudaError_t err = cuda_zstd::safe_cuda_malloc(&ptr, n);
         if (err != cudaSuccess) {
             throw std::runtime_error(
-                std::string("cudaMalloc failed: ") + cudaGetErrorString(err));
+                std::string("safe_cuda_malloc failed: ") + cudaGetErrorString(err));
         }
     }
     ~DeviceBuffer() {

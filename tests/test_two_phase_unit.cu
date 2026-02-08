@@ -4,6 +4,7 @@
  */
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstring>
 #include <cuda_runtime.h>
 #include <iostream>
@@ -33,7 +34,7 @@ int test_basic_roundtrip() {
   // Allocate output buffer
   size_t output_size = manager.get_max_compressed_size(input_size);
   uint8_t *d_output = nullptr;
-  cudaError_t err = cudaMalloc(&d_output, output_size);
+  cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_output, output_size);
   if (err != cudaSuccess) {
     std::cerr << "  FAILED: cudaMalloc error" << std::endl;
     return 1;
@@ -42,7 +43,7 @@ int test_basic_roundtrip() {
   // Allocate temp workspace
   size_t temp_size = manager.get_compress_temp_size(input_size);
   void *d_temp = nullptr;
-  err = cudaMalloc(&d_temp, temp_size);
+  err = cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
   if (err != cudaSuccess) {
     cudaFree(d_output);
     std::cerr << "  FAILED: cudaMalloc temp error" << std::endl;
@@ -94,11 +95,11 @@ int test_multi_block() {
 
   size_t output_size = manager.get_max_compressed_size(total_size);
   uint8_t *d_output = nullptr;
-  cudaMalloc(&d_output, output_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, output_size);
 
   size_t temp_size = manager.get_compress_temp_size(total_size);
   void *d_temp = nullptr;
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   size_t compressed_size = output_size;
   Status status =

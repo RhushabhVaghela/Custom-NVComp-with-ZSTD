@@ -7,6 +7,7 @@
 
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "throughput_display.h"
 #include <chrono>
 #include <cstring>
@@ -79,16 +80,16 @@ BenchmarkResult benchmark_decompress_to_preallocated(size_t data_size,
   generate_model_weight_data(h_input, data_size);
 
   void *d_input, *d_compressed, *d_output, *d_temp;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_compressed, data_size * 2);
-  cudaMalloc(&d_output, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size);
 
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
   ZstdBatchManager manager(CompressionConfig{.level = 3});
 
   size_t temp_size = manager.get_compress_temp_size(data_size);
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   // Compress once
   size_t compressed_size = data_size * 2;
@@ -201,21 +202,21 @@ void run_benchmark_zipper_pattern() {
                                        &workspace_size);
 
   void *zipper_buffer;
-  cudaMalloc(&zipper_buffer, layer_size);
+  cuda_zstd::safe_cuda_malloc(&zipper_buffer, layer_size);
 
   // Pre-compress all layers
   std::vector<void *> compressed_buffers(num_layers);
   std::vector<size_t> compressed_sizes(num_layers);
 
   void *d_input;
-  cudaMalloc(&d_input, layer_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, layer_size);
 
   size_t total_compressed = 0;
   for (int i = 0; i < num_layers; i++) {
     std::vector<uint8_t> h_data;
     generate_model_weight_data(h_data, layer_size);
 
-    cudaMalloc(&compressed_buffers[i], layer_size * 2);
+    cuda_zstd::safe_cuda_malloc(&compressed_buffers[i], layer_size * 2);
     cudaMemcpy(d_input, h_data.data(), layer_size, cudaMemcpyHostToDevice);
 
     compressed_sizes[i] = layer_size * 2;
@@ -318,17 +319,17 @@ void run_benchmark_preallocated_vs_standard() {
 
   void *d_temp;
   size_t temp_size = manager.get_compress_temp_size(item_size) * num_items;
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   void *d_input;
-  cudaMalloc(&d_input, item_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, item_size);
 
   for (int i = 0; i < num_items; i++) {
     std::vector<uint8_t> h_data;
     generate_model_weight_data(h_data, item_size);
 
-    cudaMalloc(&compressed_buffers[i], item_size * 2);
-    cudaMalloc(&output_buffers[i],
+    cuda_zstd::safe_cuda_malloc(&compressed_buffers[i], item_size * 2);
+    cuda_zstd::safe_cuda_malloc(&output_buffers[i],
                item_size); // Pre-allocate for preallocated test
 
     cudaMemcpy(d_input, h_data.data(), item_size, cudaMemcpyHostToDevice);
@@ -414,8 +415,8 @@ void run_benchmark_double_buffer_pipeline() {
 
   // Allocate double buffer
   void *buffer_a, *buffer_b;
-  cudaMalloc(&buffer_a, layer_size);
-  cudaMalloc(&buffer_b, layer_size);
+  cuda_zstd::safe_cuda_malloc(&buffer_a, layer_size);
+  cuda_zstd::safe_cuda_malloc(&buffer_b, layer_size);
 
   void *workspace;
   size_t workspace_size;
@@ -432,13 +433,13 @@ void run_benchmark_double_buffer_pipeline() {
   std::vector<size_t> compressed_sizes(num_layers);
 
   void *d_input;
-  cudaMalloc(&d_input, layer_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, layer_size);
 
   for (int i = 0; i < num_layers; i++) {
     std::vector<uint8_t> h_data;
     generate_model_weight_data(h_data, layer_size);
 
-    cudaMalloc(&compressed_buffers[i], layer_size * 2);
+    cuda_zstd::safe_cuda_malloc(&compressed_buffers[i], layer_size * 2);
     cudaMemcpy(d_input, h_data.data(), layer_size, cudaMemcpyHostToDevice);
 
     compressed_sizes[i] = layer_size * 2;

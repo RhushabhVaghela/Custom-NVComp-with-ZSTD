@@ -76,12 +76,12 @@ int main() {
   void *d_input = nullptr, *d_output = nullptr, *d_temp = nullptr;
 
   // Allocate GPU memory with error checking
-  if (!safe_cuda_malloc(&d_input, h_test_data.size())) {
+  if (!test_safe_cuda_malloc(&d_input, h_test_data.size())) {
     std::cerr << "  ✗ FAILED: CUDA malloc for d_input\n";
     return 1;
   }
 
-  if (!safe_cuda_malloc(&d_output, h_test_data.size() * 2)) {
+  if (!test_safe_cuda_malloc(&d_output, h_test_data.size() * 2)) {
     std::cerr << "  ✗ FAILED: CUDA malloc for d_output\n";
     safe_cuda_free(d_input);
     return 1;
@@ -98,7 +98,7 @@ int main() {
 
   auto manager = create_manager(5);
   size_t temp_size = manager->get_compress_temp_size(h_test_data.size());
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     std::cerr << "  ✗ FAILED: CUDA malloc for d_temp\n";
     safe_cuda_free(d_input);
     safe_cuda_free(d_output);

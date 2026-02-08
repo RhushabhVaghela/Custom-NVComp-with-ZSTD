@@ -9,6 +9,7 @@
 #include "cuda_zstd_lz77.h"
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "lz77_parallel.h"
 #include <chrono>
 #include <cstdio>
@@ -121,15 +122,15 @@ BenchmarkResult run_gpu_backtracking_benchmark(
   void *d_output = nullptr;
   void *d_temp = nullptr;
   
-  CHECK_CUDA(cudaMalloc(&d_input, input_data.size()));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_input, input_data.size()));
   CHECK_CUDA(cudaMemcpy(d_input, input_data.data(), input_data.size(), 
                         cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMalloc(&d_output, input_data.size() * 2));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, input_data.size() * 2));
   
   // Create manager
   auto manager = create_manager(compression_level);
   size_t temp_size = manager->get_compress_temp_size(input_data.size());
-  CHECK_CUDA(cudaMalloc(&d_temp, temp_size));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
   
   // Warmup
   size_t compressed_size = 0;

@@ -6,6 +6,7 @@
  */
 
 #include "cuda_zstd_fse.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cstring>
 #include <iomanip>
@@ -69,10 +70,10 @@ int main() {
     u32 *d_comp_size;
     size_t max_comp_size = data_size + (data_size >> 7) + 4096;
 
-    cudaMalloc(&d_input, data_size);
-    cudaMalloc(&d_output, max_comp_size);
-    cudaMalloc(&d_decompressed, data_size);
-    cudaMalloc(&d_comp_size, sizeof(u32));
+    cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+    cuda_zstd::safe_cuda_malloc(&d_output, max_comp_size);
+    cuda_zstd::safe_cuda_malloc(&d_decompressed, data_size);
+    cuda_zstd::safe_cuda_malloc(&d_comp_size, sizeof(u32));
 
     // Copy data to device (one-time, not timed)
     cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);

@@ -2,6 +2,7 @@
 // Covers: null pointers, invalid sizes, error handling, boundary conditions
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 #include <vector>
 
@@ -37,7 +38,7 @@ bool test_null_input_pointer() {
   size_t output_size = 0;
   size_t max_output_size = 1024;
 
-  cudaMalloc(&d_output, max_output_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, max_output_size);
 
   // Pass null input - should return error
   // Args: src, src_size, dst, dst_size, temp, temp_size, dict, dict_size
@@ -65,7 +66,7 @@ bool test_null_output_pointer() {
   u8 *d_input = nullptr;
   size_t output_size = 0;
 
-  cudaMalloc(&d_input, 100);
+  cuda_zstd::safe_cuda_malloc(&d_input, 100);
   cudaMemset(d_input, 0xAA, 100);
 
   // Pass null output - should return error
@@ -94,8 +95,8 @@ bool test_zero_size_input() {
   u8 *d_output = nullptr;
   size_t output_size = 0;
 
-  cudaMalloc(&d_input, 100);
-  cudaMalloc(&d_output, 1024);
+  cuda_zstd::safe_cuda_malloc(&d_input, 100);
+  cuda_zstd::safe_cuda_malloc(&d_output, 1024);
 
   // Pass zero size - should handle gracefully
   Status status = manager.compress(d_input, 0, d_output, &output_size, nullptr,
@@ -126,8 +127,8 @@ bool test_very_small_input() {
   u8 *d_output = nullptr;
   size_t output_size = 0;
 
-  cudaMalloc(&d_input, 1);
-  cudaMalloc(&d_output, 1024); // Plenty of space
+  cuda_zstd::safe_cuda_malloc(&d_input, 1);
+  cuda_zstd::safe_cuda_malloc(&d_output, 1024); // Plenty of space
 
   u8 h_byte = 0x42;
   cudaMemcpy(d_input, &h_byte, 1, cudaMemcpyHostToDevice);
@@ -162,14 +163,14 @@ bool test_invalid_compression_level() {
   const size_t data_size = 1024;
 
   u8 *d_input = nullptr, *d_output = nullptr, *d_workspace = nullptr;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2);
   cudaMemset(d_input, 0xAB, data_size);
 
   // Get workspace size for proper compress call
   ZstdBatchManager temp_mgr;
   size_t ws_size = temp_mgr.get_compress_temp_size(data_size);
-  cudaMalloc(&d_workspace, ws_size);
+  cuda_zstd::safe_cuda_malloc(&d_workspace, ws_size);
 
   // Test with invalid level -100 (rejected, falls back to default level 3)
   {
@@ -229,8 +230,8 @@ bool test_manager_destruction() {
 
     u8 *d_input = nullptr;
     u8 *d_output = nullptr;
-    cudaMalloc(&d_input, 1024);
-    cudaMalloc(&d_output, 4096);
+    cuda_zstd::safe_cuda_malloc(&d_input, 1024);
+    cuda_zstd::safe_cuda_malloc(&d_output, 4096);
     cudaMemset(d_input, 0xAB, 1024);
 
     size_t output_size = 0;
@@ -260,15 +261,15 @@ bool test_multiple_managers() {
 
   const size_t data_size = 1024;
   u8 *d_input = nullptr, *d_output = nullptr, *d_workspace = nullptr;
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2);
   cudaMemset(d_input, 0xCD, data_size);
 
   // Get workspace size — use highest level tested (9) so workspace is large enough
   ZstdBatchManager temp_mgr;
   temp_mgr.set_compression_level(9);
   size_t ws_size = temp_mgr.get_compress_temp_size(data_size);
-  cudaMalloc(&d_workspace, ws_size);
+  cuda_zstd::safe_cuda_malloc(&d_workspace, ws_size);
 
   ZstdBatchManager manager1, manager2, manager3;
 
@@ -316,8 +317,8 @@ bool test_output_size_null() {
   u8 *d_input = nullptr;
   u8 *d_output = nullptr;
 
-  cudaMalloc(&d_input, 100);
-  cudaMalloc(&d_output, 1024);
+  cuda_zstd::safe_cuda_malloc(&d_input, 100);
+  cuda_zstd::safe_cuda_malloc(&d_output, 1024);
   cudaMemset(d_input, 0xCC, 100);
 
   // Pass null output size pointer - should return error
@@ -382,15 +383,15 @@ bool test_c_api_dictionary_roundtrip() {
   unsigned char *d_compressed = nullptr;
   unsigned char *d_decompressed = nullptr;
 
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_compressed, data_size * 2);
-  cudaMalloc(&d_decompressed, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_compressed, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_decompressed, data_size);
   cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice);
 
   size_t workspace_size =
       cuda_zstd_get_compress_workspace_size(manager, data_size);
   void *d_workspace = nullptr;
-  cudaMalloc(&d_workspace, workspace_size);
+  cuda_zstd::safe_cuda_malloc(&d_workspace, workspace_size);
 
   size_t compressed_size = data_size * 2;
   int comp_status = cuda_zstd_compress(manager, d_input, data_size,
@@ -411,7 +412,7 @@ bool test_c_api_dictionary_roundtrip() {
       cuda_zstd_get_decompress_workspace_size(manager, compressed_size);
   if (decomp_workspace_size > workspace_size) {
     cudaFree(d_workspace);
-    cudaMalloc(&d_workspace, decomp_workspace_size);
+    cuda_zstd::safe_cuda_malloc(&d_workspace, decomp_workspace_size);
     workspace_size = decomp_workspace_size;
   }
 

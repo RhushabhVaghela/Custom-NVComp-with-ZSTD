@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 
@@ -40,15 +41,15 @@ void benchmark_cpp_vs_c_overhead() {
 
     // Allocate device memory
     void *d_input, *d_output, *d_decompressed, *d_temp;
-    cudaMalloc(&d_input, size);
-    cudaMalloc(&d_output, size * 2);
-    cudaMalloc(&d_decompressed, size);
+    cuda_zstd::safe_cuda_malloc(&d_input, size);
+    cuda_zstd::safe_cuda_malloc(&d_output, size * 2);
+    cuda_zstd::safe_cuda_malloc(&d_decompressed, size);
     cudaMemcpy(d_input, h_data.data(), size, cudaMemcpyHostToDevice);
 
     // Create manager
     ZstdBatchManager manager(CompressionConfig{.level = 3});
     size_t temp_size = manager.get_compress_temp_size(size);
-    cudaMalloc(&d_temp, temp_size);
+    cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
     // === Compression Benchmark ===
     size_t compressed_size = size * 2;

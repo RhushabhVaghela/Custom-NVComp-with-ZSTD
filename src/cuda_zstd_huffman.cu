@@ -14,6 +14,7 @@
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_types.h"
 #include "cuda_zstd_utils.h" // <-- 1. ADDED INCLUDE
+#include "cuda_zstd_safe_alloc.h"
 
 #include <algorithm>
 #include <cstring>
@@ -1847,7 +1848,7 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
 
   if (!d_frequencies) {
     // Fallback: allocate if no workspace provided (backward compatibility)
-    CUDA_CHECK(cudaMalloc(&d_frequencies, MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_frequencies, MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
     allocated_temp = true;
   }
   CUDA_CHECK(cudaMemsetAsync(d_frequencies, 0,
@@ -1951,8 +1952,8 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
 
   if (!d_code_lengths || !d_bit_offsets) {
     // Fallback: allocate if no workspace
-    CUDA_CHECK(cudaMalloc(&d_code_lengths, input_size * sizeof(u32)));
-    CUDA_CHECK(cudaMalloc(&d_bit_offsets, input_size * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_code_lengths, input_size * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_bit_offsets, input_size * sizeof(u32)));
     allocated_scan_buffers = true;
   }
   // Clear output area (bitstream only, not header/offsets)
@@ -1968,8 +1969,8 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
 
   // Allocate temporary buffers (workspace doesn't have temp_storage members)
   {
-    CUDA_CHECK(cudaMalloc(&d_codes_temp, input_size * sizeof(u32)));
-    CUDA_CHECK(cudaMalloc(&d_positions_temp, input_size * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_codes_temp, input_size * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_positions_temp, input_size * sizeof(u32)));
     allocated_phase_buffers = true;
   }
 
@@ -1999,7 +2000,7 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
 
   // --- Collect Chunk Offsets ---
   u32 *d_chunk_offsets = nullptr;
-  CUDA_CHECK(cudaMalloc(&d_chunk_offsets, offsets_size));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_chunk_offsets, offsets_size));
 
   u32 collect_threads = 256;
   u32 collect_blocks = (num_chunks + collect_threads - 1) / collect_threads;
@@ -2247,7 +2248,7 @@ Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
 
   // --- 2. Allocate and upload code_lengths to GPU ---
   u8 *d_code_lengths;
-  CUDA_CHECK(cudaMalloc(&d_code_lengths, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_code_lengths, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
   CUDA_CHECK(cudaMemcpyAsync(d_code_lengths, h_code_lengths,
                              MAX_HUFFMAN_SYMBOLS * sizeof(u8),
                              cudaMemcpyHostToDevice, stream));
@@ -2260,7 +2261,7 @@ Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
     u32 table_log = max_bits;
     u32 dtable_size = 1U << table_log;
     HuffmanDecoderEntry *d_dtable;
-    CUDA_CHECK(cudaMalloc(&d_dtable, dtable_size * sizeof(HuffmanDecoderEntry)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_dtable, dtable_size * sizeof(HuffmanDecoderEntry)));
 
     build_huffman_dtable_kernel<<<1, 1, 0, stream>>>(
         d_code_lengths, MAX_HUFFMAN_SYMBOLS, d_dtable, table_log);
@@ -2334,9 +2335,9 @@ Status decode_huffman_rfc8878(const unsigned char *d_input, size_t input_size,
     u32 *d_first_code;
     u16 *d_symbol_index;
     u8 *d_symbols;
-    CUDA_CHECK(cudaMalloc(&d_first_code, (MAX_HUFFMAN_BITS + 2) * sizeof(u32)));
-    CUDA_CHECK(cudaMalloc(&d_symbol_index, (MAX_HUFFMAN_BITS + 2) * sizeof(u16)));
-    CUDA_CHECK(cudaMalloc(&d_symbols, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_first_code, (MAX_HUFFMAN_BITS + 2) * sizeof(u32)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_symbol_index, (MAX_HUFFMAN_BITS + 2) * sizeof(u16)));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc(&d_symbols, MAX_HUFFMAN_SYMBOLS * sizeof(u8)));
 
     build_decode_table_kernel<<<1, 1, 0, stream>>>(
         d_code_lengths, MAX_HUFFMAN_SYMBOLS, d_first_code, d_symbol_index,

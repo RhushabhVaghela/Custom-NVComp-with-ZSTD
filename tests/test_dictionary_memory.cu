@@ -11,6 +11,7 @@
 #include "cuda_error_checking.h"
 #include "cuda_zstd_dictionary.h"
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <cstring>
 #include <iostream>
@@ -286,21 +287,21 @@ bool test_dictionary_compression_roundtrip() {
 
   // Allocate device buffers
   unsigned char *d_input, *d_compressed, *d_decompressed, *d_temp;
-  err = cudaMalloc(&d_input, test_size);
+  err = cuda_zstd::safe_cuda_malloc(&d_input, test_size);
   if (err != cudaSuccess) {
     std::cerr << "  FAILED: cudaMalloc d_input failed\n";
     return false;
   }
 
   size_t max_compressed = test_size * 2;
-  err = cudaMalloc(&d_compressed, max_compressed);
+  err = cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed);
   if (err != cudaSuccess) {
     cudaFree(d_input);
     std::cerr << "  FAILED: cudaMalloc d_compressed failed\n";
     return false;
   }
 
-  err = cudaMalloc(&d_decompressed, test_size);
+  err = cuda_zstd::safe_cuda_malloc(&d_decompressed, test_size);
   if (err != cudaSuccess) {
     cudaFree(d_input);
     cudaFree(d_compressed);
@@ -321,7 +322,7 @@ bool test_dictionary_compression_roundtrip() {
 
   // Allocate temp workspace
   size_t temp_size = manager->get_compress_temp_size(test_size);
-  err = cudaMalloc(&d_temp, temp_size);
+  err = cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
   if (err != cudaSuccess) {
     cudaFree(d_input);
     cudaFree(d_compressed);

@@ -131,18 +131,18 @@ CompressionResult test_compression(const std::vector<byte_t> &input_data,
   printf("Input size: %zu bytes\n", input_data.size());
 
   // Allocate device memory
-  if (!safe_cuda_malloc(&d_input, input_data.size())) {
+  if (!test_safe_cuda_malloc(&d_input, input_data.size())) {
     printf("❌ CUDA malloc for d_input failed\n");
     return result;
   }
 
-  if (!safe_cuda_malloc(&d_compressed, input_data.size() * 2)) {
+  if (!test_safe_cuda_malloc(&d_compressed, input_data.size() * 2)) {
     printf("❌ CUDA malloc for d_compressed failed\n");
     safe_cuda_free(d_input);
     return result;
   }
 
-  if (!safe_cuda_malloc(&d_output, input_data.size())) {
+  if (!test_safe_cuda_malloc(&d_output, input_data.size())) {
     printf("❌ CUDA malloc for d_output failed\n");
     safe_cuda_free(d_input);
     safe_cuda_free(d_compressed);
@@ -169,7 +169,7 @@ CompressionResult test_compression(const std::vector<byte_t> &input_data,
   printf("Temp buffer: %zu bytes (%.1f MB) for %zu byte input\n",
          temp_size, (float)temp_size / (1024 * 1024), input_data.size());
 
-  if (!safe_cuda_malloc(&d_temp, temp_size)) {
+  if (!test_safe_cuda_malloc(&d_temp, temp_size)) {
     printf("❌ CUDA malloc for temp failed\n");
     goto cleanup;
   }

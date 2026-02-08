@@ -5,6 +5,7 @@
 #include "cuda_error_checking.h"
 #include "cuda_zstd_memory_pool.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -333,7 +334,7 @@ bool test_allocation_overhead() {
 
   for (int i = 0; i < num_iterations; i++) {
     void *ptr;
-    cudaError_t err = cudaMalloc(&ptr, test_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&ptr, test_size);
     ASSERT_EQ(err, cudaSuccess, "cudaMalloc failed");
     err = cudaFree(ptr);
     ASSERT_EQ(err, cudaSuccess, "cudaFree failed");

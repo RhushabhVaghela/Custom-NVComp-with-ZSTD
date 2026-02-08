@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include "cuda_zstd_nvcomp.h" // C-API is in the nvcomp header
+#include "cuda_zstd_safe_alloc.h"
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,16 +28,16 @@ int main() {
   void *h_data = malloc(data_size); // Not strictly needed, but good practice
   void *d_input, *d_output, *d_temp, *d_decompressed;
 
-  cudaMalloc(&d_input, data_size);
-  cudaMalloc(&d_output, data_size * 2);
+  cuda_zstd::safe_cuda_malloc(&d_input, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2);
   for (size_t i = 0; i < data_size; ++i) {
     ((unsigned char *)h_data)[i] = (unsigned char)(i & 0xFF);
   }
   cudaMemcpy(d_input, h_data, data_size, cudaMemcpyHostToDevice);
-  cudaMalloc(&d_decompressed, data_size);
+  cuda_zstd::safe_cuda_malloc(&d_decompressed, data_size);
 
   size_t temp_size = nvcomp_zstd_get_compress_temp_size_v5(manager, data_size);
-  cudaMalloc(&d_temp, temp_size);
+  cuda_zstd::safe_cuda_malloc(&d_temp, temp_size);
 
   printf("  ✓ Workspace allocated: %zu KB\n", temp_size / 1024);
 

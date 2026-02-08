@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cuda_runtime.h>
+#include "cuda_zstd_safe_alloc.h"
 #include <vector>
 
 
@@ -109,8 +110,8 @@ int main() {
 
   u8 *d_output;
   u32 *d_size;
-  cudaMalloc(&d_output, 1024);
-  cudaMalloc(&d_size, sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_output, 1024);
+  cuda_zstd::safe_cuda_malloc(&d_size, sizeof(u32));
 
   // Run GPU test
   test_bitstream_kernel<<<1, 1>>>(d_output, d_size);

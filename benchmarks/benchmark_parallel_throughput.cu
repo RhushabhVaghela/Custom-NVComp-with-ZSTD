@@ -11,6 +11,7 @@
 #include "benchmark_results.h"
 #include "cuda_error_checking.h"
 #include "cuda_zstd_nvcomp.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cstdint>
 #include <cuda_runtime.h>
@@ -40,9 +41,9 @@ void benchmark_throughput(size_t data_size, int num_streams, bool use_streams,
   size_t *d_compressed_sizes;
 
   // Allocate GPU memory
-  CUDA_CHECK_VOID(cudaMalloc(&d_input, data_size));
-  CUDA_CHECK_VOID(cudaMalloc(&d_output, data_size * 2));
-  CUDA_CHECK_VOID(cudaMalloc(&d_compressed_sizes, sizeof(size_t)));
+  CUDA_CHECK_VOID(cuda_zstd::safe_cuda_malloc(&d_input, data_size));
+  CUDA_CHECK_VOID(cuda_zstd::safe_cuda_malloc(&d_output, data_size * 2));
+  CUDA_CHECK_VOID(cuda_zstd::safe_cuda_malloc(&d_compressed_sizes, sizeof(size_t)));
 
   CUDA_CHECK_VOID(
       cudaMemcpy(d_input, h_input.data(), data_size, cudaMemcpyHostToDevice));
@@ -66,7 +67,7 @@ void benchmark_throughput(size_t data_size, int num_streams, bool use_streams,
 
   size_t work_size = manager.get_compress_temp_size(chunk_sizes, 1);
   void *d_workspace;
-  CUDA_CHECK_VOID(cudaMalloc(&d_workspace, work_size));
+  CUDA_CHECK_VOID(cuda_zstd::safe_cuda_malloc(&d_workspace, work_size));
 
   // Warmup
   manager.compress_async(d_uncompressed_ptrs, chunk_sizes, 1, d_compressed_ptrs,

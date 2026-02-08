@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 #include "cuda_zstd_lz77.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 
 using namespace cuda_zstd;
 
@@ -18,7 +19,7 @@ int main() {
     
     // Allocate device input
     uint8_t* d_input = nullptr;
-    cudaError_t err = cudaMalloc(&d_input, input_size);
+    cudaError_t err = cuda_zstd::safe_cuda_malloc(&d_input, input_size);
     if (err != cudaSuccess) {
         std::cerr << "Failed to allocate d_input: " << cudaGetErrorString(err) << std::endl;
         return 1;
@@ -50,7 +51,7 @@ int main() {
     uint32_t* d_hash_table = nullptr;
     uint32_t* d_chain_table = nullptr;
     
-    err = cudaMalloc(&d_hash_table, hash_size * sizeof(uint32_t));
+    err = cuda_zstd::safe_cuda_malloc(&d_hash_table, hash_size * sizeof(uint32_t));
     if (err != cudaSuccess) {
         std::cerr << "Failed to allocate hash table: " << cudaGetErrorString(err) << std::endl;
         lz77::free_lz77_context(lz77_ctx);
@@ -58,7 +59,7 @@ int main() {
         return 1;
     }
     
-    err = cudaMalloc(&d_chain_table, chain_size * sizeof(uint32_t));
+    err = cuda_zstd::safe_cuda_malloc(&d_chain_table, chain_size * sizeof(uint32_t));
     if (err != cudaSuccess) {
         std::cerr << "Failed to allocate chain table: " << cudaGetErrorString(err) << std::endl;
         cudaFree(d_hash_table);
@@ -87,7 +88,7 @@ int main() {
     
     size_t matches_size = input_size * sizeof(lz77::Match);
     void* d_matches = nullptr;
-    cudaMalloc(&d_matches, matches_size);
+    cuda_zstd::safe_cuda_malloc(&d_matches, matches_size);
     
     // We need a CompressionWorkspace
     CompressionWorkspace workspace;

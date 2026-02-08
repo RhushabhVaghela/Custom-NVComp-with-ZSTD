@@ -16,6 +16,7 @@
 #include "cuda_zstd_fse_encoding_kernel.h"
 #include "cuda_zstd_internal.h"
 #include "cuda_zstd_utils.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cassert>
 #include <cstring>
 #include <cuda_runtime.h>
@@ -49,11 +50,11 @@ void build_gpu_table(const std::vector<short> &counts, unsigned table_log,
   h_desc.max_symbol = max_symbol;
 
   // 2. Allocate ALL device arrays the kernel and encoder need
-  cudaMalloc(&h_desc.d_symbol_table,
+  cuda_zstd::safe_cuda_malloc(&h_desc.d_symbol_table,
              (max_symbol + 1) * sizeof(FSEEncodeTable::FSEEncodeSymbol));
-  cudaMalloc(&h_desc.d_next_state, table_size * sizeof(u16));
-  cudaMalloc(&h_desc.d_state_to_symbol, table_size * sizeof(u8));
-  cudaMalloc(&h_desc.d_symbol_first_state, (max_symbol + 1) * sizeof(u16));
+  cuda_zstd::safe_cuda_malloc(&h_desc.d_next_state, table_size * sizeof(u16));
+  cuda_zstd::safe_cuda_malloc(&h_desc.d_state_to_symbol, table_size * sizeof(u8));
+  cuda_zstd::safe_cuda_malloc(&h_desc.d_symbol_first_state, (max_symbol + 1) * sizeof(u16));
   h_desc.d_nbBits_table = nullptr;     // Not used by k_encode_fse_interleaved
   h_desc.d_next_state_vals = nullptr;   // Not used by k_encode_fse_interleaved
 
@@ -73,7 +74,7 @@ void build_gpu_table(const std::vector<short> &counts, unsigned table_log,
     h_norm_u32[i] = (u32)counts[i];
 
   u32 *d_norm;
-  cudaMalloc(&d_norm, (max_symbol + 1) * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_norm, (max_symbol + 1) * sizeof(u32));
   cudaMemcpy(d_norm, h_norm_u32.data(), (max_symbol + 1) * sizeof(u32),
              cudaMemcpyHostToDevice);
 
@@ -149,7 +150,7 @@ void test_GPU_Encoding() {
 
   // 2. Build GPU tables
   cuda_zstd::fse::FSEEncodeTable *d_gpu_tables;
-  cudaMalloc(&d_gpu_tables, 3 * sizeof(cuda_zstd::fse::FSEEncodeTable));
+  cuda_zstd::safe_cuda_malloc(&d_gpu_tables, 3 * sizeof(cuda_zstd::fse::FSEEncodeTable));
 
   cuda_zstd::fse::FSEEncodeTable h_gpu_table_struct;
   build_gpu_table(counts, table_log, h_gpu_table_struct, &d_gpu_tables[0]);
@@ -226,25 +227,25 @@ void test_GPU_Encoding() {
 
   // 5. GPU Run
   u8 *d_ll_codes;
-  cudaMalloc(&d_ll_codes, 3);
+  cuda_zstd::safe_cuda_malloc(&d_ll_codes, 3);
   cudaMemcpy(d_ll_codes, ll_codes, 3, cudaMemcpyHostToDevice);
 
   // Dummy pointers for others/extras
   u32 *d_extras;
-  cudaMalloc(&d_extras, 3 * sizeof(u32));
+  cuda_zstd::safe_cuda_malloc(&d_extras, 3 * sizeof(u32));
   cudaMemset(d_extras, 0, 3 * sizeof(u32));
   u8 *d_bits;
-  cudaMalloc(&d_bits, 3);
+  cuda_zstd::safe_cuda_malloc(&d_bits, 3);
   cudaMemset(d_bits, 0, 3);
   u8 *d_codes_dummy;
-  cudaMalloc(&d_codes_dummy, 3);
+  cuda_zstd::safe_cuda_malloc(&d_codes_dummy, 3);
   cudaMemset(d_codes_dummy, 0, 3); // 0 = A
 
   // Output
   u8 *d_bitstream;
-  cudaMalloc(&d_bitstream, 128);
+  cuda_zstd::safe_cuda_malloc(&d_bitstream, 128);
   size_t *d_out_pos;
-  cudaMalloc(&d_out_pos, sizeof(size_t));
+  cuda_zstd::safe_cuda_malloc(&d_out_pos, sizeof(size_t));
 
   cuda_zstd::fse::launch_fse_encoding_kernel(
       d_ll_codes, d_extras, d_bits,    // LL

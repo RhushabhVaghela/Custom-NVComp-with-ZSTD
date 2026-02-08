@@ -6,6 +6,7 @@
  */
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "cuda_error_checking.h"
 #include <cuda_runtime.h>
 #include <chrono>
@@ -74,8 +75,8 @@ BenchmarkResult run_benchmark_basic(size_t chunk_size, int num_chunks, int itera
     }
     
     void *d_input = nullptr, *d_output = nullptr;
-    CUDA_CHECK_RET(cudaMalloc(&d_input, chunk_size), BenchmarkResult{});
-    CUDA_CHECK_RET(cudaMalloc(&d_output, chunk_size * 2), BenchmarkResult{});
+    CUDA_CHECK_RET(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size), BenchmarkResult{});
+    CUDA_CHECK_RET(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size * 2), BenchmarkResult{});
 
     // Warmup
     ZstdStreamingManager manager;
@@ -137,8 +138,8 @@ BenchmarkResult run_benchmark_with_history(size_t chunk_size, int num_chunks, in
     }
     
     void *d_input = nullptr, *d_output = nullptr;
-    CUDA_CHECK_RET(cudaMalloc(&d_input, chunk_size), BenchmarkResult{});
-    CUDA_CHECK_RET(cudaMalloc(&d_output, chunk_size * 2), BenchmarkResult{});
+    CUDA_CHECK_RET(cuda_zstd::safe_cuda_malloc(&d_input, chunk_size), BenchmarkResult{});
+    CUDA_CHECK_RET(cuda_zstd::safe_cuda_malloc(&d_output, chunk_size * 2), BenchmarkResult{});
 
     // Warmup
     ZstdStreamingManager manager;

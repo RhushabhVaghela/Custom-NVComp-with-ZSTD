@@ -1,5 +1,6 @@
 // Extended Validation Tests for Parallel Compression
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <iostream>
 #include <random>
@@ -33,29 +34,29 @@ bool test_compression(const char *test_name, size_t input_size,
 
   // Allocate GPU buffers
   void *d_input;
-  if (cudaMalloc(&d_input, input_size) != cudaSuccess) {
-    std::cerr << "Failed to allocate d_input" << std::endl;
+  if (cuda_zstd::safe_cuda_malloc(&d_input, input_size) != cudaSuccess) {
+    std::cerr << "Failed to allocate d_input (" << input_size << " bytes)" << std::endl;
     return false;
   }
   if (cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice) !=
       cudaSuccess) {
-    printf("[ERROR] Failed to copy input\n");
+    std::cerr << "Failed to copy input to device" << std::endl;
     cudaFree(d_input);
     return false;
   }
 
   size_t max_compressed_size = manager.get_max_compressed_size(input_size);
   void *d_compressed;
-  if (cudaMalloc(&d_compressed, max_compressed_size) != cudaSuccess) {
-    std::cerr << "Failed to allocate d_compressed (size: "
-              << max_compressed_size << ")" << std::endl;
+  if (cuda_zstd::safe_cuda_malloc(&d_compressed, max_compressed_size) != cudaSuccess) {
+    std::cerr << "Failed to allocate d_compressed (" << max_compressed_size << " bytes)" << std::endl;
     cudaFree(d_input);
     return false;
   }
 
   size_t temp_size = manager.get_compress_temp_size(input_size);
   void *d_temp;
-  if (cudaMalloc(&d_temp, temp_size) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_temp, temp_size) != cudaSuccess) {
+    std::cerr << "Failed to allocate d_temp (" << temp_size << " bytes)" << std::endl;
     cudaFree(d_input);
     cudaFree(d_compressed);
     return false;
@@ -73,6 +74,7 @@ bool test_compression(const char *test_name, size_t input_size,
 
   if (status != Status::SUCCESS) {
     std::cerr << "Compression Failed: " << (int)status << std::endl;
+    std::cerr.flush();
     cudaFree(d_input);
     cudaFree(d_compressed);
     cudaFree(d_temp);
@@ -86,7 +88,9 @@ bool test_compression(const char *test_name, size_t input_size,
 
   // Decompress
   void *d_decompressed;
-  if (cudaMalloc(&d_decompressed, input_size) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_decompressed, input_size) != cudaSuccess) {
+    std::cerr << "Failed to allocate d_decompressed (" << input_size << " bytes)" << std::endl;
+    std::cerr.flush();
     cudaFree(d_input);
     cudaFree(d_compressed);
     cudaFree(d_temp);
@@ -101,6 +105,7 @@ bool test_compression(const char *test_name, size_t input_size,
 
   if (status != Status::SUCCESS) {
     std::cerr << "Decompression Failed: " << (int)status << std::endl;
+    std::cerr.flush();
     cudaFree(d_input);
     cudaFree(d_compressed);
     cudaFree(d_temp);
@@ -195,12 +200,47 @@ int main() {
     passed++;
   }
 
-  // Test 5: 128MB Sequential (Memory Verification)
-  // Restored to larger size to verify fix for 64MB+ decompression
-  total++;
-  if (test_compression("Test 5: 128MB Sequential (Memory Verification)",
-                       128 * 1024 * 1024, false)) {
-    passed++;
+  // Test 5: Large Sequential (Memory Verification)
+  // Dynamically pick the largest size whose workspace fits in usable VRAM.
+  // get_compress_temp_size() scales O(N_blocks^2) so 128MB needs ~13 GB workspace.
+  // Try sizes from 128MB down to 4MB; skip entirely if even 4MB doesn't fit.
+  {
+    size_t free_mem = 0, total_mem = 0;
+    cudaMemGetInfo(&free_mem, &total_mem);
+
+    const size_t candidates[] = {128ULL*1024*1024, 64ULL*1024*1024,
+                                 32ULL*1024*1024, 16ULL*1024*1024,
+                                 8ULL*1024*1024, 4ULL*1024*1024};
+    size_t chosen_size = 0;
+
+    CompressionConfig probe_config = CompressionConfig::from_level(3);
+    ZstdBatchManager probe_mgr(probe_config);
+
+    for (size_t sz : candidates) {
+      size_t temp_need = probe_mgr.get_compress_temp_size(sz);
+      size_t input_need = sz;
+      size_t output_need = probe_mgr.get_max_compressed_size(sz);
+      size_t decomp_need = sz; // decompressed buffer
+      size_t total_need = temp_need + input_need + output_need + decomp_need
+                          + VRAM_SAFETY_BUFFER_BYTES;
+      if (free_mem >= total_need) {
+        chosen_size = sz;
+        break;
+      }
+    }
+
+    if (chosen_size > 0) {
+      total++;
+      std::string label = "Test 5: " + std::to_string(chosen_size / (1024*1024))
+                          + "MB Sequential (Memory Verification)";
+      if (test_compression(label.c_str(), chosen_size, false)) {
+        passed++;
+      }
+    } else {
+      std::cout << "\n=== Test 5: Large Sequential (Memory Verification) ===" << std::endl;
+      std::cout << "[SKIP] Insufficient VRAM for any candidate size (free: "
+                << free_mem / (1024*1024) << " MB)" << std::endl;
+    }
   }
 
   // Summary

@@ -4,6 +4,7 @@
 // ============================================================================
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cuda_runtime.h>
 #include <iomanip>
@@ -77,9 +78,9 @@ void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
   void *d_stream_output;
   void *d_decomp_output_chunk;
 
-  BENCH_CHECK(cudaMalloc(&d_input_chunk, chunk_size));
-  BENCH_CHECK(cudaMalloc(&d_stream_output, max_output_size));
-  BENCH_CHECK(cudaMalloc(&d_decomp_output_chunk, chunk_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_input_chunk, chunk_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_stream_output, max_output_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_decomp_output_chunk, chunk_size));
 
   BENCH_CHECK(cudaMemcpy(d_input_chunk, h_input_chunk.data(), chunk_size,
                          cudaMemcpyHostToDevice));

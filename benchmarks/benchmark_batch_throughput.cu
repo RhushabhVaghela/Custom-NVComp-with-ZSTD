@@ -5,6 +5,7 @@
 
 #include "cuda_zstd_manager.h"
 #include "cuda_zstd_types.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cuda_runtime.h>
 #include <iomanip>
@@ -49,9 +50,9 @@ BenchmarkResult run_batch_benchmark(ZstdBatchManager &manager, size_t size,
   void *d_output_base;
   void *d_decompressed_base;
 
-  BENCH_CHECK(cudaMalloc(&d_input_base, total_input_size));
-  BENCH_CHECK(cudaMalloc(&d_output_base, total_output_size));
-  BENCH_CHECK(cudaMalloc(&d_decompressed_base, total_input_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_input_base, total_input_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_output_base, total_output_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_decompressed_base, total_input_size));
 
   // Fill device input
   // Copy the single item pattern 'batch_count' times
@@ -78,7 +79,7 @@ BenchmarkResult run_batch_benchmark(ZstdBatchManager &manager, size_t size,
   // 3. Workspace
   size_t temp_size = manager.get_batch_compress_temp_size(input_sizes);
   void *d_temp;
-  BENCH_CHECK(cudaMalloc(&d_temp, temp_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   // 4. Warmup
   manager.compress_batch(items, d_temp, temp_size, stream);
@@ -137,7 +138,7 @@ BenchmarkResult run_batch_benchmark(ZstdBatchManager &manager, size_t size,
 
   size_t d_temp_size =
       manager.get_batch_decompress_temp_size(compressed_sizes_vec);
-  BENCH_CHECK(cudaMalloc(&d_temp, d_temp_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_temp, d_temp_size));
 
   // Warmup
   manager.decompress_batch(d_items, d_temp, d_temp_size, stream);
@@ -175,9 +176,9 @@ BenchmarkResult run_graph_benchmark(ZstdBatchManager &manager, size_t size,
   void *d_output_base;
   void *d_decompressed_base;
 
-  BENCH_CHECK(cudaMalloc(&d_input_base, total_input_size));
-  BENCH_CHECK(cudaMalloc(&d_output_base, total_output_size));
-  BENCH_CHECK(cudaMalloc(&d_decompressed_base, total_input_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_input_base, total_input_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_output_base, total_output_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_decompressed_base, total_input_size));
 
   std::vector<uint8_t> h_input(size);
   for (size_t i = 0; i < size; i++)
@@ -210,7 +211,7 @@ BenchmarkResult run_graph_benchmark(ZstdBatchManager &manager, size_t size,
 
   void *d_temp_all;
   // Reuse single workspace for serialized graph
-  BENCH_CHECK(cudaMalloc(&d_temp_all, one_temp_size));
+  BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_temp_all, one_temp_size));
 
   // 4. Capture Graph
   cudaGraph_t graph;
@@ -302,8 +303,8 @@ int main() {
     // Minimizing alloc overhead via one big malloc? To keep it simple, discrete
     // mallocs (Simulate real world fragmentation).
     for (int i = 0; i < batch_cnt; ++i) {
-      BENCH_CHECK(cudaMalloc(&d_inputs[i], chunk_size));
-      BENCH_CHECK(cudaMalloc(&d_outputs[i], chunk_size * 2));
+      BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_inputs[i], chunk_size));
+      BENCH_CHECK(cuda_zstd::safe_cuda_malloc(&d_outputs[i], chunk_size * 2));
       BENCH_CHECK(cudaMemcpy(d_inputs[i], h_pattern.data(), chunk_size,
                              cudaMemcpyHostToDevice));
     }

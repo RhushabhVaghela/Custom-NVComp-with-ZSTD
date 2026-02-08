@@ -1,4 +1,5 @@
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <algorithm>
 #include <cstdio>
 #include <cuda_runtime.h>
@@ -128,9 +129,9 @@ int main() {
   uint8_t *d_input, *d_output;
   size_t *d_compressed_size;
 
-  CUDA_CHECK_TEST(cudaMalloc(&d_input, input_size));
-  CUDA_CHECK_TEST(cudaMalloc(&d_output, input_size * 2));
-  CUDA_CHECK_TEST(cudaMalloc(&d_compressed_size, sizeof(size_t)));
+  CUDA_CHECK_TEST(cuda_zstd::safe_cuda_malloc(&d_input, input_size));
+  CUDA_CHECK_TEST(cuda_zstd::safe_cuda_malloc(&d_output, input_size * 2));
+  CUDA_CHECK_TEST(cuda_zstd::safe_cuda_malloc(&d_compressed_size, sizeof(size_t)));
 
   CUDA_CHECK_TEST(
       cudaMemcpy(d_input, h_input.data(), input_size, cudaMemcpyHostToDevice));
@@ -146,7 +147,7 @@ int main() {
 
   size_t temp_size = manager.get_compress_temp_size(input_size);
   void *d_temp;
-  CUDA_CHECK_TEST(cudaMalloc(&d_temp, temp_size));
+  CUDA_CHECK_TEST(cuda_zstd::safe_cuda_malloc(&d_temp, temp_size));
 
   size_t compressed_size = input_size * 2;
   status = manager.compress(d_input, input_size, d_output, &compressed_size,

@@ -3,6 +3,7 @@
 // ============================================================================
 
 #include "cuda_zstd_nvcomp.h" // Use the NVComp C++ API
+#include "cuda_zstd_safe_alloc.h"
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -49,22 +50,22 @@ int main() {
   void **d_input_ptrs, **d_output_ptrs;
   size_t *d_input_sizes, *d_output_sizes;
 
-  if (cudaMalloc(&d_input_ptrs, batch_size * sizeof(void *)) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_input_ptrs, batch_size * sizeof(void *)) != cudaSuccess) {
     std::cerr << "cudaMalloc failed for d_input_ptrs\n";
     return 1;
   }
-  if (cudaMalloc(&d_output_ptrs, batch_size * sizeof(void *)) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_output_ptrs, batch_size * sizeof(void *)) != cudaSuccess) {
     std::cerr << "cudaMalloc failed for d_output_ptrs\n";
     cudaFree(d_input_ptrs);
     return 1;
   }
-  if (cudaMalloc(&d_input_sizes, batch_size * sizeof(size_t)) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_input_sizes, batch_size * sizeof(size_t)) != cudaSuccess) {
     std::cerr << "cudaMalloc failed for d_input_sizes\n";
     cudaFree(d_input_ptrs);
     cudaFree(d_output_ptrs);
     return 1;
   }
-  if (cudaMalloc(&d_output_sizes, batch_size * sizeof(size_t)) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_output_sizes, batch_size * sizeof(size_t)) != cudaSuccess) {
     std::cerr << "cudaMalloc failed for d_output_sizes\n";
     cudaFree(d_input_ptrs);
     cudaFree(d_output_ptrs);
@@ -73,11 +74,11 @@ int main() {
   }
 
   for (int i = 0; i < batch_size; ++i) {
-    if (cudaMalloc(&d_input_ptrs_vec[i], chunk_size) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&d_input_ptrs_vec[i], chunk_size) != cudaSuccess) {
       std::cerr << "cudaMalloc failed for d_input_ptrs_vec[" << i << "]\n";
       return 1;
     }
-    if (cudaMalloc(&d_output_ptrs_vec[i], max_comp_size) != cudaSuccess) {
+    if (cuda_zstd::safe_cuda_malloc(&d_output_ptrs_vec[i], max_comp_size) != cudaSuccess) {
       std::cerr << "cudaMalloc failed for d_output_ptrs_vec[" << i << "]\n";
       return 1;
     }
@@ -120,7 +121,7 @@ int main() {
   size_t temp_size = batch_manager.get_compress_temp_size(
       h_input_sizes_vec.data(), batch_size);
   void *d_temp;
-  if (cudaMalloc(&d_temp, temp_size) != cudaSuccess) {
+  if (cuda_zstd::safe_cuda_malloc(&d_temp, temp_size) != cudaSuccess) {
     std::cerr << "cudaMalloc failed for d_temp\n";
     return 1;
   }
