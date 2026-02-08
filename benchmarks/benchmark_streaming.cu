@@ -12,10 +12,17 @@
 #include <numeric>
 #include <vector>
 
-// Hardware-safe constants for RTX 5080 (16GB VRAM)
-#define MAX_VRAM_PER_BENCHMARK (8ULL * 1024 * 1024 * 1024)  // Max 8GB VRAM per benchmark
+// Hardware-safe constants
+#define MAX_VRAM_CAP (8ULL * 1024 * 1024 * 1024)         // 8GB upper cap
 #define MAX_CHUNK_SIZE (4ULL * 1024 * 1024)                 // Max 4MB chunk size
 #define MAX_TOTAL_DATA (256ULL * 1024 * 1024)               // Max 256MB total data
+
+// Dynamic VRAM limit: min(hardcoded cap, actual usable VRAM)
+static size_t get_max_vram_budget() {
+    size_t usable = cuda_zstd::get_usable_vram();
+    if (usable == 0) return MAX_VRAM_CAP;
+    return std::min((size_t)MAX_VRAM_CAP, usable);
+}
 
 using namespace cuda_zstd;
 
@@ -191,9 +198,11 @@ void run_streaming_benchmark(size_t chunk_size, int num_chunks) {
 }
 
 int main() {
-  std::cout << "Streaming Benchmark - RTX 5080 Safe Mode" << std::endl;
+  size_t vram_budget = get_max_vram_budget();
+  std::cout << "Streaming Benchmark" << std::endl;
   std::cout << "Max Chunk Size: " << (MAX_CHUNK_SIZE/1024/1024) << " MB" << std::endl;
-  std::cout << "Max Total Data: " << (MAX_TOTAL_DATA/1024/1024) << " MB" << std::endl << std::endl;
+  std::cout << "Max Total Data: " << (MAX_TOTAL_DATA/1024/1024) << " MB" << std::endl;
+  std::cout << "Usable VRAM:    " << (vram_budget/1024/1024) << " MB" << std::endl << std::endl;
   
   print_header();
 

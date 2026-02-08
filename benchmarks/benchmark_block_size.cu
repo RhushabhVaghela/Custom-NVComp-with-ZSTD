@@ -9,12 +9,19 @@
 #include <iomanip>
 #include <cmath>
 
-// Hardware-safe constants for RTX 5080 (16GB VRAM)
+// Hardware-safe constants
 #define MAX_INPUT_SIZE (256ULL * 1024 * 1024)          // Max 256MB
 #define MAX_BLOCK_SIZE (2ULL * 1024 * 1024)            // Max 2MB block size
-#define MAX_VRAM_USAGE (8ULL * 1024 * 1024 * 1024)     // 8GB VRAM limit per test
+#define MAX_VRAM_USAGE_CAP (8ULL * 1024 * 1024 * 1024) // 8GB upper cap
 
 using namespace cuda_zstd;
+
+// Dynamic VRAM limit: min(hardcoded cap, actual usable VRAM)
+static size_t get_max_vram_usage() {
+    size_t usable = cuda_zstd::get_usable_vram();
+    if (usable == 0) return MAX_VRAM_USAGE_CAP; // fallback if query fails
+    return std::min((size_t)MAX_VRAM_USAGE_CAP, usable);
+}
 
 struct BenchmarkResult {
     size_t input_size;
@@ -28,7 +35,7 @@ struct BenchmarkResult {
 // Memory safety check
 bool check_memory_safety(size_t input_size, u32 block_size) {
     size_t estimated_memory = input_size * 4; // 4x overhead worst case
-    if (estimated_memory > MAX_VRAM_USAGE) {
+    if (estimated_memory > get_max_vram_usage()) {
         return false;
     }
     if (block_size > MAX_BLOCK_SIZE) {
@@ -134,10 +141,11 @@ int main() {
     std::cout << "  Block Size Benchmark (RTX 5080 Safe Mode)\n";
     std::cout << "========================================\n\n";
     
+    size_t max_vram = get_max_vram_usage();
     std::cout << "Hardware Limits:\n";
     std::cout << "  Max Input Size: " << (MAX_INPUT_SIZE/1024/1024) << " MB\n";
     std::cout << "  Max Block Size: " << (MAX_BLOCK_SIZE/1024) << " KB\n";
-    std::cout << "  Max VRAM Usage: " << (MAX_VRAM_USAGE/1024/1024/1024) << " GB\n\n";
+    std::cout << "  Usable VRAM:    " << (max_vram/1024/1024) << " MB\n\n";
     
     // Reduced input sizes for safety
     std::vector<size_t> input_sizes = {

@@ -3754,9 +3754,9 @@ __host__ Status decode_fse(const unsigned char *d_input, u32 input_size,
     } else {
       // --- LEGACY ALLOCATION ---
       CUDA_CHECK(
-          cudaMallocAsync(&d_chunk_counts, num_chunks * sizeof(u32), stream));
+          cuda_zstd::safe_cuda_malloc_async(&d_chunk_counts, num_chunks * sizeof(u32), stream));
       CUDA_CHECK(
-          cudaMallocAsync(&d_chunk_offsets, num_chunks * sizeof(u32), stream));
+          cuda_zstd::safe_cuda_malloc_async(&d_chunk_offsets, num_chunks * sizeof(u32), stream));
     }
 
     u32 threads = 128;
@@ -4265,7 +4265,7 @@ __host__ Status decode_sequences_interleaved(
   }
 
   u32 *d_error_flag = nullptr;
-  CUDA_CHECK(cudaMallocAsync(&d_error_flag, sizeof(u32), stream));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&d_error_flag, sizeof(u32), stream));
   CUDA_CHECK(cudaMemsetAsync(d_error_flag, 0, sizeof(u32), stream));
 
   k_decode_sequences_interleaved<<<1, 1, 0, stream>>>(
@@ -4633,7 +4633,7 @@ Status build_fse_decoder_table(const i16 *h_normalized_counts, u32 num_counts,
   // 1. Allocate device table
   const size_t table_size = 1 << table_log;
   const size_t table_bytes = table_size * sizeof(FSEDecoderEntry);
-  cudaError_t err = cudaMallocAsync(&d_table_out->d_table, table_bytes, stream);
+  cudaError_t err = cuda_zstd::safe_cuda_malloc_async(&d_table_out->d_table, table_bytes, stream);
   if (err != cudaSuccess) {
     
     cudaError_t fallback_err = cuda_zstd::safe_cuda_malloc(&d_table_out->d_table, table_bytes);

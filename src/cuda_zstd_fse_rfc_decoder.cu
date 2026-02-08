@@ -1,5 +1,6 @@
 #include "cuda_zstd_fse_rfc.h"
 #include "cuda_zstd_internal.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <cstdio>
 
 namespace cuda_zstd {
@@ -253,11 +254,11 @@ __host__ Status decode_sequences_interleaved_rfc(
         if (!src) return;
         dst.table_log = src->table_log;
         dst.table_size = src->table_size;
-        cudaMallocAsync(&dst.newState, src->table_size * sizeof(u16), stream);
-        cudaMallocAsync(&dst.symbol, src->table_size * sizeof(u8), stream);
-        cudaMallocAsync(&dst.nbBits, src->table_size * sizeof(u8), stream);
-        cudaMallocAsync(&dst.nbAdditionalBits, src->table_size * sizeof(u8), stream);
-        cudaMallocAsync(&dst.baseValue, src->table_size * sizeof(u32), stream);
+        if (cuda_zstd::safe_cuda_malloc_async(&dst.newState, src->table_size * sizeof(u16), stream) != cudaSuccess) return;
+        if (cuda_zstd::safe_cuda_malloc_async(&dst.symbol, src->table_size * sizeof(u8), stream) != cudaSuccess) return;
+        if (cuda_zstd::safe_cuda_malloc_async(&dst.nbBits, src->table_size * sizeof(u8), stream) != cudaSuccess) return;
+        if (cuda_zstd::safe_cuda_malloc_async(&dst.nbAdditionalBits, src->table_size * sizeof(u8), stream) != cudaSuccess) return;
+        if (cuda_zstd::safe_cuda_malloc_async(&dst.baseValue, src->table_size * sizeof(u32), stream) != cudaSuccess) return;
         cudaMemcpyAsync(dst.newState, src->newState, src->table_size * sizeof(u16), cudaMemcpyHostToDevice, stream);
         cudaMemcpyAsync(dst.symbol, src->symbol, src->table_size * sizeof(u8), cudaMemcpyHostToDevice, stream);
         cudaMemcpyAsync(dst.nbBits, src->nbBits, src->table_size * sizeof(u8), cudaMemcpyHostToDevice, stream);
@@ -269,8 +270,8 @@ __host__ Status decode_sequences_interleaved_rfc(
     if (of_mode == MODE_FSE || of_mode == MODE_PREDEFINED || of_mode == MODE_REPEAT) copy_table(of_table, d_of_table);
     if (ml_mode == MODE_FSE || ml_mode == MODE_PREDEFINED || ml_mode == MODE_REPEAT) copy_table(ml_table, d_ml_table);
     
-    u32 *d_error_flag;
-    cudaMallocAsync(&d_error_flag, sizeof(u32), stream);
+    u32 *d_error_flag = nullptr;
+    if (cuda_zstd::safe_cuda_malloc_async(&d_error_flag, sizeof(u32), stream) != cudaSuccess) return Status::ERROR_OUT_OF_MEMORY;
     cudaMemsetAsync(d_error_flag, 0, sizeof(u32), stream);
 
     k_fse_decode_interleaved_rfc<<<1, 1, 0, stream>>>(

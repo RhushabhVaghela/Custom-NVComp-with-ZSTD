@@ -746,6 +746,7 @@ int main() {
 
   int passed = 0;
   int total = 0;
+  int skipped = 0;
 
   SKIP_IF_NO_CUDA_RET(0);
   check_cuda_device();
@@ -799,8 +800,7 @@ int main() {
   std::cout << "\n[SKIP] test_concurrent_compression - Timeout (concurrent GPU "
                "needs work)"
             << std::endl;
-  total++;  // Count but don't run
-  passed++; // Skip = pass
+  skipped++; // Don't count as passed or total — genuinely skipped
   total++;
   if (test_race_condition_detection())
     passed++;
@@ -825,6 +825,9 @@ int main() {
   print_separator();
   std::cout << "Passed: " << passed << "/" << total << std::endl;
   std::cout << "Failed: " << (total - passed) << "/" << total << std::endl;
+  if (skipped > 0) {
+    std::cout << "Skipped: " << skipped << std::endl;
+  }
 
   if (passed == total) {
     std::cout << "\n✓ ALL TESTS PASSED" << std::endl;

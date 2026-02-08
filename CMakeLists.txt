@@ -119,6 +119,11 @@ foreach(heavy_test ${HEAVY_GPU_TESTS})
     endif()
 endforeach()
 
+# test_pipeline_integration returns exit code 77 when zstd CLI is unavailable
+if(TEST test_pipeline_integration)
+    set_tests_properties(test_pipeline_integration PROPERTIES SKIP_RETURN_CODE 77)
+endif()
+
 # ==============================================================================
 # Benchmarks
 # ==============================================================================

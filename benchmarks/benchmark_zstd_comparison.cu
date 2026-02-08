@@ -61,8 +61,15 @@ using namespace cuda_zstd;
   } while (0)
 
 // Hardware-safe constants
-#define MAX_VRAM_PER_BENCHMARK (8ULL * 1024 * 1024 * 1024) // 8GB max
+#define MAX_VRAM_CAP (8ULL * 1024 * 1024 * 1024) // 8GB upper cap
 #define MAX_OUTPUT_MULTIPLIER 1.5f
+
+// Dynamic VRAM limit: min(hardcoded cap, actual usable VRAM)
+static size_t get_max_vram_budget() {
+    size_t usable = cuda_zstd::get_usable_vram();
+    if (usable == 0) return MAX_VRAM_CAP;
+    return std::min((size_t)MAX_VRAM_CAP, usable);
+}
 
 // ============================================================================
 // DATA PATTERNS
@@ -598,8 +605,10 @@ void export_results_csv(const std::vector<ZstdBenchmarkResult> &results,
 // ============================================================================
 
 int main(int argc, char **argv) {
+  size_t vram_budget = get_max_vram_budget();
   std::cout << "========================================\n";
   std::cout << "  ZSTD vs CUDA ZSTD Comparison Benchmark\n";
+  std::cout << "  Usable VRAM: " << (vram_budget/1024/1024) << " MB\n";
   std::cout << "========================================\n\n";
 
   // Configuration

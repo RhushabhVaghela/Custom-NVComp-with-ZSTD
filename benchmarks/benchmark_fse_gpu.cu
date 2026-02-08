@@ -14,8 +14,27 @@
 #include <random>
 #include <vector>
 
+#define CHECK_CUDA(call)                                                       \
+  do {                                                                         \
+    cudaError_t err = call;                                                    \
+    if (err != cudaSuccess) {                                                  \
+      std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at "         \
+                << __FILE__ << ":" << __LINE__ << std::endl;                   \
+      exit(1);                                                                 \
+    }                                                                          \
+  } while (0)
+
+#define MAX_VRAM_CAP (8ULL * 1024 * 1024 * 1024)
+
 using namespace cuda_zstd;
 using namespace cuda_zstd::fse;
+
+// Dynamic VRAM limit: min(hardcoded cap, actual usable VRAM)
+static size_t get_max_vram_budget() {
+    size_t usable = cuda_zstd::get_usable_vram();
+    if (usable == 0) return MAX_VRAM_CAP;
+    return std::min((size_t)MAX_VRAM_CAP, usable);
+}
 
 void generate_test_data(std::vector<uint8_t> &data) {
   std::mt19937 rng(42);
@@ -37,6 +56,9 @@ int main() {
             << std::endl;
   std::cout << "======================================================\n"
             << std::endl;
+
+  size_t vram_budget = get_max_vram_budget();
+  std::cout << "Usable VRAM: " << (vram_budget / 1024 / 1024) << " MB\n\n";
 
   std::vector<size_t> data_sizes = {
       64ULL * 1024 * 1024,   // 64 MB
@@ -61,6 +83,20 @@ int main() {
   FSEDecodeContext decode_ctx = {};
 
   for (size_t data_size : data_sizes) {
+    // VRAM budget check: input + output + decompressed + overhead
+    size_t max_comp_size = data_size + (data_size >> 7) + 4096;
+    size_t estimated_vram = data_size + max_comp_size + data_size + sizeof(u32);
+    if (estimated_vram > get_max_vram_budget()) {
+      char size_str[32];
+      if (data_size >= 1024ULL * 1024 * 1024)
+        snprintf(size_str, 32, "%zu GB", data_size >> 30);
+      else
+        snprintf(size_str, 32, "%zu MB", data_size >> 20);
+      std::cout << std::left << std::setw(12) << size_str
+                << " | Skipped — exceeds usable VRAM" << std::endl;
+      continue;
+    }
+
     // Generate test data on host
     std::vector<uint8_t> h_data(data_size);
     generate_test_data(h_data);
@@ -68,12 +104,11 @@ int main() {
     // Allocate device memory
     byte_t *d_input, *d_output, *d_decompressed;
     u32 *d_comp_size;
-    size_t max_comp_size = data_size + (data_size >> 7) + 4096;
 
-    cuda_zstd::safe_cuda_malloc(&d_input, data_size);
-    cuda_zstd::safe_cuda_malloc(&d_output, max_comp_size);
-    cuda_zstd::safe_cuda_malloc(&d_decompressed, data_size);
-    cuda_zstd::safe_cuda_malloc(&d_comp_size, sizeof(u32));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_input, data_size));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_output, max_comp_size));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_decompressed, data_size));
+    CHECK_CUDA(cuda_zstd::safe_cuda_malloc(&d_comp_size, sizeof(u32)));
 
     // Copy data to device (one-time, not timed)
     cudaMemcpy(d_input, h_data.data(), data_size, cudaMemcpyHostToDevice);

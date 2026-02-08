@@ -7,6 +7,7 @@
 
 #include "cuda_zstd_fse.h" // For FSEEncodeTable (old table format)
 #include "cuda_zstd_fse_rfc.h"
+#include "cuda_zstd_safe_alloc.h"
 #include "cuda_zstd_types.h"
 #include <algorithm>
 #include <cstdio>
@@ -191,13 +192,13 @@ __host__ Status FSE_allocTableRFC(FSETableRFC &table, u32 tableLog,
   table.tableSize = 1u << tableLog;
   table.maxSymbol = maxSymbol;
 
-  if (cudaMallocAsync(&table.d_entries, table.tableSize * sizeof(FSEDistributionEntry), stream) != cudaSuccess)
+  if (cuda_zstd::safe_cuda_malloc_async(&table.d_entries, table.tableSize * sizeof(FSEDistributionEntry), stream) != cudaSuccess)
     return Status::ERROR_OUT_OF_MEMORY;
 
-  if (cudaMallocAsync(&table.d_normFreqs, (maxSymbol + 1) * sizeof(u16), stream) != cudaSuccess)
+  if (cuda_zstd::safe_cuda_malloc_async(&table.d_normFreqs, (maxSymbol + 1) * sizeof(u16), stream) != cudaSuccess)
     return Status::ERROR_OUT_OF_MEMORY;
 
-  if (cudaMallocAsync(&table.d_symbolFirstState, (maxSymbol + 1) * sizeof(u16), stream) != cudaSuccess)
+  if (cuda_zstd::safe_cuda_malloc_async(&table.d_symbolFirstState, (maxSymbol + 1) * sizeof(u16), stream) != cudaSuccess)
     return Status::ERROR_OUT_OF_MEMORY;
 
   table.allocated = true;

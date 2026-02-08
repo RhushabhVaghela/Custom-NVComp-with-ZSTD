@@ -3,6 +3,7 @@
 // MODIFIED for RTX 5080 (16GB VRAM) - Reduced memory usage
 
 #include "cuda_zstd_manager.h"
+#include "cuda_zstd_safe_alloc.h"
 #include <chrono>
 #include <cuda_runtime.h>
 #include <iostream>
@@ -18,14 +19,19 @@
     }                                                                          \
   } while (0)
 
-// Hardware-safe constants for RTX 5080 (16GB VRAM)
-#define MAX_VRAM_PER_BENCHMARK                                                 \
-  (8ULL * 1024 * 1024 * 1024)                // Max 8GB VRAM per benchmark
-#define SAFE_CHUNK_SIZE (4ULL * 1024 * 1024) // 4 MB chunks (reduced from 16MB)
-#define MAX_TOTAL_SIZE                                                         \
-  (2ULL * 1024 * 1024 * 1024) // 2 GB total (reduced from 5GB)
+// Hardware-safe constants
+#define MAX_VRAM_CAP (8ULL * 1024 * 1024 * 1024)       // 8GB upper cap
+#define SAFE_CHUNK_SIZE (4ULL * 1024 * 1024)            // 4 MB chunks
+#define MAX_TOTAL_SIZE_CAP (2ULL * 1024 * 1024 * 1024)  // 2 GB total upper cap
 
 using namespace cuda_zstd;
+
+// Dynamic VRAM limit: min(hardcoded cap, actual usable VRAM)
+static size_t get_max_vram_budget() {
+    size_t usable = cuda_zstd::get_usable_vram();
+    if (usable == 0) return MAX_VRAM_CAP;
+    return std::min((size_t)MAX_VRAM_CAP, usable);
+}
 
 // --- Test Data Generation ---
 void generate_random_data(void *ptr, size_t size) {
@@ -34,22 +40,29 @@ void generate_random_data(void *ptr, size_t size) {
 }
 
 int main(int argc, char **argv) {
+  size_t vram_budget = get_max_vram_budget();
+  std::cout << "Usable VRAM: " << (vram_budget / 1024 / 1024) << " MB\n";
+
   size_t CHUNK_SIZE = SAFE_CHUNK_SIZE; // 4 MB chunks
-  size_t TOTAL_SIZE = MAX_TOTAL_SIZE;  // 2 GB Total
+  size_t TOTAL_SIZE = MAX_TOTAL_SIZE_CAP; // 2 GB Total upper cap
 
   if (argc > 1)
     CHUNK_SIZE = std::stoull(argv[1]);
   if (argc > 2)
     TOTAL_SIZE = std::stoull(argv[2]) * 1024 * 1024;
 
-  // Memory safety check
-  if (CHUNK_SIZE > 8 * 1024 * 1024) {
-    std::cerr << "WARNING: Chunk size too large for safety, capping at 8MB\n";
-    CHUNK_SIZE = 8 * 1024 * 1024;
+  // Memory safety check - dynamic caps based on actual usable VRAM/RAM
+  size_t max_chunk = std::min((size_t)(8 * 1024 * 1024), vram_budget / 4);
+  if (CHUNK_SIZE > max_chunk) {
+    std::cerr << "WARNING: Chunk size too large for safety, capping at "
+              << (max_chunk / 1024 / 1024) << "MB\n";
+    CHUNK_SIZE = max_chunk;
   }
-  if (TOTAL_SIZE > 4ULL * 1024 * 1024 * 1024) {
-    std::cerr << "WARNING: Total size too large for safety, capping at 4GB\n";
-    TOTAL_SIZE = 4ULL * 1024 * 1024 * 1024;
+  size_t max_total = std::min((size_t)MAX_TOTAL_SIZE_CAP, vram_budget);
+  if (TOTAL_SIZE > max_total) {
+    std::cerr << "WARNING: Total size too large for safety, capping at "
+              << (max_total / 1024 / 1024) << "MB\n";
+    TOTAL_SIZE = max_total;
   }
 
   std::cout << "Pipeline Benchmark (FSE Encoding) - RTX 5080 Safe Mode"
@@ -71,8 +84,8 @@ int main(int argc, char **argv) {
 
   // 2. Allocate Host Buffers (Pinned for Async Copy)
   void *h_input, *h_output;
-  CHECK_CUDA(cudaMallocHost(&h_input, CHUNK_SIZE));
-  CHECK_CUDA(cudaMallocHost(&h_output, CHUNK_SIZE * 2)); // Conservative
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc_host(&h_input, CHUNK_SIZE));
+  CHECK_CUDA(cuda_zstd::safe_cuda_malloc_host(&h_output, CHUNK_SIZE * 2)); // Conservative
 
   generate_random_data(h_input, CHUNK_SIZE);
 

@@ -701,8 +701,8 @@ void launch_copy_literals(const unsigned char *input, u32 input_size,
   u32 offset_count = num_sequences + 1;
   u32 *d_in_offsets = nullptr;
   u32 *d_out_offsets = nullptr;
-  cudaMallocAsync(&d_in_offsets, offset_count * sizeof(u32), stream);
-  cudaMallocAsync(&d_out_offsets, offset_count * sizeof(u32), stream);
+  if (cuda_zstd::safe_cuda_malloc_async(&d_in_offsets, offset_count * sizeof(u32), stream) != cudaSuccess) return;
+  if (cuda_zstd::safe_cuda_malloc_async(&d_out_offsets, offset_count * sizeof(u32), stream) != cudaSuccess) return;
 
   // Pass 1: Compute offsets (sequential scan, but only integer adds — very fast)
   compute_literal_offsets_kernel<<<1, 1, 0, stream>>>(
@@ -1418,7 +1418,7 @@ public:
       return Status::SUCCESS; // Already allocated
 
     // 1. Allocate 3 Tables
-    cudaError_t err = cudaMallocAsync(&d_cached_fse_tables,
+    cudaError_t err = cuda_zstd::safe_cuda_malloc_async(&d_cached_fse_tables,
                                       3 * sizeof(fse::FSEEncodeTable), stream);
     if (err != cudaSuccess)
       return Status::ERROR_OUT_OF_MEMORY;
@@ -1433,7 +1433,7 @@ public:
         h_norm_u32[i] = h_norm[i];
 
       u32 *d_norm;
-      CUDA_CHECK(cudaMallocAsync(&d_norm, (max_s + 1) * sizeof(u32), stream));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&d_norm, (max_s + 1) * sizeof(u32), stream));
       cudaMemcpyAsync(d_norm, h_norm_u32.data(), (max_s + 1) * sizeof(u32),
                       cudaMemcpyHostToDevice, stream);
 
@@ -1442,16 +1442,16 @@ public:
       h_desc.table_log = t_log;
       h_desc.table_size = 1 << t_log;
 
-      CUDA_CHECK(cudaMallocAsync(
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(
           &h_desc.d_symbol_table,
           (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream));
-      CUDA_CHECK(cudaMallocAsync(&h_desc.d_next_state, h_desc.table_size * sizeof(u16),
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&h_desc.d_next_state, h_desc.table_size * sizeof(u16),
                       stream));
-      CUDA_CHECK(cudaMallocAsync(&h_desc.d_nbBits_table, h_desc.table_size * sizeof(u8),
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&h_desc.d_nbBits_table, h_desc.table_size * sizeof(u8),
                       stream));
-      CUDA_CHECK(cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
                       stream));
-      CUDA_CHECK(cudaMallocAsync(&h_desc.d_state_to_symbol, h_desc.table_size * sizeof(u8),
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&h_desc.d_state_to_symbol, h_desc.table_size * sizeof(u8),
                       stream));
 
       cudaMemcpyAsync(&d_cached_fse_tables[idx], &h_desc,
@@ -2849,7 +2849,7 @@ public:
 
         // Extract literals using valid sequence data (including dummy)
         u32 *d_extracted_size;
-        CUDA_CHECK(cudaMallocAsync(&d_extracted_size, sizeof(u32), stream));
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&d_extracted_size, sizeof(u32), stream));
 
         launch_copy_literals(block_input, current_block_size_val, d_lit_len_ptr,
                              d_match_len_ptr, num_seq,
@@ -4539,7 +4539,7 @@ private:
     if (using_cache) {
       d_tables = d_cached_fse_tables;
     } else {
-      CUDA_CHECK(cudaMallocAsync(&d_tables, 3 * sizeof(fse::FSEEncodeTable), stream));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&d_tables, 3 * sizeof(fse::FSEEncodeTable), stream));
 
       // Helper to build one table
       auto build_table = [&](fse::TableType type, int idx) -> Status {
@@ -4551,7 +4551,7 @@ private:
           h_norm_u32[i] = h_norm[i];
 
         u32 *d_norm;
-        CUDA_CHECK(cudaMallocAsync(&d_norm, (max_s + 1) * sizeof(u32), stream));
+      CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&d_norm, (max_s + 1) * sizeof(u32), stream));
         cudaMemcpyAsync(d_norm, h_norm_u32.data(), (max_s + 1) * sizeof(u32),
                         cudaMemcpyHostToDevice, stream);
         table_sub_allocs.push_back(d_norm); // Track for cleanup
@@ -4562,19 +4562,19 @@ private:
         u32 table_size = 1 << t_log;
         h_desc.table_size = table_size;
 
-        CUDA_CHECK(cudaMallocAsync(
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(
             &h_desc.d_symbol_table,
             (max_s + 1) * sizeof(fse::FSEEncodeTable::FSEEncodeSymbol), stream));
         table_sub_allocs.push_back(h_desc.d_symbol_table);
-        CUDA_CHECK(cudaMallocAsync(&h_desc.d_next_state, table_size * sizeof(u16), stream));
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&h_desc.d_next_state, table_size * sizeof(u16), stream));
         table_sub_allocs.push_back(h_desc.d_next_state);
-        CUDA_CHECK(cudaMallocAsync(&h_desc.d_nbBits_table, table_size * sizeof(u8),
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&h_desc.d_nbBits_table, table_size * sizeof(u8),
                         stream));
         table_sub_allocs.push_back(h_desc.d_nbBits_table);
-        CUDA_CHECK(cudaMallocAsync(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&h_desc.d_symbol_first_state, (max_s + 1) * sizeof(u16),
                         stream));
         table_sub_allocs.push_back(h_desc.d_symbol_first_state);
-        CUDA_CHECK(cudaMallocAsync(&h_desc.d_state_to_symbol, table_size * sizeof(u8),
+        CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&h_desc.d_state_to_symbol, table_size * sizeof(u8),
                         stream));
         table_sub_allocs.push_back(h_desc.d_state_to_symbol);
 
@@ -4608,11 +4608,11 @@ private:
 
     // 3. Launch Encoding
     size_t *d_pos;
-    CUDA_CHECK(cudaMallocAsync(&d_pos, sizeof(size_t), stream));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&d_pos, sizeof(size_t), stream));
 
     size_t capacity = num_sequences * 8 + 512;
     unsigned char *d_bitstream;
-    CUDA_CHECK(cudaMallocAsync(&d_bitstream, capacity, stream));
+    CUDA_CHECK(cuda_zstd::safe_cuda_malloc_async(&d_bitstream, capacity, stream));
     cudaMemsetAsync(d_bitstream, 0, capacity, stream);
 
     // Use interleaved FSE encoder matching decode_sequences_interleaved

@@ -35,11 +35,18 @@ using namespace cuda_zstd;
     }                                                                          \
   } while (0)
 
-// Hardware-safe constants for Asus Zephyrus G16 (32GB RAM / 16GB VRAM)
-#define MAX_VRAM_PER_BENCHMARK                                                 \
-  (4ULL * 1024 * 1024 * 1024) // 4GB max per benchmark
+// Hardware-safe constants
+#define MAX_VRAM_CAP                                                           \
+  (4ULL * 1024 * 1024 * 1024) // 4GB upper cap per benchmark
 #define MAX_OUTPUT_MULTIPLIER 1.5f
 #define MAX_SAFE_DATA_SIZE (256ULL * 1024 * 1024) // 256MB max per test
+
+// Dynamic VRAM limit: min(hardcoded cap, actual usable VRAM)
+static size_t get_max_vram_budget() {
+    size_t usable = cuda_zstd::get_usable_vram();
+    if (usable == 0) return MAX_VRAM_CAP;
+    return std::min((size_t)MAX_VRAM_CAP, usable);
+}
 
 // Data sizes to test (reduced for 16GB VRAM constraint)
 // Note: Removed 1GB test to prevent memory exhaustion
@@ -617,10 +624,11 @@ void print_summary(const std::vector<BenchmarkResult> &results) {
 // MAIN
 // ============================================================================
 int main(int argc, char **argv) {
+  size_t vram_budget = get_max_vram_budget();
   std::cout << "========================================\n";
   std::cout << "  CUDA ZSTD Comprehensive Benchmark\n";
-  std::cout << "  Levels 1-22, Sizes 1MB-256MB (G16 Safe)\n";
-  std::cout << "  Max VRAM per test: 4GB\n";
+  std::cout << "  Levels 1-22, Sizes 1MB-256MB\n";
+  std::cout << "  Usable VRAM: " << (vram_budget/1024/1024) << " MB\n";
   std::cout << "========================================\n\n";
 
   // Parse arguments

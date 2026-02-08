@@ -1862,7 +1862,7 @@ Status encode_huffman(const unsigned char *d_input, u32 input_size,
 
   // Use pinned memory for async transfer
   u32 *h_frequencies = nullptr;
-  CUDA_CHECK(cudaMallocHost(&h_frequencies, MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
+  CUDA_CHECK(cuda_zstd::safe_cuda_malloc_host(&h_frequencies, MAX_HUFFMAN_SYMBOLS * sizeof(u32)));
 
   CUDA_CHECK(cudaMemcpyAsync(h_frequencies, d_frequencies,
                              MAX_HUFFMAN_SYMBOLS * sizeof(u32),

@@ -78,9 +78,9 @@ Status PipelinedBatchManager::init_resources() {
       return Status::ERROR_OUT_OF_MEMORY;
 
     // Host Pinned Allocation for maximum bandwidth
-    if (cudaMallocHost(&ring_buffer_[i].h_input, batch_size_) != cudaSuccess)
+    if (cuda_zstd::safe_cuda_malloc_host(&ring_buffer_[i].h_input, batch_size_) != cudaSuccess)
       return Status::ERROR_OUT_OF_MEMORY;
-    if (cudaMallocHost(&ring_buffer_[i].h_output, output_bound) != cudaSuccess)
+    if (cuda_zstd::safe_cuda_malloc_host(&ring_buffer_[i].h_output, output_bound) != cudaSuccess)
       return Status::ERROR_OUT_OF_MEMORY;
 
     ring_buffer_[i].input_capacity = batch_size_;

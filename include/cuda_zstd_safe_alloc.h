@@ -92,7 +92,121 @@ inline cudaError_t safe_cuda_malloc(T** ptr, size_t size) {
 }
 
 // ============================================================================
-// Safe Host Memory Allocation
+// Safe GPU Memory Allocation (Async / Stream-ordered)
+// ============================================================================
+
+/**
+ * @brief Allocate GPU memory asynchronously with safety buffer enforcement.
+ *
+ * Same safety check as safe_cuda_malloc(), but uses cudaMallocAsync() to
+ * perform a stream-ordered allocation.  This is the drop-in replacement for
+ * every raw cudaMallocAsync() call in the codebase.
+ *
+ * @param ptr    Output pointer (same semantics as cudaMallocAsync).
+ * @param size   Bytes to allocate.
+ * @param stream CUDA stream for the async allocation.
+ * @return cudaError_t
+ */
+inline cudaError_t safe_cuda_malloc_async(void** ptr, size_t size,
+                                          cudaStream_t stream) {
+    if (ptr == nullptr) {
+        return cudaErrorInvalidValue;
+    }
+    *ptr = nullptr;
+
+    if (size == 0) {
+        return cudaSuccess;
+    }
+
+    size_t free_mem = 0;
+    size_t total_mem = 0;
+    cudaError_t query_err = cudaMemGetInfo(&free_mem, &total_mem);
+    if (query_err != cudaSuccess) {
+        return query_err;
+    }
+
+    if (free_mem < size + VRAM_SAFETY_BUFFER_BYTES) {
+#ifdef CUDA_ZSTD_DEBUG
+        std::fprintf(stderr,
+                     "[safe_cuda_malloc_async] REFUSED: requested %zu bytes, "
+                     "free VRAM %zu bytes, safety buffer %zu bytes, "
+                     "shortfall %zu bytes\n",
+                     size, free_mem, VRAM_SAFETY_BUFFER_BYTES,
+                     (size + VRAM_SAFETY_BUFFER_BYTES) - free_mem);
+#endif
+        return cudaErrorMemoryAllocation;
+    }
+
+    return cudaMallocAsync(ptr, size, stream);
+}
+
+/**
+ * @brief Typed overload for convenience with non-void pointers.
+ */
+template <typename T>
+inline cudaError_t safe_cuda_malloc_async(T** ptr, size_t size,
+                                          cudaStream_t stream) {
+    return safe_cuda_malloc_async(reinterpret_cast<void**>(ptr), size, stream);
+}
+
+// ============================================================================
+// Safe Host Pinned Memory Allocation
+// ============================================================================
+
+/**
+ * @brief Allocate host pinned memory with safety buffer enforcement.
+ *
+ * Wraps cudaMallocHost() with a free-RAM check (Linux only) to prevent
+ * the host from running out of memory in WSL / constrained environments.
+ *
+ * Returns cudaError_t, compatible with CUDA_CHECK().
+ *
+ * @param ptr    Output pointer (same semantics as cudaMallocHost).
+ * @param size   Bytes to allocate.
+ * @return cudaError_t
+ */
+inline cudaError_t safe_cuda_malloc_host(void** ptr, size_t size) {
+    if (ptr == nullptr) {
+        return cudaErrorInvalidValue;
+    }
+    *ptr = nullptr;
+
+    if (size == 0) {
+        return cudaSuccess;
+    }
+
+#ifdef __linux__
+    struct sysinfo si;
+    if (sysinfo(&si) == 0) {
+        size_t available_ram =
+            static_cast<size_t>(si.freeram) * static_cast<size_t>(si.mem_unit);
+        if (available_ram < size + RAM_SAFETY_BUFFER_BYTES) {
+#ifdef CUDA_ZSTD_DEBUG
+            std::fprintf(stderr,
+                         "[safe_cuda_malloc_host] REFUSED: requested %zu bytes, "
+                         "free RAM %zu bytes, safety buffer %zu bytes, "
+                         "shortfall %zu bytes\n",
+                         size, available_ram, RAM_SAFETY_BUFFER_BYTES,
+                         (size + RAM_SAFETY_BUFFER_BYTES) - available_ram);
+#endif
+            return cudaErrorMemoryAllocation;
+        }
+    }
+#endif
+
+    return cudaMallocHost(ptr, size);
+}
+
+/**
+ * @brief Typed overload for non-void host pointers.
+ */
+template <typename T>
+inline cudaError_t safe_cuda_malloc_host(T** ptr, size_t size) {
+    return safe_cuda_malloc_host(reinterpret_cast<void**>(ptr), size);
+}
+
+// ============================================================================
+// Safe Host Memory Allocation (malloc-based)
 // ============================================================================
 
 /**

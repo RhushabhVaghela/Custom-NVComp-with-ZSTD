@@ -110,7 +110,7 @@ int main() {
     std::cout << "\n[SKIP] zstd CLI not found. Install zstd to run these tests."
               << std::endl;
     std::cout << "Tests skipped (no zstd CLI available)." << std::endl;
-    return 0; // Return success - test is skipped, not failed
+    return 77; // Standard skip exit code (Automake/CTest convention)
   }
 
   bool all_passed = true;
