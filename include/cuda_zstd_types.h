@@ -443,11 +443,11 @@ struct BatchRoutingResult {
 // after any allocation. They prevent WSL crashes and system instability by
 // ensuring the OS/GPU driver always has enough headroom.
 
-/** VRAM safety buffer: 3 GB must remain free after every GPU allocation */
-constexpr size_t VRAM_SAFETY_BUFFER_BYTES = 3ULL * 1024 * 1024 * 1024;
+/** VRAM safety buffer: 256 MB must remain free after every GPU allocation */
+constexpr size_t VRAM_SAFETY_BUFFER_BYTES = 256ULL * 1024 * 1024;
 
-/** RAM safety buffer: 4 GB must remain free after every host allocation */
-constexpr size_t RAM_SAFETY_BUFFER_BYTES = 4ULL * 1024 * 1024 * 1024;
+/** RAM safety buffer: 512 MB must remain free after every host allocation */
+constexpr size_t RAM_SAFETY_BUFFER_BYTES = 512ULL * 1024 * 1024;
 
 // ============================================================================
 // Compression Workspace (NEW - for workspace-based memory management)
